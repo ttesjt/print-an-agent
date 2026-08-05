@@ -1,0 +1,11 @@
+[project]
+name = "ta-agent-workbench-package"
+version = "0.1.0"
+description = "Private template for Modular Agent Model Workbench Python packages."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.11.18,<0.12.0"]
+build-backend = "uv_build"

@@ -1,18 +1,5 @@
 {
-  "compilerOptions": {
-    "module": "nodenext",
-    "target": "esnext",
-    "types": [],
-    "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "strict": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true
-  }
+  "extends": "./tsconfig.base.json",
+  "include": ["eslint.boundaries.js", "test/**/*.ts", "tooling/**/*.ts"],
+  "exclude": ["**/dist/**", "**/node_modules/**", "modules/**/python/**"]
 }

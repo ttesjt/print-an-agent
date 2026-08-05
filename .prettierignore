@@ -2,5 +2,9 @@ node_modules
 dist
 *.tsbuildinfo
 coverage
-pnpm-lock.yaml
+modules/**/python/.venv
+modules/**/python/.pytest_cache
+modules/**/python/.mypy_cache
+modules/**/python/.ruff_cache
+temp
 *.log

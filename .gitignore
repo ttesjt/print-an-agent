@@ -2,16 +2,23 @@
 node_modules/
 .pnp
 .pnp.js
+.venv/
+__pycache__/
+*.py[cod]
 
 # Testing
 coverage/
 *.lcov
 .nyc_output
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Production
 build/
 dist/
 *.tsbuildinfo
+*.egg-info/
 
 # Misc
 temp/
@@ -59,3 +66,8 @@ Thumbs.db
 .nuxt
 .vite
 .turbo
+
+# Local runtime and generated state
+/data/
+/artifacts/
+/state/

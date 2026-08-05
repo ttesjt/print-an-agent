@@ -1,0 +1,20 @@
+# Modular Agent
+
+A modular framework for building agents with replaceable model, workflow, memory, and application components.
+
+- [Agent Base](./modules/agent-base/README.md) — Workspace for Agent packages.
+- [Model Workbench](./modules/model-workbench/README.md) — Python package template and workspace.
+
+## Development
+
+- Node.js `24.15.0`
+- pnpm `10.28.0`
+- Python `3.11` and uv `0.11.x` for Model Workbench
+
+```sh
+pnpm install --frozen-lockfile
+pnpm python:sync
+pnpm validate
+```
+
+See [Architecture](./docs/architecture.md) and [Development](./docs/development.md).

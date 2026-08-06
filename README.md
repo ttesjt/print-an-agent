@@ -2,7 +2,7 @@
 
 A modular framework for building agents with replaceable model, workflow, memory, and application components.
 
-- [Agent Base](./modules/agent-base/README.md) — Workspace for Agent packages.
+- [Agent Base](./modules/agent-base/README.md) — Agent execution, Sessions, and composition.
 - [Model Workbench](./modules/model-workbench/README.md) — Python package template and workspace.
 
 ## Development

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { definePackage } from '../src/index.js';
+import { definePackage } from '../../src/index.js';
 
 describe('package template', () => {
   it('is usable through its public entry point', () => {

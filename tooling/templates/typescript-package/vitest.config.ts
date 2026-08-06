@@ -5,18 +5,18 @@ export default mergeConfig(
   baseConfig,
   defineConfig({
     test: {
-      include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
+      include: ['test/{unit,integration}/**/*.test.ts'],
       projects: [
         {
           test: {
             name: 'unit',
-            include: ['src/**/*.test.ts'],
+            include: ['test/unit/**/*.test.ts'],
           },
         },
         {
           test: {
             name: 'integration',
-            include: ['test/**/*.test.ts'],
+            include: ['test/integration/**/*.test.ts'],
           },
         },
       ],

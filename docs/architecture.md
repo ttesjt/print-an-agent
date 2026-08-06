@@ -1,6 +1,6 @@
 # Repository architecture
 
-- [Agent Base](../modules/agent-base/README.md) owns workspace for Agent packages.
+- [Agent Base](../modules/agent-base/README.md) owns agent execution, Sessions, and composition.
 - [Model Workbench](../modules/model-workbench/README.md) owns python package template and workspace.
 
 Workspace libraries use the `@ta-agent/*` scope. Consumers declare dependencies in their own

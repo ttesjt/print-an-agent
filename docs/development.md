@@ -8,6 +8,18 @@ the npm package, source symbols, and README before adding implementation.
 Every package must provide build, clean, test, typecheck, lint, and format scripts and export only
 its public `dist` entry points.
 
+Production source contains no test files. Use this package layout:
+
+```text
+test/
+├── unit/
+├── integration/
+└── fixtures/
+```
+
+Name executable tests `*.test.ts`. Unit tests may import package source through relative paths;
+integration tests should prefer the package public entry point.
+
 ## Python package
 
 Model Workbench owns an independent uv workspace at `modules/model-workbench/python`. Copy its

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { definePackage } from './define-package.js';
+import { definePackage } from '../../src/lib/define-package.js';
 
 describe('definePackage', () => {
   it('returns an immutable copy', () => {

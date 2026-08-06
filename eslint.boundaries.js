@@ -36,7 +36,7 @@ export const boundaryConfigs = Object.freeze([
     ],
     rules: moduleRestrictions([
       {
-        group: ['@ta-agent/agent-*', '@ta-agent/self-learn-*'],
+        group: ['@ta-agent/base-*', '@ta-agent/self-learn-*'],
         message: 'Model Workbench must remain independent of Agent Base and Self-Learn Agent.',
       },
     ]),

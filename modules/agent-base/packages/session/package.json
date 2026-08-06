@@ -1,0 +1,45 @@
+{
+  "name": "@ta-agent/base-session",
+  "version": "0.1.0",
+  "description": "Generic session ports and in-memory conversation adapter for Agent Base.",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "typecheck": "pnpm run build && tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@ta-agent/base-identity": "workspace:*",
+    "@ta-agent/base-model": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  }
+}

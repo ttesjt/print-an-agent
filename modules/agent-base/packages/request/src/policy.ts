@@ -5,6 +5,7 @@ export const DEFAULT_REQUEST_POLICY: RequestPolicy = Object.freeze({
   maxMessageCharacters: 32_000,
   maxInstructionsCharacters: 32_000,
   maxOutputCharacters: 64_000,
+  maxProviderTurns: 4,
   timeoutMilliseconds: 30_000,
 });
 

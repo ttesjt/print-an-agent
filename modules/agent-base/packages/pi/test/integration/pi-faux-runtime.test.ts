@@ -3,12 +3,75 @@ import {
   defineProviderModelReference,
   type AgentLoopEvent,
 } from '@ta-agent/base-model';
-import { describe, expect, it } from 'vitest';
+import {
+  AgentToolError,
+  createBoundedToolRuntime,
+  createToolRegistry,
+  DEFAULT_TOOL_EXECUTION_POLICY,
+  DENY_ALL_TOOL_PERMISSION_POLICY,
+  EMPTY_TOOL_REGISTRY,
+  defineTool,
+  defineToolPermissionPolicy,
+  type ToolExecutionRequest,
+} from '@ta-agent/base-tool';
+import { describe, expect, it, vi } from 'vitest';
 import { createPiFauxRuntime } from '../../src/index.js';
 
 function prompt(text: string) {
   return Object.freeze({ role: 'user' as const, text, timestamp: 1 });
 }
+
+function emptyTools(signal: AbortSignal) {
+  return createBoundedToolRuntime({
+    registry: EMPTY_TOOL_REGISTRY,
+    permissionPolicy: DENY_ALL_TOOL_PERMISSION_POLICY,
+    executionPolicy: DEFAULT_TOOL_EXECUTION_POLICY,
+    signal,
+  });
+}
+
+const addSchema = {
+  type: 'object',
+  properties: {
+    left: { type: 'number' },
+    right: { type: 'number' },
+  },
+  required: ['left', 'right'],
+  additionalProperties: false,
+} as const;
+
+function addToolRuntime(
+  signal: AbortSignal,
+  execute: (left: number, right: number) => Promise<string> = (left, right) =>
+    Promise.resolve(String(left + right))
+) {
+  const handler = vi.fn(async ({ arguments: input }: ToolExecutionRequest<AddInput>) => ({
+    text: await execute(input.left, input.right),
+  }));
+  const tool = defineTool({
+    name: 'add',
+    description: 'Adds two numbers.',
+    parameters: addSchema,
+    execute: handler,
+  });
+  const permissionPolicy = defineToolPermissionPolicy({
+    task: ['add'],
+    assignment: ['add'],
+    product: ['add'],
+    runtime: ['add'],
+  });
+  return {
+    handler,
+    runtime: createBoundedToolRuntime({
+      registry: createToolRegistry([tool]),
+      permissionPolicy,
+      executionPolicy: DEFAULT_TOOL_EXECUTION_POLICY,
+      signal,
+    }),
+  };
+}
+
+type AddInput = Readonly<{ left: number; right: number }>;
 
 describe('Pi faux Agent Loop runtime', () => {
   it('traverses the real Pi loop and normalizes ordered streaming events', async () => {
@@ -19,13 +82,16 @@ describe('Pi faux Agent Loop runtime', () => {
     const target = await profile.runtime.resolveTarget(profile.modelReference);
     const events: AgentLoopEvent[] = [];
 
+    const signal = new AbortController().signal;
     const result = await profile.runtime.run({
       target,
       instructions: 'Be concise.',
       history: [],
       prompt: prompt('hi'),
+      tools: emptyTools(signal),
+      maxProviderTurns: 4,
       maxOutputCharacters: 100,
-      signal: new AbortController().signal,
+      signal,
       emit: (event) => {
         events.push(event);
         return Promise.resolve();
@@ -74,13 +140,16 @@ describe('Pi faux Agent Loop runtime', () => {
       timestamp: 2,
     });
 
+    const signal = new AbortController().signal;
     const result = await profile.runtime.run({
       target,
       instructions: '',
       history: [prompt('first'), priorAssistant],
       prompt: Object.freeze({ role: 'user', text: 'second', timestamp: 3 }),
+      tools: emptyTools(signal),
+      maxProviderTurns: 4,
       maxOutputCharacters: 1_000,
-      signal: new AbortController().signal,
+      signal,
       emit: () => Promise.resolve(),
     });
 
@@ -94,6 +163,7 @@ describe('Pi faux Agent Loop runtime', () => {
     });
     const target = await profile.runtime.resolveTarget(profile.modelReference);
     const deltas: string[] = [];
+    const signal = new AbortController().signal;
 
     await expect(
       profile.runtime.run({
@@ -101,8 +171,10 @@ describe('Pi faux Agent Loop runtime', () => {
         instructions: '',
         history: [],
         prompt: prompt('hi'),
+        tools: emptyTools(signal),
+        maxProviderTurns: 4,
         maxOutputCharacters: 100,
-        signal: new AbortController().signal,
+        signal,
         emit: (event) => {
           if (event.type === 'text-delta') deltas.push(event.delta);
           return Promise.resolve();
@@ -129,6 +201,8 @@ describe('Pi faux Agent Loop runtime', () => {
         instructions: '',
         history: [],
         prompt: prompt('hi'),
+        tools: emptyTools(controller.signal),
+        maxProviderTurns: 4,
         maxOutputCharacters: 100,
         signal: controller.signal,
         emit: (event) => {
@@ -149,6 +223,7 @@ describe('Pi faux Agent Loop runtime', () => {
       charactersPerChunk: 2,
     });
     const target = await profile.runtime.resolveTarget(profile.modelReference);
+    const signal = new AbortController().signal;
 
     await expect(
       profile.runtime.run({
@@ -156,8 +231,10 @@ describe('Pi faux Agent Loop runtime', () => {
         instructions: '',
         history: [],
         prompt: prompt('hi'),
+        tools: emptyTools(signal),
+        maxProviderTurns: 4,
         maxOutputCharacters: 3,
-        signal: new AbortController().signal,
+        signal,
         emit: () => Promise.resolve(),
       })
     ).rejects.toEqual(
@@ -186,6 +263,7 @@ describe('Pi faux Agent Loop runtime', () => {
       responses: [{ status: 'tool-call', name: 'unexpected', arguments: { value: 1 } }],
     });
     const target = await profile.runtime.resolveTarget(profile.modelReference);
+    const signal = new AbortController().signal;
 
     await expect(
       profile.runtime.run({
@@ -193,14 +271,193 @@ describe('Pi faux Agent Loop runtime', () => {
         instructions: '',
         history: [],
         prompt: prompt('hi'),
+        tools: emptyTools(signal),
+        maxProviderTurns: 4,
         maxOutputCharacters: 100,
-        signal: new AbortController().signal,
+        signal,
+        emit: () => Promise.resolve(),
+      })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<AgentToolError>>({
+        code: 'TOOL_NOT_AUTHORIZED',
+      })
+    );
+  });
+
+  it('runs a real Pi tool turn and publishes only the final provider text', async () => {
+    const profile = createPiFauxRuntime({
+      responses: [
+        {
+          status: 'tool-call',
+          callId: 'call-1',
+          name: 'add',
+          text: 'intermediate private text',
+          arguments: { left: 2, right: 3 },
+        },
+        (request) => ({
+          status: 'success',
+          text: `final:${request.toolResults.at(-1)?.text ?? 'missing'}`,
+        }),
+      ],
+      charactersPerChunk: 2,
+    });
+    const target = await profile.runtime.resolveTarget(profile.modelReference);
+    const signal = new AbortController().signal;
+    const tools = addToolRuntime(signal);
+    const deltas: string[] = [];
+
+    const result = await profile.runtime.run({
+      target,
+      instructions: '',
+      history: [],
+      prompt: prompt('add'),
+      tools: tools.runtime,
+      maxProviderTurns: 3,
+      maxOutputCharacters: 1_000,
+      signal,
+      emit: (event) => {
+        if (event.type === 'text-delta') deltas.push(event.delta);
+        return Promise.resolve();
+      },
+    });
+
+    expect(result.message.text).toBe('final:5');
+    expect(deltas.join('')).toBe('final:5');
+    expect(deltas.join('')).not.toContain('intermediate private text');
+    expect(tools.handler).toHaveBeenCalledTimes(1);
+    expect(tools.runtime.inspect()).toMatchObject({
+      status: 'open',
+      records: [{ callId: 'call-1', toolName: 'add', status: 'success' }],
+    });
+    expect(profile.inspect()).toMatchObject({
+      callCount: 2,
+      toolEvents: [
+        { type: 'tool-call-start', callId: 'call-1', toolName: 'add' },
+        { type: 'tool-call-end', callId: 'call-1', toolName: 'add', status: 'success' },
+      ],
+    });
+    expect(profile.inspect().requests[1]?.toolResults).toEqual([
+      { callId: 'call-1', toolName: 'add', text: '5', isError: false },
+    ]);
+  });
+
+  it('fails malformed Pi tool arguments before the Agent Base handler', async () => {
+    const profile = createPiFauxRuntime({
+      responses: [
+        { status: 'tool-call', callId: 'bad', name: 'add', arguments: { left: 'two', right: 3 } },
+      ],
+    });
+    const target = await profile.runtime.resolveTarget(profile.modelReference);
+    const signal = new AbortController().signal;
+    const tools = addToolRuntime(signal);
+
+    await expect(
+      profile.runtime.run({
+        target,
+        instructions: '',
+        history: [],
+        prompt: prompt('add'),
+        tools: tools.runtime,
+        maxProviderTurns: 3,
+        maxOutputCharacters: 1_000,
+        signal,
+        emit: () => Promise.resolve(),
+      })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<AgentToolError>>({ code: 'TOOL_ARGUMENTS_INVALID' })
+    );
+    expect(tools.handler).not.toHaveBeenCalled();
+  });
+
+  it('returns an ordinary handler error to Pi so the model can recover', async () => {
+    const profile = createPiFauxRuntime({
+      responses: [
+        { status: 'tool-call', callId: 'handler', name: 'add', arguments: { left: 2, right: 3 } },
+        (request) => ({
+          status: 'success',
+          text: request.toolResults.at(-1)?.isError === true ? 'recovered' : 'unexpected',
+        }),
+      ],
+    });
+    const target = await profile.runtime.resolveTarget(profile.modelReference);
+    const signal = new AbortController().signal;
+    const tools = addToolRuntime(signal, () => Promise.reject(new Error('handler failed')));
+
+    const result = await profile.runtime.run({
+      target,
+      instructions: '',
+      history: [],
+      prompt: prompt('add'),
+      tools: tools.runtime,
+      maxProviderTurns: 3,
+      maxOutputCharacters: 1_000,
+      signal,
+      emit: () => Promise.resolve(),
+    });
+
+    expect(result.message.text).toBe('recovered');
+    expect(profile.inspect().requests[1]?.toolResults[0]).toEqual({
+      callId: 'handler',
+      toolName: 'add',
+      text: 'Tool execution failed.',
+      isError: true,
+    });
+  });
+
+  it('enforces duplicate call identity and provider-turn budget across Pi turns', async () => {
+    const duplicateProfile = createPiFauxRuntime({
+      responses: [
+        { status: 'tool-call', callId: 'same', name: 'add', arguments: { left: 1, right: 1 } },
+        { status: 'tool-call', callId: 'same', name: 'add', arguments: { left: 2, right: 2 } },
+      ],
+    });
+    const duplicateTarget = await duplicateProfile.runtime.resolveTarget(
+      duplicateProfile.modelReference
+    );
+    const duplicateSignal = new AbortController().signal;
+    const duplicateTools = addToolRuntime(duplicateSignal);
+    await expect(
+      duplicateProfile.runtime.run({
+        target: duplicateTarget,
+        instructions: '',
+        history: [],
+        prompt: prompt('add'),
+        tools: duplicateTools.runtime,
+        maxProviderTurns: 3,
+        maxOutputCharacters: 1_000,
+        signal: duplicateSignal,
+        emit: () => Promise.resolve(),
+      })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<AgentToolError>>({ code: 'TOOL_CALL_DUPLICATE' })
+    );
+    expect(duplicateTools.handler).toHaveBeenCalledTimes(1);
+
+    const budgetProfile = createPiFauxRuntime({
+      responses: [
+        { status: 'tool-call', callId: 'one', name: 'add', arguments: { left: 1, right: 1 } },
+      ],
+    });
+    const budgetTarget = await budgetProfile.runtime.resolveTarget(budgetProfile.modelReference);
+    const budgetSignal = new AbortController().signal;
+    const budgetTools = addToolRuntime(budgetSignal);
+    await expect(
+      budgetProfile.runtime.run({
+        target: budgetTarget,
+        instructions: '',
+        history: [],
+        prompt: prompt('add'),
+        tools: budgetTools.runtime,
+        maxProviderTurns: 1,
+        maxOutputCharacters: 1_000,
+        signal: budgetSignal,
         emit: () => Promise.resolve(),
       })
     ).rejects.toEqual(
       expect.objectContaining<Partial<AgentModelError>>({
-        code: 'MODEL_RUNTIME_PROTOCOL_INVALID',
+        code: 'MODEL_PROVIDER_TURN_LIMIT_EXCEEDED',
       })
     );
+    expect(budgetProfile.inspect().callCount).toBe(1);
   });
 });

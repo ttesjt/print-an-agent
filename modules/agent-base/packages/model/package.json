@@ -28,7 +28,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
-  "dependencies": {},
+  "dependencies": {
+    "@ta-agent/base-tool": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",

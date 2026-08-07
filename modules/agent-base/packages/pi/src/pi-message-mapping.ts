@@ -1,5 +1,6 @@
 import {
   fauxAssistantMessage,
+  fauxText,
   fauxToolCall,
   type Api,
   type AssistantMessage,
@@ -7,7 +8,7 @@ import {
   type Model,
 } from '@earendil-works/pi-ai';
 import { defineProviderModelReference, type ModelMessage } from '@ta-agent/base-model';
-import type { PiFauxRequestSnapshot, PiFauxResponse } from './types.js';
+import type { PiFauxRequestSnapshot, PiFauxResponse, PiFauxToolResultSnapshot } from './types.js';
 
 function cloneModelMessage(message: ModelMessage): ModelMessage {
   if (message.role === 'assistant') {
@@ -20,6 +21,7 @@ export function cloneRequestSnapshot(snapshot: PiFauxRequestSnapshot): PiFauxReq
   return Object.freeze({
     ...snapshot,
     messages: Object.freeze(snapshot.messages.map(cloneModelMessage)),
+    toolResults: Object.freeze(snapshot.toolResults.map((result) => Object.freeze({ ...result }))),
   });
 }
 
@@ -105,9 +107,27 @@ export function createResponseMessage(response: PiFauxResponse): AssistantMessag
     };
   }
   if (response.status === 'tool-call') {
-    return fauxAssistantMessage([fauxToolCall(response.name, { ...response.arguments })], {
+    const toolCall =
+      response.callId === undefined
+        ? fauxToolCall(response.name, { ...response.arguments })
+        : fauxToolCall(response.name, { ...response.arguments }, { id: response.callId });
+    const content = [...(response.text === undefined ? [] : [fauxText(response.text)]), toolCall];
+    return fauxAssistantMessage(content, {
       stopReason: 'toolUse',
     });
   }
   return fauxAssistantMessage(response.text, { stopReason: response.stopReason ?? 'stop' });
+}
+
+export function toToolResultSnapshot(message: Message): PiFauxToolResultSnapshot | undefined {
+  if (message.role !== 'toolResult') return undefined;
+  return Object.freeze({
+    callId: message.toolCallId,
+    toolName: message.toolName,
+    text: message.content
+      .filter((content) => content.type === 'text')
+      .map((content) => content.text)
+      .join(''),
+    isError: message.isError,
+  });
 }

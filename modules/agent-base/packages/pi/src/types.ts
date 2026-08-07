@@ -4,7 +4,25 @@ export interface PiFauxRequestSnapshot {
   readonly callIndex: number;
   readonly instructions: string;
   readonly messages: readonly ModelMessage[];
+  readonly toolResults: readonly PiFauxToolResultSnapshot[];
 }
+
+export interface PiFauxToolResultSnapshot {
+  readonly callId: string;
+  readonly toolName: string;
+  readonly text: string;
+  readonly isError: boolean;
+}
+
+export type PiFauxToolEventSnapshot =
+  | Readonly<{ type: 'tool-call-start'; callId: string; toolName: string }>
+  | Readonly<{
+      type: 'tool-call-end';
+      callId: string;
+      toolName: string;
+      status: 'success' | 'error';
+      resultCharacters: number;
+    }>;
 
 export type PiFauxResponse =
   | Readonly<{ status: 'success'; text: string; stopReason?: 'stop' | 'length' }>
@@ -12,6 +30,8 @@ export type PiFauxResponse =
   | Readonly<{
       status: 'tool-call';
       name: string;
+      callId?: string;
+      text?: string;
       arguments?: Readonly<Record<string, unknown>>;
     }>;
 
@@ -31,6 +51,7 @@ export interface PiFauxRuntimeInspection {
   readonly callCount: number;
   readonly pendingResponseCount: number;
   readonly requests: readonly PiFauxRequestSnapshot[];
+  readonly toolEvents: readonly PiFauxToolEventSnapshot[];
 }
 
 export interface PiFauxRuntimeProfile {

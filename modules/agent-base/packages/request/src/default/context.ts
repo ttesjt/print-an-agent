@@ -7,6 +7,12 @@ import type {
   UserModelMessage,
 } from '@ta-agent/base-model';
 import type { ActiveSessionTurn, SessionPort, SessionReference } from '@ta-agent/base-session';
+import type {
+  ToolExecutionPolicy,
+  ToolPermissionPolicy,
+  ToolRegistry,
+  ToolRuntime,
+} from '@ta-agent/base-tool';
 import type { BaseAgentContext, BaseWorkflowContext } from '@ta-agent/base-workflow';
 import type { RequestStepName } from '../workflow/names.js';
 import type {
@@ -23,6 +29,9 @@ export interface RequestRuntimeResources {
   readonly modelRuntime: AgentLoopRuntime;
   readonly modelReference: ProviderModelReference;
   readonly instructionContributors: readonly InstructionContributor[];
+  readonly toolRegistry: ToolRegistry;
+  readonly toolPermissionPolicy: ToolPermissionPolicy;
+  readonly toolExecutionPolicy: ToolExecutionPolicy;
   readonly createOutputSink: () => OutputSink;
   readonly clock: () => number;
 }
@@ -42,7 +51,7 @@ export interface DefaultRequestWorkflowContext extends BaseWorkflowContext<
   target?: ResolvedExecutionTarget;
   instructions?: string;
   history?: readonly ModelMessage[];
-  tools?: readonly [];
+  tools?: ToolRuntime;
   userMessage?: UserModelMessage;
   modelRequest?: AgentLoopRequest;
   response?: AgentResponse;

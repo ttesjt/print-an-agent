@@ -76,6 +76,9 @@ importers:
       '@ta-agent/base-session':
         specifier: workspace:*
         version: link:../session
+      '@ta-agent/base-tool':
+        specifier: workspace:*
+        version: link:../tool
       '@ta-agent/base-workflow':
         specifier: workspace:*
         version: link:../workflow
@@ -128,6 +131,10 @@ importers:
         version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
 
   modules/agent-base/packages/model:
+    dependencies:
+      '@ta-agent/base-tool':
+        specifier: workspace:*
+        version: link:../tool
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -153,6 +160,12 @@ importers:
       '@ta-agent/base-model':
         specifier: workspace:*
         version: link:../model
+      '@ta-agent/base-tool':
+        specifier: workspace:*
+        version: link:../tool
+      typebox:
+        specifier: 1.1.38
+        version: 1.1.38
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -175,6 +188,9 @@ importers:
       '@ta-agent/base-session':
         specifier: workspace:*
         version: link:../session
+      '@ta-agent/base-tool':
+        specifier: workspace:*
+        version: link:../tool
       '@ta-agent/base-workflow':
         specifier: workspace:*
         version: link:../workflow
@@ -203,6 +219,21 @@ importers:
       '@ta-agent/base-model':
         specifier: workspace:*
         version: link:../model
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
+  modules/agent-base/packages/tool:
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

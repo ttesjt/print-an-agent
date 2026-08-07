@@ -2,6 +2,11 @@
 
 Pi infrastructure adapter for Agent Base-owned model and Agent Loop contracts.
 
-This is the only Agent Base package that imports Pi. It uses the low-level Pi loop and does not expose
-Pi types from its public factories. The current offline profile uses Pi's deterministic faux provider;
-ordinary local and remote provider registration is deferred.
+This is the only Agent Base package that imports Pi or TypeBox. It uses Pi's low-level loop, translates
+Agent Base-owned schemas at the adapter boundary, forces sequential tool execution, and delegates
+every proposal to the run-scoped Agent Base Tool Broker. Pi and TypeBox types do not appear in the
+public factories.
+
+The deterministic faux profile supports offline multi-turn tool-loop tests. Text from intermediate
+tool-use turns is suppressed; only ordered deltas from the terminal assistant turn are published.
+Ordinary local and remote provider registration remains deferred.

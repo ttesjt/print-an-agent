@@ -34,6 +34,7 @@
     "@ta-agent/base-pi": "workspace:*",
     "@ta-agent/base-request": "workspace:*",
     "@ta-agent/base-session": "workspace:*",
+    "@ta-agent/base-tool": "workspace:*",
     "@ta-agent/base-workflow": "workspace:*"
   },
   "devDependencies": {

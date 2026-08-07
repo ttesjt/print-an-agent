@@ -1,5 +1,6 @@
-import type { AgentLoopEvent } from '@ta-agent/base-model';
+import type { AgentLoopEvent, AgentLoopResult } from '@ta-agent/base-model';
 import { parseSessionId, parseTurnId } from '@ta-agent/base-session';
+import { createBoundedToolRuntime } from '@ta-agent/base-tool';
 import { SKIP_STEP, type StepOverrides } from '@ta-agent/base-workflow';
 import type { OutputSink, ValidatedAgentRequest } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
@@ -117,7 +118,13 @@ async function loadSessionContext(context: DefaultRequestWorkflowContext): Promi
 }
 
 function buildTools(context: DefaultRequestWorkflowContext): Promise<void> {
-  context.tools = Object.freeze([]);
+  context.tools = createBoundedToolRuntime({
+    registry: context.resources.toolRegistry,
+    permissionPolicy: context.resources.toolPermissionPolicy,
+    executionPolicy: context.resources.toolExecutionPolicy,
+    signal: context.signal,
+    clock: context.resources.clock,
+  });
   return Promise.resolve();
 }
 
@@ -128,6 +135,8 @@ function buildModelContext(context: DefaultRequestWorkflowContext): Promise<void
     instructions: requireValue(context.instructions, 'instructions'),
     history: requireValue(context.history, 'history'),
     prompt: requireValue(context.userMessage, 'userMessage'),
+    tools: requireValue(context.tools, 'tools'),
+    maxProviderTurns: context.policy.maxProviderTurns,
     maxOutputCharacters: context.policy.maxOutputCharacters,
     signal: context.signal,
     emit: (event: AgentLoopEvent) => handleAgentLoopEvent(context, event),
@@ -172,13 +181,20 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
   } catch (cause: unknown) {
     throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to open.', { cause });
   }
-  const result = await context.resources.modelRuntime.run(
-    requireValue(context.modelRequest, 'modelRequest')
-  );
+  const tools = requireValue(context.tools, 'tools');
+  let result: AgentLoopResult;
+  try {
+    result = await context.resources.modelRuntime.run(
+      requireValue(context.modelRequest, 'modelRequest')
+    );
+  } finally {
+    tools.close();
+  }
   context.response = Object.freeze({
     requestId: context.agentContext.runId,
     sessionId: session.sessionId,
     message: result.message,
+    toolRun: requireValue(context.tools, 'tools').inspect(),
   });
 }
 

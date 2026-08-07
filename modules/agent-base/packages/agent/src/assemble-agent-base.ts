@@ -18,6 +18,12 @@ import {
   type RequestWorkflowName,
 } from '@ta-agent/base-request';
 import { MemorySessionAdapter } from '@ta-agent/base-session';
+import {
+  DEFAULT_TOOL_EXECUTION_POLICY,
+  DENY_ALL_TOOL_PERMISSION_POLICY,
+  EMPTY_TOOL_REGISTRY,
+  validateToolExecutionPolicy,
+} from '@ta-agent/base-tool';
 import { createAgent, type StepOverride, type StepOverrides } from '@ta-agent/base-workflow';
 import type { AgentBaseRunOptions, AssembleAgentBaseOptions, AssembledAgentBase } from './types.js';
 
@@ -42,6 +48,11 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
   const identity = defineAgentIdentity(options.identity);
   const session = options.session ?? new MemorySessionAdapter();
   const requestPolicy = validateRequestPolicy(options.requestPolicy ?? DEFAULT_REQUEST_POLICY);
+  const toolRegistry = options.toolRegistry ?? EMPTY_TOOL_REGISTRY;
+  const toolPermissionPolicy = options.toolPermissionPolicy ?? DENY_ALL_TOOL_PERMISSION_POLICY;
+  const toolExecutionPolicy = validateToolExecutionPolicy(
+    options.toolExecutionPolicy ?? DEFAULT_TOOL_EXECUTION_POLICY
+  );
   const resources = Object.freeze({
     session,
     modelRuntime: options.modelRuntime,
@@ -49,6 +60,9 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
     instructionContributors: Object.freeze(
       options.instructionContributors ?? [() => DEFAULT_INSTRUCTIONS]
     ),
+    toolRegistry,
+    toolPermissionPolicy,
+    toolExecutionPolicy,
     createOutputSink: options.createOutputSink ?? (() => new MemoryOutputSink()),
     clock: options.clock ?? Date.now,
   });
@@ -95,6 +109,9 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
     modelRuntime: options.modelRuntime,
     modelReference: options.modelReference,
     requestPolicy,
+    toolRegistry,
+    toolPermissionPolicy,
+    toolExecutionPolicy,
     async run(input: AgentRequestInput, runOptions: AgentBaseRunOptions = {}) {
       const timeoutSignal = AbortSignal.timeout(requestPolicy.timeoutMilliseconds);
       const signal =

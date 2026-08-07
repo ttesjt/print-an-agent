@@ -2,40 +2,37 @@ import {
   createModels,
   fauxProvider,
   type Api,
-  type AssistantMessage,
   type Context,
   type Message,
   type Model,
   type Models,
   type UserMessage,
 } from '@earendil-works/pi-ai';
-import {
-  runAgentLoop,
-  type AgentEvent,
-  type AgentMessage,
-  type StreamFn,
-} from '@earendil-works/pi-agent-core';
+import { runAgentLoop, type AgentMessage, type StreamFn } from '@earendil-works/pi-agent-core';
 import {
   AgentModelError,
   defineProviderModelReference,
   type AgentLoopRequest,
   type AgentLoopResult,
   type AgentLoopRuntime,
-  type AssistantModelMessage,
   type ProviderModelReference,
   type ResolvedExecutionTarget,
 } from '@ta-agent/base-model';
+import { createPiEventSink, throwTerminalFailure, type PiRunState } from './pi-event-adapter.js';
 import {
   cloneRequestSnapshot,
   createResponseMessage,
   toModelMessage,
   toPiMessage,
+  toToolResultSnapshot,
 } from './pi-message-mapping.js';
+import { createPiTools, type PiToolAdapterState } from './pi-tool-adapter.js';
 import type {
   PiFauxRequestSnapshot,
   PiFauxRuntimeInspection,
   PiFauxRuntimeOptions,
   PiFauxRuntimeProfile,
+  PiFauxToolEventSnapshot,
 } from './types.js';
 
 const DEFAULT_PROVIDER_ID = 'faux';
@@ -48,130 +45,23 @@ function validatePositiveNumber(value: number | undefined, name: string): void {
   }
 }
 
-interface PiRunState {
-  outputCharacters: number;
-  completedMessage?: AssistantModelMessage;
-  terminalFailure?: AssistantMessage;
-  limitFailure?: AgentModelError;
-  eventSinkFailure?: Error;
-}
-
-function normalizeEventSinkFailure(error: unknown): Error {
-  return error instanceof Error
-    ? error
-    : new AgentModelError(
-        'MODEL_RUNTIME_PROTOCOL_INVALID',
-        'The Agent Loop event sink rejected with a non-Error value.',
-        { cause: error }
-      );
-}
-
-async function handleMessageUpdate(
-  request: AgentLoopRequest,
-  event: Extract<AgentEvent, { type: 'message_update' }>,
-  internalAbort: AbortController,
-  state: PiRunState
-): Promise<void> {
-  const update = event.assistantMessageEvent;
-  if (
-    update.type === 'toolcall_start' ||
-    update.type === 'toolcall_delta' ||
-    update.type === 'toolcall_end'
-  ) {
-    internalAbort.abort();
-    throw new AgentModelError(
-      'MODEL_RUNTIME_PROTOCOL_INVALID',
-      'The model proposed a tool call while the effective tool set was empty.'
-    );
-  }
-  if (update.type !== 'text_delta') return;
-
-  state.outputCharacters += update.delta.length;
-  if (state.outputCharacters > request.maxOutputCharacters) {
-    state.limitFailure = new AgentModelError(
-      'MODEL_OUTPUT_LIMIT_EXCEEDED',
-      `Model output exceeded ${request.maxOutputCharacters} characters.`
-    );
-    internalAbort.abort();
-    throw state.limitFailure;
-  }
-  await request.emit(Object.freeze({ type: 'text-delta', delta: update.delta }));
-}
-
-async function handleMessageEnd(
-  request: AgentLoopRequest,
-  event: Extract<AgentEvent, { type: 'message_end' }>,
-  state: PiRunState
-): Promise<void> {
-  if (event.message.role !== 'assistant') return;
-  if (event.message.stopReason === 'error' || event.message.stopReason === 'aborted') {
-    state.terminalFailure = event.message;
-    return;
-  }
-  if (event.message.stopReason === 'toolUse') return;
-
-  const normalized = toModelMessage(event.message);
-  if (normalized?.role !== 'assistant') {
-    throw new AgentModelError(
-      'MODEL_RUNTIME_PROTOCOL_INVALID',
-      'Pi completed without a valid assistant message.'
-    );
-  }
-  state.completedMessage = normalized;
-  await request.emit(Object.freeze({ type: 'assistant-complete', message: normalized }));
-}
-
-function createPiEventSink(
-  request: AgentLoopRequest,
-  internalAbort: AbortController,
-  state: PiRunState
-): (event: AgentEvent) => Promise<void> {
-  return async (event) => {
-    try {
-      if (event.type === 'message_update') {
-        await handleMessageUpdate(request, event, internalAbort, state);
-      }
-      if (event.type === 'message_end') {
-        await handleMessageEnd(request, event, state);
-      }
-      await emitLifecycleEvent(request, event);
-    } catch (error: unknown) {
-      state.eventSinkFailure = normalizeEventSinkFailure(error);
-      internalAbort.abort();
-      throw state.eventSinkFailure;
-    }
-  };
-}
-
-function throwTerminalFailure(request: AgentLoopRequest, failure: AssistantMessage): never {
-  const cancelled = failure.stopReason === 'aborted' || request.signal.aborted;
-  const timedOut =
-    request.signal.reason instanceof DOMException && request.signal.reason.name === 'TimeoutError';
-  throw new AgentModelError(
-    timedOut
-      ? 'MODEL_INVOCATION_TIMEOUT'
-      : cancelled
-        ? 'MODEL_INVOCATION_CANCELLED'
-        : 'MODEL_PROVIDER_FAILED',
-    failure.errorMessage ??
-      (cancelled ? 'Model invocation was cancelled.' : 'Model provider failed.')
-  );
-}
-
 class PiFauxAgentLoopRuntime implements AgentLoopRuntime {
   readonly #models: Models;
   readonly #modelReference: ProviderModelReference;
   readonly #targetModels = new WeakMap<ResolvedExecutionTarget, Model<Api>>();
   readonly #requests: PiFauxRequestSnapshot[];
+  readonly #toolEvents: PiFauxToolEventSnapshot[];
 
   constructor(
     models: Models,
     modelReference: ProviderModelReference,
-    requests: PiFauxRequestSnapshot[]
+    requests: PiFauxRequestSnapshot[],
+    toolEvents: PiFauxToolEventSnapshot[]
   ) {
     this.#models = models;
     this.#modelReference = modelReference;
     this.#requests = requests;
+    this.#toolEvents = toolEvents;
   }
 
   resolveTarget(reference: ProviderModelReference): Promise<ResolvedExecutionTarget> {
@@ -185,7 +75,7 @@ class PiFauxAgentLoopRuntime implements AgentLoopRuntime {
       }
       const target: ResolvedExecutionTarget = Object.freeze({
         reference,
-        capabilities: Object.freeze({ streaming: true, tools: false }),
+        capabilities: Object.freeze({ streaming: true, tools: true }),
       });
       this.#targetModels.set(target, model);
       return target;
@@ -203,14 +93,26 @@ class PiFauxAgentLoopRuntime implements AgentLoopRuntime {
         'Execution target was not resolved by this Pi runtime.'
       );
     }
+    if (!Number.isSafeInteger(request.maxProviderTurns) || request.maxProviderTurns < 1) {
+      throw new AgentModelError(
+        'MODEL_RUNTIME_PROTOCOL_INVALID',
+        'maxProviderTurns must be a positive safe integer.'
+      );
+    }
 
     const internalAbort = new AbortController();
     const signal = AbortSignal.any([request.signal, internalAbort.signal]);
-    const state: PiRunState = { outputCharacters: 0 };
+    const toolAdapter: PiToolAdapterState = { attemptedCallIds: new Set() };
+    const state: PiRunState = {
+      outputCharacters: 0,
+      providerTurns: 0,
+      turnTextDeltas: [],
+      toolAdapter,
+    };
     const piContext = {
       systemPrompt: request.instructions,
       messages: request.history.map((message) => toPiMessage(message, model)),
-      tools: [],
+      tools: createPiTools(request.tools, toolAdapter),
     };
     const prompt: UserMessage = {
       role: 'user',
@@ -227,17 +129,37 @@ class PiFauxAgentLoopRuntime implements AgentLoopRuntime {
         {
           model,
           convertToLlm: (messages) => messages.filter(isStandardMessage),
+          toolExecution: 'sequential',
+          shouldStopAfterTurn: ({ message }) => {
+            if (state.toolAdapter.terminalFailure !== undefined) return true;
+            if (
+              message.stopReason === 'toolUse' &&
+              state.providerTurns >= request.maxProviderTurns
+            ) {
+              state.providerTurnFailure = new AgentModelError(
+                'MODEL_PROVIDER_TURN_LIMIT_EXCEEDED',
+                `Provider turn budget ${request.maxProviderTurns} was exhausted before a final response.`
+              );
+              return true;
+            }
+            return false;
+          },
         },
-        createPiEventSink(request, internalAbort, state),
+        createPiEventSink(request, internalAbort, state, this.#toolEvents),
         signal,
         streamFn
       );
     } catch (error: unknown) {
+      if (state.toolAdapter.terminalFailure !== undefined) {
+        throw state.toolAdapter.terminalFailure;
+      }
       if (state.limitFailure !== undefined) throw state.limitFailure;
       if (state.eventSinkFailure !== undefined) throw state.eventSinkFailure;
       throw error;
     }
 
+    if (state.toolAdapter.terminalFailure !== undefined) throw state.toolAdapter.terminalFailure;
+    if (state.providerTurnFailure !== undefined) throw state.providerTurnFailure;
     if (state.terminalFailure !== undefined) throwTerminalFailure(request, state.terminalFailure);
     if (state.completedMessage === undefined) {
       throw new AgentModelError(
@@ -251,18 +173,14 @@ class PiFauxAgentLoopRuntime implements AgentLoopRuntime {
   inspectRequests(): readonly PiFauxRequestSnapshot[] {
     return Object.freeze(this.#requests.map(cloneRequestSnapshot));
   }
+
+  inspectToolEvents(): readonly PiFauxToolEventSnapshot[] {
+    return Object.freeze(this.#toolEvents.map((event) => Object.freeze({ ...event })));
+  }
 }
 
 function isStandardMessage(message: AgentMessage): message is Message {
   return message.role === 'user' || message.role === 'assistant' || message.role === 'toolResult';
-}
-
-async function emitLifecycleEvent(request: AgentLoopRequest, event: AgentEvent): Promise<void> {
-  if (event.type === 'agent_start')
-    await request.emit(Object.freeze({ type: 'interaction-start' }));
-  if (event.type === 'turn_start') await request.emit(Object.freeze({ type: 'turn-start' }));
-  if (event.type === 'turn_end') await request.emit(Object.freeze({ type: 'turn-end' }));
-  if (event.type === 'agent_end') await request.emit(Object.freeze({ type: 'interaction-end' }));
 }
 
 function snapshotFromPiContext(context: Context, callIndex: number): PiFauxRequestSnapshot {
@@ -272,6 +190,12 @@ function snapshotFromPiContext(context: Context, callIndex: number): PiFauxReque
     messages: Object.freeze(
       context.messages.flatMap((message) => {
         const normalized = toModelMessage(message);
+        return normalized === undefined ? [] : [normalized];
+      })
+    ),
+    toolResults: Object.freeze(
+      context.messages.flatMap((message) => {
+        const normalized = toToolResultSnapshot(message);
         return normalized === undefined ? [] : [normalized];
       })
     ),
@@ -297,6 +221,7 @@ export function createPiFauxRuntime(options: PiFauxRuntimeOptions): PiFauxRuntim
     ...(options.tokensPerSecond === undefined ? {} : { tokensPerSecond: options.tokensPerSecond }),
   });
   const requests: PiFauxRequestSnapshot[] = [];
+  const toolEvents: PiFauxToolEventSnapshot[] = [];
   handle.setResponses(
     options.responses.map((definition) => async (context) => {
       const snapshot = snapshotFromPiContext(context, requests.length + 1);
@@ -311,7 +236,7 @@ export function createPiFauxRuntime(options: PiFauxRuntimeOptions): PiFauxRuntim
   const models = createModels();
   models.setProvider(handle.provider);
   const modelReference = defineProviderModelReference({ provider: providerId, model: modelId });
-  const runtime = new PiFauxAgentLoopRuntime(models, modelReference, requests);
+  const runtime = new PiFauxAgentLoopRuntime(models, modelReference, requests, toolEvents);
 
   return Object.freeze({
     runtime,
@@ -321,6 +246,7 @@ export function createPiFauxRuntime(options: PiFauxRuntimeOptions): PiFauxRuntim
         callCount: handle.state.callCount,
         pendingResponseCount: handle.getPendingResponseCount(),
         requests: runtime.inspectRequests(),
+        toolEvents: runtime.inspectToolEvents(),
       });
     },
   });

@@ -1,5 +1,6 @@
 import type { AssistantModelMessage } from '@ta-agent/base-model';
 import type { SessionId } from '@ta-agent/base-session';
+import type { ToolRunInspection } from '@ta-agent/base-tool';
 
 export interface AgentRequestInput {
   readonly message: string;
@@ -17,6 +18,7 @@ export interface AgentResponse {
   readonly requestId: string;
   readonly sessionId: SessionId;
   readonly message: AssistantModelMessage;
+  readonly toolRun: ToolRunInspection;
 }
 
 export interface OutputOpenEvent {
@@ -53,5 +55,6 @@ export interface RequestPolicy {
   readonly maxMessageCharacters: number;
   readonly maxInstructionsCharacters: number;
   readonly maxOutputCharacters: number;
+  readonly maxProviderTurns: number;
   readonly timeoutMilliseconds: number;
 }

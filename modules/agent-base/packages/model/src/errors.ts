@@ -5,6 +5,7 @@ export type AgentModelErrorCode =
   | 'MODEL_INVOCATION_CANCELLED'
   | 'MODEL_INVOCATION_TIMEOUT'
   | 'MODEL_OUTPUT_LIMIT_EXCEEDED'
+  | 'MODEL_PROVIDER_TURN_LIMIT_EXCEEDED'
   | 'MODEL_RUNTIME_PROTOCOL_INVALID';
 
 export class AgentModelError extends Error {

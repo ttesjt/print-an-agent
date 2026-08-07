@@ -137,18 +137,31 @@ describe('module architecture', () => {
       const piDependencies = declaredDependencies(manifest).filter((dependency) =>
         dependency.startsWith('@earendil-works/pi-')
       );
+      const typeboxDependency = manifest.dependencies?.typebox;
 
       if (entry.name === 'pi') {
         expect(manifest.dependencies?.['@earendil-works/pi-ai']).toBe('0.82.1');
         expect(manifest.dependencies?.['@earendil-works/pi-agent-core']).toBe('0.82.1');
         expect(piDependencies).toEqual(['@earendil-works/pi-agent-core', '@earendil-works/pi-ai']);
+        expect(typeboxDependency).toBe('1.1.38');
+        for (const publicSource of ['index.ts', 'types.ts']) {
+          const source = readFileSync(join(packagesRoot, entry.name, 'src', publicSource), 'utf8');
+          expect(source).not.toContain('@earendil-works/pi-');
+          expect(source).not.toContain("from 'typebox'");
+        }
         continue;
       }
 
       expect(piDependencies, `${manifest.name ?? entry.name} must not depend on Pi`).toEqual([]);
+      expect(typeboxDependency, `${manifest.name ?? entry.name} must not depend on TypeBox`).toBe(
+        undefined
+      );
       expect(
         containsTextInTypeScript(join(packagesRoot, entry.name, 'src'), '@earendil-works/pi-'),
         `${manifest.name ?? entry.name} production source must not import Pi`
+      ).toBe(false);
+      expect(
+        containsTextInTypeScript(join(packagesRoot, entry.name, 'src'), "from 'typebox'")
       ).toBe(false);
     }
   });

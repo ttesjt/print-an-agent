@@ -4,8 +4,9 @@ Our small, transparent, and hackable foundation for building agents.
 
 Agent Base owns agent identity, configuration and resource boundaries, plus explicit Workflow plans
 that compose replaceable Steps into a runnable agent. It delegates commodity execution
-capabilities—provider calls, tool loops, streaming, and default session behavior—to Pi adapters
-wherever Pi already solves the problem well.
+mechanics—provider calls, low-level loop control, streaming, and default session behavior—to Pi
+adapters wherever Pi already solves the problem well. Agent Base retains tool schema, permission,
+budget, and execution authority behind provider-independent contracts.
 
 The module is intentionally split between:
 
@@ -25,12 +26,16 @@ Current foundation packages:
 - `@ta-agent/base-config`: storage-agnostic typed configuration lifecycle;
 - `@ta-agent/base-model`: provider-independent model, message, streaming, and loop contracts;
 - `@ta-agent/base-session`: generic session ports and the process-local memory adapter;
+- `@ta-agent/base-tool`: provider-independent schemas, registries, permission policy, and bounded
+  run-scoped Tool Broker;
 - `@ta-agent/base-workflow`: generic Agent, Workflow, Context, Step, and lifecycle runtime;
 - `@ta-agent/base-request`: canonical foreground Request Workflow, OutputSink, and concrete request
   Steps over injected ports;
 - `@ta-agent/base-pi`: the isolated Pi `0.82.1` adapter and deterministic offline provider profile;
 - `@ta-agent/base-agent`: the official assembled composition root.
 
-The current assembled profile is a real streaming request path through Pi with in-memory sessions and
-a deterministic faux provider. Its composition and replacement boundaries are formal; durable
-persistence, ordinary provider registration, and non-empty tool execution remain later capabilities.
+The current assembled profile is a real bounded request/tool path through Pi with in-memory sessions
+and a deterministic faux provider. Registered tools are denied by default and execute only through
+the Agent Base Tool Broker when every permission layer allows them. The profile publishes only the
+final assistant turn and returns privacy-safe tool-run metadata. Its composition and replacement
+boundaries are formal; durable persistence and ordinary provider registration remain deferred.

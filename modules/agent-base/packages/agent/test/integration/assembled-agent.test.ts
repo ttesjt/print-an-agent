@@ -5,7 +5,14 @@ import {
 } from '@ta-agent/base-model';
 import { AgentRequestError, MemoryOutputSink } from '@ta-agent/base-request';
 import { MemorySessionAdapter, parseSessionId } from '@ta-agent/base-session';
-import { describe, expect, it } from 'vitest';
+import {
+  AgentToolError,
+  createToolRegistry,
+  defineTool,
+  defineToolPermissionPolicy,
+  type ToolExecutionRequest,
+} from '@ta-agent/base-tool';
+import { describe, expect, it, vi } from 'vitest';
 import { assembleAgentBase, createPiFauxAgentBase } from '../../src/index.js';
 import {
   CancellingOutputSink,
@@ -16,6 +23,104 @@ import {
 } from '../support/output-sinks.js';
 
 describe('assembled Agent Base request path', () => {
+  it('runs a bounded Pi tool loop and publishes only the final response', async () => {
+    type AddInput = Readonly<{ left: number; right: number }>;
+    const handler = vi.fn(({ arguments: input }: ToolExecutionRequest<AddInput>) =>
+      Promise.resolve({ text: String(input.left + input.right) })
+    );
+    const add = defineTool({
+      name: 'add',
+      description: 'Adds two numbers.',
+      parameters: {
+        type: 'object',
+        properties: { left: { type: 'number' }, right: { type: 'number' } },
+        required: ['left', 'right'],
+        additionalProperties: false,
+      },
+      execute: handler,
+    });
+    const toolPermissionPolicy = defineToolPermissionPolicy({
+      task: ['add'],
+      assignment: ['add'],
+      product: ['add'],
+      runtime: ['add'],
+    });
+    const agent = createPiFauxAgentBase({
+      identity: { id: 'assistant' },
+      toolRegistry: createToolRegistry([add]),
+      toolPermissionPolicy,
+      pi: {
+        responses: [
+          {
+            status: 'tool-call',
+            callId: 'add-1',
+            name: 'add',
+            arguments: { left: 2, right: 3 },
+            text: 'intermediate provider text',
+          },
+          (request) => ({
+            status: 'success',
+            text: `final:${request.toolResults.at(-1)?.text ?? 'missing'}`,
+          }),
+        ],
+        charactersPerChunk: 2,
+      },
+    });
+    const sink = new LifecycleRecordingOutputSink();
+
+    const response = await agent.run({ message: 'add two and three', outputSink: sink });
+
+    expect(response.message.text).toBe('final:5');
+    expect(
+      sink
+        .inspect()
+        .events.map((event) => event.delta)
+        .join('')
+    ).toBe('final:5');
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(response.toolRun).toMatchObject({
+      status: 'closed',
+      records: [{ callId: 'add-1', toolName: 'add', status: 'success' }],
+      totalResultCharacters: 1,
+    });
+    expect(JSON.stringify(response.toolRun)).not.toContain('final:5');
+    expect(agent.inspectPi().requests[1]?.toolResults).toEqual([
+      { callId: 'add-1', toolName: 'add', text: '5', isError: false },
+    ]);
+  });
+
+  it('denies a registered tool unless every permission layer explicitly allows it', async () => {
+    const handler = vi.fn(() => Promise.resolve({ text: 'should not run' }));
+    const tool = defineTool({
+      name: 'private-tool',
+      description: 'A tool that remains denied by default.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+        additionalProperties: false,
+      },
+      execute: handler,
+    });
+    const agent = createPiFauxAgentBase({
+      identity: { id: 'assistant' },
+      toolRegistry: createToolRegistry([tool]),
+      pi: {
+        responses: [{ status: 'tool-call', callId: 'denied', name: 'private-tool' }],
+      },
+    });
+    const sink = new LifecycleRecordingOutputSink();
+
+    await expect(agent.run({ message: 'try the tool', outputSink: sink })).rejects.toEqual(
+      expect.objectContaining<Partial<AgentToolError>>({ code: 'TOOL_NOT_AUTHORIZED' })
+    );
+    expect(handler).not.toHaveBeenCalled();
+    expect(sink.inspect()).toMatchObject({
+      status: 'failed',
+      failure: { code: 'TOOL_NOT_AUTHORIZED' },
+    });
+  });
+
   it('streams one response and supplies completed history to a second Pi request', async () => {
     const session = new MemorySessionAdapter();
     const agent = createPiFauxAgentBase({
@@ -280,6 +385,7 @@ describe('assembled Agent Base request path', () => {
         maxMessageCharacters: 100,
         maxInstructionsCharacters: 100,
         maxOutputCharacters: 100,
+        maxProviderTurns: 4,
         timeoutMilliseconds: 5,
       },
     });

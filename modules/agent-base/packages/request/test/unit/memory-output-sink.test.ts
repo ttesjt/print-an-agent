@@ -1,9 +1,22 @@
 import { defineProviderModelReference } from '@ta-agent/base-model';
 import { parseSessionId } from '@ta-agent/base-session';
+import {
+  createBoundedToolRuntime,
+  DEFAULT_TOOL_EXECUTION_POLICY,
+  DENY_ALL_TOOL_PERMISSION_POLICY,
+  EMPTY_TOOL_REGISTRY,
+} from '@ta-agent/base-tool';
 import { describe, expect, it } from 'vitest';
 import { AgentRequestError, MemoryOutputSink } from '../../src/index.js';
 
 const model = defineProviderModelReference({ provider: 'faux', model: 'faux-model' });
+const emptyToolRuntime = createBoundedToolRuntime({
+  registry: EMPTY_TOOL_REGISTRY,
+  permissionPolicy: DENY_ALL_TOOL_PERMISSION_POLICY,
+  executionPolicy: DEFAULT_TOOL_EXECUTION_POLICY,
+  signal: new AbortController().signal,
+});
+emptyToolRuntime.close();
 const response = Object.freeze({
   requestId: 'request-1',
   sessionId: parseSessionId('session-1'),
@@ -22,6 +35,7 @@ const response = Object.freeze({
     }),
     timestamp: 2,
   }),
+  toolRun: emptyToolRuntime.inspect(),
 });
 
 describe('MemoryOutputSink', () => {

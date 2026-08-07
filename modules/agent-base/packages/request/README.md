@@ -26,10 +26,12 @@ Step Registry. The generic catalog retains deliberate fail-fast leaf placeholder
 composition cannot pretend that an unresolved concern was handled.
 
 `createDefaultRequestStepOverrides()` provides the current concrete text-request slice over injected
-model runtime and session ports. It validates input, resolves a session and execution target, composes
-instructions, loads completed history, builds an empty tool set, streams model text through an
-`OutputSink`, persists the assistant result, and closes the response. `resolveRequestReplay` and
-`gatherExternalContext` are explicit skips in this profile.
+model runtime, session, and tool ports. It validates input, resolves a session and execution target,
+composes instructions, loads completed history, creates one bounded Tool Runtime, publishes only
+final-turn model text through an `OutputSink`, persists the assistant result, and closes the response.
+The response includes privacy-safe `toolRun` metadata. The empty registry and deny-all permission
+policy remain the safe composition defaults. `resolveRequestReplay` and `gatherExternalContext` are
+explicit skips in this profile.
 
 `resolveRequestReplay` and `gatherExternalContext` are explicitly skippable because stateless replay
 handling and external context are optional capabilities. All other Steps are required by this

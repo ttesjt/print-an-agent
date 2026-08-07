@@ -31,6 +31,7 @@
   "dependencies": {
     "@ta-agent/base-model": "workspace:*",
     "@ta-agent/base-session": "workspace:*",
+    "@ta-agent/base-tool": "workspace:*",
     "@ta-agent/base-workflow": "workspace:*"
   },
   "devDependencies": {

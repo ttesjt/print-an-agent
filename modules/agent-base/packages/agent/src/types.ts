@@ -11,6 +11,7 @@ import type {
   RequestPolicy,
 } from '@ta-agent/base-request';
 import type { SessionPort } from '@ta-agent/base-session';
+import type { ToolExecutionPolicy, ToolPermissionPolicy, ToolRegistry } from '@ta-agent/base-tool';
 import type { AgentRunOptions, RunnableWorkflow, StepOverrides } from '@ta-agent/base-workflow';
 import type { RequestStepName, RequestWorkflowName } from '@ta-agent/base-request';
 
@@ -20,6 +21,9 @@ export interface AssembleAgentBaseOptions {
   readonly modelReference: ProviderModelReference;
   readonly session?: SessionPort;
   readonly instructionContributors?: readonly InstructionContributor[];
+  readonly toolRegistry?: ToolRegistry;
+  readonly toolPermissionPolicy?: ToolPermissionPolicy;
+  readonly toolExecutionPolicy?: ToolExecutionPolicy;
   readonly createOutputSink?: () => OutputSink;
   readonly requestPolicy?: RequestPolicy;
   readonly stepOverrides?: StepOverrides<RequestStepName, DefaultRequestWorkflowContext>;
@@ -37,6 +41,9 @@ export interface AssembledAgentBase {
   readonly modelRuntime: AgentLoopRuntime;
   readonly modelReference: ProviderModelReference;
   readonly requestPolicy: RequestPolicy;
+  readonly toolRegistry: ToolRegistry;
+  readonly toolPermissionPolicy: ToolPermissionPolicy;
+  readonly toolExecutionPolicy: ToolExecutionPolicy;
   run(input: AgentRequestInput, options?: AgentBaseRunOptions): Promise<AgentResponse>;
 }
 

@@ -1,3 +1,5 @@
+import type { ToolRuntime } from '@ta-agent/base-tool';
+
 declare const providerIdBrand: unique symbol;
 declare const providerModelIdBrand: unique symbol;
 
@@ -56,6 +58,14 @@ export type AgentLoopEvent =
   | Readonly<{ type: 'interaction-start' }>
   | Readonly<{ type: 'turn-start' }>
   | Readonly<{ type: 'text-delta'; delta: string }>
+  | Readonly<{ type: 'tool-call-start'; callId: string; toolName: string }>
+  | Readonly<{
+      type: 'tool-call-end';
+      callId: string;
+      toolName: string;
+      status: 'success' | 'error';
+      resultCharacters: number;
+    }>
   | Readonly<{ type: 'assistant-complete'; message: AssistantModelMessage }>
   | Readonly<{ type: 'turn-end' }>
   | Readonly<{ type: 'interaction-end' }>;
@@ -67,6 +77,8 @@ export interface AgentLoopRequest {
   readonly instructions: string;
   readonly history: readonly ModelMessage[];
   readonly prompt: UserModelMessage;
+  readonly tools: ToolRuntime;
+  readonly maxProviderTurns: number;
   readonly maxOutputCharacters: number;
   readonly signal: AbortSignal;
   readonly emit: AgentLoopEventSink;

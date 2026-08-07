@@ -182,6 +182,9 @@ importers:
 
   modules/agent-base/packages/request:
     dependencies:
+      '@ta-agent/base-identity':
+        specifier: workspace:*
+        version: link:../identity
       '@ta-agent/base-model':
         specifier: workspace:*
         version: link:../model
@@ -195,9 +198,6 @@ importers:
         specifier: workspace:*
         version: link:../workflow
     devDependencies:
-      '@ta-agent/base-identity':
-        specifier: workspace:*
-        version: link:../identity
       '@types/node':
         specifier: 'catalog:'
         version: 24.12.4

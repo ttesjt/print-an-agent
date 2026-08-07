@@ -4,6 +4,9 @@ import { createBoundedToolRuntime } from '@ta-agent/base-tool';
 import { SKIP_STEP, type StepOverrides } from '@ta-agent/base-workflow';
 import type { OutputSink, ValidatedAgentRequest } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
+import { createRequestFingerprint } from '../replay/fingerprint.js';
+import { parseRequestIdempotencyKey } from '../replay/identifiers.js';
+import { RequestReplayFailedError } from '../replay/replay-error.js';
 import type { RequestStepName } from '../workflow/names.js';
 import type { DefaultRequestWorkflowContext } from './context.js';
 
@@ -33,7 +36,12 @@ function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> 
   if (typeof input !== 'object' || input === null) {
     throw new AgentRequestError('REQUEST_INPUT_INVALID', 'Agent request must be an object.');
   }
-  const candidate = input as Partial<{ message: unknown; sessionId: unknown; outputSink: unknown }>;
+  const candidate = input as Partial<{
+    message: unknown;
+    sessionId: unknown;
+    idempotencyKey: unknown;
+    outputSink: unknown;
+  }>;
   if (
     typeof candidate.message !== 'string' ||
     candidate.message.trim().length === 0 ||
@@ -47,18 +55,95 @@ function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> 
   if (candidate.sessionId !== undefined && typeof candidate.sessionId !== 'string') {
     throw new AgentRequestError('REQUEST_INPUT_INVALID', 'Request sessionId must be a string.');
   }
+  if (candidate.idempotencyKey !== undefined && typeof candidate.idempotencyKey !== 'string') {
+    throw new AgentRequestError(
+      'REQUEST_INPUT_INVALID',
+      'Request idempotencyKey must be a string.'
+    );
+  }
   if (candidate.outputSink !== undefined && !isOutputSink(candidate.outputSink)) {
     throw new AgentRequestError('REQUEST_INPUT_INVALID', 'Request outputSink is invalid.');
   }
   const outputSink = candidate.outputSink ?? context.resources.createOutputSink();
   const sessionId =
     candidate.sessionId === undefined ? undefined : parseSessionId(candidate.sessionId);
+  const idempotencyKey =
+    candidate.idempotencyKey === undefined
+      ? undefined
+      : parseRequestIdempotencyKey(candidate.idempotencyKey);
+  if (idempotencyKey !== undefined && sessionId === undefined) {
+    throw new AgentRequestError(
+      'REQUEST_INPUT_INVALID',
+      'Request sessionId is required when idempotencyKey is provided.'
+    );
+  }
   context.request = Object.freeze({
     message: candidate.message,
     ...(sessionId === undefined ? {} : { sessionId }),
+    ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
     outputSink,
   }) satisfies ValidatedAgentRequest;
   return Promise.resolve();
+}
+
+async function publishReplayedResponse(context: DefaultRequestWorkflowContext): Promise<void> {
+  const request = requireValue(context.request, 'request');
+  const response = requireValue(context.response, 'response');
+  try {
+    await request.outputSink.open({
+      requestId: response.requestId,
+      sessionId: response.sessionId,
+    });
+  } catch (cause: unknown) {
+    throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to open replay.', {
+      cause,
+    });
+  }
+  try {
+    await request.outputSink.write(
+      Object.freeze({ type: 'text-delta', delta: response.message.text })
+    );
+  } catch (cause: unknown) {
+    throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to write replay.', {
+      cause,
+    });
+  }
+  try {
+    await request.outputSink.close(response);
+  } catch (cause: unknown) {
+    throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to close replay.', {
+      cause,
+    });
+  }
+}
+
+async function resolveRequestReplay(context: DefaultRequestWorkflowContext): Promise<void> {
+  const request = requireValue(context.request, 'request');
+  if (request.idempotencyKey === undefined) return;
+  const session = requireValue(context.session, 'session');
+  const claim = await context.resources.requestJournal.claim({
+    ...session,
+    idempotencyKey: request.idempotencyKey,
+    fingerprint: createRequestFingerprint({ message: request.message }),
+    requestId: context.agentContext.runId,
+  });
+  context.requestJournalEntry = claim.entry;
+  if (claim.status === 'claimed') {
+    context.ownedRequestJournalClaim = claim.entry;
+    return;
+  }
+  if (claim.entry.status === 'active') {
+    throw new AgentRequestError(
+      'REQUEST_REPLAY_IN_PROGRESS',
+      `Request "${claim.entry.requestId}" is already active for this idempotency key.`
+    );
+  }
+  if (claim.entry.status === 'failed') {
+    throw new RequestReplayFailedError(claim.entry.failure);
+  }
+  context.response = claim.entry.response;
+  await publishReplayedResponse(context);
+  context.result = claim.entry.response;
 }
 
 async function resolveSession(context: DefaultRequestWorkflowContext): Promise<void> {
@@ -201,6 +286,16 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
 async function completeResponse(context: DefaultRequestWorkflowContext): Promise<void> {
   const request = requireValue(context.request, 'request');
   const response = requireValue(context.response, 'response');
+  const claim = context.ownedRequestJournalClaim;
+  if (claim !== undefined) {
+    context.requestJournalEntry = await context.resources.requestJournal.complete({
+      agentId: claim.agentId,
+      sessionId: claim.sessionId,
+      idempotencyKey: claim.idempotencyKey,
+      requestId: claim.requestId,
+      response,
+    });
+  }
   try {
     await request.outputSink.close(response);
   } catch (cause: unknown) {
@@ -216,7 +311,7 @@ export function createDefaultRequestStepOverrides(): StepOverrides<
   return Object.freeze({
     validateRequest,
     resolveSession,
-    resolveRequestReplay: SKIP_STEP,
+    resolveRequestReplay,
     beginRequest,
     resolveExecutionTarget,
     resolveInstructions,

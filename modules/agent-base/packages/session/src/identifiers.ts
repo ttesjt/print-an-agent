@@ -5,6 +5,8 @@ const SESSION_ID_MAX_LENGTH = 128;
 const SESSION_ID_PATTERN = /^[a-z0-9](?:[a-z0-9._:-]*[a-z0-9])?$/i;
 const TURN_ID_MAX_LENGTH = 128;
 const TURN_ID_PATTERN = SESSION_ID_PATTERN;
+const FAILURE_CODE_MAX_LENGTH = 128;
+const FAILURE_CODE_PATTERN = /^[a-z0-9](?:[a-z0-9._:-]*[a-z0-9])?$/i;
 
 export function parseSessionId(value: unknown): SessionId {
   if (
@@ -32,4 +34,18 @@ export function parseTurnId(value: unknown): TurnId {
     );
   }
   return value as TurnId;
+}
+
+export function parseSessionFailureCode(value: unknown): string {
+  if (
+    typeof value !== 'string' ||
+    value.length > FAILURE_CODE_MAX_LENGTH ||
+    !FAILURE_CODE_PATTERN.test(value)
+  ) {
+    throw new AgentSessionError(
+      'SESSION_FAILURE_CODE_INVALID',
+      `Session failure code must contain 1-${FAILURE_CODE_MAX_LENGTH} letters, digits, dots, underscores, colons, or hyphens.`
+    );
+  }
+  return value;
 }

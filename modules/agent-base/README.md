@@ -25,17 +25,22 @@ Current foundation packages:
 - `@ta-agent/base-identity`: stable Agent identity values;
 - `@ta-agent/base-config`: storage-agnostic typed configuration lifecycle;
 - `@ta-agent/base-model`: provider-independent model, message, streaming, and loop contracts;
-- `@ta-agent/base-session`: generic session ports and the process-local memory adapter;
+- `@ta-agent/base-session`: generic session ports, the process-local memory adapter, and an opt-in
+  versioned SQLite durable adapter;
 - `@ta-agent/base-tool`: provider-independent schemas, registries, permission policy, and bounded
   run-scoped Tool Broker;
 - `@ta-agent/base-workflow`: generic Agent, Workflow, Context, Step, and lifecycle runtime;
-- `@ta-agent/base-request`: canonical foreground Request Workflow, OutputSink, and concrete request
-  Steps over injected ports;
+- `@ta-agent/base-request`: canonical foreground Request Workflow, OutputSink, Request Journal, and
+  concrete request Steps over injected ports;
 - `@ta-agent/base-pi`: the isolated Pi `0.82.1` adapter and deterministic offline provider profile;
 - `@ta-agent/base-agent`: the official assembled composition root.
 
-The current assembled profile is a real bounded request/tool path through Pi with in-memory sessions
-and a deterministic faux provider. Registered tools are denied by default and execute only through
-the Agent Base Tool Broker when every permission layer allows them. The profile publishes only the
-final assistant turn and returns privacy-safe tool-run metadata. Its composition and replacement
-boundaries are formal; durable persistence and ordinary provider registration remain deferred.
+The current assembled profile is a real bounded request/tool path through Pi with a deterministic
+faux provider. Memory remains its zero-configuration development default, while callers can inject
+the Agent Base SQLite adapter to retain committed conversation history across new Agent instances.
+An independent SQLite Request Journal adapter provides opt-in restart-safe replay for explicit
+idempotency keys; memory remains the zero-configuration journal default.
+Registered tools are denied by default and execute only through the Agent Base Tool Broker when every
+permission layer allows them. The profile publishes only the final assistant turn and returns
+privacy-safe tool-run metadata. Its composition and replacement boundaries are formal; generic
+observability, session navigation/compaction, and ordinary provider registration remain deferred.

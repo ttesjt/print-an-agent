@@ -29,6 +29,17 @@ function createCompositeStep<WC extends RequestWorkflowContext>(
   };
 }
 
+function createResultAwareCompositeStep<WC extends RequestWorkflowContext>(
+  stepNames: readonly RequestStepName[]
+): Step<WC> {
+  return async (context) => {
+    for (const stepName of stepNames) {
+      await context.runStep(stepName);
+      if (Object.hasOwn(context, 'result')) return;
+    }
+  };
+}
+
 function createPlaceholderStep<WC extends RequestWorkflowContext>(
   stepName: RequestLeafStepName
 ): Step<WC> {
@@ -42,11 +53,11 @@ export function createRequestStepDefinitions<
 >(): StepDefinitions<RequestStepName, WC> {
   return Object.freeze({
     runRequest: {
-      step: createCompositeStep<WC>(['prepareRequest', 'executeRequest']),
+      step: createResultAwareCompositeStep<WC>(['prepareRequest', 'executeRequest']),
       skippable: false,
     },
     prepareRequest: {
-      step: createCompositeStep<WC>(PREPARE_REQUEST_STEPS),
+      step: createResultAwareCompositeStep<WC>(PREPARE_REQUEST_STEPS),
       skippable: false,
     },
     validateRequest: {

@@ -1,7 +1,7 @@
 {
   "name": "@ta-agent/base-request",
   "version": "0.1.0",
-  "description": "Canonical request Workflow and fail-fast Step skeleton for Agent Base.",
+  "description": "Canonical request Workflow, output contracts, and replay journal adapters for Agent Base.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -29,13 +29,13 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@ta-agent/base-identity": "workspace:*",
     "@ta-agent/base-model": "workspace:*",
     "@ta-agent/base-session": "workspace:*",
     "@ta-agent/base-tool": "workspace:*",
     "@ta-agent/base-workflow": "workspace:*"
   },
   "devDependencies": {
-    "@ta-agent/base-identity": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",

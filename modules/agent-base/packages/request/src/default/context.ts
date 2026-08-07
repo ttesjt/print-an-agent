@@ -23,9 +23,15 @@ import type {
   RequestPolicy,
   ValidatedAgentRequest,
 } from '../contracts.js';
+import type {
+  ActiveRequestJournalEntry,
+  RequestJournalEntry,
+  RequestJournalPort,
+} from '../replay/contracts.js';
 
 export interface RequestRuntimeResources {
   readonly session: SessionPort;
+  readonly requestJournal: RequestJournalPort;
   readonly modelRuntime: AgentLoopRuntime;
   readonly modelReference: ProviderModelReference;
   readonly instructionContributors: readonly InstructionContributor[];
@@ -48,6 +54,8 @@ export interface DefaultRequestWorkflowContext extends BaseWorkflowContext<
   request?: ValidatedAgentRequest;
   session?: SessionReference;
   turn?: ActiveSessionTurn;
+  requestJournalEntry?: RequestJournalEntry;
+  ownedRequestJournalClaim?: ActiveRequestJournalEntry;
   target?: ResolvedExecutionTarget;
   instructions?: string;
   history?: readonly ModelMessage[];

@@ -1,7 +1,7 @@
 {
   "name": "@ta-agent/base-session",
   "version": "0.1.0",
-  "description": "Generic session ports and in-memory conversation adapter for Agent Base.",
+  "description": "Generic session ports with memory and opt-in SQLite adapters for Agent Base.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

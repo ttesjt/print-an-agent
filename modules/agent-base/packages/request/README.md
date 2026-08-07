@@ -26,21 +26,48 @@ Step Registry. The generic catalog retains deliberate fail-fast leaf placeholder
 composition cannot pretend that an unresolved concern was handled.
 
 `createDefaultRequestStepOverrides()` provides the current concrete text-request slice over injected
-model runtime, session, and tool ports. It validates input, resolves a session and execution target,
-composes instructions, loads completed history, creates one bounded Tool Runtime, publishes only
-final-turn model text through an `OutputSink`, persists the assistant result, and closes the response.
-The response includes privacy-safe `toolRun` metadata. The empty registry and deny-all permission
-policy remain the safe composition defaults. `resolveRequestReplay` and `gatherExternalContext` are
-explicit skips in this profile.
+model runtime, session, request-journal, and tool ports. It validates input, resolves a session and
+execution target, composes instructions, loads completed history, creates one bounded Tool Runtime,
+publishes only final-turn model text through an `OutputSink`, persists the assistant result and
+optional replay authority, and closes the response. The response includes privacy-safe `toolRun`
+metadata. The empty registry and deny-all permission policy remain the safe composition defaults.
+`gatherExternalContext` remains an explicit skip in this profile.
 
-`resolveRequestReplay` and `gatherExternalContext` are explicitly skippable because stateless replay
-handling and external context are optional capabilities. All other Steps are required by this
-canonical shape. A product that needs a materially different lifecycle may override a composite or
-the complete `runRequest` entry Step.
+`resolveRequestReplay` is now a concrete optional capability. Supplying an `idempotencyKey` and an
+explicit `sessionId` atomically claims a Request Journal record. A completed duplicate returns the
+original response through a fresh OutputSink lifecycle without beginning a Session turn, invoking a
+provider, or executing a tool. Active, failed, and conflicting duplicates fail with distinct
+structured errors rather than being silently re-executed.
 
-This package contains no Pi or database implementation. Pi and persistence remain injected adapters;
-the memory OutputSink is a deterministic reference implementation of the request-owned publication
-contract.
+`resolveRequestReplay` and `gatherExternalContext` remain explicitly skippable in the generic catalog
+because replay and external context are optional capabilities. The official composition implements
+replay and skips external context. A product that needs a materially different lifecycle may override
+a leaf, a composite, or the complete `runRequest` entry Step.
+
+The package provides `MemoryRequestJournalAdapter` as the development default and an opt-in
+`SqliteRequestJournalAdapter` for restart-safe local replay. Both implement the same
+`RequestJournalPort`. SQLite requires an explicit path and can coexist with Agent Base Session tables
+in one physical database without pretending the two ports share a transaction.
+
+```ts
+const response = await agent.run({
+  sessionId: 'conversation',
+  idempotencyKey: 'client-operation-42',
+  message: 'Perform this request once.',
+});
+```
+
+The journal persists a request fingerprint rather than input plaintext, plus the final response or a
+bounded failure view. It never stores tool arguments/results, intermediate provider text,
+instructions, credentials, or Pi objects. A crash can leave Session and Journal states requiring
+explicit exact-record reconciliation; automatic retry, stale detection, and exactly-once external
+tool side effects are not claimed.
+
+Fingerprints are opaque, versioned values in the form `request-v1:sha256:<digest>`. The closed
+`request-v1` manifest contains exactly the validated message string. Callers cannot append fields
+ad hoc, and future semantic inputs must introduce a new manifest version rather than silently
+changing the meaning of persisted fingerprints. Large binary content is intentionally not accepted
+by this text-only manifest.
 
 ## Source layout
 
@@ -49,6 +76,8 @@ contract.
 - `default/` owns the official assembled profile's Context, concrete Step overrides, and failure
   lifecycle.
 - `adapters/` owns concrete replaceable boundary implementations such as `MemoryOutputSink`.
+- `replay/` owns Request Journal contracts, identity/fingerprint rules, response wire validation, and
+  memory/SQLite adapter families.
 
 New directories should follow independent responsibilities or expected implementation families, not
 mechanical file kinds. A growing Step implementation should split by cohesive capability group rather

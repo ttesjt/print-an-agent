@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { AgentId } from '@ta-agent/base-identity';
 import type { ModelMessage } from '@ta-agent/base-model';
 import { AgentSessionError } from '../errors.js';
-import { parseSessionId } from '../identifiers.js';
+import { parseSessionFailureCode, parseSessionId } from '../identifiers.js';
 import type {
   ActiveSessionTurn,
   BeginSessionTurnRequest,
@@ -28,6 +28,9 @@ function sessionKey(agentId: AgentId, sessionId: SessionId): string {
   return `${agentId}\u0000${sessionId}`;
 }
 
+function cloneTurn(turn: ActiveSessionTurn): ActiveSessionTurn;
+function cloneTurn(turn: CompletedSessionTurn): CompletedSessionTurn;
+function cloneTurn(turn: SessionTurn): SessionTurn;
 function cloneTurn(turn: SessionTurn): SessionTurn {
   if (turn.status === 'completed') {
     return Object.freeze({
@@ -76,7 +79,7 @@ export class MemorySessionAdapter implements InspectableSessionPort {
         userMessage: Object.freeze({ ...request.userMessage }),
       });
       session.turns.push(turn);
-      return cloneTurn(turn) as ActiveSessionTurn;
+      return cloneTurn(turn);
     });
   }
 
@@ -126,12 +129,13 @@ export class MemorySessionAdapter implements InspectableSessionPort {
         }),
       });
       session.turns[index] = completed;
-      return cloneTurn(completed) as CompletedSessionTurn;
+      return cloneTurn(completed);
     });
   }
 
   failTurn(request: FailSessionTurnRequest): Promise<SessionTurn> {
     return Promise.resolve().then(() => {
+      const failureCode = parseSessionFailureCode(request.failureCode);
       const session = this.#requireSession(request);
       const index = this.#requireTurnIndex(session, request.turnId);
       const current = session.turns[index];
@@ -144,7 +148,7 @@ export class MemorySessionAdapter implements InspectableSessionPort {
         status: 'failed',
         turnId: current.turnId,
         userMessage: current.userMessage,
-        failureCode: request.failureCode,
+        failureCode,
       });
       session.turns[index] = failed;
       return cloneTurn(failed);

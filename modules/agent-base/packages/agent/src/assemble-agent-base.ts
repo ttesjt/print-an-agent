@@ -6,6 +6,7 @@ import {
   createRequestWorkflow,
   DEFAULT_REQUEST_POLICY,
   failRequest,
+  MemoryRequestJournalAdapter,
   MemoryOutputSink,
   REQUEST_WORKFLOW_NAME,
   validateRequestPolicy,
@@ -47,6 +48,7 @@ function mergeStepOverrides(
 export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledAgentBase {
   const identity = defineAgentIdentity(options.identity);
   const session = options.session ?? new MemorySessionAdapter();
+  const requestJournal = options.requestJournal ?? new MemoryRequestJournalAdapter(options.clock);
   const requestPolicy = validateRequestPolicy(options.requestPolicy ?? DEFAULT_REQUEST_POLICY);
   const toolRegistry = options.toolRegistry ?? EMPTY_TOOL_REGISTRY;
   const toolPermissionPolicy = options.toolPermissionPolicy ?? DENY_ALL_TOOL_PERMISSION_POLICY;
@@ -55,6 +57,7 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
   );
   const resources = Object.freeze({
     session,
+    requestJournal,
     modelRuntime: options.modelRuntime,
     modelReference: options.modelReference,
     instructionContributors: Object.freeze(
@@ -106,6 +109,7 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
   return Object.freeze({
     identity,
     session,
+    requestJournal,
     modelRuntime: options.modelRuntime,
     modelReference: options.modelReference,
     requestPolicy,

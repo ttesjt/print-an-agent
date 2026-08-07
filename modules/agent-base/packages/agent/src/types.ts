@@ -9,6 +9,7 @@ import type {
   OutputSink,
   RequestAgentContext,
   RequestPolicy,
+  RequestJournalPort,
 } from '@ta-agent/base-request';
 import type { SessionPort } from '@ta-agent/base-session';
 import type { ToolExecutionPolicy, ToolPermissionPolicy, ToolRegistry } from '@ta-agent/base-tool';
@@ -20,6 +21,7 @@ export interface AssembleAgentBaseOptions {
   readonly modelRuntime: AgentLoopRuntime;
   readonly modelReference: ProviderModelReference;
   readonly session?: SessionPort;
+  readonly requestJournal?: RequestJournalPort;
   readonly instructionContributors?: readonly InstructionContributor[];
   readonly toolRegistry?: ToolRegistry;
   readonly toolPermissionPolicy?: ToolPermissionPolicy;
@@ -38,6 +40,7 @@ export type AgentBaseRunOptions = Omit<AgentRunOptions<RequestWorkflowName>, 'wo
 export interface AssembledAgentBase {
   readonly identity: AgentIdentity;
   readonly session: SessionPort;
+  readonly requestJournal: RequestJournalPort;
   readonly modelRuntime: AgentLoopRuntime;
   readonly modelReference: ProviderModelReference;
   readonly requestPolicy: RequestPolicy;

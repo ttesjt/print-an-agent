@@ -1,10 +1,21 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   AgentModelError,
   defineProviderModelReference,
   type AgentLoopRuntime,
 } from '@ta-agent/base-model';
-import { AgentRequestError, MemoryOutputSink } from '@ta-agent/base-request';
-import { MemorySessionAdapter, parseSessionId } from '@ta-agent/base-session';
+import {
+  AgentRequestError,
+  createRequestFingerprint,
+  MemoryOutputSink,
+  MemoryRequestJournalAdapter,
+  parseRequestIdempotencyKey,
+  RequestReplayFailedError,
+  SqliteRequestJournalAdapter,
+} from '@ta-agent/base-request';
+import { MemorySessionAdapter, parseSessionId, SqliteSessionAdapter } from '@ta-agent/base-session';
 import {
   AgentToolError,
   createToolRegistry,
@@ -176,13 +187,230 @@ describe('assembled Agent Base request path', () => {
     expect(snapshot?.turns.map((turn) => turn.status)).toEqual(['completed', 'completed']);
   });
 
+  it('restarts with a new assembled Agent and continues durable Session history', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'ta-agent-assembled-session-'));
+    const databasePath = join(directory, 'session.sqlite');
+    try {
+      const firstSession = new SqliteSessionAdapter({ databasePath });
+      const firstAgent = createPiFauxAgentBase({
+        identity: { id: 'durable-assistant' },
+        session: firstSession,
+        pi: { responses: [{ status: 'success', text: 'Remembered.' }] },
+      });
+      const first = await firstAgent.run({
+        sessionId: 'durable-conversation',
+        message: 'Remember this.',
+      });
+
+      const reopenedSession = new SqliteSessionAdapter({ databasePath });
+      const reopenedAgent = createPiFauxAgentBase({
+        identity: { id: 'durable-assistant' },
+        session: reopenedSession,
+        pi: {
+          responses: [
+            (request) => ({
+              status: 'success',
+              text: `history:${request.messages.map((message) => message.role).join(',')}`,
+            }),
+          ],
+        },
+      });
+      const second = await reopenedAgent.run({
+        sessionId: first.sessionId,
+        message: 'What did I ask?',
+      });
+
+      expect(second.message.text).toBe('history:user,assistant,user');
+      const snapshot = await reopenedSession.inspect({
+        agentId: reopenedAgent.identity.id,
+        sessionId: parseSessionId('durable-conversation'),
+      });
+      expect(snapshot?.turns.map((turn) => turn.status)).toEqual(['completed', 'completed']);
+      const independentlyReopened = new SqliteSessionAdapter({ databasePath });
+      expect(
+        (
+          await independentlyReopened.inspect({
+            agentId: reopenedAgent.identity.id,
+            sessionId: parseSessionId('durable-conversation'),
+          })
+        )?.turns.map((turn) => turn.status)
+      ).toEqual(['completed', 'completed']);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('replays a durable request after restart without repeating Pi, tools, or Session turns', async () => {
+    type AddInput = Readonly<{ left: number; right: number }>;
+    const directory = mkdtempSync(join(tmpdir(), 'ta-agent-durable-replay-'));
+    const databasePath = join(directory, 'agent.sqlite');
+    const handler = vi.fn(({ arguments: input }: ToolExecutionRequest<AddInput>) =>
+      Promise.resolve({ text: `PRIVATE_TOOL_RESULT_${input.left + input.right}` })
+    );
+    const add = defineTool({
+      name: 'add',
+      description: 'Adds two numbers.',
+      parameters: {
+        type: 'object',
+        properties: { left: { type: 'number' }, right: { type: 'number' } },
+        required: ['left', 'right'],
+        additionalProperties: false,
+      },
+      execute: handler,
+    });
+    const toolPermissionPolicy = defineToolPermissionPolicy({
+      task: ['add'],
+      assignment: ['add'],
+      product: ['add'],
+      runtime: ['add'],
+    });
+    try {
+      const firstSession = new SqliteSessionAdapter({ databasePath });
+      const firstJournal = new SqliteRequestJournalAdapter({ databasePath });
+      const firstAgent = createPiFauxAgentBase({
+        identity: { id: 'replay-assistant' },
+        session: firstSession,
+        requestJournal: firstJournal,
+        toolRegistry: createToolRegistry([add]),
+        toolPermissionPolicy,
+        createRunId: () => 'original-request',
+        pi: {
+          responses: [
+            { status: 'tool-call', callId: 'add-1', name: 'add', arguments: { left: 2, right: 3 } },
+            { status: 'success', text: 'done' },
+          ],
+        },
+      });
+      const first = await firstAgent.run({
+        sessionId: 'replay-conversation',
+        idempotencyKey: 'logical-request-1',
+        message: 'add two and three',
+      });
+
+      const reopenedSession = new SqliteSessionAdapter({ databasePath });
+      const reopenedJournal = new SqliteRequestJournalAdapter({ databasePath });
+      const reopenedAgent = createPiFauxAgentBase({
+        identity: { id: 'replay-assistant' },
+        session: reopenedSession,
+        requestJournal: reopenedJournal,
+        toolRegistry: createToolRegistry([add]),
+        toolPermissionPolicy,
+        createRunId: () => 'retry-request',
+        pi: { responses: [{ status: 'success', text: 'must not execute' }] },
+      });
+      const replaySink = new LifecycleRecordingOutputSink();
+      const replayed = await reopenedAgent.run({
+        sessionId: 'replay-conversation',
+        idempotencyKey: 'logical-request-1',
+        message: 'add two and three',
+        outputSink: replaySink,
+      });
+
+      expect(replayed).toEqual(first);
+      expect(reopenedAgent.inspectPi().callCount).toBe(0);
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(replaySink.calls).toEqual(['open', 'write', 'close']);
+      expect(replaySink.inspect().events).toEqual([{ type: 'text-delta', delta: 'done' }]);
+      expect(
+        (
+          await reopenedSession.inspect({
+            agentId: reopenedAgent.identity.id,
+            sessionId: parseSessionId('replay-conversation'),
+          })
+        )?.turns
+      ).toHaveLength(1);
+      const journalEntry = await reopenedJournal.inspect({
+        agentId: reopenedAgent.identity.id,
+        sessionId: parseSessionId('replay-conversation'),
+        idempotencyKey: parseRequestIdempotencyKey('logical-request-1'),
+      });
+      expect(journalEntry).toMatchObject({ status: 'completed', requestId: 'original-request' });
+      expect(JSON.stringify(journalEntry)).not.toContain('add two and three');
+      expect(JSON.stringify(journalEntry)).not.toContain('PRIVATE_TOOL_RESULT_5');
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('fails existing active, failed, and conflicting replay authorities without execution', async () => {
+    const journal = new MemoryRequestJournalAdapter(() => 1);
+    const session = new MemorySessionAdapter();
+    const agent = createPiFauxAgentBase({
+      identity: { id: 'replay-guard' },
+      session,
+      requestJournal: journal,
+      createRunId: () => 'retry-request',
+      pi: { responses: [{ status: 'success', text: 'must not execute' }] },
+    });
+    const agentId = agent.identity.id;
+    const sessionId = parseSessionId('replay-guards');
+    const activeKey = parseRequestIdempotencyKey('active-key');
+    const failedKey = parseRequestIdempotencyKey('failed-key');
+    const conflictKey = parseRequestIdempotencyKey('conflict-key');
+    await journal.claim({
+      agentId,
+      sessionId,
+      idempotencyKey: activeKey,
+      fingerprint: createRequestFingerprint({ message: 'active' }),
+      requestId: 'active-owner',
+    });
+    await journal.claim({
+      agentId,
+      sessionId,
+      idempotencyKey: failedKey,
+      fingerprint: createRequestFingerprint({ message: 'failed' }),
+      requestId: 'failed-owner',
+    });
+    await journal.fail({
+      agentId,
+      sessionId,
+      idempotencyKey: failedKey,
+      requestId: 'failed-owner',
+      failure: { code: 'MODEL_FAILED', message: 'original failure' },
+    });
+    await journal.claim({
+      agentId,
+      sessionId,
+      idempotencyKey: conflictKey,
+      fingerprint: createRequestFingerprint({ message: 'original' }),
+      requestId: 'conflict-owner',
+    });
+
+    await expect(
+      agent.run({ sessionId, idempotencyKey: activeKey, message: 'active' })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<AgentRequestError>>({ code: 'REQUEST_REPLAY_IN_PROGRESS' })
+    );
+    await expect(
+      agent.run({ sessionId, idempotencyKey: failedKey, message: 'failed' })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<RequestReplayFailedError>>({
+        code: 'REQUEST_REPLAY_FAILED',
+        originalFailure: { code: 'MODEL_FAILED', message: 'original failure' },
+      })
+    );
+    await expect(
+      agent.run({ sessionId, idempotencyKey: conflictKey, message: 'different' })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<AgentRequestError>>({ code: 'REQUEST_REPLAY_CONFLICT' })
+    );
+    expect(agent.inspectPi().callCount).toBe(0);
+    expect((await session.inspect({ agentId, sessionId }))?.turns).toHaveLength(0);
+    expect(await journal.inspect({ agentId, sessionId, idempotencyKey: activeKey })).toMatchObject({
+      status: 'active',
+      requestId: 'active-owner',
+    });
+  });
+
   it('propagates cancellation and fails the active Session turn and OutputSink', async () => {
     const session = new MemorySessionAdapter();
+    const journal = new MemoryRequestJournalAdapter(() => 1);
     const controller = new AbortController();
     const sink = new CancellingOutputSink(controller);
     const agent = createPiFauxAgentBase({
       identity: { id: 'assistant' },
       session,
+      requestJournal: journal,
       pi: {
         responses: [{ status: 'success', text: 'abcdefghij' }],
         charactersPerChunk: 1,
@@ -192,7 +420,12 @@ describe('assembled Agent Base request path', () => {
 
     await expect(
       agent.run(
-        { sessionId: 'cancelled', message: 'start', outputSink: sink },
+        {
+          sessionId: 'cancelled',
+          idempotencyKey: 'cancelled-request',
+          message: 'start',
+          outputSink: sink,
+        },
         { signal: controller.signal }
       )
     ).rejects.toEqual(
@@ -212,12 +445,24 @@ describe('assembled Agent Base request path', () => {
       status: 'failed',
       failureCode: 'MODEL_INVOCATION_CANCELLED',
     });
+    expect(
+      await journal.inspect({
+        agentId: agent.identity.id,
+        sessionId: parseSessionId('cancelled'),
+        idempotencyKey: parseRequestIdempotencyKey('cancelled-request'),
+      })
+    ).toMatchObject({
+      status: 'failed',
+      failure: { code: 'MODEL_INVOCATION_CANCELLED' },
+    });
   });
 
   it('preserves partial output while reporting provider failure', async () => {
     const sink = new LifecycleRecordingOutputSink();
+    const journal = new MemoryRequestJournalAdapter(() => 1);
     const agent = createPiFauxAgentBase({
       identity: { id: 'assistant' },
+      requestJournal: journal,
       pi: {
         responses: [{ status: 'failure', message: 'provider unavailable', partialText: 'partial' }],
         charactersPerChunk: 3,
@@ -225,7 +470,12 @@ describe('assembled Agent Base request path', () => {
     });
 
     await expect(
-      agent.run({ sessionId: 'failure', message: 'start', outputSink: sink })
+      agent.run({
+        sessionId: 'failure',
+        idempotencyKey: 'failure-request',
+        message: 'start',
+        outputSink: sink,
+      })
     ).rejects.toEqual(
       expect.objectContaining<Partial<AgentModelError>>({ code: 'MODEL_PROVIDER_FAILED' })
     );
@@ -237,19 +487,33 @@ describe('assembled Agent Base request path', () => {
         .join('')
     ).toBe('partial');
     expect(sink.calls.at(-1)).toBe('fail');
+    expect(
+      await journal.inspect({
+        agentId: agent.identity.id,
+        sessionId: parseSessionId('failure'),
+        idempotencyKey: parseRequestIdempotencyKey('failure-request'),
+      })
+    ).toMatchObject({ status: 'failed', failure: { code: 'MODEL_PROVIDER_FAILED' } });
   });
 
   it('retains a completed Session turn when final OutputSink close fails', async () => {
     const session = new MemorySessionAdapter();
+    const journal = new MemoryRequestJournalAdapter(() => 1);
     const sink = new FailingCloseOutputSink();
     const agent = createPiFauxAgentBase({
       identity: { id: 'assistant' },
       session,
+      requestJournal: journal,
       pi: { responses: [{ status: 'success', text: 'persisted' }] },
     });
 
     await expect(
-      agent.run({ sessionId: 'close-failure', message: 'start', outputSink: sink })
+      agent.run({
+        sessionId: 'close-failure',
+        idempotencyKey: 'close-failure-request',
+        message: 'start',
+        outputSink: sink,
+      })
     ).rejects.toEqual(
       expect.objectContaining<Partial<AgentRequestError>>({ code: 'REQUEST_OUTPUT_FAILED' })
     );
@@ -265,6 +529,13 @@ describe('assembled Agent Base request path', () => {
       status: 'failed',
       failure: { code: 'REQUEST_OUTPUT_FAILED' },
     });
+    expect(
+      await journal.inspect({
+        agentId: agent.identity.id,
+        sessionId: parseSessionId('close-failure'),
+        idempotencyKey: parseRequestIdempotencyKey('close-failure-request'),
+      })
+    ).toMatchObject({ status: 'completed', response: { message: { text: 'persisted' } } });
   });
 
   it('normalizes OutputSink write failure and fails the active Session turn', async () => {
@@ -346,6 +617,11 @@ describe('assembled Agent Base request path', () => {
     );
     await expect(agent.run({ message: 'hello', sessionId: 'invalid session' })).rejects.toEqual(
       expect.objectContaining({ code: 'SESSION_ID_INVALID' })
+    );
+    await expect(
+      agent.run({ message: 'hello', idempotencyKey: 'missing-session' })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<AgentRequestError>>({ code: 'REQUEST_INPUT_INVALID' })
     );
     expect(agent.inspectPi().callCount).toBe(0);
   });

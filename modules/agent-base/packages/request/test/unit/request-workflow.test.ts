@@ -148,6 +148,23 @@ describe('Request Workflow skeleton', () => {
     });
   });
 
+  it('short-circuits preparation and execution when replay assigns the result', async () => {
+    const overrides = implementedLeafSteps();
+    const requestWorkflow = workflow({
+      ...overrides,
+      resolveRequestReplay: (context) => {
+        context.calls.push('resolveRequestReplay');
+        context.result = 'replayed';
+        return Promise.resolve();
+      },
+    });
+
+    await expect(requestWorkflow.run(agentContext())).resolves.toMatchObject({
+      status: 'completed',
+      result: 'replayed',
+    });
+  });
+
   it('allows only the two explicitly optional leaf Steps to be skipped', async () => {
     const definitions = createRequestStepDefinitions<
       TestAgentContext,

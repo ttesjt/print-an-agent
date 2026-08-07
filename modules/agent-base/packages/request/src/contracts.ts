@@ -1,16 +1,19 @@
 import type { AssistantModelMessage } from '@ta-agent/base-model';
 import type { SessionId } from '@ta-agent/base-session';
 import type { ToolRunInspection } from '@ta-agent/base-tool';
+import type { RequestIdempotencyKey } from './replay/contracts.js';
 
 export interface AgentRequestInput {
   readonly message: string;
   readonly sessionId?: string;
+  readonly idempotencyKey?: string;
   readonly outputSink?: OutputSink;
 }
 
 export interface ValidatedAgentRequest {
   readonly message: string;
   readonly sessionId?: SessionId;
+  readonly idempotencyKey?: RequestIdempotencyKey;
   readonly outputSink: OutputSink;
 }
 

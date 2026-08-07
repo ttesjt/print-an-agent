@@ -31,6 +31,7 @@
   "dependencies": {
     "@ta-agent/base-identity": "workspace:*",
     "@ta-agent/base-model": "workspace:*",
+    "@ta-agent/base-observability": "workspace:*",
     "@ta-agent/base-pi": "workspace:*",
     "@ta-agent/base-request": "workspace:*",
     "@ta-agent/base-session": "workspace:*",

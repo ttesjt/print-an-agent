@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
+import { MemoryAgentTraceAdapter } from '@ta-agent/base-observability';
 import type {
   AgentDefinition,
   AgentDefinitionError,
@@ -117,6 +118,49 @@ describe('Agent', () => {
     expect(agent.agentId).toBe(TEST_IDENTITY.id);
     expect(Object.isFrozen(agent.identity)).toBe(true);
     await expect(agent.run('hello')).resolves.toBe('first:hello|conditional:hello|complete:hello');
+  });
+
+  it('emits correlated Agent, Workflow, Step, and configured-skip lifecycles', async () => {
+    const trace = new MemoryAgentTraceAdapter({ maxEvents: 32 });
+    const agent = createTestAgent(
+      { optional: SKIP_WORKFLOW },
+      {
+        createRunId: () => 'agent-run',
+        observability: { sink: trace, clock: () => 1 },
+      }
+    );
+
+    await expect(agent.runPlan('hello', ['first', 'optional'])).resolves.toBe('first:hello');
+
+    expect(trace.inspect({ agentRunId: 'agent-run' }).events.map((event) => event.type)).toEqual([
+      'agent-run-started',
+      'workflow-run-started',
+      'step-started',
+      'step-completed',
+      'workflow-run-completed',
+      'workflow-run-skipped',
+      'agent-run-completed',
+    ]);
+  });
+
+  it('traces a condition skip and the resulting missing-output failure', async () => {
+    const trace = new MemoryAgentTraceAdapter({ maxEvents: 16 });
+    const agent = createTestAgent(
+      {},
+      {
+        createRunId: () => 'skipped-run',
+        observability: { sink: trace, clock: () => 1 },
+      }
+    );
+
+    await expect(agent.runPlan('skip-conditional', ['conditional'])).rejects.toMatchObject({
+      code: 'AGENT_OUTPUT_MISSING',
+    });
+    expect(trace.inspect().events.map((event) => event.type)).toEqual([
+      'agent-run-started',
+      'workflow-run-skipped',
+      'agent-run-failed',
+    ]);
   });
 
   it('supports an Agent-level custom plan', async () => {

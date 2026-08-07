@@ -23,6 +23,12 @@ policy values. Tool access defaults to deny-all. An authorized call traverses Pi
 Broker, and Pi's next provider turn before returning a final response with privacy-safe execution
 metadata.
 
+The composition accepts an optional `observability` runtime. The retention-free no-op sink is the
+default. Consumers may inject `MemoryAgentTraceAdapter` or another `AgentTraceEventSink` to inspect
+ordered Agent/Workflow/Step, replay, provider-turn, tool, usage, budget, output, and terminal
+metadata. Trace events never contain request/instruction/history/output text, tool payloads,
+exception messages, credentials, endpoints, or Pi values. Sink failure is isolated from execution.
+
 The composition structure is the supported production architecture. SQLite supplies a minimal real
 durable local Session profile, but the default faux-provider composition is intentionally not a
 remote-provider production profile. Durable replay is a separate minimal Request Journal profile;

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { traceErrorCode } from '@ta-agent/base-observability';
 import type { AnyAgentContext, BaseWorkflowContext } from '../types/context.js';
 import { AgentDefinitionError, AgentRunError } from '../types/errors.js';
 import type { ResolvedStepRegistry, StepExecutor, StepName } from '../types/step.js';
@@ -63,6 +64,10 @@ export class Workflow<
   async run(agentContext: C): Promise<WorkflowRunOutcome<C, TResult>> {
     const decision = await this.#condition(agentContext);
     if (decision.status === 'skip') {
+      await agentContext.traceEmitter?.record({
+        type: 'workflow-run-skipped',
+        workflowName: this.name,
+      });
       return Object.freeze({
         status: 'skipped',
         workflowName: this.name,
@@ -78,6 +83,11 @@ export class Workflow<
     }
 
     const workflowRunId = this.#createRunId();
+    await agentContext.traceEmitter?.record({
+      type: 'workflow-run-started',
+      workflowName: this.name,
+      workflowRunId,
+    });
     const runState: { context?: WC } = {};
 
     const runStep = async (stepName: TStepName): Promise<void> => {
@@ -99,37 +109,79 @@ export class Workflow<
         );
       }
 
-      if (resolved.status === 'skipped') return;
-      await this.#executeStep({ stepName, step: resolved.step, context });
+      if (resolved.status === 'skipped') {
+        await agentContext.traceEmitter?.record({
+          type: 'step-skipped',
+          workflowName: this.name,
+          workflowRunId,
+          stepName,
+        });
+        return;
+      }
+      await agentContext.traceEmitter?.record({
+        type: 'step-started',
+        workflowName: this.name,
+        workflowRunId,
+        stepName,
+      });
+      try {
+        await this.#executeStep({ stepName, step: resolved.step, context });
+        await agentContext.traceEmitter?.record({
+          type: 'step-completed',
+          workflowName: this.name,
+          workflowRunId,
+          stepName,
+        });
+      } catch (error: unknown) {
+        await agentContext.traceEmitter?.record({
+          type: 'step-failed',
+          workflowName: this.name,
+          workflowRunId,
+          stepName,
+          errorCode: traceErrorCode(error),
+        });
+        throw error;
+      }
     };
 
-    const context = this.#createContext({
-      workflowName: this.name,
-      workflowRunId,
-      agentContext,
-      signal: agentContext.signal,
-      runStep,
-    });
-    runState.context = context;
+    let context: WC;
+    try {
+      context = this.#createContext({
+        workflowName: this.name,
+        workflowRunId,
+        agentContext,
+        signal: agentContext.signal,
+        runStep,
+      });
+      runState.context = context;
 
-    if (context.runStep !== runStep) {
-      throw new AgentRunError(
-        'WORKFLOW_CONTEXT_RUNNER_REPLACED',
-        'Workflow Context factories must preserve the run-scoped runStep function.',
-        this.name
-      );
-    }
-    if (
-      context.workflowName !== this.name ||
-      context.workflowRunId !== workflowRunId ||
-      context.agentContext !== agentContext ||
-      context.signal !== agentContext.signal
-    ) {
-      throw new AgentRunError(
-        'WORKFLOW_CONTEXT_BASE_REPLACED',
-        `Workflow Context factory for "${this.name}" replaced runtime-owned base fields.`,
-        this.name
-      );
+      if (context.runStep !== runStep) {
+        throw new AgentRunError(
+          'WORKFLOW_CONTEXT_RUNNER_REPLACED',
+          'Workflow Context factories must preserve the run-scoped runStep function.',
+          this.name
+        );
+      }
+      if (
+        context.workflowName !== this.name ||
+        context.workflowRunId !== workflowRunId ||
+        context.agentContext !== agentContext ||
+        context.signal !== agentContext.signal
+      ) {
+        throw new AgentRunError(
+          'WORKFLOW_CONTEXT_BASE_REPLACED',
+          `Workflow Context factory for "${this.name}" replaced runtime-owned base fields.`,
+          this.name
+        );
+      }
+    } catch (error: unknown) {
+      await agentContext.traceEmitter?.record({
+        type: 'workflow-run-failed',
+        workflowName: this.name,
+        workflowRunId,
+        errorCode: traceErrorCode(error),
+      });
+      throw error;
     }
 
     let result: TResult | undefined;
@@ -172,20 +224,40 @@ export class Workflow<
     }
 
     if (executionFailed) {
+      let terminalError = executionError;
       if (errorHandlerFailed || finallyHandlerFailed) {
         const errors = [executionError];
         if (errorHandlerFailed) errors.push(errorHandlerError);
         if (finallyHandlerFailed) errors.push(finallyHandlerError);
-        throw new AggregateError(
+        terminalError = new AggregateError(
           errors,
           `Workflow "${this.name}" failed and one or more lifecycle handlers also failed.`,
           { cause: executionError }
         );
       }
-      throw executionError;
+      await agentContext.traceEmitter?.record({
+        type: 'workflow-run-failed',
+        workflowName: this.name,
+        workflowRunId,
+        errorCode: traceErrorCode(terminalError),
+      });
+      throw terminalError;
     }
-    if (finallyHandlerFailed) throw finallyHandlerError;
+    if (finallyHandlerFailed) {
+      await agentContext.traceEmitter?.record({
+        type: 'workflow-run-failed',
+        workflowName: this.name,
+        workflowRunId,
+        errorCode: traceErrorCode(finallyHandlerError),
+      });
+      throw finallyHandlerError;
+    }
     const completedResult = result as TResult;
+    await agentContext.traceEmitter?.record({
+      type: 'workflow-run-completed',
+      workflowName: this.name,
+      workflowRunId,
+    });
 
     return Object.freeze({
       status: 'completed',

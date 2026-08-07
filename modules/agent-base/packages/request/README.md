@@ -69,6 +69,12 @@ ad hoc, and future semantic inputs must introduce a new manifest version rather 
 changing the meaning of persisted fingerprints. Large binary content is intentionally not accepted
 by this text-only manifest.
 
+The assembled profile maps normalized Session, replay, execution-target, Tool, Agent Loop, provider
+turn, output, and terminal facts into the injected Agent trace emitter. Text deltas remain exclusive
+to `OutputSink`; trace events contain counts and structured status only. A completed replay emits a
+fresh correlated output trace and deliberately emits no Agent Loop, provider-turn, or tool-call
+events.
+
 ## Source layout
 
 - Root files own stable request contracts, errors, and policy.

@@ -25,6 +25,8 @@ Current foundation packages:
 - `@ta-agent/base-identity`: stable Agent identity values;
 - `@ta-agent/base-config`: storage-agnostic typed configuration lifecycle;
 - `@ta-agent/base-model`: provider-independent model, message, streaming, and loop contracts;
+- `@ta-agent/base-observability`: privacy-safe correlated trace contracts, no-op sink, and bounded
+  Memory adapter;
 - `@ta-agent/base-session`: generic session ports, the process-local memory adapter, and an opt-in
   versioned SQLite durable adapter;
 - `@ta-agent/base-tool`: provider-independent schemas, registries, permission policy, and bounded
@@ -43,4 +45,6 @@ idempotency keys; memory remains the zero-configuration journal default.
 Registered tools are denied by default and execute only through the Agent Base Tool Broker when every
 permission layer allows them. The profile publishes only the final assistant turn and returns
 privacy-safe tool-run metadata. Its composition and replacement boundaries are formal; generic
-observability, session navigation/compaction, and ordinary provider registration remain deferred.
+correlated observability is available through an explicit metadata-only sink. Trace retention is
+disabled by default; durable trace storage, session navigation/compaction, and ordinary provider
+registration remain deferred.

@@ -67,6 +67,9 @@ importers:
       '@ta-agent/base-model':
         specifier: workspace:*
         version: link:../model
+      '@ta-agent/base-observability':
+        specifier: workspace:*
+        version: link:../observability
       '@ta-agent/base-pi':
         specifier: workspace:*
         version: link:../pi
@@ -149,6 +152,21 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
 
+  modules/agent-base/packages/observability:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
   modules/agent-base/packages/pi:
     dependencies:
       '@earendil-works/pi-agent-core':
@@ -188,6 +206,9 @@ importers:
       '@ta-agent/base-model':
         specifier: workspace:*
         version: link:../model
+      '@ta-agent/base-observability':
+        specifier: workspace:*
+        version: link:../observability
       '@ta-agent/base-session':
         specifier: workspace:*
         version: link:../session
@@ -253,6 +274,9 @@ importers:
       '@ta-agent/base-identity':
         specifier: workspace:*
         version: link:../identity
+      '@ta-agent/base-observability':
+        specifier: workspace:*
+        version: link:../observability
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

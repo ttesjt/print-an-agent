@@ -7,8 +7,23 @@ import { AgentRequestError } from '../errors.js';
 import { createRequestFingerprint } from '../replay/fingerprint.js';
 import { parseRequestIdempotencyKey } from '../replay/identifiers.js';
 import { RequestReplayFailedError } from '../replay/replay-error.js';
+import type { RequestJournalClaim } from '../replay/contracts.js';
 import type { RequestStepName } from '../workflow/names.js';
 import type { DefaultRequestWorkflowContext } from './context.js';
+import {
+  countOutputCharacters,
+  traceAgentLoopCompleted,
+  traceAgentLoopEvent,
+  traceAgentLoopFailed,
+  traceAgentLoopStarted,
+  traceExecutionTargetResolved,
+  traceOutputCompleted,
+  traceOutputFailed,
+  traceOutputStarted,
+  traceReplayResolved,
+  traceSessionResolved,
+  traceToolsResolved,
+} from './observability.js';
 
 function requireValue<T>(value: T | undefined, name: string): T {
   if (value === undefined) {
@@ -89,21 +104,25 @@ function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> 
 async function publishReplayedResponse(context: DefaultRequestWorkflowContext): Promise<void> {
   const request = requireValue(context.request, 'request');
   const response = requireValue(context.response, 'response');
+  await traceOutputStarted(context, true);
   try {
     await request.outputSink.open({
       requestId: response.requestId,
       sessionId: response.sessionId,
     });
   } catch (cause: unknown) {
+    await traceOutputFailed(context, 'open');
     throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to open replay.', {
       cause,
     });
   }
   try {
+    countOutputCharacters(context, response.message.text.length);
     await request.outputSink.write(
       Object.freeze({ type: 'text-delta', delta: response.message.text })
     );
   } catch (cause: unknown) {
+    await traceOutputFailed(context, 'write');
     throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to write replay.', {
       cause,
     });
@@ -111,36 +130,50 @@ async function publishReplayedResponse(context: DefaultRequestWorkflowContext): 
   try {
     await request.outputSink.close(response);
   } catch (cause: unknown) {
+    await traceOutputFailed(context, 'close');
     throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to close replay.', {
       cause,
     });
   }
+  await traceOutputCompleted(context);
 }
 
 async function resolveRequestReplay(context: DefaultRequestWorkflowContext): Promise<void> {
   const request = requireValue(context.request, 'request');
   if (request.idempotencyKey === undefined) return;
   const session = requireValue(context.session, 'session');
-  const claim = await context.resources.requestJournal.claim({
-    ...session,
-    idempotencyKey: request.idempotencyKey,
-    fingerprint: createRequestFingerprint({ message: request.message }),
-    requestId: context.agentContext.runId,
-  });
+  let claim: RequestJournalClaim;
+  try {
+    claim = await context.resources.requestJournal.claim({
+      ...session,
+      idempotencyKey: request.idempotencyKey,
+      fingerprint: createRequestFingerprint({ message: request.message }),
+      requestId: context.agentContext.runId,
+    });
+  } catch (error: unknown) {
+    if (error instanceof AgentRequestError && error.code === 'REQUEST_REPLAY_CONFLICT') {
+      await traceReplayResolved(context, 'conflict');
+    }
+    throw error;
+  }
   context.requestJournalEntry = claim.entry;
   if (claim.status === 'claimed') {
     context.ownedRequestJournalClaim = claim.entry;
+    await traceReplayResolved(context, 'claimed');
     return;
   }
   if (claim.entry.status === 'active') {
+    await traceReplayResolved(context, 'active');
     throw new AgentRequestError(
       'REQUEST_REPLAY_IN_PROGRESS',
       `Request "${claim.entry.requestId}" is already active for this idempotency key.`
     );
   }
   if (claim.entry.status === 'failed') {
+    await traceReplayResolved(context, 'failed');
     throw new RequestReplayFailedError(claim.entry.failure);
   }
+  await traceReplayResolved(context, 'completed');
   context.response = claim.entry.response;
   await publishReplayedResponse(context);
   context.result = claim.entry.response;
@@ -152,6 +185,7 @@ async function resolveSession(context: DefaultRequestWorkflowContext): Promise<v
     agentId: context.agentContext.identity.id,
     ...(request.sessionId === undefined ? {} : { requestedSessionId: request.sessionId }),
   });
+  await traceSessionResolved(context);
 }
 
 async function beginRequest(context: DefaultRequestWorkflowContext): Promise<void> {
@@ -174,6 +208,7 @@ async function resolveExecutionTarget(context: DefaultRequestWorkflowContext): P
   context.target = await context.resources.modelRuntime.resolveTarget(
     context.resources.modelReference
   );
+  await traceExecutionTargetResolved(context);
 }
 
 async function resolveInstructions(context: DefaultRequestWorkflowContext): Promise<void> {
@@ -202,7 +237,7 @@ async function loadSessionContext(context: DefaultRequestWorkflowContext): Promi
   });
 }
 
-function buildTools(context: DefaultRequestWorkflowContext): Promise<void> {
+async function buildTools(context: DefaultRequestWorkflowContext): Promise<void> {
   context.tools = createBoundedToolRuntime({
     registry: context.resources.toolRegistry,
     permissionPolicy: context.resources.toolPermissionPolicy,
@@ -210,7 +245,7 @@ function buildTools(context: DefaultRequestWorkflowContext): Promise<void> {
     signal: context.signal,
     clock: context.resources.clock,
   });
-  return Promise.resolve();
+  await traceToolsResolved(context);
 }
 
 function buildModelContext(context: DefaultRequestWorkflowContext): Promise<void> {
@@ -233,11 +268,14 @@ async function handleAgentLoopEvent(
   context: DefaultRequestWorkflowContext,
   event: AgentLoopEvent
 ): Promise<void> {
+  await traceAgentLoopEvent(context, event);
   if (event.type === 'text-delta') {
     const request = requireValue(context.request, 'request');
     try {
+      countOutputCharacters(context, event.delta.length);
       await request.outputSink.write(Object.freeze({ type: 'text-delta', delta: event.delta }));
     } catch (cause: unknown) {
+      await traceOutputFailed(context, 'write');
       throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to write.', {
         cause,
       });
@@ -258,23 +296,30 @@ async function handleAgentLoopEvent(
 async function runAgentInteraction(context: DefaultRequestWorkflowContext): Promise<void> {
   const request = requireValue(context.request, 'request');
   const session = requireValue(context.session, 'session');
+  await traceOutputStarted(context, false);
   try {
     await request.outputSink.open({
       requestId: context.agentContext.runId,
       sessionId: session.sessionId,
     });
   } catch (cause: unknown) {
+    await traceOutputFailed(context, 'open');
     throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to open.', { cause });
   }
   const tools = requireValue(context.tools, 'tools');
   let result: AgentLoopResult;
+  await traceAgentLoopStarted(context);
   try {
     result = await context.resources.modelRuntime.run(
       requireValue(context.modelRequest, 'modelRequest')
     );
-  } finally {
+  } catch (error: unknown) {
     tools.close();
+    await traceAgentLoopFailed(context, error);
+    throw error;
   }
+  tools.close();
+  await traceAgentLoopCompleted(context);
   context.response = Object.freeze({
     requestId: context.agentContext.runId,
     sessionId: session.sessionId,
@@ -299,8 +344,10 @@ async function completeResponse(context: DefaultRequestWorkflowContext): Promise
   try {
     await request.outputSink.close(response);
   } catch (cause: unknown) {
+    await traceOutputFailed(context, 'close');
     throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to close.', { cause });
   }
+  await traceOutputCompleted(context);
   context.result = response;
 }
 

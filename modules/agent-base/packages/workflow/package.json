@@ -29,7 +29,8 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/base-identity": "workspace:*"
+    "@ta-agent/base-identity": "workspace:*",
+    "@ta-agent/base-observability": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

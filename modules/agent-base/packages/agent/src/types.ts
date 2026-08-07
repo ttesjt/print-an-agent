@@ -1,5 +1,6 @@
 import type { AgentIdentity, AgentIdentityInput } from '@ta-agent/base-identity';
 import type { AgentLoopRuntime, ProviderModelReference } from '@ta-agent/base-model';
+import type { AgentTraceEventSink, AgentTraceRuntimeOptions } from '@ta-agent/base-observability';
 import type { PiFauxRuntimeInspection, PiFauxRuntimeOptions } from '@ta-agent/base-pi';
 import type {
   AgentRequestInput,
@@ -30,6 +31,7 @@ export interface AssembleAgentBaseOptions {
   readonly requestPolicy?: RequestPolicy;
   readonly stepOverrides?: StepOverrides<RequestStepName, DefaultRequestWorkflowContext>;
   readonly requestWorkflow?: RunnableWorkflow<RequestAgentContext>;
+  readonly observability?: AgentTraceRuntimeOptions;
   readonly clock?: () => number;
   readonly createRunId?: () => string;
   readonly createWorkflowRunId?: () => string;
@@ -47,6 +49,7 @@ export interface AssembledAgentBase {
   readonly toolRegistry: ToolRegistry;
   readonly toolPermissionPolicy: ToolPermissionPolicy;
   readonly toolExecutionPolicy: ToolExecutionPolicy;
+  readonly traceSink: AgentTraceEventSink;
   run(input: AgentRequestInput, options?: AgentBaseRunOptions): Promise<AgentResponse>;
 }
 

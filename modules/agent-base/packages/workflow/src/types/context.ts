@@ -1,4 +1,5 @@
 import type { AgentIdentity } from '@ta-agent/base-identity';
+import type { AgentTraceEmitter } from '@ta-agent/base-observability';
 import type { StepName } from './step.js';
 import type { WorkflowName } from './workflow.js';
 
@@ -12,6 +13,7 @@ export interface BaseAgentContext<TInput = unknown, TOutput = unknown> {
   readonly input: TInput;
   output?: TOutput;
   readonly signal: AbortSignal;
+  readonly traceEmitter?: AgentTraceEmitter;
 }
 
 export type AnyAgentContext = BaseAgentContext<unknown, unknown>;

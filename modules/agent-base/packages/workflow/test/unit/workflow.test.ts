@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
+import { createAgentTraceEmitter, type AgentTraceEmitter } from '@ta-agent/base-observability';
 import type {
   BaseAgentContext,
   BaseWorkflowContext,
@@ -26,13 +27,14 @@ interface TestWorkflowContext extends BaseWorkflowContext<TestStepName, TestAgen
   readonly local: string[];
 }
 
-function agentContext(input = 'hello'): TestAgentContext {
+function agentContext(input = 'hello', traceEmitter?: AgentTraceEmitter): TestAgentContext {
   return {
     identity: defineAgentIdentity({ id: 'agent' }),
     runId: `agent-run-${input}`,
     input,
     signal: new AbortController().signal,
     applied: [],
+    ...(traceEmitter === undefined ? {} : { traceEmitter }),
   };
 }
 
@@ -244,6 +246,47 @@ describe('Workflow', () => {
 
     await expect(workflow.run(agentContext())).rejects.toBe(failure);
     expect(calls).toEqual(['error', 'finally']);
+  });
+
+  it('records Workflow failure after error and finally lifecycle handlers', async () => {
+    const failure = new Error('private execution failure');
+    const calls: string[] = [];
+    const traceEmitter = createAgentTraceEmitter({
+      agentId: 'agent',
+      agentRunId: 'agent-run',
+      clock: () => 1,
+      sink: {
+        record: (event) => {
+          calls.push(`trace:${event.type}`);
+          return Promise.resolve();
+        },
+      },
+    });
+    const workflow = createTestWorkflow(
+      { workflow: () => Promise.reject(failure) },
+      {
+        lifecycle: {
+          onError: () => {
+            calls.push('error');
+            return Promise.resolve();
+          },
+          onFinally: () => {
+            calls.push('finally');
+            return Promise.resolve();
+          },
+        },
+      }
+    );
+
+    await expect(workflow.run(agentContext('hello', traceEmitter))).rejects.toBe(failure);
+    expect(calls).toEqual([
+      'trace:workflow-run-started',
+      'trace:step-started',
+      'trace:step-failed',
+      'error',
+      'finally',
+      'trace:workflow-run-failed',
+    ]);
   });
 
   it('runs onError and onFinally when onSuccess fails', async () => {

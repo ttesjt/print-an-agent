@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import type { AgentId, AgentIdentity } from '@ta-agent/base-identity';
+import {
+  createAgentTraceEmitter,
+  traceErrorCode,
+  type AgentTraceRuntimeOptions,
+} from '@ta-agent/base-observability';
 import type { AgentDefinition, AgentRunOptions, RunnableAgent } from '../types/agent.js';
 import type { BaseAgentContext } from '../types/context.js';
 import { AgentDefinitionError, AgentRunError } from '../types/errors.js';
@@ -30,6 +35,7 @@ export class Agent<
     TResources,
     C
   >['createContext'];
+  readonly #observability: AgentTraceRuntimeOptions;
   readonly #createRunId: () => string;
 
   constructor(definition: AgentDefinition<TWorkflowName, TInput, TOutput, TConfig, TResources, C>) {
@@ -42,6 +48,7 @@ export class Agent<
       definition.workflowOverrides
     );
     this.#createContext = definition.createContext;
+    this.#observability = Object.freeze({ ...definition.observability });
     this.#createRunId = definition.createRunId ?? randomUUID;
 
     for (const workflowName of this.workflowPlan) {
@@ -63,54 +70,72 @@ export class Agent<
     const workflowPlan = options.workflowPlan ?? this.workflowPlan;
     const signal = options.signal ?? new AbortController().signal;
     const runId = this.#createRunId();
-    const context = this.#createContext({
-      identity: this.identity,
-      runId,
-      input,
-      signal,
-      config: this.config,
-      resources: this.resources,
+    const traceEmitter = createAgentTraceEmitter({
+      agentId: this.agentId,
+      agentRunId: runId,
+      ...this.#observability,
     });
+    await traceEmitter.record({ type: 'agent-run-started' });
 
-    if (
-      context.identity !== this.identity ||
-      context.runId !== runId ||
-      context.input !== input ||
-      context.signal !== signal
-    ) {
-      throw new AgentRunError(
-        'AGENT_CONTEXT_BASE_REPLACED',
-        `Agent Context factory for "${this.agentId}" replaced runtime-owned base fields.`,
-        this.agentId
-      );
-    }
+    try {
+      const context = this.#createContext({
+        identity: this.identity,
+        runId,
+        input,
+        signal,
+        config: this.config,
+        resources: this.resources,
+        traceEmitter,
+      });
 
-    for (const workflowName of workflowPlan) {
-      const resolved = this.#workflows[workflowName];
-      if (resolved === undefined) {
+      if (
+        context.identity !== this.identity ||
+        context.runId !== runId ||
+        context.input !== input ||
+        context.signal !== signal ||
+        context.traceEmitter !== traceEmitter
+      ) {
         throw new AgentRunError(
-          'WORKFLOW_NOT_REGISTERED',
-          `Workflow "${workflowName}" is not registered for agent "${this.agentId}".`,
-          workflowName
+          'AGENT_CONTEXT_BASE_REPLACED',
+          `Agent Context factory for "${this.agentId}" replaced runtime-owned base fields.`,
+          this.agentId
         );
       }
-      if (resolved.status === 'skipped') continue;
 
-      const outcome = await resolved.workflow.run(context);
-      if (outcome.status === 'completed') {
-        await outcome.applyTo(context);
+      for (const workflowName of workflowPlan) {
+        const resolved = this.#workflows[workflowName];
+        if (resolved === undefined) {
+          throw new AgentRunError(
+            'WORKFLOW_NOT_REGISTERED',
+            `Workflow "${workflowName}" is not registered for agent "${this.agentId}".`,
+            workflowName
+          );
+        }
+        if (resolved.status === 'skipped') {
+          await traceEmitter.record({ type: 'workflow-run-skipped', workflowName });
+          continue;
+        }
+
+        const outcome = await resolved.workflow.run(context);
+        if (outcome.status === 'completed') {
+          await outcome.applyTo(context);
+        }
       }
-    }
 
-    if (!Object.hasOwn(context, 'output')) {
-      throw new AgentRunError(
-        'AGENT_OUTPUT_MISSING',
-        `Agent "${this.agentId}" completed its workflow plan without assigning context.output.`,
-        this.agentId
-      );
-    }
+      if (!Object.hasOwn(context, 'output')) {
+        throw new AgentRunError(
+          'AGENT_OUTPUT_MISSING',
+          `Agent "${this.agentId}" completed its workflow plan without assigning context.output.`,
+          this.agentId
+        );
+      }
 
-    return context.output as TOutput;
+      await traceEmitter.record({ type: 'agent-run-completed' });
+      return context.output as TOutput;
+    } catch (error: unknown) {
+      await traceEmitter.record({ type: 'agent-run-failed', errorCode: traceErrorCode(error) });
+      throw error;
+    }
   }
 
   runPlan(

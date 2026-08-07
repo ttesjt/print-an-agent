@@ -1,4 +1,5 @@
 import type { AgentId, AgentIdentity } from '@ta-agent/base-identity';
+import type { AgentTraceEmitter, AgentTraceRuntimeOptions } from '@ta-agent/base-observability';
 import type { BaseAgentContext } from './context.js';
 import type { WorkflowName } from './workflow.js';
 import type { WorkflowDefinitions, WorkflowOverrides } from './workflow-registry.js';
@@ -10,6 +11,7 @@ export interface AgentContextFactoryInput<TInput, TConfig, TResources> {
   readonly signal: AbortSignal;
   readonly config: TConfig;
   readonly resources: TResources;
+  readonly traceEmitter: AgentTraceEmitter;
 }
 
 export type AgentContextFactory<TInput, TConfig, TResources, C extends BaseAgentContext<TInput>> = (
@@ -31,6 +33,7 @@ export interface AgentDefinition<
   readonly workflowDefinitions: WorkflowDefinitions<TWorkflowName, C>;
   readonly workflowOverrides?: WorkflowOverrides<TWorkflowName, C>;
   readonly createContext: AgentContextFactory<TInput, TConfig, TResources, C>;
+  readonly observability?: AgentTraceRuntimeOptions;
   readonly createRunId?: () => string;
 }
 

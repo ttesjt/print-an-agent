@@ -14,6 +14,8 @@ Agent
 
 An Agent owns identity, config, resources, a smart Workflow Registry, and a default plan. Every
 `agent.run()` creates one Agent Context shared only by the Workflows selected for that run.
+The runtime also owns an optional run-scoped trace emitter. It records Agent, Workflow, and nested
+Step lifecycle metadata through `@ta-agent/base-observability` without exposing Context values.
 
 A Workflow is a reusable class with its own condition, Workflow Context factory, Step Registry, and
 Step Executor. Every Workflow run creates an isolated Workflow Context. Leaf, composite, and entry
@@ -51,4 +53,5 @@ const agent = new Agent({
 `createWorkflow()` and `createAgent()` are constructor conveniences. Subclassing is not required,
 but classes remain available when a product benefits from a named domain type.
 
-This package contains no provider, Pi, database, configuration schema, or product policy.
+Tracing is fail-open: an observability sink cannot replace an execution result or failure. This
+package contains no provider, Pi, database, configuration schema, or product policy.

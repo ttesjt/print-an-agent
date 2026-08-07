@@ -1,5 +1,6 @@
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import { AgentModelError } from '@ta-agent/base-model';
+import { NOOP_AGENT_TRACE_SINK } from '@ta-agent/base-observability';
 import {
   AgentRequestError,
   createDefaultRequestStepOverrides,
@@ -55,6 +56,7 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
   const toolExecutionPolicy = validateToolExecutionPolicy(
     options.toolExecutionPolicy ?? DEFAULT_TOOL_EXECUTION_POLICY
   );
+  const traceSink = options.observability?.sink ?? NOOP_AGENT_TRACE_SINK;
   const resources = Object.freeze({
     session,
     requestJournal,
@@ -103,6 +105,7 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
       [REQUEST_WORKFLOW_NAME]: { workflow: requestWorkflow, skippable: false },
     },
     createContext: (base): RequestAgentContext => ({ ...base }),
+    observability: Object.freeze({ ...options.observability, sink: traceSink }),
     ...(options.createRunId === undefined ? {} : { createRunId: options.createRunId }),
   });
 
@@ -116,6 +119,7 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
     toolRegistry,
     toolPermissionPolicy,
     toolExecutionPolicy,
+    traceSink,
     async run(input: AgentRequestInput, runOptions: AgentBaseRunOptions = {}) {
       const timeoutSignal = AbortSignal.timeout(requestPolicy.timeoutMilliseconds);
       const signal =

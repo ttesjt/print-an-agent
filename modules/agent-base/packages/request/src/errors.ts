@@ -2,6 +2,7 @@ import type { RequestLeafStepName } from './workflow/names.js';
 
 export type AgentRequestErrorCode =
   | 'REQUEST_INPUT_INVALID'
+  | 'REQUEST_CONFIGURATION_INVALID'
   | 'REQUEST_POLICY_INVALID'
   | 'REQUEST_INSTRUCTIONS_INVALID'
   | 'REQUEST_CONTEXT_INCOMPLETE'

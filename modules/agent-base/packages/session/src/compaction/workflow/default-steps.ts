@@ -1,4 +1,5 @@
-import type { ContextModelMessage } from '@ta-agent/base-model';
+import { AgentActorError, SESSION_COMPACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
+import type { ContextModelMessage, ModelMessage } from '@ta-agent/base-model';
 import type { StepOverrides } from '@ta-agent/base-workflow';
 import { AgentSessionError } from '../../errors.js';
 import { parseSessionBranchId, parseSessionId } from '../../identifiers.js';
@@ -69,6 +70,22 @@ function readClock(clock: () => number): number {
   return timestamp;
 }
 
+function buildCompactionMessages(
+  source: NonNullable<SessionCompactionWorkflowContext['source']>
+): readonly ModelMessage[] {
+  const lastTimestamp =
+    source.turns.at(-1)?.assistantMessage.timestamp ?? source.previousContext?.timestamp ?? 0;
+  return Object.freeze([
+    ...(source.previousContext === undefined ? [] : [source.previousContext]),
+    ...source.turns.flatMap((turn) => [turn.userMessage, turn.assistantMessage]),
+    Object.freeze({
+      role: 'user' as const,
+      text: 'Produce the compacted session context.',
+      timestamp: lastTimestamp,
+    }),
+  ]);
+}
+
 async function buildCompactedContext(context: SessionCompactionWorkflowContext): Promise<void> {
   if (context.result !== undefined) return;
   const source = context.source;
@@ -82,15 +99,29 @@ async function buildCompactedContext(context: SessionCompactionWorkflowContext):
   const signal = AbortSignal.any([context.signal, timeoutSignal]);
   let text: string;
   try {
-    const result = await context.resources.runtime.compact({
-      modelReference: context.resources.modelReference,
+    const responsibility = await context.resources.responsibilities.resolve(
+      SESSION_COMPACTION_RESPONSIBILITY_ID
+    );
+    context.responsibility = responsibility;
+    await context.agentContext.traceEmitter?.record({
+      type: 'actor-resolved',
+      workflowName: context.workflowName,
+      workflowRunId: context.workflowRunId,
+      responsibilityId: responsibility.id,
+      responsibilityRevision: responsibility.catalogRevision,
+      actorId: responsibility.actor.id,
+      actorRevision: responsibility.actor.catalogRevision,
+      engineId: responsibility.actor.engineId,
+      candidateIndex: responsibility.candidateIndex,
+      invocationMode: 'direct',
+    });
+    const result = await responsibility.complete({
       instructions: context.resources.instructions,
-      ...(source.previousContext === undefined ? {} : { previousContext: source.previousContext }),
-      turns: source.turns,
-      maxContextCharacters: context.resources.policy.maxContextCharacters,
+      messages: buildCompactionMessages(source),
+      maxOutputCharacters: context.resources.policy.maxContextCharacters,
       signal,
     });
-    text = result.text;
+    text = result.message.text;
   } catch (cause: unknown) {
     if (timeoutSignal.aborted && !context.signal.aborted) {
       throw new AgentSessionError(
@@ -106,7 +137,18 @@ async function buildCompactedContext(context: SessionCompactionWorkflowContext):
         { cause }
       );
     }
-    throw cause;
+    if (cause instanceof AgentActorError) {
+      throw new AgentSessionError(
+        'SESSION_COMPACTION_RUNTIME_FAILED',
+        'Session compaction Responsibility could not complete the invocation.',
+        { cause }
+      );
+    }
+    throw new AgentSessionError(
+      'SESSION_COMPACTION_RUNTIME_FAILED',
+      'Session compaction runtime failed.',
+      { cause }
+    );
   }
   if (
     typeof text !== 'string' ||

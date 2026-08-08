@@ -2,17 +2,25 @@
 
 The official assembled Agent Base composition root.
 
-`assembleAgentBase()` accepts Agent Base-owned runtime and adapter ports. `createPiFauxAgentBase()`
+`assembleAgentBase()` accepts Agent Base-owned Actor and Responsibility catalogs plus adapter ports.
+It constructs one Responsibility router shared by foreground requests and Session compaction and
+requires a resolvable `main` Actor. `createPiFauxAgentBase()`
 selects the current offline development profile: Pi's low-level loop, a deterministic faux provider,
 in-memory sessions and Request Journal, the canonical request Workflow, and a memory OutputSink
 default.
 
-The assembled API also exposes an explicit `compactSession()` Agent Run. `createPiFauxAgentBase()`
-wires its deterministic Pi direct-completion runtime; generic compositions may inject another
-`SessionCompactionRuntime`. The `compactSession` Workflow, Condition, every leaf Step, policy,
-runtime, and Session adapter remain replaceable. A generic composition without a compaction runtime
-continues to serve requests and fails `compactSession()` immediately with a structured
-not-configured error.
+`createPiAgentBase()` is the formal ordinary-provider shortcut. It accepts the closed Pi builtin or
+OpenAI-compatible profile, creates the required `main` Actor and configured Responsibilities, and
+retains the same replaceable Session, Request Journal, Tool, OutputSink, Workflow/Step, and
+observability ports. Its `inspectPiProvider()` and `checkPiProviderReadiness()` surfaces are
+metadata-only. Consumers needing multiple Engines compose `createPiProviderRuntime()` with
+`assembleAgentBase()` directly.
+
+The assembled API also exposes an explicit `compactSession()` Agent Run. It resolves the registered
+`session-compaction` Responsibility and invokes its Actor in direct mode. The Pi faux profile supplies
+a deterministic Pi Engine; generic compositions may inject any conforming custom Engine. The
+`compactSession` Workflow, Condition, every leaf Step, policy, Actor routing, and Session adapter
+remain replaceable.
 
 Compaction is not automatically scheduled after a response. It persists a revisioned projection
 through a completed Turn boundary and leaves the raw Session history unchanged. A later request loads
@@ -36,19 +44,20 @@ supports process-local development. Callers that need restart-safe replay inject
 `SqliteSessionAdapter`. A completed duplicate returns the original request ID, branch identity, and
 response while performing no Pi call, tool call, or new Session turn.
 
-The composition root accepts replaceable Tool Registry, four-layer permission policy, and execution
-policy values. Tool access defaults to deny-all. An authorized call traverses Pi, the Agent Base Tool
+The composition root accepts a replaceable Tool Registry, Actor/Responsibility allow-lists, product
+and runtime ceilings, and an execution policy. Tool access defaults to deny-all. An authorized call traverses Pi, the Agent Base Tool
 Broker, and Pi's next provider turn before returning a final response with privacy-safe execution
 metadata.
 
 The composition accepts an optional `observability` runtime. The retention-free no-op sink is the
 default. Consumers may inject `MemoryAgentTraceAdapter` or another `AgentTraceEventSink` to inspect
-ordered Agent/Workflow/Step, replay, provider-turn, tool, usage, budget, output, and terminal
+ordered Agent/Workflow/Step, Actor routing, replay, provider-turn, tool, usage, budget, output, and terminal
 metadata. Trace events never contain request/instruction/history/output text, tool payloads,
 exception messages, credentials, endpoints, or Pi values. Sink failure is isolated from execution.
 
 The composition structure is the supported production architecture. SQLite supplies a minimal real
-durable local Session profile, but the default faux-provider composition is intentionally not a
-remote-provider production profile. Durable replay is a separate minimal Request Journal profile;
+durable local Session profile, while both Pi shortcuts intentionally retain memory persistence as
+their zero-configuration development default. Ordinary provider invocation is real; a durable
+production persistence/credential profile is not implied. Durable replay is a separate minimal Request Journal profile;
 the Session adapter supports bounded append-only navigation but does not imply branch merge/delete,
 pruning, backup, automatic retry, cross-port transactions, or multi-process ownership.

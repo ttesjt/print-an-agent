@@ -1,5 +1,6 @@
+import type { ResolvedResponsibility, ResponsibilityRouter } from '@ta-agent/base-actor';
 import type { AgentIdentity } from '@ta-agent/base-identity';
-import type { ContextModelMessage, ProviderModelReference } from '@ta-agent/base-model';
+import type { ContextModelMessage } from '@ta-agent/base-model';
 import type {
   BaseAgentContext,
   BaseWorkflowContext,
@@ -14,15 +15,13 @@ import type {
   SessionCompaction,
   SessionCompactionOutcome,
   SessionCompactionPolicy,
-  SessionCompactionRuntime,
   SessionCompactionSource,
 } from '../contracts.js';
 import type { SessionCompactionStepName } from './names.js';
 
 export interface SessionCompactionResources {
   readonly session: CompactableSessionPort;
-  readonly runtime: SessionCompactionRuntime;
-  readonly modelReference: ProviderModelReference;
+  readonly responsibilities: ResponsibilityRouter;
   readonly instructions: string;
   readonly policy: SessionCompactionPolicy;
   readonly clock: () => number;
@@ -46,6 +45,7 @@ export interface SessionCompactionWorkflowContext extends BaseWorkflowContext<
   branchId?: SessionBranchId;
   previousCompaction?: SessionCompaction;
   source?: SessionCompactionSource;
+  responsibility?: ResolvedResponsibility;
   compactedContext?: ContextModelMessage;
 }
 

@@ -1,14 +1,16 @@
 import type { AssistantMessage } from '@earendil-works/pi-ai';
 import type { AgentEvent } from '@earendil-works/pi-agent-core';
-import {
-  AgentModelError,
-  type AgentLoopRequest,
-  type AssistantModelMessage,
-} from '@ta-agent/base-model';
+import { AgentModelError } from '@ta-agent/base-model';
+import type { AgentLoopEvent, AgentLoopRequest, AssistantModelMessage } from '@ta-agent/base-model';
 import { AgentToolError } from '@ta-agent/base-tool';
 import { toModelMessage } from './pi-message-mapping.js';
 import type { PiToolAdapterState } from './pi-tool-adapter.js';
-import type { PiFauxToolEventSnapshot } from './types.js';
+
+export type PiObservedToolEvent = Extract<
+  AgentLoopEvent,
+  { type: 'tool-call-start' | 'tool-call-end' }
+>;
+export type PiToolEventObserver = (event: PiObservedToolEvent) => void;
 
 export interface PiRunState {
   outputCharacters: number;
@@ -114,7 +116,7 @@ async function handleToolEvent(
   request: AgentLoopRequest,
   event: AgentEvent,
   state: PiRunState,
-  toolEvents: PiFauxToolEventSnapshot[]
+  observeToolEvent: PiToolEventObserver | undefined
 ): Promise<void> {
   if (event.type === 'tool_execution_start') {
     const normalized = Object.freeze({
@@ -122,7 +124,7 @@ async function handleToolEvent(
       callId: event.toolCallId,
       toolName: event.toolName,
     });
-    toolEvents.push(normalized);
+    observeToolEvent?.(normalized);
     await request.emit(normalized);
     if (!request.tools.tools.some((tool) => tool.name === event.toolName)) {
       throw new AgentToolError(
@@ -141,7 +143,7 @@ async function handleToolEvent(
     status: event.isError ? ('error' as const) : ('success' as const),
     resultCharacters,
   });
-  toolEvents.push(normalized);
+  observeToolEvent?.(normalized);
   await request.emit(normalized);
   if (
     event.isError &&
@@ -168,7 +170,7 @@ export function createPiEventSink(
   request: AgentLoopRequest,
   internalAbort: AbortController,
   state: PiRunState,
-  toolEvents: PiFauxToolEventSnapshot[]
+  observeToolEvent?: PiToolEventObserver
 ): (event: AgentEvent) => Promise<void> {
   return async (event) => {
     try {
@@ -178,7 +180,7 @@ export function createPiEventSink(
       if (event.type === 'message_end') {
         await handleMessageEnd(request, event, state);
       }
-      await handleToolEvent(request, event, state, toolEvents);
+      await handleToolEvent(request, event, state, observeToolEvent);
       await emitLifecycleEvent(request, event);
     } catch (error: unknown) {
       state.eventSinkFailure = normalizeEventSinkFailure(error);
@@ -188,10 +190,9 @@ export function createPiEventSink(
   };
 }
 
-export function throwTerminalFailure(request: AgentLoopRequest, failure: AssistantMessage): never {
-  const cancelled = failure.stopReason === 'aborted' || request.signal.aborted;
-  const timedOut =
-    request.signal.reason instanceof DOMException && request.signal.reason.name === 'TimeoutError';
+export function throwTerminalFailure(signal: AbortSignal, failure: AssistantMessage): never {
+  const cancelled = failure.stopReason === 'aborted' || signal.aborted;
+  const timedOut = signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError';
   throw new AgentModelError(
     timedOut
       ? 'MODEL_INVOCATION_TIMEOUT'

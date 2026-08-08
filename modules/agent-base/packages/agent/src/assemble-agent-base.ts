@@ -1,3 +1,4 @@
+import { createResponsibilityRouter, MAIN_ACTOR_ID, type ActorId } from '@ta-agent/base-actor';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import { AgentModelError } from '@ta-agent/base-model';
 import { NOOP_AGENT_TRACE_SINK } from '@ta-agent/base-observability';
@@ -48,8 +49,9 @@ import {
 } from '@ta-agent/base-session';
 import {
   DEFAULT_TOOL_EXECUTION_POLICY,
-  DENY_ALL_TOOL_PERMISSION_POLICY,
   EMPTY_TOOL_REGISTRY,
+  parseToolName,
+  type ToolName,
   validateToolExecutionPolicy,
 } from '@ta-agent/base-tool';
 import { createAgent, type StepOverride, type StepOverrides } from '@ta-agent/base-workflow';
@@ -140,27 +142,45 @@ function validateCompactionInput(input: CompactSessionInput): void {
   }
 }
 
+function parseToolAllowList(values: readonly string[] | undefined): readonly ToolName[] {
+  const parsed = (values ?? []).map(parseToolName);
+  if (new Set(parsed).size !== parsed.length) {
+    throw new AgentRequestError(
+      'REQUEST_CONFIGURATION_INVALID',
+      'Agent Base Tool allow-lists cannot contain duplicate names.'
+    );
+  }
+  return Object.freeze(parsed);
+}
+
 export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledAgentBase {
   const identity = defineAgentIdentity(options.identity);
   const session = options.session ?? new MemorySessionAdapter();
   const requestJournal = options.requestJournal ?? new MemoryRequestJournalAdapter(options.clock);
   const requestPolicy = validateRequestPolicy(options.requestPolicy ?? DEFAULT_REQUEST_POLICY);
   const toolRegistry = options.toolRegistry ?? EMPTY_TOOL_REGISTRY;
-  const toolPermissionPolicy = options.toolPermissionPolicy ?? DENY_ALL_TOOL_PERMISSION_POLICY;
+  const productToolAllowList = parseToolAllowList(options.productToolAllowList);
+  const runtimeToolAllowList = parseToolAllowList(options.runtimeToolAllowList);
   const toolExecutionPolicy = validateToolExecutionPolicy(
     options.toolExecutionPolicy ?? DEFAULT_TOOL_EXECUTION_POLICY
   );
   const traceSink = options.observability?.sink ?? NOOP_AGENT_TRACE_SINK;
+  const mainActorId: ActorId = options.mainActorId ?? MAIN_ACTOR_ID;
+  const responsibilityRouter = createResponsibilityRouter({
+    actorCatalog: options.actorCatalog,
+    responsibilityCatalog: options.responsibilityCatalog,
+    mainActorId,
+  });
   const resources = Object.freeze({
     session,
     requestJournal,
-    modelRuntime: options.modelRuntime,
-    modelReference: options.modelReference,
+    responsibilities: responsibilityRouter,
     instructionContributors: Object.freeze(
       options.instructionContributors ?? [() => DEFAULT_INSTRUCTIONS]
     ),
     toolRegistry,
-    toolPermissionPolicy,
+    productToolAllowList,
+    runtimeToolAllowList,
     toolExecutionPolicy,
     createOutputSink: options.createOutputSink ?? (() => new MemoryOutputSink()),
     clock: options.clock ?? Date.now,
@@ -238,82 +258,75 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
       : { createRunId: options.createNavigationRunId }),
   });
 
-  const compactionRuntime = options.sessionCompactionRuntime;
   const compactionPolicy = validateSessionCompactionPolicy(
     options.sessionCompactionPolicy ?? DEFAULT_SESSION_COMPACTION_POLICY
   );
   const compactionInstructions = validateCompactionInstructions(
     options.sessionCompactionInstructions ?? DEFAULT_COMPACTION_INSTRUCTIONS
   );
-  const compactionResources =
-    compactionRuntime === undefined
-      ? undefined
-      : Object.freeze({
-          session,
-          runtime: compactionRuntime,
-          modelReference: options.modelReference,
-          instructions: compactionInstructions,
-          policy: compactionPolicy,
-          clock: options.clock ?? Date.now,
-        });
+  const compactionResources = Object.freeze({
+    session,
+    responsibilities: responsibilityRouter,
+    instructions: compactionInstructions,
+    policy: compactionPolicy,
+    clock: options.clock ?? Date.now,
+  });
   const compactionWorkflow =
-    compactionResources === undefined
-      ? undefined
-      : (options.sessionCompactionWorkflow ??
-        createSessionCompactionWorkflow({
-          resources: compactionResources,
-          stepOverrides: mergeCompactionStepOverrides(options.sessionCompactionStepOverrides),
-          condition: options.sessionCompactionCondition ?? createShouldCompactSessionCondition(),
-          ...(options.createCompactionWorkflowRunId === undefined
-            ? {}
-            : { createRunId: options.createCompactionWorkflowRunId }),
-        }));
-  const compactionAgent =
-    compactionResources === undefined || compactionWorkflow === undefined
-      ? undefined
-      : createAgent<
-          SessionCompactionWorkflowName,
-          CompactSessionInput,
-          SessionCompactionOutcome,
-          typeof compactionPolicy,
-          typeof compactionResources,
-          SessionCompactionAgentContext
-        >({
-          identity,
-          config: compactionPolicy,
-          resources: compactionResources,
-          workflowPlan: [SESSION_COMPACTION_WORKFLOW_NAME],
-          workflowDefinitions: {
-            [SESSION_COMPACTION_WORKFLOW_NAME]: {
-              workflow: compactionWorkflow,
-              skippable: false,
-            },
-          },
-          createContext: (base): SessionCompactionAgentContext => ({
-            ...base,
-            resources: compactionResources,
-            output: Object.freeze({
-              status: 'skipped',
-              sessionId: base.input.sessionId,
-              branchId: parseSessionBranchId(base.input.branchId),
-              reason: 'not-needed',
-            }),
-          }),
-          observability: Object.freeze({ ...options.observability, sink: traceSink }),
-          ...(options.createCompactionRunId === undefined
-            ? {}
-            : { createRunId: options.createCompactionRunId }),
-        });
+    options.sessionCompactionWorkflow ??
+    createSessionCompactionWorkflow({
+      resources: compactionResources,
+      stepOverrides: mergeCompactionStepOverrides(options.sessionCompactionStepOverrides),
+      condition: options.sessionCompactionCondition ?? createShouldCompactSessionCondition(),
+      ...(options.createCompactionWorkflowRunId === undefined
+        ? {}
+        : { createRunId: options.createCompactionWorkflowRunId }),
+    });
+  const compactionAgent = createAgent<
+    SessionCompactionWorkflowName,
+    CompactSessionInput,
+    SessionCompactionOutcome,
+    typeof compactionPolicy,
+    typeof compactionResources,
+    SessionCompactionAgentContext
+  >({
+    identity,
+    config: compactionPolicy,
+    resources: compactionResources,
+    workflowPlan: [SESSION_COMPACTION_WORKFLOW_NAME],
+    workflowDefinitions: {
+      [SESSION_COMPACTION_WORKFLOW_NAME]: {
+        workflow: compactionWorkflow,
+        skippable: false,
+      },
+    },
+    createContext: (base): SessionCompactionAgentContext => ({
+      ...base,
+      resources: compactionResources,
+      output: Object.freeze({
+        status: 'skipped',
+        sessionId: base.input.sessionId,
+        branchId: parseSessionBranchId(base.input.branchId),
+        reason: 'not-needed',
+      }),
+    }),
+    observability: Object.freeze({ ...options.observability, sink: traceSink }),
+    ...(options.createCompactionRunId === undefined
+      ? {}
+      : { createRunId: options.createCompactionRunId }),
+  });
 
   return Object.freeze({
     identity,
     session,
     requestJournal,
-    modelRuntime: options.modelRuntime,
-    modelReference: options.modelReference,
+    actorCatalog: options.actorCatalog,
+    responsibilityCatalog: options.responsibilityCatalog,
+    responsibilityRouter,
+    mainActorId,
     requestPolicy,
     toolRegistry,
-    toolPermissionPolicy,
+    productToolAllowList,
+    runtimeToolAllowList,
     toolExecutionPolicy,
     traceSink,
     async run(input: AgentRequestInput, runOptions: AgentBaseRunOptions = {}) {
@@ -343,12 +356,6 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
     },
     async compactSession(input: CompactSessionInput, runOptions: SessionCompactionRunOptions = {}) {
       validateCompactionInput(input);
-      if (compactionAgent === undefined) {
-        throw new AgentSessionError(
-          'SESSION_COMPACTION_NOT_CONFIGURED',
-          'Session compaction requires an injected SessionCompactionRuntime.'
-        );
-      }
       const sessionId = parseSessionId(input.sessionId);
       const snapshot = await session.inspect({ agentId: identity.id, sessionId });
       if (snapshot === undefined) {

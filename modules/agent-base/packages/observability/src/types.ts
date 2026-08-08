@@ -58,10 +58,14 @@ export type AgentTraceEventDetails =
     >
   | Readonly<
       {
-        type: 'execution-target-resolved';
-        provider: string;
-        model: string;
-        toolsSupported: boolean;
+        type: 'actor-resolved';
+        responsibilityId: string;
+        responsibilityRevision: number;
+        actorId: string;
+        actorRevision: number;
+        engineId: string;
+        candidateIndex: number;
+        invocationMode: 'interaction' | 'direct';
       } & WorkflowReference
     >
   | Readonly<
@@ -103,8 +107,6 @@ export type AgentTraceEventDetails =
       {
         type: 'agent-loop-started';
         sessionId: string;
-        provider: string;
-        model: string;
         maxProviderTurns: number;
         maxOutputCharacters: number;
       } & WorkflowReference

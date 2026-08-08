@@ -26,8 +26,9 @@ Step Registry. The generic catalog retains deliberate fail-fast leaf placeholder
 composition cannot pretend that an unresolved concern was handled.
 
 `createDefaultRequestStepOverrides()` provides the current concrete text-request slice over injected
-model runtime, session, request-journal, and tool ports. It validates input, resolves a session and
-captures its selected branch and navigation revision, resolves an execution target, composes
+Responsibility routing, session, request-journal, and tool ports. It validates input, resolves a
+session and captures its selected branch and navigation revision, resolves
+`foreground-interaction` to one immutable Actor snapshot, composes
 instructions, loads that branch's context projection plus completed raw tail, creates one bounded
 Tool Runtime, publishes only final-turn model text through an
 `OutputSink`, persists the assistant result and optional replay authority, and closes the response.
@@ -76,7 +77,7 @@ ad hoc, and future semantic inputs must introduce a new manifest version rather 
 changing the meaning of persisted fingerprints. Large binary content is intentionally not accepted
 by this text-only manifest.
 
-The assembled profile maps normalized Session, replay, execution-target, Tool, Agent Loop, provider
+The assembled profile maps normalized Session, replay, Actor routing, Tool, Agent Loop, provider
 turn, output, and terminal facts into the injected Agent trace emitter. Text deltas remain exclusive
 to `OutputSink`; trace events contain counts and structured status only. A completed replay emits a
 fresh correlated output trace and deliberately emits no Agent Loop, provider-turn, or tool-call

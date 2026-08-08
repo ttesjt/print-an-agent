@@ -48,7 +48,9 @@ inherits a source projection only when its boundary remains an ancestor of the b
 `compactSession` is an ordinary replaceable Workflow. Its composite Step resolves the registered
 `inspectSession`, `selectCompactionSource`, `buildCompactedContext`, and `persistCompaction` leaf
 Steps. The default Condition is replaceable, raw leaf definitions fail fast, and the official
-assembled Agent supplies concrete overrides. The Workflow is invoked explicitly and is never hidden
+assembled Agent supplies concrete overrides. `buildCompactedContext` resolves the registered
+`session-compaction` Responsibility and invokes its selected Actor in direct mode; Session owns no
+provider- or Pi-specific runtime contract. The Workflow is invoked explicitly and is never hidden
 inside foreground response production.
 
 This durable profile intentionally retains a bounded navigation surface. Branch merge, rename,

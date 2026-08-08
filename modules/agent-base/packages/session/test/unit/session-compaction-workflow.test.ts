@@ -1,5 +1,13 @@
+import {
+  BUILT_IN_RESPONSIBILITIES,
+  createActorCatalog,
+  createResponsibilityCatalog,
+  createResponsibilityRouter,
+  defineActorEngine,
+  MAIN_ACTOR_ID,
+  type ActorDirectHandler,
+} from '@ta-agent/base-actor';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
-import { defineProviderModelReference } from '@ta-agent/base-model';
 import { RUN_WORKFLOW } from '@ta-agent/base-workflow';
 import { describe, expect, it } from 'vitest';
 import {
@@ -14,15 +22,37 @@ import {
 } from '../../src/index.js';
 import { assistantMessage, userMessage } from '../support/session-port-contract.js';
 
+function createTestResponsibilities(complete?: ActorDirectHandler) {
+  const engine = defineActorEngine({
+    id: 'test-engine',
+    capabilities: {
+      invocationModes: ['direct'],
+      inputMediaTypes: ['text'],
+      toolCalling: false,
+      structuredOutput: false,
+      cancellation: true,
+    },
+    complete:
+      complete ??
+      (() => Promise.resolve(Object.freeze({ message: assistantMessage('unused', 1) }))),
+  });
+  return createResponsibilityRouter({
+    actorCatalog: createActorCatalog({
+      actors: [{ id: MAIN_ACTOR_ID, engineId: engine.id }],
+      engines: [engine],
+    }),
+    responsibilityCatalog: createResponsibilityCatalog({
+      responsibilities: BUILT_IN_RESPONSIBILITIES,
+    }),
+  });
+}
+
 describe('Session compaction Workflow contracts', () => {
   it('keeps unresolved raw leaf Steps as stable fail-fast placeholders', async () => {
     const identity = defineAgentIdentity({ id: 'workflow-agent' });
     const resources: SessionCompactionResources = Object.freeze({
       session: new MemorySessionAdapter(),
-      runtime: {
-        compact: () => Promise.resolve(Object.freeze({ text: 'unused' })),
-      },
-      modelReference: defineProviderModelReference({ provider: 'faux', model: 'faux-model' }),
+      responsibilities: createTestResponsibilities(),
       instructions: 'Compact.',
       policy: DEFAULT_SESSION_COMPACTION_POLICY,
       clock: () => 1,
@@ -78,10 +108,9 @@ describe('Session compaction Workflow contracts', () => {
     }
     const resources: SessionCompactionResources = Object.freeze({
       session,
-      runtime: {
-        compact: () => Promise.resolve(Object.freeze({ text: 'must not run' })),
-      },
-      modelReference: defineProviderModelReference({ provider: 'faux', model: 'faux-model' }),
+      responsibilities: createTestResponsibilities(() => {
+        throw new Error('must not run');
+      }),
       instructions: 'Compact.',
       policy: DEFAULT_SESSION_COMPACTION_POLICY,
       clock: () => 1,

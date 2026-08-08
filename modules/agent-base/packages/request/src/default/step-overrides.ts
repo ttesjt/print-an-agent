@@ -1,6 +1,7 @@
+import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
 import type { AgentLoopEvent, AgentLoopResult } from '@ta-agent/base-model';
 import { parseSessionId, parseTurnId } from '@ta-agent/base-session';
-import { createBoundedToolRuntime } from '@ta-agent/base-tool';
+import { createBoundedToolRuntime, defineToolPermissionPolicy } from '@ta-agent/base-tool';
 import { SKIP_STEP, type StepOverrides } from '@ta-agent/base-workflow';
 import type { OutputSink, ValidatedAgentRequest } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
@@ -16,7 +17,7 @@ import {
   traceAgentLoopEvent,
   traceAgentLoopFailed,
   traceAgentLoopStarted,
-  traceExecutionTargetResolved,
+  traceActorResolved,
   traceOutputCompleted,
   traceOutputFailed,
   traceOutputStarted,
@@ -206,10 +207,10 @@ async function beginRequest(context: DefaultRequestWorkflowContext): Promise<voi
 }
 
 async function resolveExecutionTarget(context: DefaultRequestWorkflowContext): Promise<void> {
-  context.target = await context.resources.modelRuntime.resolveTarget(
-    context.resources.modelReference
+  context.responsibility = await context.resources.responsibilities.resolve(
+    FOREGROUND_INTERACTION_RESPONSIBILITY_ID
   );
-  await traceExecutionTargetResolved(context);
+  await traceActorResolved(context);
 }
 
 async function resolveInstructions(context: DefaultRequestWorkflowContext): Promise<void> {
@@ -240,9 +241,15 @@ async function loadSessionContext(context: DefaultRequestWorkflowContext): Promi
 }
 
 async function buildTools(context: DefaultRequestWorkflowContext): Promise<void> {
+  const responsibility = requireValue(context.responsibility, 'responsibility');
   context.tools = createBoundedToolRuntime({
     registry: context.resources.toolRegistry,
-    permissionPolicy: context.resources.toolPermissionPolicy,
+    permissionPolicy: defineToolPermissionPolicy({
+      responsibility: responsibility.allowedTools,
+      actor: responsibility.actor.allowedTools,
+      product: context.resources.productToolAllowList,
+      runtime: context.resources.runtimeToolAllowList,
+    }),
     executionPolicy: context.resources.toolExecutionPolicy,
     signal: context.signal,
     clock: context.resources.clock,
@@ -253,7 +260,6 @@ async function buildTools(context: DefaultRequestWorkflowContext): Promise<void>
 function buildModelContext(context: DefaultRequestWorkflowContext): Promise<void> {
   requireValue(context.tools, 'tools');
   context.modelRequest = Object.freeze({
-    target: requireValue(context.target, 'target'),
     instructions: requireValue(context.instructions, 'instructions'),
     history: requireValue(context.history, 'history'),
     prompt: requireValue(context.userMessage, 'userMessage'),
@@ -313,7 +319,7 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
   let result: AgentLoopResult;
   await traceAgentLoopStarted(context);
   try {
-    result = await context.resources.modelRuntime.run(
+    result = await requireValue(context.responsibility, 'responsibility').interact(
       requireValue(context.modelRequest, 'modelRequest')
     );
   } catch (error: unknown) {

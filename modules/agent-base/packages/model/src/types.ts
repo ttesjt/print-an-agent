@@ -2,20 +2,43 @@ import type { ToolRuntime } from '@ta-agent/base-tool';
 
 declare const providerIdBrand: unique symbol;
 declare const providerModelIdBrand: unique symbol;
+declare const providerCredentialReferenceBrand: unique symbol;
 
 export type ProviderId = string & { readonly [providerIdBrand]: 'ProviderId' };
 export type ProviderModelId = string & { readonly [providerModelIdBrand]: 'ProviderModelId' };
+export type ProviderCredentialReference = string & {
+  readonly [providerCredentialReferenceBrand]: 'ProviderCredentialReference';
+};
 
 export interface ProviderModelReferenceInput {
   readonly provider: string;
   readonly model: string;
   readonly baseUrl?: string;
+  readonly credentialRef?: string;
 }
 
 export interface ProviderModelReference {
   readonly provider: ProviderId;
   readonly model: ProviderModelId;
   readonly baseUrl?: string;
+  readonly credentialRef?: ProviderCredentialReference;
+}
+
+export interface ProviderApiKeyCredential {
+  readonly type: 'api-key';
+  readonly apiKey: string;
+}
+
+export interface ProviderCredentialResolutionRequest {
+  readonly reference: ProviderCredentialReference;
+  readonly provider: ProviderId;
+  readonly signal: AbortSignal;
+}
+
+export interface ProviderCredentialResolver {
+  resolve(
+    request: ProviderCredentialResolutionRequest
+  ): Promise<ProviderApiKeyCredential | undefined>;
 }
 
 export interface ModelUsage {

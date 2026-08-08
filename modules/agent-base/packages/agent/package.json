@@ -20,6 +20,7 @@
     "clean": "rm -rf dist *.tsbuildinfo",
     "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run --passWithNoTests",
+    "test:provider-smoke": "vitest run --config vitest.smoke.config.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "typecheck": "pnpm run build && tsc --noEmit",
@@ -29,6 +30,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@ta-agent/base-actor": "workspace:*",
     "@ta-agent/base-identity": "workspace:*",
     "@ta-agent/base-model": "workspace:*",
     "@ta-agent/base-observability": "workspace:*",

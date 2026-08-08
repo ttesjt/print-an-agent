@@ -1,3 +1,4 @@
+import { AgentActorError } from '@ta-agent/base-actor';
 import { AgentModelError } from '@ta-agent/base-model';
 import { AgentToolError } from '@ta-agent/base-tool';
 import type { OutputFailure } from '../contracts.js';
@@ -8,6 +9,7 @@ import type { DefaultRequestWorkflowContext } from './context.js';
 function failureFrom(error: unknown): OutputFailure {
   if (error instanceof RequestReplayFailedError) return error.originalFailure;
   if (
+    error instanceof AgentActorError ||
     error instanceof AgentModelError ||
     error instanceof AgentRequestError ||
     error instanceof AgentToolError

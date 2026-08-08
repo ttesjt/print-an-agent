@@ -8,7 +8,7 @@ import type {
 import { AgentToolError } from './errors.js';
 import { parseToolName } from './schema.js';
 
-const POLICY_LAYERS = Object.freeze(['task', 'assignment', 'product', 'runtime'] as const);
+const POLICY_LAYERS = Object.freeze(['responsibility', 'actor', 'product', 'runtime'] as const);
 
 function parseAllowList(values: readonly string[], layer: string): readonly ToolName[] {
   const parsed = values.map(parseToolName);
@@ -23,16 +23,16 @@ function parseAllowList(values: readonly string[], layer: string): readonly Tool
 
 export function defineToolPermissionPolicy(input: ToolPermissionPolicyInput): ToolPermissionPolicy {
   return Object.freeze({
-    task: parseAllowList(input.task, 'task'),
-    assignment: parseAllowList(input.assignment, 'assignment'),
+    responsibility: parseAllowList(input.responsibility, 'responsibility'),
+    actor: parseAllowList(input.actor, 'actor'),
     product: parseAllowList(input.product, 'product'),
     runtime: parseAllowList(input.runtime, 'runtime'),
   });
 }
 
 export const DENY_ALL_TOOL_PERMISSION_POLICY: ToolPermissionPolicy = defineToolPermissionPolicy({
-  task: [],
-  assignment: [],
+  responsibility: [],
+  actor: [],
   product: [],
   runtime: [],
 });

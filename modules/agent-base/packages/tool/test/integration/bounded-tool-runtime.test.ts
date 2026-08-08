@@ -18,8 +18,8 @@ const inputSchema = {
 } as const;
 
 const allowed = defineToolPermissionPolicy({
-  task: ['echo'],
-  assignment: ['echo'],
+  responsibility: ['echo'],
+  actor: ['echo'],
   product: ['echo'],
   runtime: ['echo'],
 });

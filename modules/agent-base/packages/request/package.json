@@ -29,6 +29,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@ta-agent/base-actor": "workspace:*",
     "@ta-agent/base-identity": "workspace:*",
     "@ta-agent/base-model": "workspace:*",
     "@ta-agent/base-observability": "workspace:*",

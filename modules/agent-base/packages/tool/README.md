@@ -4,7 +4,7 @@ Provider-independent tool schemas, immutable registries, permission intersection
 run-scoped execution for Agent Base.
 
 Provider output is always a proposal. A tool executes only when it is registered, explicitly allowed
-by every authority layer, valid for the Agent Base-owned schema, and within the configured call,
+by the Responsibility, Actor, product, and runtime authority layers, valid for the Agent Base-owned schema, and within the configured call,
 argument, deadline, and result budgets.
 
 Each request owns a fresh runtime. Calls are serialized in arrival order, call IDs are reserved before

@@ -37,16 +37,19 @@ export async function traceReplayResolved(
   });
 }
 
-export async function traceExecutionTargetResolved(
-  context: DefaultRequestWorkflowContext
-): Promise<void> {
-  if (context.target === undefined) return;
+export async function traceActorResolved(context: DefaultRequestWorkflowContext): Promise<void> {
+  if (context.responsibility === undefined) return;
+  const responsibility = context.responsibility;
   await context.agentContext.traceEmitter?.record({
-    type: 'execution-target-resolved',
+    type: 'actor-resolved',
     ...workflowReference(context),
-    provider: context.target.reference.provider,
-    model: context.target.reference.model,
-    toolsSupported: context.target.capabilities.tools,
+    responsibilityId: responsibility.id,
+    responsibilityRevision: responsibility.catalogRevision,
+    actorId: responsibility.actor.id,
+    actorRevision: responsibility.actor.catalogRevision,
+    engineId: responsibility.actor.engineId,
+    candidateIndex: responsibility.candidateIndex,
+    invocationMode: 'interaction',
   });
 }
 
@@ -114,14 +117,12 @@ export async function traceOutputFailed(
 }
 
 export async function traceAgentLoopStarted(context: DefaultRequestWorkflowContext): Promise<void> {
-  if (context.session === undefined || context.target === undefined) return;
+  if (context.session === undefined || context.responsibility === undefined) return;
   context.providerTurnCount = 0;
   await context.agentContext.traceEmitter?.record({
     type: 'agent-loop-started',
     ...workflowReference(context),
     sessionId: context.session.sessionId,
-    provider: context.target.reference.provider,
-    model: context.target.reference.model,
     maxProviderTurns: context.policy.maxProviderTurns,
     maxOutputCharacters: context.policy.maxOutputCharacters,
   });

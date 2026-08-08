@@ -128,14 +128,14 @@ describe('Agent Base tool domain', () => {
     const tool = createLookupTool();
     const registry = createToolRegistry([tool]);
     const allowed = defineToolPermissionPolicy({
-      task: ['lookup'],
-      assignment: ['lookup'],
+      responsibility: ['lookup'],
+      actor: ['lookup'],
       product: ['lookup'],
       runtime: ['lookup'],
     });
     const denied = defineToolPermissionPolicy({
-      task: ['lookup'],
-      assignment: [],
+      responsibility: ['lookup'],
+      actor: [],
       product: ['lookup'],
       runtime: ['lookup'],
     });
@@ -147,8 +147,8 @@ describe('Agent Base tool domain', () => {
         resolveEffectiveTools(
           registry,
           defineToolPermissionPolicy({
-            task: ['missing'],
-            assignment: [],
+            responsibility: ['missing'],
+            actor: [],
             product: [],
             runtime: [],
           })

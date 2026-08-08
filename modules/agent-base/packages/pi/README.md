@@ -11,5 +11,19 @@ The deterministic faux profile supports offline multi-turn tool-loop tests. Text
 tool-use turns is suppressed; only ordered deltas from the terminal assistant turn are published.
 The same profile implements Session compaction through Pi's direct completion boundary rather than
 misrepresenting compaction as a full Agent Loop. It accepts only Agent Base-owned bounded values and
-normalizes output and failure identities before returning. Ordinary local and remote provider
-registration remains deferred.
+exports a Pi-backed Actor Engine with a closed capability declaration, maps Actor invocation config
+to Pi options, and normalizes output and failure identities before returning. Its interaction
+capability is declared streamable and traverses Pi's event-producing Agent Loop; direct completion
+remains buffered.
+
+`createPiProviderRuntime()` supplies the ordinary profile over the same internal runtime. Its closed
+configuration supports an exact model from Pi `0.82.1`'s builtin catalog or one explicit text-only
+OpenAI-compatible endpoint with bounded context and output tokens. Builtin profiles require an
+opaque credential reference; compatible endpoints may instead be explicitly keyless. API keys are
+resolved once per invocation through the Agent Base credential port. Pi ambient environment/file
+auth is disabled, and inspection/readiness never returns credential references or secret values.
+
+The implementation is organized by change reason: `runtime/` owns shared Pi translations and loop
+execution, `provider/` owns ordinary validation/composition, and `faux/` owns deterministic fixtures
+and inspection. OAuth, durable credential storage, dynamic model refresh, provider health
+management, automatic retry/failover, and rich media remain deferred.

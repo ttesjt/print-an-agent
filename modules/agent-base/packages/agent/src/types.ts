@@ -1,7 +1,20 @@
+import type {
+  ActorCatalogPort,
+  ActorDefinitionInput,
+  ActorId,
+  ResponsibilityCatalogPort,
+  ResponsibilityDefinitionInput,
+  ResponsibilityRouter,
+} from '@ta-agent/base-actor';
 import type { AgentIdentity, AgentIdentityInput } from '@ta-agent/base-identity';
-import type { AgentLoopRuntime, ProviderModelReference } from '@ta-agent/base-model';
 import type { AgentTraceEventSink, AgentTraceRuntimeOptions } from '@ta-agent/base-observability';
-import type { PiFauxRuntimeInspection, PiFauxRuntimeOptions } from '@ta-agent/base-pi';
+import type {
+  PiFauxRuntimeInspection,
+  PiFauxRuntimeOptions,
+  PiProviderReadiness,
+  PiProviderRuntimeInspection,
+  PiProviderRuntimeOptions,
+} from '@ta-agent/base-pi';
 import type {
   CompactSessionInput,
   NavigateSessionInput,
@@ -10,7 +23,6 @@ import type {
   SessionCompactionCondition,
   SessionCompactionOutcome,
   SessionCompactionPolicy,
-  SessionCompactionRuntime,
   SessionCompactionStepName,
   SessionCompactionWorkflowContext,
   SessionCompactionWorkflowName,
@@ -30,19 +42,21 @@ import type {
   RequestPolicy,
   RequestJournalPort,
 } from '@ta-agent/base-request';
-import type { ToolExecutionPolicy, ToolPermissionPolicy, ToolRegistry } from '@ta-agent/base-tool';
+import type { ToolExecutionPolicy, ToolName, ToolRegistry } from '@ta-agent/base-tool';
 import type { AgentRunOptions, RunnableWorkflow, StepOverrides } from '@ta-agent/base-workflow';
 import type { RequestStepName, RequestWorkflowName } from '@ta-agent/base-request';
 
 export interface AssembleAgentBaseOptions {
   readonly identity: AgentIdentityInput;
-  readonly modelRuntime: AgentLoopRuntime;
-  readonly modelReference: ProviderModelReference;
+  readonly actorCatalog: ActorCatalogPort;
+  readonly responsibilityCatalog: ResponsibilityCatalogPort;
+  readonly mainActorId?: ActorId;
   readonly session?: NavigableCompactableSessionPort;
   readonly requestJournal?: RequestJournalPort;
   readonly instructionContributors?: readonly InstructionContributor[];
   readonly toolRegistry?: ToolRegistry;
-  readonly toolPermissionPolicy?: ToolPermissionPolicy;
+  readonly productToolAllowList?: readonly string[];
+  readonly runtimeToolAllowList?: readonly string[];
   readonly toolExecutionPolicy?: ToolExecutionPolicy;
   readonly createOutputSink?: () => OutputSink;
   readonly requestPolicy?: RequestPolicy;
@@ -52,7 +66,6 @@ export interface AssembleAgentBaseOptions {
   readonly clock?: () => number;
   readonly createRunId?: () => string;
   readonly createWorkflowRunId?: () => string;
-  readonly sessionCompactionRuntime?: SessionCompactionRuntime;
   readonly sessionCompactionPolicy?: SessionCompactionPolicy;
   readonly sessionCompactionInstructions?: string;
   readonly sessionCompactionCondition?: SessionCompactionCondition;
@@ -86,11 +99,14 @@ export interface AssembledAgentBase {
   readonly identity: AgentIdentity;
   readonly session: NavigableCompactableSessionPort;
   readonly requestJournal: RequestJournalPort;
-  readonly modelRuntime: AgentLoopRuntime;
-  readonly modelReference: ProviderModelReference;
+  readonly actorCatalog: ActorCatalogPort;
+  readonly responsibilityCatalog: ResponsibilityCatalogPort;
+  readonly responsibilityRouter: ResponsibilityRouter;
+  readonly mainActorId: ActorId;
   readonly requestPolicy: RequestPolicy;
   readonly toolRegistry: ToolRegistry;
-  readonly toolPermissionPolicy: ToolPermissionPolicy;
+  readonly productToolAllowList: readonly ToolName[];
+  readonly runtimeToolAllowList: readonly ToolName[];
   readonly toolExecutionPolicy: ToolExecutionPolicy;
   readonly traceSink: AgentTraceEventSink;
   run(input: AgentRequestInput, options?: AgentBaseRunOptions): Promise<AgentResponse>;
@@ -106,11 +122,32 @@ export interface AssembledAgentBase {
 
 export interface CreatePiFauxAgentBaseOptions extends Omit<
   AssembleAgentBaseOptions,
-  'modelRuntime' | 'modelReference' | 'requestWorkflow' | 'sessionCompactionRuntime'
+  'actorCatalog' | 'responsibilityCatalog' | 'mainActorId' | 'requestWorkflow'
 > {
   readonly pi: PiFauxRuntimeOptions;
+  readonly actorCatalog?: ActorCatalogPort;
+  readonly responsibilityCatalog?: ResponsibilityCatalogPort;
+  readonly mainActorId?: ActorId;
+  readonly mainActor?: Omit<ActorDefinitionInput, 'id' | 'engineId'>;
+  readonly responsibilities?: readonly ResponsibilityDefinitionInput[];
 }
 
 export interface PiFauxAgentBase extends AssembledAgentBase {
   inspectPi(): PiFauxRuntimeInspection;
+}
+
+export interface CreatePiAgentBaseOptions extends Omit<
+  AssembleAgentBaseOptions,
+  'actorCatalog' | 'responsibilityCatalog' | 'mainActorId'
+> {
+  readonly pi: PiProviderRuntimeOptions;
+  readonly mainActor?: Omit<ActorDefinitionInput, 'id' | 'engineId'>;
+  readonly responsibilities?: readonly ResponsibilityDefinitionInput[];
+}
+
+export interface PiAgentBase extends AssembledAgentBase {
+  inspectPiProvider(): PiProviderRuntimeInspection;
+  checkPiProviderReadiness(
+    options?: Readonly<{ signal?: AbortSignal }>
+  ): Promise<PiProviderReadiness>;
 }

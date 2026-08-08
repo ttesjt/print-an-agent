@@ -331,12 +331,12 @@ and local resource cleanup.
 - **Request Workflow**: foreground `prepareRequest -> executeRequest` processing.
 - **Agent Loop**: inner bounded model/tool loop used by `runAgentInteraction`, normally delegated to
   Pi. It is not the complete Agent lifecycle.
-- **Model Invocation**: direct generation or streaming without a tool loop, useful for Mentor,
-  Trainer, and other bounded model tasks.
+- **Actor interaction**: bounded Agent Loop invocation whose Engine may declare streamable normalized
+  events.
+- **Actor direct invocation**: one buffered bounded completion without a tool loop.
 
-Agent Base should expose both an `AgentLoopRuntime` and a direct `ModelRuntime` behind owned
-contracts. A product Workflow chooses the appropriate capability; not every LLM role is forced
-through an Agent Loop.
+Agent Base exposes both modes through its owned Actor Engine contract. A Workflow selects an Actor by
+Responsibility; not every LLM call is forced through an Agent Loop.
 
 ## Storage model
 
@@ -381,8 +381,9 @@ The current foundation contains:
 - `@ta-agent/base-identity`: stable identity value and runtime validation;
 - `@ta-agent/base-config`: generic codecs, snapshots, CAS revisions, storage ports, and an in-memory
   reference adapter;
-- `@ta-agent/base-model`: Provider Model References, normalized text messages and usage, bounded
-  Agent Loop events, execution targets, runtime ports, and structured failures;
+- `@ta-agent/base-model`: Provider Model and credential references, an invocation-time credential
+  resolver port, normalized text messages and usage, bounded Agent Loop events, execution targets,
+  runtime ports, and structured failures;
 - `@ta-agent/base-session`: generic session/turn authority plus the process-local memory adapter;
 - `@ta-agent/base-workflow`: reusable Agent and Workflow classes, explicit Workflow Plans,
   Agent-level Workflow Registry, configuration and condition skips, two run-scoped Context
@@ -391,12 +392,15 @@ The current foundation contains:
   `request Workflow -> runRequest -> prepareRequest/executeRequest` composition, stable Request Step
   names, fail-fast generic placeholders, concrete text-request Step overrides over injected ports, and
   the OutputSink lifecycle;
-- `@ta-agent/base-pi`: the isolated low-level Pi `0.82.1` loop adapter and deterministic faux-provider
-  profile;
+- `@ta-agent/base-pi`: the isolated low-level Pi `0.82.1` loop adapter with one shared Actor runtime,
+  a deterministic faux profile, exact builtin provider/model binding, and explicit text-only
+  OpenAI-compatible endpoints;
 - `@ta-agent/base-agent`: the official assembled request composition with bounded execution,
-  in-memory sessions, Pi streaming, and supported adapter/Step/Workflow replacement.
+  in-memory sessions, faux and ordinary Pi provider shortcuts, streaming, and supported
+  adapter/Step/Workflow replacement.
 
 The Workflow package accepts a product's already resolved typed config. It does not resolve or
-persist configuration itself. The current memory/faux assembled profile is not a durable production
-profile. Durable storage, ordinary provider registration, Tool Broker behavior, replay, full
-observability, identity catalog lifecycle, and the standalone CLI remain bounded later work.
+persist configuration itself. The composition architecture is formal, but memory persistence remains
+a development default for faux and ordinary provider shortcuts. OAuth, durable credential storage,
+dynamic provider catalog persistence, broad provider qualification, automatic failover, identity
+catalog lifecycle, and the standalone CLI remain bounded later work.

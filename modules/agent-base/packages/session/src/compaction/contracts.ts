@@ -1,8 +1,4 @@
-import type {
-  ContextModelMessage,
-  ModelMessage,
-  ProviderModelReference,
-} from '@ta-agent/base-model';
+import type { ContextModelMessage, ModelMessage } from '@ta-agent/base-model';
 import type {
   CompletedSessionTurn,
   InspectableSessionPort,
@@ -52,23 +48,6 @@ export interface SessionCompactionSource extends SessionBranchReference {
   readonly turns: readonly CompletedSessionTurn[];
   readonly throughTurnId: TurnId;
   readonly sourceCharacters: number;
-}
-
-export interface SessionCompactionRuntimeRequest {
-  readonly modelReference: ProviderModelReference;
-  readonly instructions: string;
-  readonly previousContext?: ContextModelMessage;
-  readonly turns: readonly CompletedSessionTurn[];
-  readonly maxContextCharacters: number;
-  readonly signal: AbortSignal;
-}
-
-export interface SessionCompactionRuntimeResult {
-  readonly text: string;
-}
-
-export interface SessionCompactionRuntime {
-  compact(request: SessionCompactionRuntimeRequest): Promise<SessionCompactionRuntimeResult>;
 }
 
 export interface CompactSessionInput {

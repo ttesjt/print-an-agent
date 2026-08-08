@@ -2,9 +2,18 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  BUILT_IN_RESPONSIBILITIES,
+  createActorCatalog,
+  createResponsibilityCatalog,
+  FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
+  MAIN_ACTOR_ID,
+  SESSION_COMPACTION_RESPONSIBILITY_ID,
+  type ResponsibilityDefinitionInput,
+} from '@ta-agent/base-actor';
+import {
   AgentModelError,
   defineProviderModelReference,
-  type AgentLoopRuntime,
+  type AssistantModelMessage,
 } from '@ta-agent/base-model';
 import { MemoryAgentTraceAdapter } from '@ta-agent/base-observability';
 import {
@@ -29,7 +38,6 @@ import {
   AgentToolError,
   createToolRegistry,
   defineTool,
-  defineToolPermissionPolicy,
   type ToolExecutionRequest,
 } from '@ta-agent/base-tool';
 import { describe, expect, it, vi } from 'vitest';
@@ -41,6 +49,39 @@ import {
   FailingWriteOutputSink,
   LifecycleRecordingOutputSink,
 } from '../support/output-sinks.js';
+
+function responsibilitiesAllowingTools(
+  allowedTools: readonly string[]
+): readonly ResponsibilityDefinitionInput[] {
+  return BUILT_IN_RESPONSIBILITIES.map((definition) =>
+    definition.id === FOREGROUND_INTERACTION_RESPONSIBILITY_ID
+      ? { ...definition, allowedTools }
+      : definition
+  );
+}
+
+const CUSTOM_MODEL = defineProviderModelReference({
+  provider: 'custom-engine',
+  model: 'deterministic',
+});
+
+function customAssistantMessage(text: string): AssistantModelMessage {
+  return Object.freeze({
+    role: 'assistant',
+    text,
+    provider: CUSTOM_MODEL.provider,
+    model: CUSTOM_MODEL.model,
+    stopReason: 'stop',
+    usage: Object.freeze({
+      inputTokens: 1,
+      outputTokens: 1,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 2,
+    }),
+    timestamp: 1,
+  });
+}
 
 describe('assembled Agent Base request path', () => {
   it('runs a bounded Pi tool loop and publishes only the final response', async () => {
@@ -60,12 +101,6 @@ describe('assembled Agent Base request path', () => {
       },
       execute: handler,
     });
-    const toolPermissionPolicy = defineToolPermissionPolicy({
-      task: ['add'],
-      assignment: ['add'],
-      product: ['add'],
-      runtime: ['add'],
-    });
     const agent = createPiFauxAgentBase({
       identity: { id: 'assistant' },
       createRunId: () => 'trace-request',
@@ -73,7 +108,13 @@ describe('assembled Agent Base request path', () => {
       instructionContributors: [() => 'PRIVATE_INSTRUCTION_TEXT'],
       observability: { sink: trace, clock: () => 1 },
       toolRegistry: createToolRegistry([add]),
-      toolPermissionPolicy,
+      mainActor: {
+        invocationConfig: { temperature: 0.2, maxOutputTokens: 500 },
+        allowedTools: ['add'],
+      },
+      responsibilities: responsibilitiesAllowingTools(['add']),
+      productToolAllowList: ['add'],
+      runtimeToolAllowList: ['add'],
       pi: {
         responses: [
           {
@@ -115,6 +156,10 @@ describe('assembled Agent Base request path', () => {
     expect(agent.inspectPi().requests[1]?.toolResults).toEqual([
       { callId: 'add-1', toolName: 'add', text: '5', isError: false },
     ]);
+    expect(agent.inspectPi().requests[0]?.invocationConfig).toEqual({
+      temperature: 0.2,
+      maxOutputTokens: 500,
+    });
     const events = trace.inspect({ agentRunId: 'trace-request' }).events;
     expect(events.map((event) => event.sequence)).toEqual(
       Array.from({ length: events.length }, (_value, index) => index + 1)
@@ -124,7 +169,7 @@ describe('assembled Agent Base request path', () => {
         'agent-run-started',
         'workflow-run-started',
         'session-resolved',
-        'execution-target-resolved',
+        'actor-resolved',
         'tools-resolved',
         'agent-loop-started',
         'provider-turn-started',
@@ -139,6 +184,15 @@ describe('assembled Agent Base request path', () => {
       ])
     );
     expect(events.filter((event) => event.type === 'provider-turn-started')).toHaveLength(2);
+    expect(events.find((event) => event.type === 'actor-resolved')).toMatchObject({
+      responsibilityId: FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
+      responsibilityRevision: 1,
+      actorId: MAIN_ACTOR_ID,
+      actorRevision: 1,
+      engineId: 'pi-faux',
+      candidateIndex: 0,
+      invocationMode: 'interaction',
+    });
     expect(events.at(-1)?.type).toBe('agent-run-completed');
     const serializedTrace = JSON.stringify(events);
     for (const secret of [
@@ -182,6 +236,42 @@ describe('assembled Agent Base request path', () => {
       status: 'failed',
       failure: { code: 'TOOL_NOT_AUTHORIZED' },
     });
+  });
+
+  it('fails an all-disabled foreground Responsibility before invoking an Engine', async () => {
+    const session = new MemorySessionAdapter();
+    const agent = createPiFauxAgentBase({
+      identity: { id: 'disabled-responsibility-agent' },
+      session,
+      createRunId: () => 'disabled-responsibility-run',
+      responsibilities: BUILT_IN_RESPONSIBILITIES.map((definition) =>
+        definition.id === FOREGROUND_INTERACTION_RESPONSIBILITY_ID
+          ? {
+              ...definition,
+              actors: [{ actorId: MAIN_ACTOR_ID, enabled: false }],
+            }
+          : definition
+      ),
+      pi: { responses: [{ status: 'success', text: 'must not execute' }] },
+    });
+    const sink = new LifecycleRecordingOutputSink();
+
+    await expect(
+      agent.run({ message: 'hello', sessionId: 'disabled-routing', outputSink: sink })
+    ).rejects.toMatchObject({ code: 'RESPONSIBILITY_UNAVAILABLE' });
+    expect(agent.inspectPi().callCount).toBe(0);
+    expect(sink.inspect()).toMatchObject({
+      status: 'failed',
+      failure: { code: 'RESPONSIBILITY_UNAVAILABLE' },
+    });
+    expect(
+      (
+        await session.inspect({
+          agentId: agent.identity.id,
+          sessionId: parseSessionId('disabled-routing'),
+        })
+      )?.turns
+    ).toMatchObject([{ status: 'failed', failureCode: 'RESPONSIBILITY_UNAVAILABLE' }]);
   });
 
   it('streams one response and supplies completed history to a second Pi request', async () => {
@@ -326,12 +416,6 @@ describe('assembled Agent Base request path', () => {
       },
       execute: handler,
     });
-    const toolPermissionPolicy = defineToolPermissionPolicy({
-      task: ['add'],
-      assignment: ['add'],
-      product: ['add'],
-      runtime: ['add'],
-    });
     try {
       const firstSession = new SqliteSessionAdapter({ databasePath });
       const firstJournal = new SqliteRequestJournalAdapter({ databasePath });
@@ -341,7 +425,10 @@ describe('assembled Agent Base request path', () => {
         session: firstSession,
         requestJournal: firstJournal,
         toolRegistry: createToolRegistry([add]),
-        toolPermissionPolicy,
+        mainActor: { allowedTools: ['add'] },
+        responsibilities: responsibilitiesAllowingTools(['add']),
+        productToolAllowList: ['add'],
+        runtimeToolAllowList: ['add'],
         createRunId: () => 'original-request',
         observability: { sink: firstTrace, clock: () => 1 },
         pi: {
@@ -366,7 +453,10 @@ describe('assembled Agent Base request path', () => {
         session: reopenedSession,
         requestJournal: reopenedJournal,
         toolRegistry: createToolRegistry([add]),
-        toolPermissionPolicy,
+        mainActor: { allowedTools: ['add'] },
+        responsibilities: responsibilitiesAllowingTools(['add']),
+        productToolAllowList: ['add'],
+        runtimeToolAllowList: ['add'],
         createRunId: () => 'retry-request',
         createWorkflowRunId: () => 'retry-workflow',
         observability: { sink: replayTrace, clock: () => 1 },
@@ -819,7 +909,7 @@ describe('assembled Agent Base request path', () => {
         compactedTurnCount: 2,
       });
       expect(first.inspectPi().requests.at(-1)).toMatchObject({
-        kind: 'session-compaction',
+        kind: 'direct',
       });
 
       const reopenedSession = new SqliteSessionAdapter({ databasePath, clock: () => 30 });
@@ -899,6 +989,97 @@ describe('assembled Agent Base request path', () => {
       reason: 'not-needed',
     });
     expect(agent.inspectPi()).toMatchObject({ callCount: 2, pendingResponseCount: 1 });
+  });
+
+  it('routes foreground interaction and compaction to different custom Engines', async () => {
+    const trace = new MemoryAgentTraceAdapter({ maxEvents: 256 });
+    let interactionCalls = 0;
+    let directCalls = 0;
+    const actorCatalog = createActorCatalog({
+      actors: [
+        { id: MAIN_ACTOR_ID, engineId: 'foreground-engine' },
+        { id: 'compactor', engineId: 'compaction-engine' },
+      ],
+      engines: [
+        {
+          id: 'foreground-engine',
+          capabilities: {
+            invocationModes: ['interaction'],
+            inputMediaTypes: ['text'],
+            interaction: { streamable: true },
+            toolCalling: false,
+            structuredOutput: false,
+            cancellation: true,
+          },
+          interact: async (request) => {
+            interactionCalls += 1;
+            const message = customAssistantMessage(`foreground-${interactionCalls}`);
+            await request.emit({ type: 'interaction-start' });
+            await request.emit({ type: 'turn-start' });
+            await request.emit({ type: 'assistant-complete', message });
+            await request.emit({ type: 'turn-end' });
+            await request.emit({ type: 'interaction-end' });
+            return Object.freeze({ message });
+          },
+        },
+        {
+          id: 'compaction-engine',
+          capabilities: {
+            invocationModes: ['direct'],
+            inputMediaTypes: ['text'],
+            toolCalling: false,
+            structuredOutput: false,
+            cancellation: true,
+          },
+          complete: () => {
+            directCalls += 1;
+            return Promise.resolve(
+              Object.freeze({ message: customAssistantMessage('custom compacted context') })
+            );
+          },
+        },
+      ],
+    });
+    const responsibilityCatalog = createResponsibilityCatalog({
+      responsibilities: BUILT_IN_RESPONSIBILITIES.map((definition) =>
+        definition.id === SESSION_COMPACTION_RESPONSIBILITY_ID
+          ? {
+              ...definition,
+              actors: [{ actorId: 'compactor', enabled: true }],
+            }
+          : definition
+      ),
+    });
+    let requestSequence = 0;
+    const agent = assembleAgentBase({
+      identity: { id: 'custom-engine-agent' },
+      actorCatalog,
+      responsibilityCatalog,
+      createRunId: () => `custom-request-${++requestSequence}`,
+      createCompactionRunId: () => 'custom-compaction',
+      observability: { sink: trace, clock: () => 1 },
+    });
+
+    for (const message of ['one', 'two', 'three', 'four']) {
+      await agent.run({ message, sessionId: 'custom-routing' });
+    }
+    await expect(agent.compactSession({ sessionId: 'custom-routing' })).resolves.toMatchObject({
+      status: 'compacted',
+      compactedTurnCount: 2,
+    });
+
+    expect(interactionCalls).toBe(4);
+    expect(directCalls).toBe(1);
+    expect(
+      trace
+        .inspect({ agentRunId: 'custom-compaction' })
+        .events.find((event) => event.type === 'actor-resolved')
+    ).toMatchObject({
+      responsibilityId: SESSION_COMPACTION_RESPONSIBILITY_ID,
+      actorId: 'compactor',
+      engineId: 'compaction-engine',
+      invocationMode: 'direct',
+    });
   });
 
   it('navigates durable branches with branch-scoped context, replay, and tracing', async () => {
@@ -1059,7 +1240,7 @@ describe('assembled Agent Base request path', () => {
     }
   });
 
-  it('allows one compaction leaf Step to be replaced and fails fast when runtime is absent', async () => {
+  it('allows one compaction leaf Step to be replaced without invoking its Actor', async () => {
     let requestSequence = 0;
     const agent = createPiFauxAgentBase({
       identity: { id: 'assistant' },
@@ -1091,21 +1272,6 @@ describe('assembled Agent Base request path', () => {
       revision: 1,
     });
     expect(agent.inspectPi().callCount).toBe(4);
-
-    const runtimeOnly: AgentLoopRuntime = {
-      resolveTarget: () => Promise.reject(new Error('unused')),
-      run: () => Promise.reject(new Error('unused')),
-    };
-    const withoutCompaction = assembleAgentBase({
-      identity: { id: 'without-compaction' },
-      modelRuntime: runtimeOnly,
-      modelReference: defineProviderModelReference({ provider: 'unused', model: 'unused' }),
-    });
-    await expect(withoutCompaction.compactSession({ sessionId: 'missing' })).rejects.toEqual(
-      expect.objectContaining<Partial<AgentSessionError>>({
-        code: 'SESSION_COMPACTION_NOT_CONFIGURED',
-      })
-    );
   });
 
   it('allows navigation leaf and complete Workflow replacement', async () => {
@@ -1209,41 +1375,45 @@ describe('assembled Agent Base request path', () => {
 
   it('applies the assembled request timeout and reports it distinctly', async () => {
     const trace = new MemoryAgentTraceAdapter({ maxEvents: 128 });
-    const modelReference = defineProviderModelReference({
-      provider: 'waiting',
-      model: 'model',
-      baseUrl: 'https://PRIVATE_ENDPOINT.example',
+    const actorCatalog = createActorCatalog({
+      actors: [{ id: MAIN_ACTOR_ID, engineId: 'waiting-engine' }],
+      engines: [
+        {
+          id: 'waiting-engine',
+          capabilities: {
+            invocationModes: ['interaction'],
+            inputMediaTypes: ['text'],
+            interaction: { streamable: true },
+            toolCalling: false,
+            structuredOutput: false,
+            cancellation: true,
+          },
+          interact: (request) =>
+            new Promise((_resolve, reject) => {
+              const rejectForAbort = () => {
+                const timedOut =
+                  request.signal.reason instanceof DOMException &&
+                  request.signal.reason.name === 'TimeoutError';
+                reject(
+                  new AgentModelError(
+                    timedOut ? 'MODEL_INVOCATION_TIMEOUT' : 'MODEL_INVOCATION_CANCELLED',
+                    timedOut ? 'timed out' : 'cancelled'
+                  )
+                );
+              };
+              if (request.signal.aborted) rejectForAbort();
+              else request.signal.addEventListener('abort', rejectForAbort, { once: true });
+            }),
+        },
+      ],
     });
-    const runtime: AgentLoopRuntime = {
-      resolveTarget: (reference) =>
-        Promise.resolve(
-          Object.freeze({
-            reference,
-            capabilities: Object.freeze({ streaming: true, tools: false }),
-          })
-        ),
-      run: (request) =>
-        new Promise((_resolve, reject) => {
-          const rejectForAbort = () => {
-            const timedOut =
-              request.signal.reason instanceof DOMException &&
-              request.signal.reason.name === 'TimeoutError';
-            reject(
-              new AgentModelError(
-                timedOut ? 'MODEL_INVOCATION_TIMEOUT' : 'MODEL_INVOCATION_CANCELLED',
-                timedOut ? 'timed out' : 'cancelled'
-              )
-            );
-          };
-          if (request.signal.aborted) rejectForAbort();
-          else request.signal.addEventListener('abort', rejectForAbort, { once: true });
-        }),
-    };
     const agent = assembleAgentBase({
       identity: { id: 'assistant' },
       createRunId: () => 'timeout-run',
-      modelRuntime: runtime,
-      modelReference,
+      actorCatalog,
+      responsibilityCatalog: createResponsibilityCatalog({
+        responsibilities: BUILT_IN_RESPONSIBILITIES,
+      }),
       observability: { sink: trace, clock: () => 1 },
       requestPolicy: {
         maxMessageCharacters: 100,
@@ -1259,7 +1429,6 @@ describe('assembled Agent Base request path', () => {
     );
     const serializedTrace = JSON.stringify(trace.inspect({ agentRunId: 'timeout-run' }).events);
     expect(serializedTrace).toContain('MODEL_INVOCATION_TIMEOUT');
-    expect(serializedTrace).not.toContain('PRIVATE_ENDPOINT');
     expect(serializedTrace).not.toContain('timed out');
   });
 });

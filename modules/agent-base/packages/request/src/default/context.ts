@@ -1,22 +1,15 @@
 import type {
-  AgentLoopRequest,
-  AgentLoopRuntime,
-  ModelMessage,
-  ProviderModelReference,
-  ResolvedExecutionTarget,
-  UserModelMessage,
-} from '@ta-agent/base-model';
+  ActorInteractionRequest,
+  ResolvedResponsibility,
+  ResponsibilityRouter,
+} from '@ta-agent/base-actor';
+import type { ModelMessage, UserModelMessage } from '@ta-agent/base-model';
 import type {
   ActiveSessionTurn,
   ResolvedSessionReference,
   SessionPort,
 } from '@ta-agent/base-session';
-import type {
-  ToolExecutionPolicy,
-  ToolPermissionPolicy,
-  ToolRegistry,
-  ToolRuntime,
-} from '@ta-agent/base-tool';
+import type { ToolExecutionPolicy, ToolName, ToolRegistry, ToolRuntime } from '@ta-agent/base-tool';
 import type { BaseAgentContext, BaseWorkflowContext } from '@ta-agent/base-workflow';
 import type { RequestStepName } from '../workflow/names.js';
 import type {
@@ -36,11 +29,11 @@ import type {
 export interface RequestRuntimeResources {
   readonly session: SessionPort;
   readonly requestJournal: RequestJournalPort;
-  readonly modelRuntime: AgentLoopRuntime;
-  readonly modelReference: ProviderModelReference;
+  readonly responsibilities: ResponsibilityRouter;
   readonly instructionContributors: readonly InstructionContributor[];
   readonly toolRegistry: ToolRegistry;
-  readonly toolPermissionPolicy: ToolPermissionPolicy;
+  readonly productToolAllowList: readonly ToolName[];
+  readonly runtimeToolAllowList: readonly ToolName[];
   readonly toolExecutionPolicy: ToolExecutionPolicy;
   readonly createOutputSink: () => OutputSink;
   readonly clock: () => number;
@@ -60,12 +53,12 @@ export interface DefaultRequestWorkflowContext extends BaseWorkflowContext<
   turn?: ActiveSessionTurn;
   requestJournalEntry?: RequestJournalEntry;
   ownedRequestJournalClaim?: ActiveRequestJournalEntry;
-  target?: ResolvedExecutionTarget;
+  responsibility?: ResolvedResponsibility;
   instructions?: string;
   history?: readonly ModelMessage[];
   tools?: ToolRuntime;
   userMessage?: UserModelMessage;
-  modelRequest?: AgentLoopRequest;
+  modelRequest?: ActorInteractionRequest;
   response?: AgentResponse;
   providerTurnCount?: number;
   outputCharacterCount?: number;

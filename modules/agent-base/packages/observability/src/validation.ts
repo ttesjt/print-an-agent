@@ -170,16 +170,30 @@ function validateDetailsRecord(
     );
     return;
   }
-  if (type === 'execution-target-resolved') {
+  if (type === 'actor-resolved') {
     assertExactKeys(
       record,
-      ['workflowName', 'workflowRunId', 'provider', 'model', 'toolsSupported'],
+      [
+        'workflowName',
+        'workflowRunId',
+        'responsibilityId',
+        'responsibilityRevision',
+        'actorId',
+        'actorRevision',
+        'engineId',
+        'candidateIndex',
+        'invocationMode',
+      ],
       includeEnvelope
     );
     requireWorkflowReference(record);
-    requireString(record.provider, 'Trace provider');
-    requireString(record.model, 'Trace model');
-    requireBoolean(record.toolsSupported, 'Trace toolsSupported');
+    requireString(record.responsibilityId, 'Trace responsibilityId');
+    requireCount(record.responsibilityRevision, 'Trace responsibilityRevision', 1);
+    requireString(record.actorId, 'Trace actorId');
+    requireCount(record.actorRevision, 'Trace actorRevision', 1);
+    requireString(record.engineId, 'Trace engineId');
+    requireCount(record.candidateIndex, 'Trace candidateIndex');
+    requireOneOf(record.invocationMode, ['interaction', 'direct'], 'Trace invocationMode');
     return;
   }
   if (type === 'tools-resolved') {
@@ -224,16 +238,12 @@ function validateDetailsRecord(
       'workflowName',
       'workflowRunId',
       'sessionId',
-      'provider',
-      'model',
       'maxProviderTurns',
       'maxOutputCharacters',
     ];
     assertExactKeys(record, keys, includeEnvelope);
     requireWorkflowReference(record);
     requireString(record.sessionId, 'Trace sessionId');
-    requireString(record.provider, 'Trace provider');
-    requireString(record.model, 'Trace model');
     requireCount(record.maxProviderTurns, 'Trace maxProviderTurns', 1);
     requireCount(record.maxOutputCharacters, 'Trace maxOutputCharacters', 1);
     return;

@@ -9,6 +9,7 @@ export function createPiFauxAgentBase(options: CreatePiFauxAgentBaseOptions): Pi
     ...baseOptions,
     modelRuntime: piProfile.runtime,
     modelReference: piProfile.modelReference,
+    sessionCompactionRuntime: piProfile.runtime,
   });
   return Object.freeze({ ...assembled, inspectPi: () => piProfile.inspect() });
 }

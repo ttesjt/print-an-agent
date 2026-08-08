@@ -2,9 +2,10 @@ import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { AgentSessionError } from '../../errors.js';
 import { runImmediateTransaction } from './database.js';
 import { CREATE_SESSION_STORE_MIGRATION } from './migrations/0001_create_session_store.js';
+import { ADD_SESSION_COMPACTION_MIGRATION } from './migrations/0002_add_session_compaction.js';
 
 const SESSION_SCHEMA_COMPONENT = '@ta-agent/base-session';
-const CURRENT_SESSION_SCHEMA_VERSION = 1;
+const CURRENT_SESSION_SCHEMA_VERSION = 2;
 
 const EXPECTED_TABLE_COLUMNS = Object.freeze({
   ta_agent_base_session_schema: Object.freeze(['component', 'version']),
@@ -25,6 +26,14 @@ const EXPECTED_TABLE_COLUMNS = Object.freeze({
     'failure_code',
     'started_at',
     'finished_at',
+  ]),
+  ta_agent_base_session_compactions: Object.freeze([
+    'agent_id',
+    'session_id',
+    'revision',
+    'through_turn_id',
+    'context_message',
+    'created_at',
   ]),
 });
 
@@ -67,11 +76,22 @@ function assertKnownSchemaVersion(version: number | undefined): asserts version 
       `SQLite Session schema version ${version} is newer than supported version ${CURRENT_SESSION_SCHEMA_VERSION}.`
     );
   }
-  if (version !== CURRENT_SESSION_SCHEMA_VERSION) {
+  if (version < 1) {
     throw new AgentSessionError(
       'SESSION_SCHEMA_INVALID',
       `SQLite Session schema version ${version} has no available migration path.`
     );
+  }
+}
+
+function migrateSchema(database: DatabaseSync, version: number): void {
+  if (version === 1) {
+    runImmediateTransaction(database, () => {
+      database.exec(ADD_SESSION_COMPACTION_MIGRATION);
+      database
+        .prepare('UPDATE ta_agent_base_session_schema SET version = ? WHERE component = ?')
+        .run(CURRENT_SESSION_SCHEMA_VERSION, SESSION_SCHEMA_COMPONENT);
+    });
   }
 }
 
@@ -105,10 +125,14 @@ export function initializeSessionSchema(database: DatabaseSync): void {
   if (version === undefined) {
     runImmediateTransaction(database, () => {
       database.exec(CREATE_SESSION_STORE_MIGRATION);
+      database.exec(ADD_SESSION_COMPACTION_MIGRATION);
       database
         .prepare('INSERT INTO ta_agent_base_session_schema (component, version) VALUES (?, ?)')
         .run(SESSION_SCHEMA_COMPONENT, CURRENT_SESSION_SCHEMA_VERSION);
     });
+  } else {
+    assertKnownSchemaVersion(version);
+    migrateSchema(database, version);
   }
   assertSessionSchema(database);
 }
@@ -119,6 +143,7 @@ export function assertSessionSchema(database: DatabaseSync): void {
   assertTableColumns(database, 'ta_agent_base_session_schema');
   assertTableColumns(database, 'ta_agent_base_sessions');
   assertTableColumns(database, 'ta_agent_base_session_turns');
+  assertTableColumns(database, 'ta_agent_base_session_compactions');
 }
 
 export function configureDefensiveMode(database: DatabaseSync): void {

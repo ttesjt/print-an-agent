@@ -9,4 +9,7 @@ public API.
 
 The final message surface remains text-only. Tool proposal and execution authority live in
 `@ta-agent/base-tool`; this package carries only the run-scoped runtime port and safe event metadata.
-Images and provider-specific options remain deferred.
+The normalized message union distinguishes user input, assistant output, and an untrusted `context`
+projection so a Session compaction is never presented as original conversation or system policy.
+Provider adapters choose the safest supported wire-role translation. Images and provider-specific
+options remain deferred.

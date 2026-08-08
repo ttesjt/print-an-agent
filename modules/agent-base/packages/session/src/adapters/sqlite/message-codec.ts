@@ -1,10 +1,12 @@
 import {
   defineProviderModelReference,
   type AssistantModelMessage,
+  type ContextModelMessage,
   type ModelUsage,
   type UserModelMessage,
 } from '@ta-agent/base-model';
 import { AgentSessionError } from '../../errors.js';
+import { MAX_SESSION_COMPACTION_CHARACTERS } from '../../compaction/policy.js';
 
 const MESSAGE_SCHEMA_VERSION = 1;
 const USER_MESSAGE_KEYS = Object.freeze(['role', 'schemaVersion', 'text', 'timestamp']);
@@ -18,6 +20,7 @@ const ASSISTANT_MESSAGE_KEYS = Object.freeze([
   'timestamp',
   'usage',
 ]);
+const CONTEXT_MESSAGE_KEYS = USER_MESSAGE_KEYS;
 const USAGE_KEYS = Object.freeze([
   'cacheReadTokens',
   'cacheWriteTokens',
@@ -130,6 +133,25 @@ function decodeAssistantMessageValue(value: unknown): AssistantModelMessage {
   });
 }
 
+function decodeContextMessageValue(value: unknown): ContextModelMessage {
+  const record = requireRecord(value, 'Persisted context message');
+  assertExactKeys(record, CONTEXT_MESSAGE_KEYS, 'Persisted context message');
+  if (record.schemaVersion !== MESSAGE_SCHEMA_VERSION || record.role !== 'context') {
+    throw invalidRecord('Persisted context message has an unsupported schema version or role.');
+  }
+  const text = requireString(record.text, 'Context message text');
+  if (text.length === 0 || text.length > MAX_SESSION_COMPACTION_CHARACTERS) {
+    throw invalidRecord(
+      `Context message text must contain 1-${MAX_SESSION_COMPACTION_CHARACTERS} characters.`
+    );
+  }
+  return Object.freeze({
+    role: 'context',
+    text,
+    timestamp: requireNonNegativeSafeInteger(record.timestamp, 'Context message timestamp'),
+  });
+}
+
 export function encodeUserMessage(message: UserModelMessage): string {
   const normalized = decodeUserMessageValue({
     schemaVersion: MESSAGE_SCHEMA_VERSION,
@@ -166,4 +188,18 @@ export function encodeAssistantMessage(message: AssistantModelMessage): string {
 
 export function decodeAssistantMessage(value: string): AssistantModelMessage {
   return decodeAssistantMessageValue(parseJson(value, 'assistant message'));
+}
+
+export function encodeContextMessage(message: ContextModelMessage): string {
+  const normalized = decodeContextMessageValue({
+    schemaVersion: MESSAGE_SCHEMA_VERSION,
+    role: message.role,
+    text: message.text,
+    timestamp: message.timestamp,
+  });
+  return JSON.stringify({ schemaVersion: MESSAGE_SCHEMA_VERSION, ...normalized });
+}
+
+export function decodeContextMessage(value: string): ContextModelMessage {
+  return decodeContextMessageValue(parseJson(value, 'context message'));
 }

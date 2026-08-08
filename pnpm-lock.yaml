@@ -178,6 +178,9 @@ importers:
       '@ta-agent/base-model':
         specifier: workspace:*
         version: link:../model
+      '@ta-agent/base-session':
+        specifier: workspace:*
+        version: link:../session
       '@ta-agent/base-tool':
         specifier: workspace:*
         version: link:../tool
@@ -240,6 +243,9 @@ importers:
       '@ta-agent/base-model':
         specifier: workspace:*
         version: link:../model
+      '@ta-agent/base-workflow':
+        specifier: workspace:*
+        version: link:../workflow
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

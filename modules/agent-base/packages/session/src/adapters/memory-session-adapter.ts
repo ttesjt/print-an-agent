@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { AgentId } from '@ta-agent/base-identity';
-import type { ModelMessage } from '@ta-agent/base-model';
+import type { ContextModelMessage, ModelMessage } from '@ta-agent/base-model';
+import type {
+  CommitSessionCompactionRequest,
+  CompactableSessionPort,
+  SessionCompaction,
+  SessionContextSnapshot,
+} from '../compaction/contracts.js';
+import { MAX_SESSION_COMPACTION_CHARACTERS } from '../compaction/policy.js';
 import { AgentSessionError } from '../errors.js';
 import { parseSessionFailureCode, parseSessionId } from '../identifiers.js';
 import type {
@@ -22,6 +29,7 @@ interface StoredSession {
   readonly agentId: AgentId;
   readonly sessionId: SessionId;
   readonly turns: SessionTurn[];
+  compaction?: SessionCompaction;
 }
 
 function sessionKey(agentId: AgentId, sessionId: SessionId): string {
@@ -45,7 +53,32 @@ function cloneTurn(turn: SessionTurn): SessionTurn {
   return Object.freeze({ ...turn, userMessage: Object.freeze({ ...turn.userMessage }) });
 }
 
-export class MemorySessionAdapter implements InspectableSessionPort {
+function cloneContextMessage(message: ContextModelMessage): ContextModelMessage {
+  return Object.freeze({ ...message });
+}
+
+function cloneCompaction(compaction: SessionCompaction): SessionCompaction {
+  return Object.freeze({ ...compaction, context: cloneContextMessage(compaction.context) });
+}
+
+function validateContextMessage(message: ContextModelMessage): ContextModelMessage {
+  if (
+    message.role !== 'context' ||
+    typeof message.text !== 'string' ||
+    message.text.length === 0 ||
+    message.text.length > MAX_SESSION_COMPACTION_CHARACTERS ||
+    !Number.isSafeInteger(message.timestamp) ||
+    message.timestamp < 0
+  ) {
+    throw new AgentSessionError(
+      'SESSION_COMPACTION_OUTPUT_INVALID',
+      'Session compaction context message is invalid.'
+    );
+  }
+  return cloneContextMessage(message);
+}
+
+export class MemorySessionAdapter implements InspectableSessionPort, CompactableSessionPort {
   readonly #sessions = new Map<string, StoredSession>();
   readonly #createSessionId: () => string;
 
@@ -108,6 +141,36 @@ export class MemorySessionAdapter implements InspectableSessionPort {
     });
   }
 
+  loadContext(request: LoadSessionHistoryRequest): Promise<SessionContextSnapshot> {
+    return Promise.resolve().then(() => {
+      const session = this.#requireSession(request);
+      const beforeIndex = this.#requireTurnIndex(session, request.beforeTurnId);
+      const compaction = session.compaction;
+      const boundaryIndex =
+        compaction === undefined
+          ? -1
+          : session.turns.findIndex((turn) => turn.turnId === compaction.throughTurnId);
+      const useCompaction =
+        compaction !== undefined && boundaryIndex >= 0 && boundaryIndex < beforeIndex;
+      const messages = session.turns
+        .slice(useCompaction ? boundaryIndex + 1 : 0, beforeIndex)
+        .flatMap<ModelMessage>((turn) =>
+          turn.status === 'completed'
+            ? [cloneTurn(turn).userMessage, cloneTurn(turn).assistantMessage]
+            : []
+        );
+      return Object.freeze({
+        agentId: session.agentId,
+        sessionId: session.sessionId,
+        ...(useCompaction ? { compaction: cloneCompaction(compaction) } : {}),
+        messages: Object.freeze([
+          ...(useCompaction ? [cloneContextMessage(compaction.context)] : []),
+          ...messages,
+        ]),
+      });
+    });
+  }
+
   completeTurn(request: CompleteSessionTurnRequest): Promise<CompletedSessionTurn> {
     return Promise.resolve().then(() => {
       const session = this.#requireSession(request);
@@ -164,6 +227,52 @@ export class MemorySessionAdapter implements InspectableSessionPort {
         sessionId: session.sessionId,
         turns: Object.freeze(session.turns.map(cloneTurn)),
       });
+    });
+  }
+
+  readCompaction(reference: SessionReference): Promise<SessionCompaction | undefined> {
+    return Promise.resolve().then(() => {
+      const compaction = this.#requireSession(reference).compaction;
+      return compaction === undefined ? undefined : cloneCompaction(compaction);
+    });
+  }
+
+  commitCompaction(request: CommitSessionCompactionRequest): Promise<SessionCompaction> {
+    return Promise.resolve().then(() => {
+      const session = this.#requireSession(request);
+      const current = session.compaction;
+      const currentRevision = current?.revision ?? 0;
+      if (request.expectedRevision !== currentRevision) {
+        throw new AgentSessionError(
+          'SESSION_COMPACTION_CONFLICT',
+          `Session compaction expected revision ${request.expectedRevision} but found ${currentRevision}.`
+        );
+      }
+      const throughIndex = this.#requireTurnIndex(session, request.throughTurnId);
+      if (session.turns[throughIndex]?.status !== 'completed') {
+        throw new AgentSessionError(
+          'SESSION_COMPACTION_INVALID',
+          'Session compaction boundary must identify a completed turn.'
+        );
+      }
+      if (current !== undefined) {
+        const previousIndex = this.#requireTurnIndex(session, current.throughTurnId);
+        if (throughIndex <= previousIndex) {
+          throw new AgentSessionError(
+            'SESSION_COMPACTION_CONFLICT',
+            'Session compaction boundary must advance the current projection.'
+          );
+        }
+      }
+      const committed = Object.freeze({
+        agentId: session.agentId,
+        sessionId: session.sessionId,
+        revision: currentRevision + 1,
+        throughTurnId: request.throughTurnId,
+        context: validateContextMessage(request.context),
+      });
+      session.compaction = committed;
+      return cloneCompaction(committed);
     });
   }
 

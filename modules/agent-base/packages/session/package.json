@@ -30,7 +30,8 @@
   },
   "dependencies": {
     "@ta-agent/base-identity": "workspace:*",
-    "@ta-agent/base-model": "workspace:*"
+    "@ta-agent/base-model": "workspace:*",
+    "@ta-agent/base-workflow": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

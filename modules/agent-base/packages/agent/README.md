@@ -7,6 +7,18 @@ selects the current offline development profile: Pi's low-level loop, a determin
 in-memory sessions and Request Journal, the canonical request Workflow, and a memory OutputSink
 default.
 
+The assembled API also exposes an explicit `compactSession()` Agent Run. `createPiFauxAgentBase()`
+wires its deterministic Pi direct-completion runtime; generic compositions may inject another
+`SessionCompactionRuntime`. The `compactSession` Workflow, Condition, every leaf Step, policy,
+runtime, and Session adapter remain replaceable. A generic composition without a compaction runtime
+continues to serve requests and fails `compactSession()` immediately with a structured
+not-configured error.
+
+Compaction is not automatically scheduled after a response. It persists a revisioned projection
+through a completed Turn boundary and leaves the raw Session history unchanged. A later request loads
+the projection plus uncompacted completed turns; a completed Request replay still bypasses Session
+mutation and provider execution.
+
 Callers can opt into local durability without changing the composition root by injecting
 `SqliteSessionAdapter` through the existing `session` option. A second independently constructed
 adapter and Agent over the same explicit database path receives prior committed turns as model
@@ -32,5 +44,5 @@ exception messages, credentials, endpoints, or Pi values. Sink failure is isolat
 The composition structure is the supported production architecture. SQLite supplies a minimal real
 durable local Session profile, but the default faux-provider composition is intentionally not a
 remote-provider production profile. Durable replay is a separate minimal Request Journal profile;
-neither SQLite adapter implies navigation, backup, automatic retry, cross-port transactions, or
-multi-process ownership.
+neither SQLite adapter implies navigation, pruning, backup, automatic retry, cross-port transactions,
+or multi-process ownership.

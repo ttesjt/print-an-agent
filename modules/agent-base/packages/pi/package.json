@@ -32,6 +32,7 @@
     "@earendil-works/pi-agent-core": "0.82.1",
     "@earendil-works/pi-ai": "0.82.1",
     "@ta-agent/base-model": "workspace:*",
+    "@ta-agent/base-session": "workspace:*",
     "@ta-agent/base-tool": "workspace:*",
     "typebox": "1.1.38"
   },

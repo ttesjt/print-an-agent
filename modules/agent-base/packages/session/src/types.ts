@@ -1,5 +1,6 @@
 import type { AgentId } from '@ta-agent/base-identity';
 import type { AssistantModelMessage, ModelMessage, UserModelMessage } from '@ta-agent/base-model';
+import type { SessionContextSnapshot } from './compaction/contracts.js';
 
 declare const sessionIdBrand: unique symbol;
 declare const turnIdBrand: unique symbol;
@@ -66,6 +67,7 @@ export interface SessionPort {
   resolve(request: ResolveSessionRequest): Promise<SessionReference>;
   beginTurn(request: BeginSessionTurnRequest): Promise<ActiveSessionTurn>;
   loadHistory(request: LoadSessionHistoryRequest): Promise<readonly ModelMessage[]>;
+  loadContext(request: LoadSessionHistoryRequest): Promise<SessionContextSnapshot>;
   completeTurn(request: CompleteSessionTurnRequest): Promise<CompletedSessionTurn>;
   failTurn(request: FailSessionTurnRequest): Promise<SessionTurn>;
 }

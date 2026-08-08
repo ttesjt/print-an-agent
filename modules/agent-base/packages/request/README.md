@@ -27,11 +27,12 @@ composition cannot pretend that an unresolved concern was handled.
 
 `createDefaultRequestStepOverrides()` provides the current concrete text-request slice over injected
 model runtime, session, request-journal, and tool ports. It validates input, resolves a session and
-execution target, composes instructions, loads completed history, creates one bounded Tool Runtime,
-publishes only final-turn model text through an `OutputSink`, persists the assistant result and
-optional replay authority, and closes the response. The response includes privacy-safe `toolRun`
-metadata. The empty registry and deny-all permission policy remain the safe composition defaults.
-`gatherExternalContext` remains an explicit skip in this profile.
+execution target, composes instructions, loads the current Session context projection plus completed
+raw tail, creates one bounded Tool Runtime, publishes only final-turn model text through an
+`OutputSink`, persists the assistant result and optional replay authority, and closes the response.
+The response includes privacy-safe `toolRun` metadata. The empty registry and deny-all permission
+policy remain the safe composition defaults. `gatherExternalContext` remains an explicit skip in this
+profile.
 
 `resolveRequestReplay` is now a concrete optional capability. Supplying an `idempotencyKey` and an
 explicit `sessionId` atomically claims a Request Journal record. A completed duplicate returns the

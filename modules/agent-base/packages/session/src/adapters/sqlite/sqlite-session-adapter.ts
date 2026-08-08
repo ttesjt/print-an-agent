@@ -2,6 +2,12 @@ import { randomUUID } from 'node:crypto';
 import { parseAgentId } from '@ta-agent/base-identity';
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import type { ModelMessage } from '@ta-agent/base-model';
+import type {
+  CommitSessionCompactionRequest,
+  CompactableSessionPort,
+  SessionCompaction,
+  SessionContextSnapshot,
+} from '../../compaction/contracts.js';
 import { AgentSessionError } from '../../errors.js';
 import { parseSessionFailureCode, parseSessionId, parseTurnId } from '../../identifiers.js';
 import type {
@@ -33,6 +39,11 @@ import {
   encodeUserMessage,
 } from './message-codec.js';
 import { assertSessionSchema, configureDefensiveMode, initializeSessionSchema } from './schema.js';
+import {
+  commitSqliteSessionCompaction,
+  loadSqliteSessionContext,
+  readSqliteSessionCompaction,
+} from './session-compaction-storage.js';
 
 export interface SqliteSessionAdapterOptions {
   readonly databasePath: string;
@@ -144,7 +155,7 @@ function normalizeReference(reference: SessionReference): SessionReference {
   });
 }
 
-export class SqliteSessionAdapter implements InspectableSessionPort {
+export class SqliteSessionAdapter implements InspectableSessionPort, CompactableSessionPort {
   readonly #configuration: SqliteDatabaseConfiguration;
   readonly #createSessionId: () => string;
   readonly #clock: () => number;
@@ -301,6 +312,16 @@ export class SqliteSessionAdapter implements InspectableSessionPort {
     });
   }
 
+  loadContext(request: LoadSessionHistoryRequest): Promise<SessionContextSnapshot> {
+    return Promise.resolve().then(() => {
+      const reference = normalizeReference(request);
+      const beforeTurnId = parseTurnId(request.beforeTurnId);
+      return this.#useDatabase('load context', (database) =>
+        loadSqliteSessionContext(database, { ...reference, beforeTurnId })
+      );
+    });
+  }
+
   completeTurn(request: CompleteSessionTurnRequest): Promise<CompletedSessionTurn> {
     return Promise.resolve().then(() => {
       const reference = normalizeReference(request);
@@ -404,6 +425,30 @@ export class SqliteSessionAdapter implements InspectableSessionPort {
           turns: Object.freeze(rows.map(decodeTurn)),
         });
       });
+    });
+  }
+
+  readCompaction(referenceInput: SessionReference): Promise<SessionCompaction | undefined> {
+    return Promise.resolve().then(() => {
+      const reference = normalizeReference(referenceInput);
+      return this.#useDatabase('read compaction', (database) =>
+        readSqliteSessionCompaction(database, reference)
+      );
+    });
+  }
+
+  commitCompaction(request: CommitSessionCompactionRequest): Promise<SessionCompaction> {
+    return Promise.resolve().then(() => {
+      const reference = normalizeReference(request);
+      const throughTurnId = parseTurnId(request.throughTurnId);
+      return this.#useDatabase('commit compaction', (database) =>
+        commitSqliteSessionCompaction(database, {
+          ...reference,
+          expectedRevision: request.expectedRevision,
+          throughTurnId,
+          context: request.context,
+        })
+      );
     });
   }
 

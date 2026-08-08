@@ -231,10 +231,11 @@ async function resolveInstructions(context: DefaultRequestWorkflowContext): Prom
 async function loadSessionContext(context: DefaultRequestWorkflowContext): Promise<void> {
   const session = requireValue(context.session, 'session');
   const turn = requireValue(context.turn, 'turn');
-  context.history = await context.resources.session.loadHistory({
+  const snapshot = await context.resources.session.loadContext({
     ...session,
     beforeTurnId: turn.turnId,
   });
+  context.history = snapshot.messages;
 }
 
 async function buildTools(context: DefaultRequestWorkflowContext): Promise<void> {

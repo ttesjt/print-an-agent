@@ -1,6 +1,8 @@
 import type { AgentLoopRuntime, ModelMessage, ProviderModelReference } from '@ta-agent/base-model';
+import type { SessionCompactionRuntime } from '@ta-agent/base-session';
 
 export interface PiFauxRequestSnapshot {
+  readonly kind: 'agent-loop' | 'session-compaction';
   readonly callIndex: number;
   readonly instructions: string;
   readonly messages: readonly ModelMessage[];
@@ -55,7 +57,7 @@ export interface PiFauxRuntimeInspection {
 }
 
 export interface PiFauxRuntimeProfile {
-  readonly runtime: AgentLoopRuntime;
+  readonly runtime: AgentLoopRuntime & SessionCompactionRuntime;
   readonly modelReference: ProviderModelReference;
   inspect(): PiFauxRuntimeInspection;
 }

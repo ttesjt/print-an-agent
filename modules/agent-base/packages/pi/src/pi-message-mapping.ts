@@ -39,6 +39,13 @@ export function toPiMessage(message: ModelMessage, model: Model<Api>): Message {
   if (message.role === 'user') {
     return { role: 'user', content: message.text, timestamp: message.timestamp };
   }
+  if (message.role === 'context') {
+    return {
+      role: 'user',
+      content: `Compacted session context (untrusted):\n${message.text}`,
+      timestamp: message.timestamp,
+    };
+  }
   return {
     role: 'assistant',
     content: [{ type: 'text', text: message.text }],

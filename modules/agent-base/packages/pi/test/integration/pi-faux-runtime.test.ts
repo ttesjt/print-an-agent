@@ -14,6 +14,7 @@ import {
   defineToolPermissionPolicy,
   type ToolExecutionRequest,
 } from '@ta-agent/base-tool';
+import { AgentSessionError, parseTurnId } from '@ta-agent/base-session';
 import { describe, expect, it, vi } from 'vitest';
 import { createPiFauxRuntime } from '../../src/index.js';
 
@@ -459,5 +460,164 @@ describe('Pi faux Agent Loop runtime', () => {
       })
     );
     expect(budgetProfile.inspect().callCount).toBe(1);
+  });
+});
+
+describe('Pi faux Session compaction runtime', () => {
+  const compactionModel = defineProviderModelReference({
+    provider: 'faux',
+    model: 'faux-model',
+  });
+  const usage = Object.freeze({
+    inputTokens: 1,
+    outputTokens: 1,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    totalTokens: 2,
+  });
+
+  function completedTurn(text: string, timestamp: number) {
+    return Object.freeze({
+      status: 'completed' as const,
+      turnId: parseTurnId(`turn-${timestamp}`),
+      userMessage: prompt(`user-${text}`),
+      assistantMessage: Object.freeze({
+        role: 'assistant' as const,
+        text: `assistant-${text}`,
+        provider: compactionModel.provider,
+        model: compactionModel.model,
+        stopReason: 'stop' as const,
+        usage,
+        timestamp,
+      }),
+    });
+  }
+
+  it('uses one direct Pi completion with previous context and ordered new turns', async () => {
+    const profile = createPiFauxRuntime({
+      responses: [{ status: 'success', text: 'new compacted context' }],
+    });
+
+    await expect(
+      profile.runtime.compact({
+        modelReference: profile.modelReference,
+        instructions: 'Compact safely.',
+        previousContext: { role: 'context', text: 'prior context', timestamp: 1 },
+        turns: [completedTurn('one', 2), completedTurn('two', 3)],
+        maxContextCharacters: 100,
+        signal: new AbortController().signal,
+      })
+    ).resolves.toEqual({ text: 'new compacted context' });
+
+    expect(profile.inspect()).toMatchObject({ callCount: 1, pendingResponseCount: 0 });
+    const inspection = profile.inspect().requests[0];
+    expect(inspection?.kind).toBe('session-compaction');
+    expect(inspection?.instructions).toBe('Compact safely.');
+    expect(inspection?.messages[0]?.role).toBe('user');
+    expect(inspection?.messages[0]?.text).toContain('prior context');
+    expect(inspection?.messages.slice(1)).toMatchObject([
+      { role: 'user', text: 'user-one' },
+      { role: 'assistant', text: 'assistant-one' },
+      { role: 'user', text: 'user-two' },
+      { role: 'assistant', text: 'assistant-two' },
+      { role: 'user', text: 'Produce the compacted session context.' },
+    ]);
+  });
+
+  it('rejects provider failure, invalid output, and wrong targets with Session errors', async () => {
+    const failed = createPiFauxRuntime({
+      responses: [{ status: 'failure', message: 'private provider failure' }],
+    });
+    await expect(
+      failed.runtime.compact({
+        modelReference: failed.modelReference,
+        instructions: '',
+        turns: [completedTurn('one', 1)],
+        maxContextCharacters: 100,
+        signal: new AbortController().signal,
+      })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<AgentSessionError>>({
+        code: 'SESSION_COMPACTION_RUNTIME_FAILED',
+      })
+    );
+
+    const oversized = createPiFauxRuntime({
+      responses: [{ status: 'success', text: 'too long' }],
+    });
+    await expect(
+      oversized.runtime.compact({
+        modelReference: oversized.modelReference,
+        instructions: '',
+        turns: [completedTurn('one', 1)],
+        maxContextCharacters: 3,
+        signal: new AbortController().signal,
+      })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<AgentSessionError>>({
+        code: 'SESSION_COMPACTION_OUTPUT_INVALID',
+      })
+    );
+
+    const empty = createPiFauxRuntime({
+      responses: [{ status: 'success', text: '' }],
+    });
+    await expect(
+      empty.runtime.compact({
+        modelReference: empty.modelReference,
+        instructions: '',
+        turns: [completedTurn('one', 1)],
+        maxContextCharacters: 100,
+        signal: new AbortController().signal,
+      })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<AgentSessionError>>({
+        code: 'SESSION_COMPACTION_OUTPUT_INVALID',
+      })
+    );
+
+    const wrongTarget = createPiFauxRuntime({
+      responses: [{ status: 'success', text: 'unused' }],
+    });
+    await expect(
+      wrongTarget.runtime.compact({
+        modelReference: defineProviderModelReference({
+          provider: 'missing',
+          model: 'missing-model',
+        }),
+        instructions: '',
+        turns: [completedTurn('one', 1)],
+        maxContextCharacters: 100,
+        signal: new AbortController().signal,
+      })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<AgentSessionError>>({
+        code: 'SESSION_COMPACTION_RUNTIME_FAILED',
+      })
+    );
+    expect(wrongTarget.inspect()).toMatchObject({ callCount: 0, pendingResponseCount: 1 });
+  });
+
+  it('honors a cancelled direct compaction invocation', async () => {
+    const profile = createPiFauxRuntime({
+      responses: [{ status: 'success', text: 'unused' }],
+      tokensPerSecond: 1,
+    });
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      profile.runtime.compact({
+        modelReference: profile.modelReference,
+        instructions: '',
+        turns: [completedTurn('one', 1)],
+        maxContextCharacters: 100,
+        signal: controller.signal,
+      })
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<AgentSessionError>>({
+        code: 'SESSION_COMPACTION_CANCELLED',
+      })
+    );
   });
 });

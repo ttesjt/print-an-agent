@@ -59,6 +59,57 @@ defineSessionPortContract('SqliteSessionAdapter', () => {
 });
 
 describe('SqliteSessionAdapter durability', () => {
+  it('migrates a valid schema version 1 database without losing authoritative turns', async () => {
+    const temporary = createTemporaryDatabase();
+    try {
+      const identity = defineAgentIdentity({ id: 'migration-agent' });
+      const first = new SqliteSessionAdapter({
+        databasePath: temporary.databasePath,
+        clock: createClock(),
+      });
+      const session = await first.resolve({
+        agentId: identity.id,
+        requestedSessionId: 'conversation',
+      });
+      const completedId = parseTurnId('completed');
+      await first.beginTurn({
+        ...session,
+        turnId: completedId,
+        userMessage: userMessage('preserved', 1),
+      });
+      await first.completeTurn({
+        ...session,
+        turnId: completedId,
+        assistantMessage: assistantMessage('also preserved', 2),
+      });
+
+      const oldDatabase = new DatabaseSync(temporary.databasePath);
+      oldDatabase.exec('DROP TABLE ta_agent_base_session_compactions');
+      oldDatabase
+        .prepare(
+          `UPDATE ta_agent_base_session_schema
+           SET version = 1 WHERE component = '@ta-agent/base-session'`
+        )
+        .run();
+      oldDatabase.close();
+
+      const migrated = new SqliteSessionAdapter({ databasePath: temporary.databasePath });
+      const boundaryId = parseTurnId('boundary');
+      await migrated.beginTurn({
+        ...session,
+        turnId: boundaryId,
+        userMessage: userMessage('next', 3),
+      });
+      expect(await migrated.loadHistory({ ...session, beforeTurnId: boundaryId })).toEqual([
+        userMessage('preserved', 1),
+        assistantMessage('also preserved', 2),
+      ]);
+      expect(await migrated.readCompaction(session)).toBeUndefined();
+    } finally {
+      temporary.dispose();
+    }
+  });
+
   it('reopens a completed conversation and preserves stable history', async () => {
     const temporary = createTemporaryDatabase();
     try {
@@ -206,7 +257,7 @@ describe('SqliteSessionAdapter durability', () => {
       futureDatabase
         .prepare(
           `UPDATE ta_agent_base_session_schema
-           SET version = 2 WHERE component = '@ta-agent/base-session'`
+           SET version = 3 WHERE component = '@ta-agent/base-session'`
         )
         .run();
       futureDatabase.close();
@@ -252,6 +303,49 @@ describe('SqliteSessionAdapter durability', () => {
       future.dispose();
       drift.dispose();
       corrupt.dispose();
+    }
+  });
+
+  it('rejects a corrupt persisted compaction context', async () => {
+    const temporary = createTemporaryDatabase();
+    try {
+      const adapter = new SqliteSessionAdapter({
+        databasePath: temporary.databasePath,
+        clock: createClock(),
+      });
+      const session = await adapter.resolve({
+        agentId: defineAgentIdentity({ id: 'corrupt-compaction-agent' }).id,
+        requestedSessionId: 'conversation',
+      });
+      const turnId = parseTurnId('turn');
+      await adapter.beginTurn({
+        ...session,
+        turnId,
+        userMessage: userMessage('hello', 1),
+      });
+      await adapter.completeTurn({
+        ...session,
+        turnId,
+        assistantMessage: assistantMessage('answer', 2),
+      });
+      await adapter.commitCompaction({
+        ...session,
+        expectedRevision: 0,
+        throughTurnId: turnId,
+        context: { role: 'context', text: 'summary', timestamp: 3 },
+      });
+
+      const database = new DatabaseSync(temporary.databasePath);
+      database
+        .prepare('UPDATE ta_agent_base_session_compactions SET context_message = ?')
+        .run('{bad json');
+      database.close();
+
+      await expect(adapter.readCompaction(session)).rejects.toMatchObject({
+        code: 'SESSION_RECORD_INVALID',
+      });
+    } finally {
+      temporary.dispose();
     }
   });
 

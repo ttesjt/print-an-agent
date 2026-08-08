@@ -42,7 +42,13 @@ export interface AssistantModelMessage {
   readonly timestamp: number;
 }
 
-export type ModelMessage = UserModelMessage | AssistantModelMessage;
+export interface ContextModelMessage {
+  readonly role: 'context';
+  readonly text: string;
+  readonly timestamp: number;
+}
+
+export type ModelMessage = UserModelMessage | AssistantModelMessage | ContextModelMessage;
 
 export interface ExecutionTargetCapabilities {
   readonly streaming: true;

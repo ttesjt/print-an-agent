@@ -5,7 +5,7 @@ import {
   type UserModelMessage,
 } from '@ta-agent/base-model';
 import { describe, expect, it } from 'vitest';
-import { AgentSessionError, parseTurnId, type InspectableSessionPort } from '../../src/index.js';
+import { AgentSessionError, parseTurnId, type CompactableSessionPort } from '../../src/index.js';
 
 const model = defineProviderModelReference({ provider: 'faux', model: 'faux-model' });
 const usage = Object.freeze({
@@ -17,7 +17,7 @@ const usage = Object.freeze({
 });
 
 export interface SessionPortContractHarness {
-  readonly adapter: InspectableSessionPort;
+  readonly adapter: CompactableSessionPort;
   readonly dispose?: () => void;
 }
 
@@ -39,7 +39,7 @@ export function assistantMessage(text: string, timestamp: number): AssistantMode
 
 async function withHarness<T>(
   createHarness: () => SessionPortContractHarness,
-  action: (adapter: InspectableSessionPort) => Promise<T>
+  action: (adapter: CompactableSessionPort) => Promise<T>
 ): Promise<T> {
   const harness = createHarness();
   try {
@@ -211,6 +211,150 @@ export function defineSessionPortContract(
         expect(Object.isFrozen(snapshot)).toBe(true);
         expect(Object.isFrozen(snapshot?.turns)).toBe(true);
         expect(Object.isFrozen(snapshot?.turns[0]?.userMessage)).toBe(true);
+      }));
+
+    it('loads raw context before compaction and projection plus exact tail after compaction', () =>
+      withHarness(createHarness, async (adapter) => {
+        const session = await adapter.resolve({
+          agentId: defineAgentIdentity({ id: 'context-agent' }).id,
+          requestedSessionId: 'context-chat',
+        });
+        const firstTurnId = parseTurnId('one');
+        const secondTurnId = parseTurnId('two');
+        const thirdTurnId = parseTurnId('three');
+        const boundaryTurnId = parseTurnId('boundary');
+        const turnIds = [firstTurnId, secondTurnId, thirdTurnId, boundaryTurnId];
+        for (const [index, turnId] of turnIds.entries()) {
+          await adapter.beginTurn({
+            ...session,
+            turnId,
+            userMessage: userMessage(`user-${index}`, index * 2 + 1),
+          });
+          if (index < 3) {
+            await adapter.completeTurn({
+              ...session,
+              turnId,
+              assistantMessage: assistantMessage(`assistant-${index}`, index * 2 + 2),
+            });
+          }
+        }
+
+        const rawContext = await adapter.loadContext({
+          ...session,
+          beforeTurnId: boundaryTurnId,
+        });
+        expect(rawContext.compaction).toBeUndefined();
+        expect(rawContext.messages).toHaveLength(6);
+
+        const committed = await adapter.commitCompaction({
+          ...session,
+          expectedRevision: 0,
+          throughTurnId: secondTurnId,
+          context: Object.freeze({ role: 'context', text: 'summary', timestamp: 10 }),
+        });
+        const compactedContext = await adapter.loadContext({
+          ...session,
+          beforeTurnId: boundaryTurnId,
+        });
+
+        expect(committed).toMatchObject({ revision: 1, throughTurnId: secondTurnId });
+        expect(compactedContext.messages).toEqual([
+          { role: 'context', text: 'summary', timestamp: 10 },
+          userMessage('user-2', 5),
+          assistantMessage('assistant-2', 6),
+        ]);
+        expect(
+          await adapter.loadHistory({ ...session, beforeTurnId: boundaryTurnId })
+        ).toHaveLength(6);
+        expect(Object.isFrozen(compactedContext.messages)).toBe(true);
+        expect(Object.isFrozen(compactedContext.compaction?.context)).toBe(true);
+      }));
+
+    it('uses revision CAS and requires every compaction boundary to advance', () =>
+      withHarness(createHarness, async (adapter) => {
+        const session = await adapter.resolve({
+          agentId: defineAgentIdentity({ id: 'cas-agent' }).id,
+          requestedSessionId: 'cas-chat',
+        });
+        const first = parseTurnId('first');
+        const second = parseTurnId('second');
+        for (const [index, turnId] of [first, second].entries()) {
+          await adapter.beginTurn({
+            ...session,
+            turnId,
+            userMessage: userMessage(`u${index}`, index + 1),
+          });
+          await adapter.completeTurn({
+            ...session,
+            turnId,
+            assistantMessage: assistantMessage(`a${index}`, index + 3),
+          });
+        }
+        await adapter.commitCompaction({
+          ...session,
+          expectedRevision: 0,
+          throughTurnId: first,
+          context: { role: 'context', text: 'first summary', timestamp: 10 },
+        });
+
+        await expect(
+          adapter.commitCompaction({
+            ...session,
+            expectedRevision: 0,
+            throughTurnId: second,
+            context: { role: 'context', text: 'stale', timestamp: 11 },
+          })
+        ).rejects.toMatchObject({ code: 'SESSION_COMPACTION_CONFLICT' });
+        await expect(
+          adapter.commitCompaction({
+            ...session,
+            expectedRevision: 1,
+            throughTurnId: first,
+            context: { role: 'context', text: 'regression', timestamp: 12 },
+          })
+        ).rejects.toMatchObject({ code: 'SESSION_COMPACTION_CONFLICT' });
+
+        const advanced = await adapter.commitCompaction({
+          ...session,
+          expectedRevision: 1,
+          throughTurnId: second,
+          context: { role: 'context', text: 'second summary', timestamp: 13 },
+        });
+
+        expect(advanced).toMatchObject({
+          revision: 2,
+          throughTurnId: second,
+          context: { text: 'second summary' },
+        });
+        expect(await adapter.readCompaction(session)).toMatchObject({
+          revision: 2,
+          throughTurnId: second,
+          context: { text: 'second summary' },
+        });
+      }));
+
+    it('rejects an active turn as compaction authority', () =>
+      withHarness(createHarness, async (adapter) => {
+        const session = await adapter.resolve({
+          agentId: defineAgentIdentity({ id: 'active-agent' }).id,
+          requestedSessionId: 'active-chat',
+        });
+        const turnId = parseTurnId('active');
+        await adapter.beginTurn({
+          ...session,
+          turnId,
+          userMessage: userMessage('pending', 1),
+        });
+
+        await expect(
+          adapter.commitCompaction({
+            ...session,
+            expectedRevision: 0,
+            throughTurnId: turnId,
+            context: { role: 'context', text: 'invalid', timestamp: 2 },
+          })
+        ).rejects.toMatchObject({ code: 'SESSION_COMPACTION_INVALID' });
+        expect(await adapter.readCompaction(session)).toBeUndefined();
       }));
   });
 }

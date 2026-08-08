@@ -27,8 +27,8 @@ Current foundation packages:
 - `@ta-agent/base-model`: provider-independent model, message, streaming, and loop contracts;
 - `@ta-agent/base-observability`: privacy-safe correlated trace contracts, no-op sink, and bounded
   Memory adapter;
-- `@ta-agent/base-session`: generic session ports, the process-local memory adapter, and an opt-in
-  versioned SQLite durable adapter;
+- `@ta-agent/base-session`: generic Session and compaction ports, replaceable compaction
+  Workflow/Steps, the process-local memory adapter, and an opt-in versioned SQLite durable adapter;
 - `@ta-agent/base-tool`: provider-independent schemas, registries, permission policy, and bounded
   run-scoped Tool Broker;
 - `@ta-agent/base-workflow`: generic Agent, Workflow, Context, Step, and lifecycle runtime;
@@ -46,5 +46,7 @@ Registered tools are denied by default and execute only through the Agent Base T
 permission layer allows them. The profile publishes only the final assistant turn and returns
 privacy-safe tool-run metadata. Its composition and replacement boundaries are formal; generic
 correlated observability is available through an explicit metadata-only sink. Trace retention is
-disabled by default; durable trace storage, session navigation/compaction, and ordinary provider
-registration remain deferred.
+disabled by default. Session compaction is an explicit bounded Agent Run: it retains authoritative
+turns, persists a revisioned context projection, and supplies that projection plus the raw recent
+tail to later requests. Automatic scheduling, session navigation, durable trace storage, and
+ordinary provider registration remain deferred.

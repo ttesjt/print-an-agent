@@ -9,4 +9,7 @@ public factories.
 
 The deterministic faux profile supports offline multi-turn tool-loop tests. Text from intermediate
 tool-use turns is suppressed; only ordered deltas from the terminal assistant turn are published.
-Ordinary local and remote provider registration remains deferred.
+The same profile implements Session compaction through Pi's direct completion boundary rather than
+misrepresenting compaction as a full Agent Loop. It accepts only Agent Base-owned bounded values and
+normalizes output and failure identities before returning. Ordinary local and remote provider
+registration remains deferred.

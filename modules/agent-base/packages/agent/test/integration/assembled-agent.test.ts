@@ -16,7 +16,12 @@ import {
   RequestReplayFailedError,
   SqliteRequestJournalAdapter,
 } from '@ta-agent/base-request';
-import { MemorySessionAdapter, parseSessionId, SqliteSessionAdapter } from '@ta-agent/base-session';
+import {
+  AgentSessionError,
+  MemorySessionAdapter,
+  parseSessionId,
+  SqliteSessionAdapter,
+} from '@ta-agent/base-session';
 import {
   AgentToolError,
   createToolRegistry,
@@ -757,6 +762,187 @@ describe('assembled Agent Base request path', () => {
       expect.objectContaining<Partial<AgentRequestError>>({ code: 'REQUEST_INPUT_INVALID' })
     );
     expect(agent.inspectPi().callCount).toBe(0);
+
+    let compactionConfigurationError: unknown;
+    try {
+      createPiFauxAgentBase({
+        identity: { id: 'assistant' },
+        sessionCompactionInstructions: '   ',
+        pi: { responses: [{ status: 'success', text: 'unused' }] },
+      });
+    } catch (error: unknown) {
+      compactionConfigurationError = error;
+    }
+    expect(compactionConfigurationError).toEqual(
+      expect.objectContaining<Partial<AgentSessionError>>({
+        code: 'SESSION_COMPACTION_INVALID',
+      })
+    );
+  });
+
+  it('compacts a durable Session through Pi and reuses projection plus tail after restart', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'ta-agent-compaction-'));
+    const databasePath = join(directory, 'session.sqlite');
+    const trace = new MemoryAgentTraceAdapter({ maxEvents: 256 });
+    let requestSequence = 0;
+    try {
+      const first = createPiFauxAgentBase({
+        identity: { id: 'assistant' },
+        session: new SqliteSessionAdapter({ databasePath, clock: () => 10 }),
+        createRunId: () => `request-${++requestSequence}`,
+        createCompactionRunId: () => 'compaction-run',
+        createCompactionWorkflowRunId: () => 'compaction-workflow',
+        observability: { sink: trace, clock: () => 20 },
+        pi: {
+          responses: [
+            { status: 'success', text: 'PRIVATE_ANSWER_1' },
+            { status: 'success', text: 'PRIVATE_ANSWER_2' },
+            { status: 'success', text: 'PRIVATE_ANSWER_3' },
+            { status: 'success', text: 'PRIVATE_ANSWER_4' },
+            { status: 'success', text: 'PRIVATE_COMPACTED_CONTEXT' },
+          ],
+        },
+      });
+      for (let index = 1; index <= 4; index += 1) {
+        await first.run({ message: `PRIVATE_USER_${index}`, sessionId: 'conversation' });
+      }
+
+      await expect(first.compactSession({ sessionId: 'conversation' })).resolves.toEqual({
+        status: 'compacted',
+        sessionId: 'conversation',
+        revision: 1,
+        throughTurnId: 'request-2',
+        compactedTurnCount: 2,
+      });
+      expect(first.inspectPi().requests.at(-1)).toMatchObject({
+        kind: 'session-compaction',
+      });
+
+      const reopenedSession = new SqliteSessionAdapter({ databasePath, clock: () => 30 });
+      const reopened = createPiFauxAgentBase({
+        identity: { id: 'assistant' },
+        session: reopenedSession,
+        createRunId: () => `request-${++requestSequence}`,
+        pi: { responses: [{ status: 'success', text: 'PRIVATE_ANSWER_5' }] },
+      });
+      const requestAfterCompaction = {
+        message: 'PRIVATE_USER_5',
+        sessionId: 'conversation',
+        idempotencyKey: 'after-compaction',
+      } as const;
+      const firstAfterCompaction = await reopened.run(requestAfterCompaction);
+      const replayAfterCompaction = await reopened.run(requestAfterCompaction);
+      expect(replayAfterCompaction).toEqual(firstAfterCompaction);
+      expect(reopened.inspectPi().callCount).toBe(1);
+
+      const providerRequest = reopened.inspectPi().requests[0];
+      expect(providerRequest).toMatchObject({ kind: 'agent-loop' });
+      const serializedProviderRequest = JSON.stringify(providerRequest);
+      expect(serializedProviderRequest).toContain('PRIVATE_COMPACTED_CONTEXT');
+      expect(serializedProviderRequest).toContain('PRIVATE_USER_3');
+      expect(serializedProviderRequest).toContain('PRIVATE_ANSWER_4');
+      expect(serializedProviderRequest).not.toContain('PRIVATE_USER_1');
+      expect(serializedProviderRequest).not.toContain('PRIVATE_ANSWER_2');
+      expect(
+        (
+          await reopenedSession.inspect({
+            agentId: reopened.identity.id,
+            sessionId: parseSessionId('conversation'),
+          })
+        )?.turns
+      ).toHaveLength(5);
+
+      const compactionEvents = trace.inspect({ agentRunId: 'compaction-run' }).events;
+      expect(
+        compactionEvents.flatMap((event) => (event.type === 'step-started' ? [event.stepName] : []))
+      ).toEqual([
+        'runSessionCompaction',
+        'inspectSession',
+        'selectCompactionSource',
+        'buildCompactedContext',
+        'persistCompaction',
+      ]);
+      const serializedTrace = JSON.stringify(compactionEvents);
+      expect(serializedTrace).toContain('compactSession');
+      expect(serializedTrace).not.toContain('PRIVATE_USER');
+      expect(serializedTrace).not.toContain('PRIVATE_ANSWER');
+      expect(serializedTrace).not.toContain('PRIVATE_COMPACTED_CONTEXT');
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('skips compaction before policy eligibility without consuming a Pi response', async () => {
+    let requestSequence = 0;
+    const agent = createPiFauxAgentBase({
+      identity: { id: 'assistant' },
+      createRunId: () => `short-${++requestSequence}`,
+      pi: {
+        responses: [
+          { status: 'success', text: 'one' },
+          { status: 'success', text: 'two' },
+          { status: 'success', text: 'reserved' },
+        ],
+      },
+    });
+    await agent.run({ message: 'one', sessionId: 'short' });
+    await agent.run({ message: 'two', sessionId: 'short' });
+
+    await expect(agent.compactSession({ sessionId: 'short' })).resolves.toEqual({
+      status: 'skipped',
+      sessionId: 'short',
+      reason: 'not-needed',
+    });
+    expect(agent.inspectPi()).toMatchObject({ callCount: 2, pendingResponseCount: 1 });
+  });
+
+  it('allows one compaction leaf Step to be replaced and fails fast when runtime is absent', async () => {
+    let requestSequence = 0;
+    const agent = createPiFauxAgentBase({
+      identity: { id: 'assistant' },
+      createRunId: () => `override-${++requestSequence}`,
+      sessionCompactionStepOverrides: {
+        buildCompactedContext: (context) => {
+          context.compactedContext = Object.freeze({
+            role: 'context',
+            text: 'replacement context',
+            timestamp: 50,
+          });
+          return Promise.resolve();
+        },
+      },
+      pi: {
+        responses: [
+          { status: 'success', text: 'one' },
+          { status: 'success', text: 'two' },
+          { status: 'success', text: 'three' },
+          { status: 'success', text: 'four' },
+        ],
+      },
+    });
+    for (const message of ['one', 'two', 'three', 'four']) {
+      await agent.run({ message, sessionId: 'override' });
+    }
+    await expect(agent.compactSession({ sessionId: 'override' })).resolves.toMatchObject({
+      status: 'compacted',
+      revision: 1,
+    });
+    expect(agent.inspectPi().callCount).toBe(4);
+
+    const runtimeOnly: AgentLoopRuntime = {
+      resolveTarget: () => Promise.reject(new Error('unused')),
+      run: () => Promise.reject(new Error('unused')),
+    };
+    const withoutCompaction = assembleAgentBase({
+      identity: { id: 'without-compaction' },
+      modelRuntime: runtimeOnly,
+      modelReference: defineProviderModelReference({ provider: 'unused', model: 'unused' }),
+    });
+    await expect(withoutCompaction.compactSession({ sessionId: 'missing' })).rejects.toEqual(
+      expect.objectContaining<Partial<AgentSessionError>>({
+        code: 'SESSION_COMPACTION_NOT_CONFIGURED',
+      })
+    );
   });
 
   it('applies the assembled request timeout and reports it distinctly', async () => {

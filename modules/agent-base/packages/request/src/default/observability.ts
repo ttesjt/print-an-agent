@@ -19,6 +19,8 @@ export async function traceSessionResolved(context: DefaultRequestWorkflowContex
     type: 'session-resolved',
     ...workflowReference(context),
     sessionId: context.session.sessionId,
+    branchId: context.session.branchId,
+    navigationRevision: context.session.navigationRevision,
   });
 }
 

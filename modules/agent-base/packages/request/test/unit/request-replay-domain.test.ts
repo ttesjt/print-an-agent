@@ -119,6 +119,20 @@ describe('Request replay domain', () => {
     expect(Object.isFrozen(decoded.toolRun.records)).toBe(true);
   });
 
+  it('decodes a legacy linear response onto the default Session branch', () => {
+    const original = journalResponse('legacy-request');
+    const legacyResponse = {
+      requestId: original.requestId,
+      sessionId: original.sessionId,
+      message: original.message,
+      toolRun: original.toolRun,
+    };
+
+    expect(
+      decodeAgentResponse(JSON.stringify({ schemaVersion: 1, response: legacyResponse }))
+    ).toEqual(original);
+  });
+
   it('rejects unknown versions and incomplete response records', () => {
     expectRequestError(
       () => decodeAgentResponse(JSON.stringify({ schemaVersion: 2, response: {} })),

@@ -122,9 +122,37 @@ function validateDetailsRecord(
     return;
   }
   if (type === 'session-resolved') {
-    assertExactKeys(record, ['workflowName', 'workflowRunId', 'sessionId'], includeEnvelope);
+    assertExactKeys(
+      record,
+      ['workflowName', 'workflowRunId', 'sessionId', 'branchId', 'navigationRevision'],
+      includeEnvelope
+    );
     requireWorkflowReference(record);
     requireString(record.sessionId, 'Trace sessionId');
+    requireString(record.branchId, 'Trace branchId');
+    requireCount(record.navigationRevision, 'Trace navigationRevision');
+    return;
+  }
+  if (type === 'session-navigation-applied') {
+    assertExactKeys(
+      record,
+      [
+        'workflowName',
+        'workflowRunId',
+        'operation',
+        'sessionId',
+        'selectedBranchId',
+        'affectedBranchId',
+        'navigationRevision',
+      ],
+      includeEnvelope
+    );
+    requireWorkflowReference(record);
+    requireOneOf(record.operation, ['select', 'fork', 'rewind'], 'Navigation operation');
+    requireString(record.sessionId, 'Trace sessionId');
+    requireString(record.selectedBranchId, 'Trace selectedBranchId');
+    requireString(record.affectedBranchId, 'Trace affectedBranchId');
+    requireCount(record.navigationRevision, 'Trace navigationRevision');
     return;
   }
   if (type === 'request-replay-resolved') {

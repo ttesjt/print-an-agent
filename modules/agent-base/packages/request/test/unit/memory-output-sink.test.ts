@@ -1,5 +1,5 @@
 import { defineProviderModelReference } from '@ta-agent/base-model';
-import { parseSessionId } from '@ta-agent/base-session';
+import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@ta-agent/base-session';
 import {
   createBoundedToolRuntime,
   DEFAULT_TOOL_EXECUTION_POLICY,
@@ -20,6 +20,7 @@ emptyToolRuntime.close();
 const response = Object.freeze({
   requestId: 'request-1',
   sessionId: parseSessionId('session-1'),
+  branchId: DEFAULT_SESSION_BRANCH_ID,
   message: Object.freeze({
     role: 'assistant' as const,
     text: 'hello',
@@ -41,7 +42,11 @@ const response = Object.freeze({
 describe('MemoryOutputSink', () => {
   it('enforces open, ordered writes, and one close', async () => {
     const sink = new MemoryOutputSink();
-    await sink.open({ requestId: 'request-1', sessionId: response.sessionId });
+    await sink.open({
+      requestId: 'request-1',
+      sessionId: response.sessionId,
+      branchId: response.branchId,
+    });
     await sink.write({ type: 'text-delta', delta: 'hel' });
     await sink.write({ type: 'text-delta', delta: 'lo' });
     await sink.close(response);

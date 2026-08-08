@@ -6,7 +6,11 @@ import type {
   ResolvedExecutionTarget,
   UserModelMessage,
 } from '@ta-agent/base-model';
-import type { ActiveSessionTurn, SessionPort, SessionReference } from '@ta-agent/base-session';
+import type {
+  ActiveSessionTurn,
+  ResolvedSessionReference,
+  SessionPort,
+} from '@ta-agent/base-session';
 import type {
   ToolExecutionPolicy,
   ToolPermissionPolicy,
@@ -52,7 +56,7 @@ export interface DefaultRequestWorkflowContext extends BaseWorkflowContext<
   readonly resources: RequestRuntimeResources;
   readonly policy: RequestPolicy;
   request?: ValidatedAgentRequest;
-  session?: SessionReference;
+  session?: ResolvedSessionReference;
   turn?: ActiveSessionTurn;
   requestJournalEntry?: RequestJournalEntry;
   ownedRequestJournalClaim?: ActiveRequestJournalEntry;

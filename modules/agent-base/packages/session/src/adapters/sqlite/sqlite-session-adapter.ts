@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { parseAgentId } from '@ta-agent/base-identity';
-import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
+import type { DatabaseSync } from 'node:sqlite';
 import type { ModelMessage } from '@ta-agent/base-model';
 import type {
   CommitSessionCompactionRequest,
@@ -8,156 +8,122 @@ import type {
   SessionCompaction,
   SessionContextSnapshot,
 } from '../../compaction/contracts.js';
-import { AgentSessionError } from '../../errors.js';
-import { parseSessionFailureCode, parseSessionId, parseTurnId } from '../../identifiers.js';
+import { parseSessionBranchId, parseSessionId, parseTurnId } from '../../identifiers.js';
+import type {
+  AppliedSessionNavigation,
+  ApplySessionNavigationRequest,
+  NavigableSessionPort,
+} from '../../navigation/contracts.js';
 import type {
   ActiveSessionTurn,
   BeginSessionTurnRequest,
   CompleteSessionTurnRequest,
   CompletedSessionTurn,
   FailSessionTurnRequest,
-  FailedSessionTurn,
   InspectableSessionPort,
   LoadSessionHistoryRequest,
   ResolveSessionRequest,
+  ResolvedSessionReference,
+  SessionBranchReference,
   SessionReference,
   SessionSnapshot,
   SessionTurn,
-  TurnId,
 } from '../../types.js';
 import {
   defineSqliteDatabaseConfiguration,
-  readClock,
-  runImmediateTransaction,
   useSqliteDatabase,
   type SqliteDatabaseConfiguration,
 } from './database.js';
-import {
-  decodeAssistantMessage,
-  decodeUserMessage,
-  encodeAssistantMessage,
-  encodeUserMessage,
-} from './message-codec.js';
-import { assertSessionSchema, configureDefensiveMode, initializeSessionSchema } from './schema.js';
 import {
   commitSqliteSessionCompaction,
   loadSqliteSessionContext,
   readSqliteSessionCompaction,
 } from './session-compaction-storage.js';
+import {
+  applySqliteSessionNavigation,
+  loadSqliteSessionSnapshot,
+  resolveSqliteSession,
+} from './session-navigation-storage.js';
+import { normalizeReference } from './session-record-codec.js';
+import {
+  beginSqliteSessionTurn,
+  completeSqliteSessionTurn,
+  failSqliteSessionTurn,
+  loadSqliteSessionHistory,
+} from './session-turn-storage.js';
+import { assertSessionSchema, configureDefensiveMode, initializeSessionSchema } from './schema.js';
 
 export interface SqliteSessionAdapterOptions {
   readonly databasePath: string;
   readonly createSessionId?: () => string;
+  readonly createBranchId?: () => string;
   readonly clock?: () => number;
   readonly busyTimeoutMilliseconds?: number;
 }
 
-type SqliteRow = Record<string, SQLOutputValue>;
-
-function requireString(row: SqliteRow, column: string): string {
-  const value = row[column];
-  if (typeof value !== 'string') {
-    throw new AgentSessionError(
-      'SESSION_RECORD_INVALID',
-      `SQLite Session column "${column}" must be a string.`
-    );
-  }
-  return value;
-}
-
-function normalizePersistedTurnId(row: SqliteRow): TurnId {
-  try {
-    return parseTurnId(requireString(row, 'turn_id'));
-  } catch (cause: unknown) {
-    if (cause instanceof AgentSessionError && cause.code === 'SESSION_RECORD_INVALID') throw cause;
-    throw new AgentSessionError(
-      'SESSION_RECORD_INVALID',
-      'SQLite Session record contains an invalid turn ID.',
-      { cause }
-    );
-  }
-}
-
-function decodeTurn(row: SqliteRow): SessionTurn {
-  const turnId = normalizePersistedTurnId(row);
-  const status = requireString(row, 'status');
-  const userMessage = decodeUserMessage(requireString(row, 'user_message'));
-
-  if (status === 'active') {
-    return Object.freeze({ status, turnId, userMessage });
-  }
-  if (status === 'completed') {
-    return Object.freeze({
-      status,
-      turnId,
-      userMessage,
-      assistantMessage: decodeAssistantMessage(requireString(row, 'assistant_message')),
-    });
-  }
-  if (status === 'failed') {
-    let failureCode: string;
-    try {
-      failureCode = parseSessionFailureCode(requireString(row, 'failure_code'));
-    } catch (cause: unknown) {
-      if (cause instanceof AgentSessionError && cause.code === 'SESSION_RECORD_INVALID')
-        throw cause;
-      throw new AgentSessionError(
-        'SESSION_RECORD_INVALID',
-        'SQLite Session record contains an invalid failure code.',
-        { cause }
-      );
-    }
-    return Object.freeze({ status, turnId, userMessage, failureCode });
-  }
-  throw new AgentSessionError(
-    'SESSION_RECORD_INVALID',
-    `SQLite Session record contains unsupported turn status "${status}".`
-  );
-}
-
-function requireSession(database: DatabaseSync, reference: SessionReference): void {
-  const row = database
-    .prepare('SELECT 1 AS found FROM ta_agent_base_sessions WHERE agent_id = ? AND session_id = ?')
-    .get(reference.agentId, reference.sessionId);
-  if (row === undefined) {
-    throw new AgentSessionError(
-      'SESSION_NOT_FOUND',
-      `Session "${reference.sessionId}" does not exist for agent "${reference.agentId}".`
-    );
-  }
-}
-
-function requireTurnRow(
-  database: DatabaseSync,
-  reference: SessionReference,
-  turnId: TurnId
-): SqliteRow {
-  const row = database
-    .prepare(
-      `SELECT turn_id, status, user_message, assistant_message, failure_code
-       FROM ta_agent_base_session_turns
-       WHERE agent_id = ? AND session_id = ? AND turn_id = ?`
-    )
-    .get(reference.agentId, reference.sessionId, turnId) as SqliteRow | undefined;
-  if (row === undefined) {
-    throw new AgentSessionError(
-      'TURN_NOT_FOUND',
-      `Turn "${turnId}" does not exist in session "${reference.sessionId}".`
-    );
-  }
-  return row;
-}
-
-function normalizeReference(reference: SessionReference): SessionReference {
+function normalizeResolvedReference(request: BeginSessionTurnRequest): BeginSessionTurnRequest {
   return Object.freeze({
-    agentId: parseAgentId(reference.agentId),
-    sessionId: parseSessionId(reference.sessionId),
+    agentId: parseAgentId(request.agentId),
+    sessionId: parseSessionId(request.sessionId),
+    branchId: parseSessionBranchId(request.branchId),
+    navigationRevision: request.navigationRevision,
+    turnId: parseTurnId(request.turnId),
+    userMessage: request.userMessage,
   });
 }
 
-export class SqliteSessionAdapter implements InspectableSessionPort, CompactableSessionPort {
+function normalizeBranchReference(reference: SessionBranchReference): SessionBranchReference {
+  return Object.freeze({
+    ...normalizeReference(reference),
+    branchId: parseSessionBranchId(reference.branchId),
+  });
+}
+
+function normalizeNavigationRequest(
+  request: ApplySessionNavigationRequest
+): ApplySessionNavigationRequest {
+  const reference = normalizeReference(request);
+  const command = request.command;
+  if (command.operation === 'select') {
+    return Object.freeze({
+      ...reference,
+      command: Object.freeze({
+        ...command,
+        branchId: parseSessionBranchId(command.branchId),
+      }),
+    });
+  }
+  if (command.operation === 'fork') {
+    return Object.freeze({
+      ...reference,
+      command: Object.freeze({
+        ...command,
+        sourceBranchId: parseSessionBranchId(command.sourceBranchId),
+        throughTurnId: parseTurnId(command.throughTurnId),
+        ...(command.newBranchId === undefined
+          ? {}
+          : { newBranchId: parseSessionBranchId(command.newBranchId) }),
+      }),
+    });
+  }
+  return Object.freeze({
+    ...reference,
+    command: Object.freeze({
+      ...command,
+      throughTurnId: parseTurnId(command.throughTurnId),
+      ...(command.newBranchId === undefined
+        ? {}
+        : { newBranchId: parseSessionBranchId(command.newBranchId) }),
+    }),
+  });
+}
+
+export class SqliteSessionAdapter
+  implements InspectableSessionPort, CompactableSessionPort, NavigableSessionPort
+{
   readonly #configuration: SqliteDatabaseConfiguration;
   readonly #createSessionId: () => string;
+  readonly #createBranchId: () => string;
   readonly #clock: () => number;
 
   constructor(options: SqliteSessionAdapterOptions) {
@@ -166,288 +132,130 @@ export class SqliteSessionAdapter implements InspectableSessionPort, Compactable
       options.busyTimeoutMilliseconds
     );
     this.#createSessionId = options.createSessionId ?? randomUUID;
+    this.#createBranchId = options.createBranchId ?? randomUUID;
     this.#clock = options.clock ?? Date.now;
-
     useSqliteDatabase(this.#configuration, 'initialize schema', (database) => {
       initializeSessionSchema(database);
       configureDefensiveMode(database);
     });
   }
 
-  resolve(request: ResolveSessionRequest): Promise<SessionReference> {
+  resolve(request: ResolveSessionRequest): Promise<ResolvedSessionReference> {
     return Promise.resolve().then(() => {
-      const agentId = parseAgentId(request.agentId);
-      const sessionId = parseSessionId(request.requestedSessionId ?? this.#createSessionId());
-      const createdAt = readClock(this.#clock);
-      this.#useDatabase('resolve session', (database) => {
-        runImmediateTransaction(database, () => {
-          database
-            .prepare(
-              `INSERT OR IGNORE INTO ta_agent_base_sessions
-                (agent_id, session_id, next_turn_sequence, created_at)
-               VALUES (?, ?, 0, ?)`
-            )
-            .run(agentId, sessionId, createdAt);
-        });
+      const reference = Object.freeze({
+        agentId: parseAgentId(request.agentId),
+        sessionId: parseSessionId(request.requestedSessionId ?? this.#createSessionId()),
       });
-      return Object.freeze({ agentId, sessionId });
+      return this.#useDatabase('resolve session', (database) =>
+        resolveSqliteSession(database, reference, this.#clock)
+      );
     });
   }
 
   beginTurn(request: BeginSessionTurnRequest): Promise<ActiveSessionTurn> {
-    return Promise.resolve().then(() => {
-      const reference = normalizeReference(request);
-      const turnId = parseTurnId(request.turnId);
-      const userMessageJson = encodeUserMessage(request.userMessage);
-      const userMessage = decodeUserMessage(userMessageJson);
-      const startedAt = readClock(this.#clock);
-
-      this.#useDatabase('begin turn', (database) => {
-        runImmediateTransaction(database, () => {
-          requireSession(database, reference);
-          const duplicate = database
-            .prepare(
-              `SELECT 1 AS found FROM ta_agent_base_session_turns
-               WHERE agent_id = ? AND session_id = ? AND turn_id = ?`
-            )
-            .get(reference.agentId, reference.sessionId, turnId);
-          if (duplicate !== undefined) {
-            throw new AgentSessionError(
-              'TURN_ALREADY_EXISTS',
-              `Turn "${turnId}" already exists in session "${reference.sessionId}".`
-            );
-          }
-
-          const sessionRow = database
-            .prepare(
-              `SELECT next_turn_sequence
-               FROM ta_agent_base_sessions
-               WHERE agent_id = ? AND session_id = ?`
-            )
-            .get(reference.agentId, reference.sessionId) as SqliteRow | undefined;
-          const sequence = sessionRow?.next_turn_sequence;
-          if (typeof sequence !== 'number' || !Number.isSafeInteger(sequence) || sequence < 0) {
-            throw new AgentSessionError(
-              'SESSION_RECORD_INVALID',
-              'SQLite Session contains an invalid next turn sequence.'
-            );
-          }
-
-          database
-            .prepare(
-              `INSERT INTO ta_agent_base_session_turns
-                (agent_id, session_id, turn_id, turn_sequence, status, user_message, started_at)
-               VALUES (?, ?, ?, ?, 'active', ?, ?)`
-            )
-            .run(
-              reference.agentId,
-              reference.sessionId,
-              turnId,
-              sequence,
-              userMessageJson,
-              startedAt
-            );
-          database
-            .prepare(
-              `UPDATE ta_agent_base_sessions
-               SET next_turn_sequence = ?
-               WHERE agent_id = ? AND session_id = ?`
-            )
-            .run(sequence + 1, reference.agentId, reference.sessionId);
-        });
-      });
-
-      return Object.freeze({ status: 'active', turnId, userMessage });
-    });
+    return Promise.resolve().then(() =>
+      this.#useDatabase('begin turn', (database) =>
+        beginSqliteSessionTurn(database, normalizeResolvedReference(request), this.#clock)
+      )
+    );
   }
 
   loadHistory(request: LoadSessionHistoryRequest): Promise<readonly ModelMessage[]> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(request);
-      const beforeTurnId = parseTurnId(request.beforeTurnId);
-      return this.#useDatabase('load history', (database) => {
-        requireSession(database, reference);
-        const boundary = database
-          .prepare(
-            `SELECT turn_sequence
-             FROM ta_agent_base_session_turns
-             WHERE agent_id = ? AND session_id = ? AND turn_id = ?`
-          )
-          .get(reference.agentId, reference.sessionId, beforeTurnId) as SqliteRow | undefined;
-        if (boundary === undefined) {
-          throw new AgentSessionError(
-            'TURN_NOT_FOUND',
-            `Turn "${beforeTurnId}" does not exist in session "${reference.sessionId}".`
-          );
-        }
-        const sequence = boundary.turn_sequence;
-        if (typeof sequence !== 'number' || !Number.isSafeInteger(sequence) || sequence < 0) {
-          throw new AgentSessionError(
-            'SESSION_RECORD_INVALID',
-            'SQLite Session history boundary has an invalid turn sequence.'
-          );
-        }
-
-        const rows = database
-          .prepare(
-            `SELECT turn_id, status, user_message, assistant_message, failure_code
-             FROM ta_agent_base_session_turns
-             WHERE agent_id = ? AND session_id = ?
-               AND turn_sequence < ? AND status = 'completed'
-             ORDER BY turn_sequence ASC`
-          )
-          .all(reference.agentId, reference.sessionId, sequence) as SqliteRow[];
-        const messages = rows.flatMap<ModelMessage>((row) => {
-          const turn = decodeTurn(row);
-          if (turn.status !== 'completed') {
-            throw new AgentSessionError(
-              'SESSION_RECORD_INVALID',
-              'SQLite Session completed history query returned a non-completed turn.'
-            );
-          }
-          return [turn.userMessage, turn.assistantMessage];
-        });
-        return Object.freeze(messages);
-      });
+      const normalized = {
+        ...normalizeReference(request),
+        beforeTurnId: parseTurnId(request.beforeTurnId),
+      };
+      return this.#useDatabase('load history', (database) =>
+        loadSqliteSessionHistory(database, normalized)
+      );
     });
   }
 
   loadContext(request: LoadSessionHistoryRequest): Promise<SessionContextSnapshot> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(request);
-      const beforeTurnId = parseTurnId(request.beforeTurnId);
+      const normalized = {
+        ...normalizeReference(request),
+        beforeTurnId: parseTurnId(request.beforeTurnId),
+      };
       return this.#useDatabase('load context', (database) =>
-        loadSqliteSessionContext(database, { ...reference, beforeTurnId })
+        loadSqliteSessionContext(database, normalized)
       );
     });
   }
 
   completeTurn(request: CompleteSessionTurnRequest): Promise<CompletedSessionTurn> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(request);
-      const turnId = parseTurnId(request.turnId);
-      const assistantMessageJson = encodeAssistantMessage(request.assistantMessage);
-      const assistantMessage = decodeAssistantMessage(assistantMessageJson);
-      const finishedAt = readClock(this.#clock);
-
+      const normalized = {
+        ...normalizeReference(request),
+        turnId: parseTurnId(request.turnId),
+        assistantMessage: request.assistantMessage,
+      };
       return this.#useDatabase('complete turn', (database) =>
-        runImmediateTransaction(database, () => {
-          requireSession(database, reference);
-          const current = decodeTurn(requireTurnRow(database, reference, turnId));
-          if (current.status !== 'active') {
-            throw new AgentSessionError(
-              'TURN_STATE_INVALID',
-              `Turn "${turnId}" cannot complete from state "${current.status}".`
-            );
-          }
-          const result = database
-            .prepare(
-              `UPDATE ta_agent_base_session_turns
-               SET status = 'completed', assistant_message = ?, finished_at = ?
-               WHERE agent_id = ? AND session_id = ? AND turn_id = ? AND status = 'active'`
-            )
-            .run(assistantMessageJson, finishedAt, reference.agentId, reference.sessionId, turnId);
-          if (result.changes !== 1) {
-            throw new AgentSessionError(
-              'TURN_STATE_INVALID',
-              `Turn "${turnId}" was not active when completion was committed.`
-            );
-          }
-          return Object.freeze({
-            status: 'completed',
-            turnId,
-            userMessage: current.userMessage,
-            assistantMessage,
-          });
-        })
+        completeSqliteSessionTurn(database, normalized, this.#clock)
       );
     });
   }
 
   failTurn(request: FailSessionTurnRequest): Promise<SessionTurn> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(request);
-      const turnId = parseTurnId(request.turnId);
-      const failureCode = parseSessionFailureCode(request.failureCode);
-      const finishedAt = readClock(this.#clock);
-
+      const normalized = {
+        ...normalizeReference(request),
+        turnId: parseTurnId(request.turnId),
+        failureCode: request.failureCode,
+      };
       return this.#useDatabase('fail turn', (database) =>
-        runImmediateTransaction(database, () => {
-          requireSession(database, reference);
-          const current = decodeTurn(requireTurnRow(database, reference, turnId));
-          if (current.status !== 'active') return current;
-
-          const result = database
-            .prepare(
-              `UPDATE ta_agent_base_session_turns
-               SET status = 'failed', failure_code = ?, finished_at = ?
-               WHERE agent_id = ? AND session_id = ? AND turn_id = ? AND status = 'active'`
-            )
-            .run(failureCode, finishedAt, reference.agentId, reference.sessionId, turnId);
-          if (result.changes !== 1) {
-            throw new AgentSessionError(
-              'TURN_STATE_INVALID',
-              `Turn "${turnId}" was not active when failure was committed.`
-            );
-          }
-          const failed: FailedSessionTurn = Object.freeze({
-            status: 'failed',
-            turnId,
-            userMessage: current.userMessage,
-            failureCode,
-          });
-          return failed;
-        })
+        failSqliteSessionTurn(database, normalized, this.#clock)
       );
     });
   }
 
-  inspect(referenceInput: SessionReference): Promise<SessionSnapshot | undefined> {
+  inspect(reference: SessionReference): Promise<SessionSnapshot | undefined> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(referenceInput);
+      const normalized = normalizeReference(reference);
       return this.#useDatabase('inspect session', (database) => {
-        const session = database
+        const found = database
           .prepare(
             'SELECT 1 AS found FROM ta_agent_base_sessions WHERE agent_id = ? AND session_id = ?'
           )
-          .get(reference.agentId, reference.sessionId);
-        if (session === undefined) return undefined;
-        const rows = database
-          .prepare(
-            `SELECT turn_id, status, user_message, assistant_message, failure_code
-             FROM ta_agent_base_session_turns
-             WHERE agent_id = ? AND session_id = ?
-             ORDER BY turn_sequence ASC`
-          )
-          .all(reference.agentId, reference.sessionId) as SqliteRow[];
-        return Object.freeze({
-          ...reference,
-          turns: Object.freeze(rows.map(decodeTurn)),
-        });
+          .get(normalized.agentId, normalized.sessionId);
+        return found === undefined ? undefined : loadSqliteSessionSnapshot(database, normalized);
       });
     });
   }
 
-  readCompaction(referenceInput: SessionReference): Promise<SessionCompaction | undefined> {
+  applyNavigation(request: ApplySessionNavigationRequest): Promise<AppliedSessionNavigation> {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('apply navigation', (database) =>
+        applySqliteSessionNavigation(
+          database,
+          normalizeNavigationRequest(request),
+          this.#createBranchId,
+          this.#clock
+        )
+      )
+    );
+  }
+
+  readCompaction(reference: SessionBranchReference): Promise<SessionCompaction | undefined> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(referenceInput);
+      const normalized = normalizeBranchReference(reference);
       return this.#useDatabase('read compaction', (database) =>
-        readSqliteSessionCompaction(database, reference)
+        readSqliteSessionCompaction(database, normalized)
       );
     });
   }
 
   commitCompaction(request: CommitSessionCompactionRequest): Promise<SessionCompaction> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(request);
-      const throughTurnId = parseTurnId(request.throughTurnId);
+      const normalized = {
+        ...normalizeBranchReference(request),
+        expectedRevision: request.expectedRevision,
+        throughTurnId: parseTurnId(request.throughTurnId),
+        context: request.context,
+      };
       return this.#useDatabase('commit compaction', (database) =>
-        commitSqliteSessionCompaction(database, {
-          ...reference,
-          expectedRevision: request.expectedRevision,
-          throughTurnId,
-          context: request.context,
-        })
+        commitSqliteSessionCompaction(database, normalized)
       );
     });
   }

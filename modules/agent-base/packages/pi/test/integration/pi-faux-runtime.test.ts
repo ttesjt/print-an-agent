@@ -14,7 +14,7 @@ import {
   defineToolPermissionPolicy,
   type ToolExecutionRequest,
 } from '@ta-agent/base-tool';
-import { AgentSessionError, parseTurnId } from '@ta-agent/base-session';
+import { AgentSessionError, DEFAULT_SESSION_BRANCH_ID, parseTurnId } from '@ta-agent/base-session';
 import { describe, expect, it, vi } from 'vitest';
 import { createPiFauxRuntime } from '../../src/index.js';
 
@@ -480,6 +480,7 @@ describe('Pi faux Session compaction runtime', () => {
     return Object.freeze({
       status: 'completed' as const,
       turnId: parseTurnId(`turn-${timestamp}`),
+      branchId: DEFAULT_SESSION_BRANCH_ID,
       userMessage: prompt(`user-${text}`),
       assistantMessage: Object.freeze({
         role: 'assistant' as const,

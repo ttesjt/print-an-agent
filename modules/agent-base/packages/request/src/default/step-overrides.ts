@@ -109,6 +109,7 @@ async function publishReplayedResponse(context: DefaultRequestWorkflowContext): 
     await request.outputSink.open({
       requestId: response.requestId,
       sessionId: response.sessionId,
+      branchId: response.branchId,
     });
   } catch (cause: unknown) {
     await traceOutputFailed(context, 'open');
@@ -302,6 +303,7 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
     await request.outputSink.open({
       requestId: context.agentContext.runId,
       sessionId: session.sessionId,
+      branchId: requireValue(context.turn, 'turn').branchId,
     });
   } catch (cause: unknown) {
     await traceOutputFailed(context, 'open');
@@ -324,6 +326,7 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
   context.response = Object.freeze({
     requestId: context.agentContext.runId,
     sessionId: session.sessionId,
+    branchId: requireValue(context.turn, 'turn').branchId,
     message: result.message,
     toolRun: requireValue(context.tools, 'tools').inspect(),
   });

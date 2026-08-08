@@ -1,5 +1,5 @@
 import type { AssistantModelMessage } from '@ta-agent/base-model';
-import type { SessionId } from '@ta-agent/base-session';
+import type { SessionBranchId, SessionId } from '@ta-agent/base-session';
 import type { ToolRunInspection } from '@ta-agent/base-tool';
 import type { RequestIdempotencyKey } from './replay/contracts.js';
 
@@ -20,6 +20,7 @@ export interface ValidatedAgentRequest {
 export interface AgentResponse {
   readonly requestId: string;
   readonly sessionId: SessionId;
+  readonly branchId: SessionBranchId;
   readonly message: AssistantModelMessage;
   readonly toolRun: ToolRunInspection;
 }
@@ -27,6 +28,7 @@ export interface AgentResponse {
 export interface OutputOpenEvent {
   readonly requestId: string;
   readonly sessionId: SessionId;
+  readonly branchId: SessionBranchId;
 }
 
 export interface OutputTextDeltaEvent {

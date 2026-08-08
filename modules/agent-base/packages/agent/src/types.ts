@@ -3,8 +3,9 @@ import type { AgentLoopRuntime, ProviderModelReference } from '@ta-agent/base-mo
 import type { AgentTraceEventSink, AgentTraceRuntimeOptions } from '@ta-agent/base-observability';
 import type { PiFauxRuntimeInspection, PiFauxRuntimeOptions } from '@ta-agent/base-pi';
 import type {
-  CompactableSessionPort,
   CompactSessionInput,
+  NavigateSessionInput,
+  NavigableCompactableSessionPort,
   SessionCompactionAgentContext,
   SessionCompactionCondition,
   SessionCompactionOutcome,
@@ -13,6 +14,11 @@ import type {
   SessionCompactionStepName,
   SessionCompactionWorkflowContext,
   SessionCompactionWorkflowName,
+  SessionNavigationAgentContext,
+  SessionNavigationOutcome,
+  SessionNavigationStepName,
+  SessionNavigationWorkflowContext,
+  SessionNavigationWorkflowName,
 } from '@ta-agent/base-session';
 import type {
   AgentRequestInput,
@@ -32,7 +38,7 @@ export interface AssembleAgentBaseOptions {
   readonly identity: AgentIdentityInput;
   readonly modelRuntime: AgentLoopRuntime;
   readonly modelReference: ProviderModelReference;
-  readonly session?: CompactableSessionPort;
+  readonly session?: NavigableCompactableSessionPort;
   readonly requestJournal?: RequestJournalPort;
   readonly instructionContributors?: readonly InstructionContributor[];
   readonly toolRegistry?: ToolRegistry;
@@ -57,6 +63,13 @@ export interface AssembleAgentBaseOptions {
   readonly sessionCompactionWorkflow?: RunnableWorkflow<SessionCompactionAgentContext>;
   readonly createCompactionRunId?: () => string;
   readonly createCompactionWorkflowRunId?: () => string;
+  readonly sessionNavigationStepOverrides?: StepOverrides<
+    SessionNavigationStepName,
+    SessionNavigationWorkflowContext
+  >;
+  readonly sessionNavigationWorkflow?: RunnableWorkflow<SessionNavigationAgentContext>;
+  readonly createNavigationRunId?: () => string;
+  readonly createNavigationWorkflowRunId?: () => string;
 }
 
 export type AgentBaseRunOptions = Omit<AgentRunOptions<RequestWorkflowName>, 'workflowPlan'>;
@@ -64,10 +77,14 @@ export type SessionCompactionRunOptions = Omit<
   AgentRunOptions<SessionCompactionWorkflowName>,
   'workflowPlan'
 >;
+export type SessionNavigationRunOptions = Omit<
+  AgentRunOptions<SessionNavigationWorkflowName>,
+  'workflowPlan'
+>;
 
 export interface AssembledAgentBase {
   readonly identity: AgentIdentity;
-  readonly session: CompactableSessionPort;
+  readonly session: NavigableCompactableSessionPort;
   readonly requestJournal: RequestJournalPort;
   readonly modelRuntime: AgentLoopRuntime;
   readonly modelReference: ProviderModelReference;
@@ -81,6 +98,10 @@ export interface AssembledAgentBase {
     input: CompactSessionInput,
     options?: SessionCompactionRunOptions
   ): Promise<SessionCompactionOutcome>;
+  navigateSession(
+    input: NavigateSessionInput,
+    options?: SessionNavigationRunOptions
+  ): Promise<SessionNavigationOutcome>;
 }
 
 export interface CreatePiFauxAgentBaseOptions extends Omit<

@@ -7,7 +7,7 @@ import type {
   WorkflowCondition,
   WorkflowDefinition,
 } from '@ta-agent/base-workflow';
-import type { SessionSnapshot } from '../../types.js';
+import type { SessionBranchId, SessionSnapshot } from '../../types.js';
 import type {
   CompactableSessionPort,
   CompactSessionInput,
@@ -43,6 +43,7 @@ export interface SessionCompactionWorkflowContext extends BaseWorkflowContext<
 > {
   readonly resources: SessionCompactionResources;
   snapshot?: SessionSnapshot;
+  branchId?: SessionBranchId;
   previousCompaction?: SessionCompaction;
   source?: SessionCompactionSource;
   compactedContext?: ContextModelMessage;

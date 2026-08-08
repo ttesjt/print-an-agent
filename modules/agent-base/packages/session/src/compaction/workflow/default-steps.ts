@@ -1,7 +1,7 @@
 import type { ContextModelMessage } from '@ta-agent/base-model';
 import type { StepOverrides } from '@ta-agent/base-workflow';
 import { AgentSessionError } from '../../errors.js';
-import { parseSessionId } from '../../identifiers.js';
+import { parseSessionBranchId, parseSessionId } from '../../identifiers.js';
 import { selectSessionCompactionSource } from '../source-selection.js';
 import type { SessionCompactionStepName } from './names.js';
 import type { SessionCompactionWorkflowContext } from './types.js';
@@ -21,23 +21,27 @@ async function inspectSession(context: SessionCompactionWorkflowContext): Promis
     agentId: context.agentContext.identity.id,
     sessionId: parseSessionId(context.agentContext.input.sessionId),
   };
-  const [snapshot, compaction] = await Promise.all([
-    context.resources.session.inspect(reference),
-    context.resources.session.readCompaction(reference),
-  ]);
+  const snapshot = await context.resources.session.inspect(reference);
   if (snapshot === undefined) {
     throw new AgentSessionError(
       'SESSION_NOT_FOUND',
       `Session "${reference.sessionId}" does not exist for agent "${reference.agentId}".`
     );
   }
+  const branchId =
+    context.agentContext.input.branchId === undefined
+      ? snapshot.navigation.selectedBranchId
+      : parseSessionBranchId(context.agentContext.input.branchId);
+  const compaction = await context.resources.session.readCompaction({ ...reference, branchId });
   context.snapshot = snapshot;
+  context.branchId = branchId;
   if (compaction !== undefined) context.previousCompaction = compaction;
 }
 
 function selectCompactionSource(context: SessionCompactionWorkflowContext): Promise<void> {
   const selection = selectSessionCompactionSource(
     requireSnapshot(context),
+    context.branchId ?? requireSnapshot(context).navigation.selectedBranchId,
     context.previousCompaction,
     context.resources.policy
   );
@@ -45,6 +49,7 @@ function selectCompactionSource(context: SessionCompactionWorkflowContext): Prom
     context.result = Object.freeze({
       status: 'skipped',
       sessionId: context.agentContext.input.sessionId,
+      branchId: context.branchId ?? requireSnapshot(context).navigation.selectedBranchId,
       reason: 'not-needed',
     });
   } else {
@@ -133,6 +138,7 @@ async function persistCompaction(context: SessionCompactionWorkflowContext): Pro
   const committed = await context.resources.session.commitCompaction({
     agentId: source.agentId,
     sessionId: source.sessionId,
+    branchId: source.branchId,
     expectedRevision: source.expectedRevision,
     throughTurnId: source.throughTurnId,
     context: compactedContext,
@@ -140,6 +146,7 @@ async function persistCompaction(context: SessionCompactionWorkflowContext): Pro
   context.result = Object.freeze({
     status: 'compacted',
     sessionId: committed.sessionId,
+    branchId: committed.branchId,
     revision: committed.revision,
     throughTurnId: committed.throughTurnId,
     compactedTurnCount: source.turns.length,

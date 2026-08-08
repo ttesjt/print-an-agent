@@ -9,3 +9,8 @@ exception messages, credentials, endpoints, and Pi values are never trace fields
 Tracing is diagnostic and fail-open. `NOOP_AGENT_TRACE_SINK` is the retention-free default.
 `MemoryAgentTraceAdapter` is an explicit bounded development adapter; production consumers may
 replace the sink without changing execution contracts.
+
+Session traces include selected branch identifiers and numeric navigation revisions. A successful
+navigation emits one closed `session-navigation-applied` metadata event describing only operation,
+Session identity, selected/affected branch identity, and resulting revision. It never includes
+messages, context projections, provider output, or other private content.

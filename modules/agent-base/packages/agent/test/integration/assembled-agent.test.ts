@@ -18,8 +18,11 @@ import {
 } from '@ta-agent/base-request';
 import {
   AgentSessionError,
+  DEFAULT_SESSION_BRANCH_ID,
   MemorySessionAdapter,
+  parseSessionBranchId,
   parseSessionId,
+  SESSION_NAVIGATION_WORKFLOW_NAME,
   SqliteSessionAdapter,
 } from '@ta-agent/base-session';
 import {
@@ -810,6 +813,7 @@ describe('assembled Agent Base request path', () => {
       await expect(first.compactSession({ sessionId: 'conversation' })).resolves.toEqual({
         status: 'compacted',
         sessionId: 'conversation',
+        branchId: 'main',
         revision: 1,
         throughTurnId: 'request-2',
         compactedTurnCount: 2,
@@ -891,9 +895,168 @@ describe('assembled Agent Base request path', () => {
     await expect(agent.compactSession({ sessionId: 'short' })).resolves.toEqual({
       status: 'skipped',
       sessionId: 'short',
+      branchId: 'main',
       reason: 'not-needed',
     });
     expect(agent.inspectPi()).toMatchObject({ callCount: 2, pendingResponseCount: 1 });
+  });
+
+  it('navigates durable branches with branch-scoped context, replay, and tracing', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'ta-agent-navigation-'));
+    const sessionDatabasePath = join(directory, 'session.sqlite');
+    const journalDatabasePath = join(directory, 'request-journal.sqlite');
+    const trace = new MemoryAgentTraceAdapter({ maxEvents: 512 });
+    const childBranchId = parseSessionBranchId('child');
+    let requestSequence = 0;
+    let navigationSequence = 0;
+    try {
+      const firstSession = new SqliteSessionAdapter({
+        databasePath: sessionDatabasePath,
+        clock: () => 10,
+      });
+      const first = createPiFauxAgentBase({
+        identity: { id: 'navigation-assistant' },
+        session: firstSession,
+        requestJournal: new SqliteRequestJournalAdapter({
+          databasePath: journalDatabasePath,
+          clock: () => 11,
+        }),
+        createRunId: () => `branch-request-${++requestSequence}`,
+        createCompactionRunId: () => 'branch-compaction',
+        createNavigationRunId: () => `navigation-run-${++navigationSequence}`,
+        observability: { sink: trace, clock: () => 12 },
+        pi: {
+          responses: [
+            { status: 'success', text: 'PRIVATE_MAIN_ANSWER_1' },
+            { status: 'success', text: 'PRIVATE_MAIN_ANSWER_2' },
+            { status: 'success', text: 'PRIVATE_MAIN_ANSWER_3' },
+            { status: 'success', text: 'PRIVATE_MAIN_ANSWER_4' },
+            { status: 'success', text: 'PRIVATE_BRANCH_SUMMARY' },
+            (request) => ({
+              status: 'success',
+              text: request.messages.map((message) => message.text).join('|'),
+            }),
+          ],
+        },
+      });
+      for (let index = 1; index <= 4; index += 1) {
+        await first.run({
+          message: `PRIVATE_MAIN_USER_${index}`,
+          sessionId: 'branching',
+        });
+      }
+      await first.compactSession({ sessionId: 'branching' });
+      const inspected = await first.navigateSession({
+        sessionId: 'branching',
+        operation: 'inspect',
+      });
+      expect(inspected).toMatchObject({
+        status: 'inspected',
+        navigation: { revision: 4, selectedBranchId: DEFAULT_SESSION_BRANCH_ID },
+      });
+      await expect(
+        first.navigateSession({
+          sessionId: 'branching',
+          operation: 'rewind',
+          throughTurnId: 'branch-request-2',
+          newBranchId: childBranchId,
+          expectedRevision: 4,
+        })
+      ).resolves.toEqual({
+        status: 'rewound',
+        sessionId: 'branching',
+        selectedBranchId: childBranchId,
+        affectedBranchId: childBranchId,
+        revision: 5,
+      });
+      const childRequest = {
+        message: 'PRIVATE_CHILD_USER',
+        sessionId: 'branching',
+        idempotencyKey: 'child-request',
+      } as const;
+      const childResponse = await first.run(childRequest);
+      expect(childResponse.branchId).toBe(childBranchId);
+      const childProviderRequest = first.inspectPi().requests.at(-1);
+      const serializedChildRequest = JSON.stringify(childProviderRequest);
+      expect(serializedChildRequest).toContain('PRIVATE_BRANCH_SUMMARY');
+      expect(serializedChildRequest).toContain('PRIVATE_CHILD_USER');
+      expect(serializedChildRequest).not.toContain('PRIVATE_MAIN_USER_3');
+      expect(serializedChildRequest).not.toContain('PRIVATE_MAIN_ANSWER_4');
+
+      await expect(
+        first.navigateSession({
+          sessionId: 'branching',
+          operation: 'select',
+          branchId: DEFAULT_SESSION_BRANCH_ID,
+          expectedRevision: 6,
+        })
+      ).resolves.toMatchObject({
+        status: 'selected',
+        selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
+        revision: 7,
+      });
+
+      const reopenedSession = new SqliteSessionAdapter({
+        databasePath: sessionDatabasePath,
+        clock: () => 20,
+      });
+      const reopened = createPiFauxAgentBase({
+        identity: { id: 'navigation-assistant' },
+        session: reopenedSession,
+        requestJournal: new SqliteRequestJournalAdapter({
+          databasePath: journalDatabasePath,
+          clock: () => 21,
+        }),
+        createRunId: () => `branch-request-${++requestSequence}`,
+        pi: {
+          responses: [
+            (request) => ({
+              status: 'success',
+              text: request.messages.map((message) => message.text).join('|'),
+            }),
+          ],
+        },
+      });
+      const mainResponse = await reopened.run({
+        message: 'PRIVATE_MAIN_USER_5',
+        sessionId: 'branching',
+      });
+      expect(mainResponse.branchId).toBe(DEFAULT_SESSION_BRANCH_ID);
+      const serializedMainRequest = JSON.stringify(reopened.inspectPi().requests[0]);
+      expect(serializedMainRequest).toContain('PRIVATE_BRANCH_SUMMARY');
+      expect(serializedMainRequest).toContain('PRIVATE_MAIN_USER_3');
+      expect(serializedMainRequest).toContain('PRIVATE_MAIN_ANSWER_4');
+      expect(serializedMainRequest).not.toContain('PRIVATE_CHILD_USER');
+
+      await expect(reopened.run(childRequest)).resolves.toEqual(childResponse);
+      expect(reopened.inspectPi().callCount).toBe(1);
+      const snapshot = await reopenedSession.inspect({
+        agentId: reopened.identity.id,
+        sessionId: parseSessionId('branching'),
+      });
+      expect(snapshot?.navigation).toMatchObject({
+        revision: 8,
+        selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
+        branches: [
+          { branchId: DEFAULT_SESSION_BRANCH_ID, headTurnId: 'branch-request-6' },
+          { branchId: childBranchId, headTurnId: 'branch-request-5' },
+        ],
+      });
+      expect(snapshot?.turns).toHaveLength(6);
+
+      const navigationEvents = [
+        ...trace.inspect({ agentRunId: 'navigation-run-2' }).events,
+        ...trace.inspect({ agentRunId: 'navigation-run-3' }).events,
+      ];
+      expect(
+        navigationEvents.filter((event) => event.type === 'session-navigation-applied')
+      ).toHaveLength(2);
+      const serializedNavigationTrace = JSON.stringify(navigationEvents);
+      expect(serializedNavigationTrace).toContain(childBranchId);
+      expect(serializedNavigationTrace).not.toContain('PRIVATE_');
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 
   it('allows one compaction leaf Step to be replaced and fails fast when runtime is absent', async () => {
@@ -943,6 +1106,105 @@ describe('assembled Agent Base request path', () => {
         code: 'SESSION_COMPACTION_NOT_CONFIGURED',
       })
     );
+  });
+
+  it('allows navigation leaf and complete Workflow replacement', async () => {
+    const leafReplacement = createPiFauxAgentBase({
+      identity: { id: 'navigation-leaf-replacement' },
+      sessionNavigationStepOverrides: {
+        inspectSessionNavigation: (context) => {
+          if (context.sessionId === undefined) {
+            throw new AgentSessionError(
+              'SESSION_NAVIGATION_INVALID',
+              'Replacement requires a validated Session ID.'
+            );
+          }
+          context.result = Object.freeze({
+            status: 'inspected',
+            navigation: Object.freeze({
+              agentId: context.agentContext.identity.id,
+              sessionId: context.sessionId,
+              revision: 99,
+              selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
+              branches: Object.freeze([
+                Object.freeze({
+                  branchId: DEFAULT_SESSION_BRANCH_ID,
+                  createdAt: 1,
+                }),
+              ]),
+            }),
+          });
+          return Promise.resolve();
+        },
+      },
+      pi: { responses: [{ status: 'success', text: 'unused' }] },
+    });
+    await expect(
+      leafReplacement.navigateSession({ sessionId: 'virtual', operation: 'inspect' })
+    ).resolves.toMatchObject({
+      status: 'inspected',
+      navigation: { revision: 99 },
+    });
+
+    const replacementResult = Object.freeze({
+      status: 'inspected' as const,
+      navigation: Object.freeze({
+        agentId: leafReplacement.identity.id,
+        sessionId: parseSessionId('replacement'),
+        revision: 7,
+        selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
+        branches: Object.freeze([
+          Object.freeze({ branchId: DEFAULT_SESSION_BRANCH_ID, createdAt: 1 }),
+        ]),
+      }),
+    });
+    const workflowReplacement = createPiFauxAgentBase({
+      identity: { id: 'navigation-workflow-replacement' },
+      sessionNavigationWorkflow: {
+        name: SESSION_NAVIGATION_WORKFLOW_NAME,
+        run: () =>
+          Promise.resolve({
+            status: 'completed',
+            workflowName: SESSION_NAVIGATION_WORKFLOW_NAME,
+            workflowRunId: 'replacement-workflow-run',
+            result: replacementResult,
+            applyTo: (context) => {
+              context.output = replacementResult;
+              return Promise.resolve();
+            },
+          }),
+      },
+      pi: { responses: [{ status: 'success', text: 'unused' }] },
+    });
+    await expect(
+      workflowReplacement.navigateSession({ sessionId: 'missing', operation: 'inspect' })
+    ).resolves.toEqual(replacementResult);
+  });
+
+  it('commits no navigation mutation when its Agent Run is already cancelled', async () => {
+    const agent = createPiFauxAgentBase({
+      identity: { id: 'navigation-cancellation' },
+      createRunId: () => 'navigation-base-request',
+      pi: { responses: [{ status: 'success', text: 'base' }] },
+    });
+    await agent.run({ message: 'base', sessionId: 'cancel-navigation' });
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      agent.navigateSession(
+        {
+          sessionId: 'cancel-navigation',
+          operation: 'select',
+          branchId: DEFAULT_SESSION_BRANCH_ID,
+          expectedRevision: 1,
+        },
+        { signal: controller.signal }
+      )
+    ).rejects.toBeDefined();
+    await expect(
+      agent.navigateSession({ sessionId: 'cancel-navigation', operation: 'inspect' })
+    ).resolves.toMatchObject({ navigation: { revision: 1 } });
   });
 
   it('applies the assembled request timeout and reports it distinctly', async () => {

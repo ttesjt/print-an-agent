@@ -27,18 +27,24 @@ composition cannot pretend that an unresolved concern was handled.
 
 `createDefaultRequestStepOverrides()` provides the current concrete text-request slice over injected
 model runtime, session, request-journal, and tool ports. It validates input, resolves a session and
-execution target, composes instructions, loads the current Session context projection plus completed
-raw tail, creates one bounded Tool Runtime, publishes only final-turn model text through an
+captures its selected branch and navigation revision, resolves an execution target, composes
+instructions, loads that branch's context projection plus completed raw tail, creates one bounded
+Tool Runtime, publishes only final-turn model text through an
 `OutputSink`, persists the assistant result and optional replay authority, and closes the response.
-The response includes privacy-safe `toolRun` metadata. The empty registry and deny-all permission
-policy remain the safe composition defaults. `gatherExternalContext` remains an explicit skip in this
-profile.
+The response includes its branch identity and privacy-safe `toolRun` metadata. A selection change
+between resolve and begin fails with a structured conflict instead of attaching the request to a
+different branch. The empty registry and deny-all permission policy remain the safe composition
+defaults. `gatherExternalContext` remains an explicit skip in this profile.
 
 `resolveRequestReplay` is now a concrete optional capability. Supplying an `idempotencyKey` and an
 explicit `sessionId` atomically claims a Request Journal record. A completed duplicate returns the
 original response through a fresh OutputSink lifecycle without beginning a Session turn, invoking a
 provider, or executing a tool. Active, failed, and conflicting duplicates fail with distinct
 structured errors rather than being silently re-executed.
+
+Replay authority remains Agent/Session/idempotency-key scoped. A completed replay returns the
+original response and original branch identity even when another branch is currently selected. The
+versioned response decoder accepts legacy linear records and maps them to the stable `main` branch.
 
 `resolveRequestReplay` and `gatherExternalContext` remain explicitly skippable in the generic catalog
 because replay and external context are optional capabilities. The official composition implements

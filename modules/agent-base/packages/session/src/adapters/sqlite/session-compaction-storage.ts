@@ -1,4 +1,4 @@
-import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
+import type { DatabaseSync } from 'node:sqlite';
 import type { ModelMessage } from '@ta-agent/base-model';
 import type {
   CommitSessionCompactionRequest,
@@ -6,312 +6,114 @@ import type {
   SessionContextSnapshot,
 } from '../../compaction/contracts.js';
 import { AgentSessionError } from '../../errors.js';
-import { parseTurnId } from '../../identifiers.js';
-import type { LoadSessionHistoryRequest, SessionReference, TurnId } from '../../types.js';
+import { completedLineageBeforeTurn, completedLineageForBranch } from '../../navigation/lineage.js';
+import type {
+  LoadSessionHistoryRequest,
+  SessionBranchReference,
+  SessionTurn,
+} from '../../types.js';
 import { runImmediateTransaction } from './database.js';
+import { decodeContextMessage, encodeContextMessage } from './message-codec.js';
+import { loadSqliteSessionSnapshot } from './session-navigation-storage.js';
 import {
-  decodeAssistantMessage,
-  decodeContextMessage,
-  decodeUserMessage,
-  encodeContextMessage,
-} from './message-codec.js';
+  normalizePersistedTurnId,
+  requireNonNegativeInteger,
+  requireString,
+  type SqliteRow,
+} from './session-record-codec.js';
 
-type SqliteRow = Record<string, SQLOutputValue>;
-
-function requireString(row: SqliteRow, column: string): string {
-  const value = row[column];
-  if (typeof value !== 'string') {
-    throw new AgentSessionError(
-      'SESSION_RECORD_INVALID',
-      `SQLite Session compaction column "${column}" must be a string.`
-    );
-  }
-  return value;
-}
-
-function requireNonNegativeInteger(row: SqliteRow, column: string, label: string): number {
-  const value = row[column];
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
-    throw new AgentSessionError(
-      'SESSION_RECORD_INVALID',
-      `${label} column "${column}" must be a non-negative safe integer.`
-    );
-  }
-  return value;
-}
-
-function requirePositiveInteger(row: SqliteRow, column: string, label: string): number {
-  const value = requireNonNegativeInteger(row, column, label);
+function requirePositiveInteger(row: SqliteRow, column: string): number {
+  const value = requireNonNegativeInteger(row, column, 'SQLite Session compaction');
   if (value === 0) {
     throw new AgentSessionError(
       'SESSION_RECORD_INVALID',
-      `${label} column "${column}" must be positive.`
+      `SQLite Session compaction column "${column}" must be positive.`
     );
   }
   return value;
 }
 
-function normalizeCompactionTurnId(row: SqliteRow): TurnId {
-  try {
-    return parseTurnId(requireString(row, 'through_turn_id'));
-  } catch (cause: unknown) {
-    if (cause instanceof AgentSessionError && cause.code === 'SESSION_RECORD_INVALID') throw cause;
-    throw new AgentSessionError(
-      'SESSION_RECORD_INVALID',
-      'SQLite Session compaction contains an invalid boundary turn ID.',
-      { cause }
-    );
-  }
-}
-
-function decodeCompaction(reference: SessionReference, row: SqliteRow): SessionCompaction {
-  if (requireString(row, 'status') !== 'completed') {
-    throw new AgentSessionError(
-      'SESSION_RECORD_INVALID',
-      'SQLite Session compaction boundary must identify a completed turn.'
-    );
-  }
+function decodeCompaction(reference: SessionBranchReference, row: SqliteRow): SessionCompaction {
   return Object.freeze({
     ...reference,
-    revision: requirePositiveInteger(row, 'revision', 'SQLite Session compaction'),
-    throughTurnId: normalizeCompactionTurnId(row),
+    revision: requirePositiveInteger(row, 'revision'),
+    throughTurnId: normalizePersistedTurnId(
+      requireString(row, 'through_turn_id'),
+      'SQLite Session compaction turn ID'
+    ),
     context: decodeContextMessage(requireString(row, 'context_message')),
   });
 }
 
-function requireSession(database: DatabaseSync, reference: SessionReference): void {
-  const row = database
-    .prepare('SELECT 1 AS found FROM ta_agent_base_sessions WHERE agent_id = ? AND session_id = ?')
-    .get(reference.agentId, reference.sessionId);
-  if (row === undefined) {
-    throw new AgentSessionError(
-      'SESSION_NOT_FOUND',
-      `Session "${reference.sessionId}" does not exist for agent "${reference.agentId}".`
-    );
-  }
+function readCompactionRow(
+  database: DatabaseSync,
+  reference: SessionBranchReference
+): SqliteRow | undefined {
+  return database
+    .prepare(
+      `SELECT revision, through_turn_id, context_message, created_at
+       FROM ta_agent_base_session_compactions
+       WHERE agent_id = ? AND session_id = ? AND branch_id = ?`
+    )
+    .get(reference.agentId, reference.sessionId, reference.branchId) as SqliteRow | undefined;
 }
 
-function decodeCompletedMessages(rows: readonly SqliteRow[]): ModelMessage[] {
-  return rows.flatMap<ModelMessage>((row) => [
-    decodeUserMessage(requireString(row, 'user_message')),
-    decodeAssistantMessage(requireString(row, 'assistant_message')),
-  ]);
+function findTurn(
+  turns: readonly SessionTurn[],
+  turnId: LoadSessionHistoryRequest['beforeTurnId']
+): SessionTurn {
+  const turn = turns.find((candidate) => candidate.turnId === turnId);
+  if (turn === undefined) {
+    throw new AgentSessionError('TURN_NOT_FOUND', `Turn "${turnId}" does not exist.`);
+  }
+  return turn;
 }
 
 export function loadSqliteSessionContext(
   database: DatabaseSync,
   request: LoadSessionHistoryRequest
 ): SessionContextSnapshot {
-  requireSession(database, request);
-  const boundary = database
-    .prepare(
-      `SELECT turn_sequence
-       FROM ta_agent_base_session_turns
-       WHERE agent_id = ? AND session_id = ? AND turn_id = ?`
-    )
-    .get(request.agentId, request.sessionId, request.beforeTurnId) as SqliteRow | undefined;
-  if (boundary === undefined) {
-    throw new AgentSessionError(
-      'TURN_NOT_FOUND',
-      `Turn "${request.beforeTurnId}" does not exist in session "${request.sessionId}".`
-    );
-  }
-  const beforeSequence = requireNonNegativeInteger(
-    boundary,
-    'turn_sequence',
-    'SQLite Session context boundary'
-  );
-  const compactionRow = database
-    .prepare(
-      `SELECT c.revision, c.through_turn_id, c.context_message, t.turn_sequence, t.status
-       FROM ta_agent_base_session_compactions c
-       LEFT JOIN ta_agent_base_session_turns t
-         ON t.agent_id = c.agent_id
-        AND t.session_id = c.session_id
-        AND t.turn_id = c.through_turn_id
-       WHERE c.agent_id = ? AND c.session_id = ?`
-    )
-    .get(request.agentId, request.sessionId) as SqliteRow | undefined;
-  const throughSequence =
-    compactionRow === undefined
-      ? undefined
-      : requireNonNegativeInteger(
-          compactionRow,
-          'turn_sequence',
-          'SQLite Session compaction boundary'
-        );
-  const useCompaction =
-    compactionRow !== undefined &&
-    throughSequence !== undefined &&
-    throughSequence < beforeSequence;
-  const rows = database
-    .prepare(
-      `SELECT user_message, assistant_message
-       FROM ta_agent_base_session_turns
-       WHERE agent_id = ? AND session_id = ?
-         AND turn_sequence > ? AND turn_sequence < ? AND status = 'completed'
-       ORDER BY turn_sequence ASC`
-    )
-    .all(
-      request.agentId,
-      request.sessionId,
-      useCompaction ? throughSequence : -1,
-      beforeSequence
-    ) as SqliteRow[];
-  const compaction = useCompaction ? decodeCompaction(request, compactionRow) : undefined;
+  const snapshot = loadSqliteSessionSnapshot(database, request);
+  const beforeTurn = findTurn(snapshot.turns, request.beforeTurnId);
+  const reference = { ...request, branchId: beforeTurn.branchId } as const;
+  const lineage = completedLineageBeforeTurn(snapshot, request.beforeTurnId);
+  const row = readCompactionRow(database, reference);
+  const compaction = row === undefined ? undefined : decodeCompaction(reference, row);
+  const boundaryIndex =
+    compaction === undefined
+      ? -1
+      : lineage.findIndex((turn) => turn.turnId === compaction.throughTurnId);
+  const useCompaction = compaction !== undefined && boundaryIndex >= 0;
+  const messages = lineage
+    .slice(useCompaction ? boundaryIndex + 1 : 0)
+    .flatMap<ModelMessage>((turn) => [turn.userMessage, turn.assistantMessage]);
   return Object.freeze({
-    agentId: request.agentId,
-    sessionId: request.sessionId,
-    ...(compaction === undefined ? {} : { compaction }),
-    messages: Object.freeze([
-      ...(compaction === undefined ? [] : [compaction.context]),
-      ...decodeCompletedMessages(rows),
-    ]),
+    ...reference,
+    ...(useCompaction ? { compaction } : {}),
+    messages: Object.freeze([...(useCompaction ? [compaction.context] : []), ...messages]),
   });
 }
 
 export function readSqliteSessionCompaction(
   database: DatabaseSync,
-  reference: SessionReference
+  reference: SessionBranchReference
 ): SessionCompaction | undefined {
-  requireSession(database, reference);
-  const row = database
-    .prepare(
-      `SELECT c.revision, c.through_turn_id, c.context_message, t.status
-       FROM ta_agent_base_session_compactions c
-       LEFT JOIN ta_agent_base_session_turns t
-         ON t.agent_id = c.agent_id
-        AND t.session_id = c.session_id
-        AND t.turn_id = c.through_turn_id
-       WHERE c.agent_id = ? AND c.session_id = ?`
-    )
-    .get(reference.agentId, reference.sessionId) as SqliteRow | undefined;
+  const snapshot = loadSqliteSessionSnapshot(database, reference);
+  if (!snapshot.navigation.branches.some((branch) => branch.branchId === reference.branchId)) {
+    throw new AgentSessionError(
+      'SESSION_BRANCH_NOT_FOUND',
+      `Session branch "${reference.branchId}" does not exist.`
+    );
+  }
+  const row = readCompactionRow(database, reference);
   return row === undefined ? undefined : decodeCompaction(reference, row);
 }
 
-interface CurrentCompactionState {
-  readonly exists: boolean;
-  readonly revision: number;
-  readonly throughSequence?: number;
-}
-
-function readCompletedBoundarySequence(
-  database: DatabaseSync,
-  request: SessionReference,
-  throughTurnId: TurnId
-): number {
-  const boundary = database
-    .prepare(
-      `SELECT status, turn_sequence
-       FROM ta_agent_base_session_turns
-       WHERE agent_id = ? AND session_id = ? AND turn_id = ?`
-    )
-    .get(request.agentId, request.sessionId, throughTurnId) as SqliteRow | undefined;
-  if (boundary === undefined) {
-    throw new AgentSessionError(
-      'TURN_NOT_FOUND',
-      `Turn "${throughTurnId}" does not exist in session "${request.sessionId}".`
-    );
-  }
-  if (boundary.status !== 'completed') {
+function assertExpectedRevision(value: number): void {
+  if (!Number.isSafeInteger(value) || value < 0) {
     throw new AgentSessionError(
       'SESSION_COMPACTION_INVALID',
-      'Session compaction boundary must identify a completed turn.'
-    );
-  }
-  return requireNonNegativeInteger(boundary, 'turn_sequence', 'SQLite Session compaction boundary');
-}
-
-function readCurrentCompactionState(
-  database: DatabaseSync,
-  reference: SessionReference
-): CurrentCompactionState {
-  const row = database
-    .prepare(
-      `SELECT c.revision, t.turn_sequence
-       FROM ta_agent_base_session_compactions c
-       JOIN ta_agent_base_session_turns t
-         ON t.agent_id = c.agent_id
-        AND t.session_id = c.session_id
-        AND t.turn_id = c.through_turn_id
-       WHERE c.agent_id = ? AND c.session_id = ?`
-    )
-    .get(reference.agentId, reference.sessionId) as SqliteRow | undefined;
-  if (row === undefined) return Object.freeze({ exists: false, revision: 0 });
-  return Object.freeze({
-    exists: true,
-    revision: requirePositiveInteger(row, 'revision', 'SQLite Session compaction'),
-    throughSequence: requireNonNegativeInteger(
-      row,
-      'turn_sequence',
-      'SQLite Session compaction boundary'
-    ),
-  });
-}
-
-function assertCompactionCommitAuthority(
-  request: CommitSessionCompactionRequest,
-  state: CurrentCompactionState,
-  throughSequence: number
-): void {
-  if (request.expectedRevision !== state.revision) {
-    throw new AgentSessionError(
-      'SESSION_COMPACTION_CONFLICT',
-      `Session compaction expected revision ${request.expectedRevision} but found ${state.revision}.`
-    );
-  }
-  if (state.throughSequence !== undefined && throughSequence <= state.throughSequence) {
-    throw new AgentSessionError(
-      'SESSION_COMPACTION_CONFLICT',
-      'Session compaction boundary must advance the current projection.'
-    );
-  }
-}
-
-function writeCompaction(
-  database: DatabaseSync,
-  request: CommitSessionCompactionRequest,
-  state: CurrentCompactionState,
-  throughTurnId: TurnId,
-  contextMessage: string,
-  revision: number
-): void {
-  if (!state.exists) {
-    database
-      .prepare(
-        `INSERT INTO ta_agent_base_session_compactions
-          (agent_id, session_id, revision, through_turn_id, context_message, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      )
-      .run(
-        request.agentId,
-        request.sessionId,
-        revision,
-        throughTurnId,
-        contextMessage,
-        request.context.timestamp
-      );
-    return;
-  }
-  const result = database
-    .prepare(
-      `UPDATE ta_agent_base_session_compactions
-       SET revision = ?, through_turn_id = ?, context_message = ?, created_at = ?
-       WHERE agent_id = ? AND session_id = ? AND revision = ?`
-    )
-    .run(
-      revision,
-      throughTurnId,
-      contextMessage,
-      request.context.timestamp,
-      request.agentId,
-      request.sessionId,
-      request.expectedRevision
-    );
-  if (result.changes !== 1) {
-    throw new AgentSessionError(
-      'SESSION_COMPACTION_CONFLICT',
-      'Session compaction revision changed before commit.'
+      'Session compaction expected revision must be a non-negative safe integer.'
     );
   }
 }
@@ -320,26 +122,85 @@ export function commitSqliteSessionCompaction(
   database: DatabaseSync,
   request: CommitSessionCompactionRequest
 ): SessionCompaction {
-  const throughTurnId = parseTurnId(request.throughTurnId);
+  assertExpectedRevision(request.expectedRevision);
   const contextMessage = encodeContextMessage(request.context);
-  if (!Number.isSafeInteger(request.expectedRevision) || request.expectedRevision < 0) {
-    throw new AgentSessionError(
-      'SESSION_COMPACTION_INVALID',
-      'Session compaction expected revision must be a non-negative safe integer.'
-    );
-  }
   return runImmediateTransaction(database, () => {
-    requireSession(database, request);
-    const throughSequence = readCompletedBoundarySequence(database, request, throughTurnId);
-    const state = readCurrentCompactionState(database, request);
-    assertCompactionCommitAuthority(request, state, throughSequence);
-    const revision = state.revision + 1;
-    writeCompaction(database, request, state, throughTurnId, contextMessage, revision);
+    const snapshot = loadSqliteSessionSnapshot(database, request);
+    const lineage = completedLineageForBranch(snapshot, request.branchId);
+    const throughIndex = lineage.findIndex((turn) => turn.turnId === request.throughTurnId);
+    if (throughIndex < 0) {
+      throw new AgentSessionError(
+        'SESSION_COMPACTION_INVALID',
+        'Session compaction boundary must be a completed ancestor of its branch head.'
+      );
+    }
+    const currentRow = readCompactionRow(database, request);
+    const currentRevision =
+      currentRow === undefined ? 0 : requirePositiveInteger(currentRow, 'revision');
+    if (request.expectedRevision !== currentRevision) {
+      throw new AgentSessionError(
+        'SESSION_COMPACTION_CONFLICT',
+        `Session compaction expected revision ${request.expectedRevision} but found ${currentRevision}.`
+      );
+    }
+    if (currentRow !== undefined) {
+      const previousIndex = lineage.findIndex(
+        (turn) => turn.turnId === requireString(currentRow, 'through_turn_id')
+      );
+      if (previousIndex < 0 || throughIndex <= previousIndex) {
+        throw new AgentSessionError(
+          'SESSION_COMPACTION_CONFLICT',
+          'Session compaction boundary must advance the current branch projection.'
+        );
+      }
+    }
+    const revision = currentRevision + 1;
+    if (currentRow === undefined) {
+      database
+        .prepare(
+          `INSERT INTO ta_agent_base_session_compactions
+            (agent_id, session_id, branch_id, revision, through_turn_id, context_message, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          request.agentId,
+          request.sessionId,
+          request.branchId,
+          revision,
+          request.throughTurnId,
+          contextMessage,
+          request.context.timestamp
+        );
+    } else {
+      const update = database
+        .prepare(
+          `UPDATE ta_agent_base_session_compactions
+           SET revision = ?, through_turn_id = ?, context_message = ?, created_at = ?
+           WHERE agent_id = ? AND session_id = ? AND branch_id = ? AND revision = ?`
+        )
+        .run(
+          revision,
+          request.throughTurnId,
+          contextMessage,
+          request.context.timestamp,
+          request.agentId,
+          request.sessionId,
+          request.branchId,
+          request.expectedRevision
+        );
+      if (update.changes !== 1) {
+        throw new AgentSessionError(
+          'SESSION_COMPACTION_CONFLICT',
+          'Session compaction revision changed before commit.'
+        );
+      }
+    }
     return Object.freeze({
       agentId: request.agentId,
       sessionId: request.sessionId,
+      branchId: request.branchId,
       revision,
-      throughTurnId,
+      throughTurnId: request.throughTurnId,
       context: decodeContextMessage(contextMessage),
     });
   });

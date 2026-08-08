@@ -6,6 +6,7 @@ import {
   createDefaultSessionCompactionStepOverrides,
   createSessionCompactionWorkflow,
   DEFAULT_SESSION_COMPACTION_POLICY,
+  DEFAULT_SESSION_BRANCH_ID,
   MemorySessionAdapter,
   parseTurnId,
   type SessionCompactionAgentContext,
@@ -34,10 +35,11 @@ describe('Session compaction Workflow contracts', () => {
     const context: SessionCompactionAgentContext = {
       identity,
       runId: 'agent-run',
-      input: Object.freeze({ sessionId: 'session' }),
+      input: Object.freeze({ sessionId: 'session', branchId: DEFAULT_SESSION_BRANCH_ID }),
       output: Object.freeze({
         status: 'skipped',
         sessionId: 'session',
+        branchId: DEFAULT_SESSION_BRANCH_ID,
         reason: 'not-needed',
       }),
       signal: new AbortController().signal,
@@ -53,11 +55,15 @@ describe('Session compaction Workflow contracts', () => {
   it('returns an explicit skip when eligibility changes between Condition and Steps', async () => {
     const identity = defineAgentIdentity({ id: 'race-agent' });
     const session = new MemorySessionAdapter();
-    const reference = await session.resolve({
+    let reference = await session.resolve({
       agentId: identity.id,
       requestedSessionId: 'session',
     });
     for (const [index, turnName] of ['one', 'two'].entries()) {
+      reference = await session.resolve({
+        agentId: identity.id,
+        requestedSessionId: 'session',
+      });
       const turnId = parseTurnId(turnName);
       await session.beginTurn({
         ...reference,
@@ -89,10 +95,11 @@ describe('Session compaction Workflow contracts', () => {
     const context: SessionCompactionAgentContext = {
       identity,
       runId: 'agent-run',
-      input: Object.freeze({ sessionId: 'session' }),
+      input: Object.freeze({ sessionId: 'session', branchId: DEFAULT_SESSION_BRANCH_ID }),
       output: Object.freeze({
         status: 'skipped',
         sessionId: 'session',
+        branchId: DEFAULT_SESSION_BRANCH_ID,
         reason: 'not-needed',
       }),
       signal: new AbortController().signal,

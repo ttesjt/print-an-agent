@@ -1,10 +1,40 @@
-export { AgentSessionError, SessionCompactionStepNotImplementedError } from './errors.js';
+export {
+  AgentSessionError,
+  SessionCompactionStepNotImplementedError,
+  SessionNavigationStepNotImplementedError,
+} from './errors.js';
 export type { AgentSessionErrorCode } from './errors.js';
-export { parseSessionFailureCode, parseSessionId, parseTurnId } from './identifiers.js';
-export { MemorySessionAdapter } from './adapters/memory-session-adapter.js';
+export {
+  DEFAULT_SESSION_BRANCH_ID,
+  parseSessionBranchId,
+  parseSessionFailureCode,
+  parseSessionId,
+  parseTurnId,
+} from './identifiers.js';
+export { MemorySessionAdapter } from './adapters/memory/memory-session-adapter.js';
+export type { MemorySessionAdapterOptions } from './adapters/memory/memory-session-adapter.js';
 export { SqliteSessionAdapter } from './adapters/sqlite/sqlite-session-adapter.js';
 export type { SqliteSessionAdapterOptions } from './adapters/sqlite/sqlite-session-adapter.js';
 export type * from './types.js';
+export type * from './navigation/contracts.js';
+export {
+  completedLineageBeforeTurn,
+  completedLineageForBranch,
+  isCompletedAncestor,
+  requireSessionBranch,
+  toSessionNavigationSnapshot,
+} from './navigation/lineage.js';
+export { createSessionNavigationWorkflow } from './navigation/workflow/create-workflow.js';
+export { createDefaultSessionNavigationStepOverrides } from './navigation/workflow/default-steps.js';
+export {
+  SESSION_NAVIGATION_STEP_NAMES,
+  SESSION_NAVIGATION_WORKFLOW_NAME,
+  type SessionNavigationLeafStepName,
+  type SessionNavigationStepName,
+  type SessionNavigationWorkflowName,
+} from './navigation/workflow/names.js';
+export { createSessionNavigationStepDefinitions } from './navigation/workflow/step-definitions.js';
+export type * from './navigation/workflow/types.js';
 export type * from './compaction/contracts.js';
 export {
   DEFAULT_SESSION_COMPACTION_POLICY,

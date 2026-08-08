@@ -1,5 +1,9 @@
 import { defineProviderModelReference, type AssistantModelMessage } from '@ta-agent/base-model';
-import { parseSessionId } from '@ta-agent/base-session';
+import {
+  DEFAULT_SESSION_BRANCH_ID,
+  parseSessionBranchId,
+  parseSessionId,
+} from '@ta-agent/base-session';
 import {
   parseToolName,
   type ToolCallId,
@@ -13,7 +17,7 @@ import type { AgentResponse } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
 import { parseRequestJournalRequestId } from './identifiers.js';
 
-const RESPONSE_SCHEMA_VERSION = 1;
+const RESPONSE_SCHEMA_VERSION = 2;
 const TOOL_SCHEMA_MAX_DEPTH = 8;
 const TOOL_SCHEMA_MAX_PROPERTIES = 64;
 const TOOL_DESCRIPTION_MAX_LENGTH = 1_024;
@@ -346,13 +350,23 @@ function decodeAssistantMessage(value: unknown): AssistantModelMessage {
   });
 }
 
-function decodeResponseValue(value: unknown): AgentResponse {
+function decodeResponseValue(value: unknown, schemaVersion: 1 | 2): AgentResponse {
   const record = requireRecord(value, 'Agent response');
-  assertKeys(record, ['message', 'requestId', 'sessionId', 'toolRun'], [], 'Agent response');
+  assertKeys(
+    record,
+    schemaVersion === 1
+      ? ['message', 'requestId', 'sessionId', 'toolRun']
+      : ['branchId', 'message', 'requestId', 'sessionId', 'toolRun'],
+    [],
+    'Agent response'
+  );
   let sessionId;
+  let branchId;
   let requestId;
   try {
     sessionId = parseSessionId(record.sessionId);
+    branchId =
+      schemaVersion === 1 ? DEFAULT_SESSION_BRANCH_ID : parseSessionBranchId(record.branchId);
     requestId = parseRequestJournalRequestId(record.requestId);
   } catch (cause: unknown) {
     throw invalidRecord('Agent response request or Session ID is invalid.', cause);
@@ -360,6 +374,7 @@ function decodeResponseValue(value: unknown): AgentResponse {
   return Object.freeze({
     requestId,
     sessionId,
+    branchId,
     message: decodeAssistantMessage(record.message),
     toolRun: decodeToolRun(record.toolRun),
   });
@@ -385,8 +400,8 @@ export function decodeAgentResponse(value: string): AgentResponse {
   }
   const envelope = requireRecord(parsed, 'Agent response envelope');
   assertKeys(envelope, ['response', 'schemaVersion'], [], 'Agent response envelope');
-  if (envelope.schemaVersion !== RESPONSE_SCHEMA_VERSION) {
+  if (envelope.schemaVersion !== 1 && envelope.schemaVersion !== RESPONSE_SCHEMA_VERSION) {
     throw invalidRecord('Agent response envelope version is unsupported.');
   }
-  return decodeResponseValue(envelope.response);
+  return decodeResponseValue(envelope.response, envelope.schemaVersion);
 }

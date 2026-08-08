@@ -1,5 +1,6 @@
 export type AgentSessionErrorCode =
   | 'SESSION_ID_INVALID'
+  | 'SESSION_BRANCH_ID_INVALID'
   | 'TURN_ID_INVALID'
   | 'SESSION_FAILURE_CODE_INVALID'
   | 'SESSION_CONFIGURATION_INVALID'
@@ -12,6 +13,14 @@ export type AgentSessionErrorCode =
   | 'SESSION_SCHEMA_INVALID'
   | 'SESSION_RECORD_INVALID'
   | 'SESSION_STORAGE_FAILED'
+  | 'SESSION_NAVIGATION_INVALID'
+  | 'SESSION_NAVIGATION_NOT_CONFIGURED'
+  | 'SESSION_NAVIGATION_CONFLICT'
+  | 'SESSION_NAVIGATION_CANCELLED'
+  | 'SESSION_BRANCH_NOT_FOUND'
+  | 'SESSION_BRANCH_ALREADY_EXISTS'
+  | 'SESSION_BRANCH_BUSY'
+  | 'SESSION_NAVIGATION_TARGET_INVALID'
   | 'SESSION_COMPACTION_INVALID'
   | 'SESSION_COMPACTION_NOT_CONFIGURED'
   | 'SESSION_COMPACTION_NOT_NEEDED'
@@ -41,6 +50,19 @@ export class SessionCompactionStepNotImplementedError extends AgentSessionError 
       `Session compaction step "${stepName}" requires an explicit implementation.`
     );
     this.name = 'SessionCompactionStepNotImplementedError';
+    this.stepName = stepName;
+  }
+}
+
+export class SessionNavigationStepNotImplementedError extends AgentSessionError {
+  readonly stepName: string;
+
+  constructor(stepName: string) {
+    super(
+      'SESSION_NAVIGATION_NOT_CONFIGURED',
+      `Session navigation step "${stepName}" requires an explicit implementation.`
+    );
+    this.name = 'SessionNavigationStepNotImplementedError';
     this.stepName = stepName;
   }
 }

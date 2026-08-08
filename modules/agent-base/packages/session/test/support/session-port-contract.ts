@@ -5,7 +5,13 @@ import {
   type UserModelMessage,
 } from '@ta-agent/base-model';
 import { describe, expect, it } from 'vitest';
-import { AgentSessionError, parseTurnId, type CompactableSessionPort } from '../../src/index.js';
+import {
+  AgentSessionError,
+  DEFAULT_SESSION_BRANCH_ID,
+  parseSessionBranchId,
+  parseTurnId,
+  type NavigableCompactableSessionPort,
+} from '../../src/index.js';
 
 const model = defineProviderModelReference({ provider: 'faux', model: 'faux-model' });
 const usage = Object.freeze({
@@ -17,7 +23,7 @@ const usage = Object.freeze({
 });
 
 export interface SessionPortContractHarness {
-  readonly adapter: CompactableSessionPort;
+  readonly adapter: NavigableCompactableSessionPort;
   readonly dispose?: () => void;
 }
 
@@ -39,7 +45,7 @@ export function assistantMessage(text: string, timestamp: number): AssistantMode
 
 async function withHarness<T>(
   createHarness: () => SessionPortContractHarness,
-  action: (adapter: CompactableSessionPort) => Promise<T>
+  action: (adapter: NavigableCompactableSessionPort) => Promise<T>
 ): Promise<T> {
   const harness = createHarness();
   try {
@@ -57,7 +63,7 @@ export function defineSessionPortContract(
     it('loads only completed turns before the boundary in stable order', () =>
       withHarness(createHarness, async (adapter) => {
         const identity = defineAgentIdentity({ id: 'agent-a' });
-        const session = await adapter.resolve({
+        let session = await adapter.resolve({
           agentId: identity.id,
           requestedSessionId: 'chat',
         });
@@ -72,6 +78,11 @@ export function defineSessionPortContract(
           ...session,
           turnId: firstTurnId,
           assistantMessage: assistantMessage('first', 2),
+        });
+
+        session = await adapter.resolve({
+          agentId: identity.id,
+          requestedSessionId: 'chat',
         });
 
         const failedTurnId = parseTurnId('turn-2');
@@ -152,7 +163,7 @@ export function defineSessionPortContract(
         );
       }));
 
-    it('rejects duplicate turn authority without changing turn order', () =>
+    it('rejects duplicate turn authority and a second active turn on one branch', () =>
       withHarness(createHarness, async (adapter) => {
         const session = await adapter.resolve({
           agentId: defineAgentIdentity({ id: 'agent' }).id,
@@ -176,14 +187,15 @@ export function defineSessionPortContract(
         );
 
         const secondId = parseTurnId('turn-next');
-        await adapter.beginTurn({
-          ...session,
-          turnId: secondId,
-          userMessage: userMessage('next', 3),
-        });
+        await expect(
+          adapter.beginTurn({
+            ...session,
+            turnId: secondId,
+            userMessage: userMessage('next', 3),
+          })
+        ).rejects.toMatchObject({ code: 'SESSION_BRANCH_BUSY' });
         expect((await adapter.inspect(session))?.turns.map((turn) => turn.turnId)).toEqual([
           turnId,
-          secondId,
         ]);
       }));
 
@@ -215,7 +227,7 @@ export function defineSessionPortContract(
 
     it('loads raw context before compaction and projection plus exact tail after compaction', () =>
       withHarness(createHarness, async (adapter) => {
-        const session = await adapter.resolve({
+        let session = await adapter.resolve({
           agentId: defineAgentIdentity({ id: 'context-agent' }).id,
           requestedSessionId: 'context-chat',
         });
@@ -225,6 +237,10 @@ export function defineSessionPortContract(
         const boundaryTurnId = parseTurnId('boundary');
         const turnIds = [firstTurnId, secondTurnId, thirdTurnId, boundaryTurnId];
         for (const [index, turnId] of turnIds.entries()) {
+          session = await adapter.resolve({
+            agentId: defineAgentIdentity({ id: 'context-agent' }).id,
+            requestedSessionId: 'context-chat',
+          });
           await adapter.beginTurn({
             ...session,
             turnId,
@@ -272,13 +288,17 @@ export function defineSessionPortContract(
 
     it('uses revision CAS and requires every compaction boundary to advance', () =>
       withHarness(createHarness, async (adapter) => {
-        const session = await adapter.resolve({
+        let session = await adapter.resolve({
           agentId: defineAgentIdentity({ id: 'cas-agent' }).id,
           requestedSessionId: 'cas-chat',
         });
         const first = parseTurnId('first');
         const second = parseTurnId('second');
         for (const [index, turnId] of [first, second].entries()) {
+          session = await adapter.resolve({
+            agentId: defineAgentIdentity({ id: 'cas-agent' }).id,
+            requestedSessionId: 'cas-chat',
+          });
           await adapter.beginTurn({
             ...session,
             turnId,
@@ -355,6 +375,223 @@ export function defineSessionPortContract(
           })
         ).rejects.toMatchObject({ code: 'SESSION_COMPACTION_INVALID' });
         expect(await adapter.readCompaction(session)).toBeUndefined();
+      }));
+
+    it('creates one default branch and rejects stale or concurrent request authority', () =>
+      withHarness(createHarness, async (adapter) => {
+        const identity = defineAgentIdentity({ id: 'navigation-authority-agent' });
+        const initial = await adapter.resolve({
+          agentId: identity.id,
+          requestedSessionId: 'navigation-authority',
+        });
+        expect(initial).toMatchObject({
+          branchId: DEFAULT_SESSION_BRANCH_ID,
+          navigationRevision: 0,
+        });
+        const firstTurnId = parseTurnId('first-active');
+        await adapter.beginTurn({
+          ...initial,
+          turnId: firstTurnId,
+          userMessage: userMessage('first', 1),
+        });
+        await expect(
+          adapter.beginTurn({
+            ...initial,
+            turnId: parseTurnId('second-active'),
+            userMessage: userMessage('second', 2),
+          })
+        ).rejects.toMatchObject({ code: 'SESSION_BRANCH_BUSY' });
+        await adapter.completeTurn({
+          ...initial,
+          turnId: firstTurnId,
+          assistantMessage: assistantMessage('done', 3),
+        });
+        await expect(
+          adapter.beginTurn({
+            ...initial,
+            turnId: parseTurnId('stale'),
+            userMessage: userMessage('stale', 4),
+          })
+        ).rejects.toMatchObject({ code: 'SESSION_NAVIGATION_CONFLICT' });
+
+        const snapshot = await adapter.inspect(initial);
+        expect(snapshot?.navigation).toMatchObject({
+          revision: 1,
+          selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
+          branches: [{ branchId: DEFAULT_SESSION_BRANCH_ID, headTurnId: firstTurnId }],
+        });
+        expect(Object.isFrozen(snapshot?.navigation.branches)).toBe(true);
+      }));
+
+    it('forks, selects, and rewinds without moving or rewriting source history', () =>
+      withHarness(createHarness, async (adapter) => {
+        const identity = defineAgentIdentity({ id: 'navigation-agent' });
+        const sessionId = 'navigation-chat';
+        const mainTurns = [
+          parseTurnId('main-one'),
+          parseTurnId('main-two'),
+          parseTurnId('main-three'),
+        ];
+        for (const [index, turnId] of mainTurns.entries()) {
+          const current = await adapter.resolve({
+            agentId: identity.id,
+            requestedSessionId: sessionId,
+          });
+          await adapter.beginTurn({
+            ...current,
+            turnId,
+            userMessage: userMessage(`main-user-${index}`, index * 2 + 1),
+          });
+          await adapter.completeTurn({
+            ...current,
+            turnId,
+            assistantMessage: assistantMessage(`main-assistant-${index}`, index * 2 + 2),
+          });
+        }
+        const reference = await adapter.resolve({
+          agentId: identity.id,
+          requestedSessionId: sessionId,
+        });
+        const childBranchId = parseSessionBranchId('child');
+        const forked = await adapter.applyNavigation({
+          ...reference,
+          command: {
+            operation: 'fork',
+            sourceBranchId: DEFAULT_SESSION_BRANCH_ID,
+            throughTurnId: mainTurns[0]!,
+            newBranchId: childBranchId,
+            expectedRevision: reference.navigationRevision,
+          },
+        });
+        expect(forked).toMatchObject({
+          operation: 'fork',
+          affectedBranchId: childBranchId,
+          navigation: { selectedBranchId: DEFAULT_SESSION_BRANCH_ID, revision: 4 },
+        });
+        const selected = await adapter.applyNavigation({
+          ...reference,
+          command: {
+            operation: 'select',
+            branchId: childBranchId,
+            expectedRevision: 4,
+          },
+        });
+        expect(selected.navigation).toMatchObject({ selectedBranchId: childBranchId, revision: 5 });
+
+        const child = await adapter.resolve({
+          agentId: identity.id,
+          requestedSessionId: sessionId,
+        });
+        const childTurnId = parseTurnId('child-turn');
+        await adapter.beginTurn({
+          ...child,
+          turnId: childTurnId,
+          userMessage: userMessage('child-user', 10),
+        });
+        expect(await adapter.loadHistory({ ...child, beforeTurnId: childTurnId })).toEqual([
+          userMessage('main-user-0', 1),
+          assistantMessage('main-assistant-0', 2),
+        ]);
+        await adapter.completeTurn({
+          ...child,
+          turnId: childTurnId,
+          assistantMessage: assistantMessage('child-assistant', 11),
+        });
+
+        const beforeRewind = await adapter.resolve({
+          agentId: identity.id,
+          requestedSessionId: sessionId,
+        });
+        const rewindBranchId = parseSessionBranchId('rewound');
+        const rewound = await adapter.applyNavigation({
+          ...beforeRewind,
+          command: {
+            operation: 'rewind',
+            throughTurnId: mainTurns[0]!,
+            newBranchId: rewindBranchId,
+            expectedRevision: beforeRewind.navigationRevision,
+          },
+        });
+        expect(rewound.navigation).toMatchObject({
+          selectedBranchId: rewindBranchId,
+          revision: 7,
+        });
+        const snapshot = await adapter.inspect(reference);
+        expect(snapshot?.navigation.branches).toMatchObject([
+          { branchId: DEFAULT_SESSION_BRANCH_ID, headTurnId: mainTurns[2] },
+          { branchId: childBranchId, headTurnId: childTurnId },
+          { branchId: rewindBranchId, headTurnId: mainTurns[0] },
+        ]);
+        expect(snapshot?.turns).toHaveLength(4);
+      }));
+
+    it('inherits only a compaction projection safe for the new branch point', () =>
+      withHarness(createHarness, async (adapter) => {
+        const identity = defineAgentIdentity({ id: 'navigation-compaction-agent' });
+        const sessionId = 'navigation-compaction';
+        const turnIds = [parseTurnId('one'), parseTurnId('two'), parseTurnId('three')];
+        for (const [index, turnId] of turnIds.entries()) {
+          const current = await adapter.resolve({
+            agentId: identity.id,
+            requestedSessionId: sessionId,
+          });
+          await adapter.beginTurn({
+            ...current,
+            turnId,
+            userMessage: userMessage(`u${index}`, index * 2 + 1),
+          });
+          await adapter.completeTurn({
+            ...current,
+            turnId,
+            assistantMessage: assistantMessage(`a${index}`, index * 2 + 2),
+          });
+        }
+        const main = await adapter.resolve({
+          agentId: identity.id,
+          requestedSessionId: sessionId,
+        });
+        await adapter.commitCompaction({
+          ...main,
+          expectedRevision: 0,
+          throughTurnId: turnIds[1]!,
+          context: { role: 'context', text: 'main summary', timestamp: 20 },
+        });
+        const safeBranchId = parseSessionBranchId('safe');
+        await adapter.applyNavigation({
+          ...main,
+          command: {
+            operation: 'fork',
+            sourceBranchId: DEFAULT_SESSION_BRANCH_ID,
+            throughTurnId: turnIds[2]!,
+            newBranchId: safeBranchId,
+            expectedRevision: main.navigationRevision,
+          },
+        });
+        expect(await adapter.readCompaction({ ...main, branchId: safeBranchId })).toMatchObject({
+          branchId: safeBranchId,
+          revision: 1,
+          throughTurnId: turnIds[1],
+          context: { text: 'main summary' },
+        });
+
+        const afterSafe = await adapter.resolve({
+          agentId: identity.id,
+          requestedSessionId: sessionId,
+        });
+        const unsafeBranchId = parseSessionBranchId('unsafe');
+        await adapter.applyNavigation({
+          ...afterSafe,
+          command: {
+            operation: 'fork',
+            sourceBranchId: DEFAULT_SESSION_BRANCH_ID,
+            throughTurnId: turnIds[0]!,
+            newBranchId: unsafeBranchId,
+            expectedRevision: afterSafe.navigationRevision,
+          },
+        });
+        expect(
+          await adapter.readCompaction({ ...afterSafe, branchId: unsafeBranchId })
+        ).toBeUndefined();
       }));
   });
 }

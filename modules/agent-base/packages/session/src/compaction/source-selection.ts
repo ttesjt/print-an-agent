@@ -1,5 +1,7 @@
 import { AgentSessionError } from '../errors.js';
 import type { SessionSnapshot } from '../types.js';
+import type { SessionBranchId } from '../types.js';
+import { completedLineageForBranch } from '../navigation/lineage.js';
 import type {
   SessionCompaction,
   SessionCompactionPolicy,
@@ -16,20 +18,21 @@ export type SessionCompactionSelection =
 
 function completedTurnsAfterBoundary(
   snapshot: SessionSnapshot,
+  branchId: SessionBranchId,
   compaction: SessionCompaction | undefined
 ) {
+  const lineage = completedLineageForBranch(snapshot, branchId);
   let boundaryIndex = -1;
   if (compaction !== undefined) {
-    boundaryIndex = snapshot.turns.findIndex((turn) => turn.turnId === compaction.throughTurnId);
-    const boundary = snapshot.turns[boundaryIndex];
-    if (boundaryIndex < 0 || boundary?.status !== 'completed') {
+    boundaryIndex = lineage.findIndex((turn) => turn.turnId === compaction.throughTurnId);
+    if (boundaryIndex < 0) {
       throw new AgentSessionError(
         'SESSION_RECORD_INVALID',
         'Session compaction boundary does not identify a completed authoritative turn.'
       );
     }
   }
-  return snapshot.turns.slice(boundaryIndex + 1).filter((turn) => turn.status === 'completed');
+  return lineage.slice(boundaryIndex + 1);
 }
 
 function turnCharacters(turn: ReturnType<typeof completedTurnsAfterBoundary>[number]): number {
@@ -38,6 +41,7 @@ function turnCharacters(turn: ReturnType<typeof completedTurnsAfterBoundary>[num
 
 export function selectSessionCompactionSource(
   snapshot: SessionSnapshot,
+  branchId: SessionBranchId,
   compaction: SessionCompaction | undefined,
   policy: SessionCompactionPolicy
 ): SessionCompactionSelection {
@@ -46,6 +50,7 @@ export function selectSessionCompactionSource(
     compaction !== undefined &&
     (compaction.agentId !== snapshot.agentId ||
       compaction.sessionId !== snapshot.sessionId ||
+      compaction.branchId !== branchId ||
       !Number.isSafeInteger(compaction.revision) ||
       compaction.revision < 1)
   ) {
@@ -54,7 +59,7 @@ export function selectSessionCompactionSource(
       'Session compaction state does not belong to the authoritative Session snapshot.'
     );
   }
-  const newCompletedTurns = completedTurnsAfterBoundary(snapshot, compaction);
+  const newCompletedTurns = completedTurnsAfterBoundary(snapshot, branchId, compaction);
   if (newCompletedTurns.length === 0) {
     return Object.freeze({ status: 'skipped', reason: 'no-new-completed-turns' });
   }
@@ -92,6 +97,7 @@ export function selectSessionCompactionSource(
     source: Object.freeze({
       agentId: snapshot.agentId,
       sessionId: snapshot.sessionId,
+      branchId,
       expectedRevision: compaction?.revision ?? 0,
       ...(compaction === undefined ? {} : { previousContext: compaction.context }),
       turns: Object.freeze(turns),

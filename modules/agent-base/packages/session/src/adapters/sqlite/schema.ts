@@ -3,9 +3,10 @@ import { AgentSessionError } from '../../errors.js';
 import { runImmediateTransaction } from './database.js';
 import { CREATE_SESSION_STORE_MIGRATION } from './migrations/0001_create_session_store.js';
 import { ADD_SESSION_COMPACTION_MIGRATION } from './migrations/0002_add_session_compaction.js';
+import { ADD_SESSION_NAVIGATION_MIGRATION } from './migrations/0003_add_session_navigation.js';
 
 const SESSION_SCHEMA_COMPONENT = '@ta-agent/base-session';
-const CURRENT_SESSION_SCHEMA_VERSION = 2;
+const CURRENT_SESSION_SCHEMA_VERSION = 3;
 
 const EXPECTED_TABLE_COLUMNS = Object.freeze({
   ta_agent_base_session_schema: Object.freeze(['component', 'version']),
@@ -14,6 +15,8 @@ const EXPECTED_TABLE_COLUMNS = Object.freeze({
     'session_id',
     'next_turn_sequence',
     'created_at',
+    'selected_branch_id',
+    'navigation_revision',
   ]),
   ta_agent_base_session_turns: Object.freeze([
     'agent_id',
@@ -26,10 +29,22 @@ const EXPECTED_TABLE_COLUMNS = Object.freeze({
     'failure_code',
     'started_at',
     'finished_at',
+    'branch_id',
+    'parent_turn_id',
+  ]),
+  ta_agent_base_session_branches: Object.freeze([
+    'agent_id',
+    'session_id',
+    'branch_id',
+    'parent_branch_id',
+    'forked_from_turn_id',
+    'head_turn_id',
+    'created_at',
   ]),
   ta_agent_base_session_compactions: Object.freeze([
     'agent_id',
     'session_id',
+    'branch_id',
     'revision',
     'through_turn_id',
     'context_message',
@@ -85,14 +100,20 @@ function assertKnownSchemaVersion(version: number | undefined): asserts version 
 }
 
 function migrateSchema(database: DatabaseSync, version: number): void {
-  if (version === 1) {
-    runImmediateTransaction(database, () => {
+  runImmediateTransaction(database, () => {
+    if (version === 1) {
       database.exec(ADD_SESSION_COMPACTION_MIGRATION);
       database
         .prepare('UPDATE ta_agent_base_session_schema SET version = ? WHERE component = ?')
+        .run(2, SESSION_SCHEMA_COMPONENT);
+    }
+    if (version <= 2) {
+      database.exec(ADD_SESSION_NAVIGATION_MIGRATION);
+      database
+        .prepare('UPDATE ta_agent_base_session_schema SET version = ? WHERE component = ?')
         .run(CURRENT_SESSION_SCHEMA_VERSION, SESSION_SCHEMA_COMPONENT);
-    });
-  }
+    }
+  });
 }
 
 function assertTableColumns(
@@ -126,6 +147,7 @@ export function initializeSessionSchema(database: DatabaseSync): void {
     runImmediateTransaction(database, () => {
       database.exec(CREATE_SESSION_STORE_MIGRATION);
       database.exec(ADD_SESSION_COMPACTION_MIGRATION);
+      database.exec(ADD_SESSION_NAVIGATION_MIGRATION);
       database
         .prepare('INSERT INTO ta_agent_base_session_schema (component, version) VALUES (?, ?)')
         .run(SESSION_SCHEMA_COMPONENT, CURRENT_SESSION_SCHEMA_VERSION);
@@ -143,6 +165,7 @@ export function assertSessionSchema(database: DatabaseSync): void {
   assertTableColumns(database, 'ta_agent_base_session_schema');
   assertTableColumns(database, 'ta_agent_base_sessions');
   assertTableColumns(database, 'ta_agent_base_session_turns');
+  assertTableColumns(database, 'ta_agent_base_session_branches');
   assertTableColumns(database, 'ta_agent_base_session_compactions');
 }
 

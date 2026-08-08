@@ -2,6 +2,7 @@ import { defineAgentIdentity } from '@ta-agent/base-identity';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_SESSION_COMPACTION_POLICY,
+  DEFAULT_SESSION_BRANCH_ID,
   parseSessionId,
   parseTurnId,
   selectSessionCompactionSource,
@@ -15,6 +16,8 @@ function completedTurn(index: number, text = String(index)): CompletedSessionTur
   return Object.freeze({
     status: 'completed',
     turnId: parseTurnId(`turn-${index}`),
+    branchId: DEFAULT_SESSION_BRANCH_ID,
+    ...(index === 1 ? {} : { parentTurnId: parseTurnId(`turn-${index - 1}`) }),
     userMessage: userMessage(`u${text}`, index * 2),
     assistantMessage: assistantMessage(`a${text}`, index * 2 + 1),
   });
@@ -25,6 +28,19 @@ function snapshot(turnCount: number): SessionSnapshot {
   return Object.freeze({
     agentId: identity.id,
     sessionId: parseSessionId('compaction-session'),
+    navigation: Object.freeze({
+      agentId: identity.id,
+      sessionId: parseSessionId('compaction-session'),
+      revision: turnCount,
+      selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
+      branches: Object.freeze([
+        Object.freeze({
+          branchId: DEFAULT_SESSION_BRANCH_ID,
+          ...(turnCount === 0 ? {} : { headTurnId: parseTurnId(`turn-${turnCount}`) }),
+          createdAt: 0,
+        }),
+      ]),
+    }),
     turns: Object.freeze(
       Array.from({ length: turnCount }, (_unused, index) => completedTurn(index + 1))
     ),
@@ -35,6 +51,7 @@ describe('Session compaction policy and source selection', () => {
   it('selects a bounded whole-turn prefix while retaining the configured recent tail', () => {
     const selection = selectSessionCompactionSource(
       snapshot(6),
+      DEFAULT_SESSION_BRANCH_ID,
       undefined,
       DEFAULT_SESSION_COMPACTION_POLICY
     );
@@ -59,12 +76,14 @@ describe('Session compaction policy and source selection', () => {
     const previous = Object.freeze({
       agentId: state.agentId,
       sessionId: state.sessionId,
+      branchId: DEFAULT_SESSION_BRANCH_ID,
       revision: 2,
       throughTurnId: parseTurnId('turn-2'),
       context: Object.freeze({ role: 'context' as const, text: 'prior', timestamp: 20 }),
     });
     const selection = selectSessionCompactionSource(
       state,
+      DEFAULT_SESSION_BRANCH_ID,
       previous,
       DEFAULT_SESSION_COMPACTION_POLICY
     );
@@ -94,7 +113,7 @@ describe('Session compaction policy and source selection', () => {
 
     let sourceLimit: unknown;
     try {
-      selectSessionCompactionSource(snapshot(4), undefined, {
+      selectSessionCompactionSource(snapshot(4), DEFAULT_SESSION_BRANCH_ID, undefined, {
         ...DEFAULT_SESSION_COMPACTION_POLICY,
         retainRecentTurns: 0,
         maxSourceCharacters: 1,

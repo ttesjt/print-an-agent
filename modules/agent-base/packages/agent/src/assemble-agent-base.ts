@@ -22,11 +22,16 @@ import {
 import {
   AgentSessionError,
   createDefaultSessionCompactionStepOverrides,
+  createDefaultSessionNavigationStepOverrides,
   createSessionCompactionWorkflow,
+  createSessionNavigationWorkflow,
   createShouldCompactSessionCondition,
   DEFAULT_SESSION_COMPACTION_POLICY,
   MemorySessionAdapter,
+  parseSessionBranchId,
+  parseSessionId,
   SESSION_COMPACTION_WORKFLOW_NAME,
+  SESSION_NAVIGATION_WORKFLOW_NAME,
   validateSessionCompactionPolicy,
   type CompactSessionInput,
   type SessionCompactionAgentContext,
@@ -34,6 +39,12 @@ import {
   type SessionCompactionStepName,
   type SessionCompactionWorkflowContext,
   type SessionCompactionWorkflowName,
+  type NavigateSessionInput,
+  type SessionNavigationAgentContext,
+  type SessionNavigationOutcome,
+  type SessionNavigationStepName,
+  type SessionNavigationWorkflowContext,
+  type SessionNavigationWorkflowName,
 } from '@ta-agent/base-session';
 import {
   DEFAULT_TOOL_EXECUTION_POLICY,
@@ -47,6 +58,7 @@ import type {
   AssembleAgentBaseOptions,
   AssembledAgentBase,
   SessionCompactionRunOptions,
+  SessionNavigationRunOptions,
 } from './types.js';
 
 const DEFAULT_INSTRUCTIONS = 'Respond helpfully and concisely.';
@@ -98,11 +110,28 @@ function mergeCompactionStepOverrides(
   return Object.freeze(merged);
 }
 
+function mergeNavigationStepOverrides(
+  overrides: StepOverrides<SessionNavigationStepName, SessionNavigationWorkflowContext> | undefined
+): StepOverrides<SessionNavigationStepName, SessionNavigationWorkflowContext> {
+  const merged = {
+    ...createDefaultSessionNavigationStepOverrides(),
+  } as Record<SessionNavigationStepName, StepOverride<SessionNavigationWorkflowContext>>;
+  if (overrides !== undefined) {
+    for (const stepName of Object.keys(overrides) as SessionNavigationStepName[]) {
+      const override = overrides[stepName];
+      if (override !== undefined) merged[stepName] = override;
+    }
+  }
+  return Object.freeze(merged);
+}
+
 function validateCompactionInput(input: CompactSessionInput): void {
   if (
     typeof input !== 'object' ||
     input === null ||
-    typeof (input as Partial<CompactSessionInput>).sessionId !== 'string'
+    typeof (input as Partial<CompactSessionInput>).sessionId !== 'string' ||
+    ((input as Partial<CompactSessionInput>).branchId !== undefined &&
+      typeof (input as Partial<CompactSessionInput>).branchId !== 'string')
   ) {
     throw new AgentSessionError(
       'SESSION_COMPACTION_INVALID',
@@ -174,6 +203,41 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
     ...(options.createRunId === undefined ? {} : { createRunId: options.createRunId }),
   });
 
+  const navigationResources = Object.freeze({ session });
+  const navigationWorkflow =
+    options.sessionNavigationWorkflow ??
+    createSessionNavigationWorkflow({
+      resources: navigationResources,
+      stepOverrides: mergeNavigationStepOverrides(options.sessionNavigationStepOverrides),
+      ...(options.createNavigationWorkflowRunId === undefined
+        ? {}
+        : { createRunId: options.createNavigationWorkflowRunId }),
+    });
+  const navigationAgent = createAgent<
+    SessionNavigationWorkflowName,
+    NavigateSessionInput,
+    SessionNavigationOutcome,
+    Readonly<Record<string, never>>,
+    typeof navigationResources,
+    SessionNavigationAgentContext
+  >({
+    identity,
+    config: Object.freeze({}),
+    resources: navigationResources,
+    workflowPlan: [SESSION_NAVIGATION_WORKFLOW_NAME],
+    workflowDefinitions: {
+      [SESSION_NAVIGATION_WORKFLOW_NAME]: { workflow: navigationWorkflow, skippable: false },
+    },
+    createContext: (base): SessionNavigationAgentContext => ({
+      ...base,
+      resources: navigationResources,
+    }),
+    observability: Object.freeze({ ...options.observability, sink: traceSink }),
+    ...(options.createNavigationRunId === undefined
+      ? {}
+      : { createRunId: options.createNavigationRunId }),
+  });
+
   const compactionRuntime = options.sessionCompactionRuntime;
   const compactionPolicy = validateSessionCompactionPolicy(
     options.sessionCompactionPolicy ?? DEFAULT_SESSION_COMPACTION_POLICY
@@ -231,6 +295,7 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
             output: Object.freeze({
               status: 'skipped',
               sessionId: base.input.sessionId,
+              branchId: parseSessionBranchId(base.input.branchId),
               reason: 'not-needed',
             }),
           }),
@@ -284,7 +349,22 @@ export function assembleAgentBase(options: AssembleAgentBaseOptions): AssembledA
           'Session compaction requires an injected SessionCompactionRuntime.'
         );
       }
-      return compactionAgent.run(input, runOptions);
+      const sessionId = parseSessionId(input.sessionId);
+      const snapshot = await session.inspect({ agentId: identity.id, sessionId });
+      if (snapshot === undefined) {
+        throw new AgentSessionError(
+          'SESSION_NOT_FOUND',
+          `Session "${sessionId}" does not exist for agent "${identity.id}".`
+        );
+      }
+      const branchId =
+        input.branchId === undefined
+          ? snapshot.navigation.selectedBranchId
+          : parseSessionBranchId(input.branchId);
+      return compactionAgent.run(Object.freeze({ ...input, branchId }), runOptions);
+    },
+    navigateSession(input: NavigateSessionInput, runOptions: SessionNavigationRunOptions = {}) {
+      return navigationAgent.run(input, runOptions);
     },
   });
 }

@@ -31,7 +31,24 @@ export type AgentTraceEventDetails =
   | Readonly<{ type: 'step-skipped' } & StepReference>
   | Readonly<{ type: 'step-completed' } & StepReference>
   | Readonly<{ type: 'step-failed'; errorCode: string } & StepReference>
-  | Readonly<{ type: 'session-resolved'; sessionId: string } & WorkflowReference>
+  | Readonly<
+      {
+        type: 'session-resolved';
+        sessionId: string;
+        branchId: string;
+        navigationRevision: number;
+      } & WorkflowReference
+    >
+  | Readonly<
+      {
+        type: 'session-navigation-applied';
+        operation: 'select' | 'fork' | 'rewind';
+        sessionId: string;
+        selectedBranchId: string;
+        affectedBranchId: string;
+        navigationRevision: number;
+      } & WorkflowReference
+    >
   | Readonly<
       {
         type: 'request-replay-resolved';

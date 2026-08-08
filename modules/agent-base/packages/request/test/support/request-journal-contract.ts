@@ -1,6 +1,6 @@
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import { defineProviderModelReference } from '@ta-agent/base-model';
-import { parseSessionId } from '@ta-agent/base-session';
+import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
   AgentRequestError,
@@ -38,6 +38,7 @@ export function journalResponse(
   return Object.freeze({
     requestId,
     sessionId: parseSessionId(sessionId),
+    branchId: DEFAULT_SESSION_BRANCH_ID,
     message: Object.freeze({
       role: 'assistant',
       text,

@@ -6,7 +6,8 @@ import type {
 import type {
   CompletedSessionTurn,
   InspectableSessionPort,
-  SessionReference,
+  SessionBranchId,
+  SessionBranchReference,
   TurnId,
 } from '../types.js';
 
@@ -19,20 +20,20 @@ export interface SessionCompactionPolicy {
   readonly timeoutMilliseconds: number;
 }
 
-export interface SessionCompaction extends SessionReference {
+export interface SessionCompaction extends SessionBranchReference {
   readonly revision: number;
   readonly throughTurnId: TurnId;
   readonly context: ContextModelMessage;
 }
 
-export interface SessionContextSnapshot extends SessionReference {
+export interface SessionContextSnapshot extends SessionBranchReference {
   readonly compaction?: SessionCompaction;
   readonly messages: readonly ModelMessage[];
 }
 
-export type ReadSessionCompactionRequest = SessionReference;
+export type ReadSessionCompactionRequest = SessionBranchReference;
 
-export interface CommitSessionCompactionRequest extends SessionReference {
+export interface CommitSessionCompactionRequest extends SessionBranchReference {
   readonly expectedRevision: number;
   readonly throughTurnId: TurnId;
   readonly context: ContextModelMessage;
@@ -45,7 +46,7 @@ export interface SessionCompactionPort {
 
 export type CompactableSessionPort = InspectableSessionPort & SessionCompactionPort;
 
-export interface SessionCompactionSource extends SessionReference {
+export interface SessionCompactionSource extends SessionBranchReference {
   readonly expectedRevision: number;
   readonly previousContext?: ContextModelMessage;
   readonly turns: readonly CompletedSessionTurn[];
@@ -72,6 +73,7 @@ export interface SessionCompactionRuntime {
 
 export interface CompactSessionInput {
   readonly sessionId: string;
+  readonly branchId?: string;
 }
 
 export type SessionCompactionSkipReason = 'not-needed';
@@ -80,11 +82,13 @@ export type SessionCompactionOutcome =
   | Readonly<{
       status: 'skipped';
       sessionId: string;
+      branchId: SessionBranchId;
       reason: SessionCompactionSkipReason;
     }>
   | Readonly<{
       status: 'compacted';
       sessionId: string;
+      branchId: SessionBranchId;
       revision: number;
       throughTurnId: TurnId;
       compactedTurnCount: number;

@@ -22,6 +22,7 @@ import {
   MemoryOutputSink,
   MemoryRequestJournalAdapter,
   parseRequestIdempotencyKey,
+  REQUEST_WORKFLOW_NAME,
   RequestReplayFailedError,
   SqliteRequestJournalAdapter,
 } from '@ta-agent/base-request';
@@ -31,6 +32,7 @@ import {
   MemorySessionAdapter,
   parseSessionBranchId,
   parseSessionId,
+  SESSION_COMPACTION_WORKFLOW_NAME,
   SESSION_NAVIGATION_WORKFLOW_NAME,
   SqliteSessionAdapter,
 } from '@ta-agent/base-session';
@@ -41,7 +43,13 @@ import {
   type ToolExecutionRequest,
 } from '@ta-agent/base-tool';
 import { describe, expect, it, vi } from 'vitest';
-import { assembleAgentBase, createPiFauxAgentBase } from '../../src/index.js';
+import {
+  composeAgent,
+  createDeterministicAgentAPI,
+  FOREGROUND_AGENT_OPERATION_NAME,
+  SESSION_COMPACTION_AGENT_OPERATION_NAME,
+  SESSION_NAVIGATION_AGENT_OPERATION_NAME,
+} from '../../src/index.js';
 import {
   CancellingOutputSink,
   FailingCloseOutputSink,
@@ -101,7 +109,7 @@ describe('assembled Agent Base request path', () => {
       },
       execute: handler,
     });
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
       createRunId: () => 'trace-request',
       createWorkflowRunId: () => 'trace-workflow',
@@ -115,7 +123,7 @@ describe('assembled Agent Base request path', () => {
       responsibilities: responsibilitiesAllowingTools(['add']),
       productToolAllowList: ['add'],
       runtimeToolAllowList: ['add'],
-      pi: {
+      provider: {
         responses: [
           {
             status: 'tool-call',
@@ -133,6 +141,20 @@ describe('assembled Agent Base request path', () => {
       },
     });
     const sink = new LifecycleRecordingOutputSink();
+
+    expect(agent.agent.identity).toBe(agent.identity);
+    expect(agent.agent.operationNames).toBe(agent.operationNames);
+    expect(agent.agent.workflowCatalog.names).toBe(agent.workflowNames);
+    expect(agent.operationNames).toEqual([
+      FOREGROUND_AGENT_OPERATION_NAME,
+      SESSION_COMPACTION_AGENT_OPERATION_NAME,
+      SESSION_NAVIGATION_AGENT_OPERATION_NAME,
+    ]);
+    expect(agent.workflowNames).toEqual([
+      REQUEST_WORKFLOW_NAME,
+      SESSION_COMPACTION_WORKFLOW_NAME,
+      SESSION_NAVIGATION_WORKFLOW_NAME,
+    ]);
 
     const response = await agent.run({
       message: 'PRIVATE_REQUEST_add two and three',
@@ -153,14 +175,18 @@ describe('assembled Agent Base request path', () => {
       totalResultCharacters: 1,
     });
     expect(JSON.stringify(response.toolRun)).not.toContain('final:5');
-    expect(agent.inspectPi().requests[1]?.toolResults).toEqual([
+    expect(agent.inspectDeterministicProvider().requests[1]?.toolResults).toEqual([
       { callId: 'add-1', toolName: 'add', text: '5', isError: false },
     ]);
-    expect(agent.inspectPi().requests[0]?.invocationConfig).toEqual({
+    expect(agent.inspectDeterministicProvider().requests[0]?.invocationConfig).toEqual({
       temperature: 0.2,
       maxOutputTokens: 500,
     });
     const events = trace.inspect({ agentRunId: 'trace-request' }).events;
+    expect(events.at(0)).toMatchObject({
+      type: 'agent-run-started',
+      operationName: FOREGROUND_AGENT_OPERATION_NAME,
+    });
     expect(events.map((event) => event.sequence)).toEqual(
       Array.from({ length: events.length }, (_value, index) => index + 1)
     );
@@ -189,7 +215,7 @@ describe('assembled Agent Base request path', () => {
       responsibilityRevision: 1,
       actorId: MAIN_ACTOR_ID,
       actorRevision: 1,
-      engineId: 'pi-faux',
+      engineId: 'deterministic-provider',
       candidateIndex: 0,
       invocationMode: 'interaction',
     });
@@ -219,10 +245,10 @@ describe('assembled Agent Base request path', () => {
       },
       execute: handler,
     });
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
       toolRegistry: createToolRegistry([tool]),
-      pi: {
+      provider: {
         responses: [{ status: 'tool-call', callId: 'denied', name: 'private-tool' }],
       },
     });
@@ -240,7 +266,7 @@ describe('assembled Agent Base request path', () => {
 
   it('fails an all-disabled foreground Responsibility before invoking an Engine', async () => {
     const session = new MemorySessionAdapter();
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'disabled-responsibility-agent' },
       session,
       createRunId: () => 'disabled-responsibility-run',
@@ -252,14 +278,14 @@ describe('assembled Agent Base request path', () => {
             }
           : definition
       ),
-      pi: { responses: [{ status: 'success', text: 'must not execute' }] },
+      provider: { responses: [{ status: 'success', text: 'must not execute' }] },
     });
     const sink = new LifecycleRecordingOutputSink();
 
     await expect(
       agent.run({ message: 'hello', sessionId: 'disabled-routing', outputSink: sink })
     ).rejects.toMatchObject({ code: 'RESPONSIBILITY_UNAVAILABLE' });
-    expect(agent.inspectPi().callCount).toBe(0);
+    expect(agent.inspectDeterministicProvider().callCount).toBe(0);
     expect(sink.inspect()).toMatchObject({
       status: 'failed',
       failure: { code: 'RESPONSIBILITY_UNAVAILABLE' },
@@ -279,12 +305,12 @@ describe('assembled Agent Base request path', () => {
     const trace = new MemoryAgentTraceAdapter({ maxEvents: 256 });
     const runIds = ['history-first-run', 'history-second-run'];
     let runIndex = 0;
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant', displayName: 'Assistant' },
       createRunId: () => runIds[runIndex++] ?? 'unexpected-history-run',
       session,
       observability: { sink: trace, clock: () => 1 },
-      pi: {
+      provider: {
         responses: [
           { status: 'success', text: 'Hello Wei.' },
           (request) => ({
@@ -322,11 +348,9 @@ describe('assembled Agent Base request path', () => {
     expect(firstSink.calls.at(0)).toBe('open');
     expect(firstSink.calls.at(-1)).toBe('close');
     expect(second.message.text).toBe('history:user,assistant,user');
-    expect(agent.inspectPi().requests[1]?.messages.map((message) => message.role)).toEqual([
-      'user',
-      'assistant',
-      'user',
-    ]);
+    expect(
+      agent.inspectDeterministicProvider().requests[1]?.messages.map((message) => message.role)
+    ).toEqual(['user', 'assistant', 'user']);
     const snapshot = await session.inspect({
       agentId: agent.identity.id,
       sessionId: parseSessionId('conversation'),
@@ -350,10 +374,10 @@ describe('assembled Agent Base request path', () => {
     const databasePath = join(directory, 'session.sqlite');
     try {
       const firstSession = new SqliteSessionAdapter({ databasePath });
-      const firstAgent = createPiFauxAgentBase({
+      const firstAgent = createDeterministicAgentAPI({
         identity: { id: 'durable-assistant' },
         session: firstSession,
-        pi: { responses: [{ status: 'success', text: 'Remembered.' }] },
+        provider: { responses: [{ status: 'success', text: 'Remembered.' }] },
       });
       const first = await firstAgent.run({
         sessionId: 'durable-conversation',
@@ -361,10 +385,10 @@ describe('assembled Agent Base request path', () => {
       });
 
       const reopenedSession = new SqliteSessionAdapter({ databasePath });
-      const reopenedAgent = createPiFauxAgentBase({
+      const reopenedAgent = createDeterministicAgentAPI({
         identity: { id: 'durable-assistant' },
         session: reopenedSession,
-        pi: {
+        provider: {
           responses: [
             (request) => ({
               status: 'success',
@@ -420,7 +444,7 @@ describe('assembled Agent Base request path', () => {
       const firstSession = new SqliteSessionAdapter({ databasePath });
       const firstJournal = new SqliteRequestJournalAdapter({ databasePath });
       const firstTrace = new MemoryAgentTraceAdapter({ maxEvents: 256 });
-      const firstAgent = createPiFauxAgentBase({
+      const firstAgent = createDeterministicAgentAPI({
         identity: { id: 'replay-assistant' },
         session: firstSession,
         requestJournal: firstJournal,
@@ -431,7 +455,7 @@ describe('assembled Agent Base request path', () => {
         runtimeToolAllowList: ['add'],
         createRunId: () => 'original-request',
         observability: { sink: firstTrace, clock: () => 1 },
-        pi: {
+        provider: {
           responses: [
             { status: 'tool-call', callId: 'add-1', name: 'add', arguments: { left: 2, right: 3 } },
             { status: 'success', text: 'done' },
@@ -448,7 +472,7 @@ describe('assembled Agent Base request path', () => {
       const reopenedSession = new SqliteSessionAdapter({ databasePath });
       const reopenedJournal = new SqliteRequestJournalAdapter({ databasePath });
       const replayTrace = new MemoryAgentTraceAdapter({ maxEvents: 128 });
-      const reopenedAgent = createPiFauxAgentBase({
+      const reopenedAgent = createDeterministicAgentAPI({
         identity: { id: 'replay-assistant' },
         session: reopenedSession,
         requestJournal: reopenedJournal,
@@ -460,7 +484,7 @@ describe('assembled Agent Base request path', () => {
         createRunId: () => 'retry-request',
         createWorkflowRunId: () => 'retry-workflow',
         observability: { sink: replayTrace, clock: () => 1 },
-        pi: { responses: [{ status: 'success', text: 'must not execute' }] },
+        provider: { responses: [{ status: 'success', text: 'must not execute' }] },
       });
       const replaySink = new LifecycleRecordingOutputSink();
       const replayed = await reopenedAgent.run({
@@ -471,7 +495,7 @@ describe('assembled Agent Base request path', () => {
       });
 
       expect(replayed).toEqual(first);
-      expect(reopenedAgent.inspectPi().callCount).toBe(0);
+      expect(reopenedAgent.inspectDeterministicProvider().callCount).toBe(0);
       expect(handler).toHaveBeenCalledTimes(1);
       expect(replaySink.calls).toEqual(['open', 'write', 'close']);
       expect(replaySink.inspect().events).toEqual([{ type: 'text-delta', delta: 'done' }]);
@@ -512,13 +536,13 @@ describe('assembled Agent Base request path', () => {
     const trace = new MemoryAgentTraceAdapter({ maxEvents: 256 });
     const runIds = ['active-retry', 'failed-retry', 'conflict-retry'];
     let runIndex = 0;
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'replay-guard' },
       session,
       requestJournal: journal,
       createRunId: () => runIds[runIndex++] ?? 'unexpected-retry',
       observability: { sink: trace, clock: () => 1 },
-      pi: { responses: [{ status: 'success', text: 'must not execute' }] },
+      provider: { responses: [{ status: 'success', text: 'must not execute' }] },
     });
     const agentId = agent.identity.id;
     const sessionId = parseSessionId('replay-guards');
@@ -572,7 +596,7 @@ describe('assembled Agent Base request path', () => {
     ).rejects.toEqual(
       expect.objectContaining<Partial<AgentRequestError>>({ code: 'REQUEST_REPLAY_CONFLICT' })
     );
-    expect(agent.inspectPi().callCount).toBe(0);
+    expect(agent.inspectDeterministicProvider().callCount).toBe(0);
     expect((await session.inspect({ agentId, sessionId }))?.turns).toHaveLength(0);
     expect(await journal.inspect({ agentId, sessionId, idempotencyKey: activeKey })).toMatchObject({
       status: 'active',
@@ -593,13 +617,13 @@ describe('assembled Agent Base request path', () => {
     const trace = new MemoryAgentTraceAdapter({ maxEvents: 128 });
     const controller = new AbortController();
     const sink = new CancellingOutputSink(controller);
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
       createRunId: () => 'cancelled-run',
       session,
       requestJournal: journal,
       observability: { sink: trace, clock: () => 1 },
-      pi: {
+      provider: {
         responses: [{ status: 'success', text: 'abcdefghij' }],
         charactersPerChunk: 1,
         tokensPerSecond: 1_000,
@@ -654,12 +678,12 @@ describe('assembled Agent Base request path', () => {
     const sink = new LifecycleRecordingOutputSink();
     const journal = new MemoryRequestJournalAdapter(() => 1);
     const trace = new MemoryAgentTraceAdapter({ maxEvents: 128 });
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
       createRunId: () => 'provider-failure-run',
       requestJournal: journal,
       observability: { sink: trace, clock: () => 1 },
-      pi: {
+      provider: {
         responses: [{ status: 'failure', message: 'provider unavailable', partialText: 'partial' }],
         charactersPerChunk: 3,
       },
@@ -703,13 +727,13 @@ describe('assembled Agent Base request path', () => {
     const journal = new MemoryRequestJournalAdapter(() => 1);
     const trace = new MemoryAgentTraceAdapter({ maxEvents: 128 });
     const sink = new FailingCloseOutputSink();
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
       createRunId: () => 'close-failure-run',
       session,
       requestJournal: journal,
       observability: { sink: trace, clock: () => 1 },
-      pi: { responses: [{ status: 'success', text: 'persisted' }] },
+      provider: { responses: [{ status: 'success', text: 'persisted' }] },
     });
 
     await expect(
@@ -751,10 +775,10 @@ describe('assembled Agent Base request path', () => {
   it('normalizes OutputSink write failure and fails the active Session turn', async () => {
     const session = new MemorySessionAdapter();
     const sink = new FailingWriteOutputSink();
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
       session,
-      pi: { responses: [{ status: 'success', text: 'not published' }] },
+      provider: { responses: [{ status: 'success', text: 'not published' }] },
     });
 
     await expect(
@@ -778,9 +802,9 @@ describe('assembled Agent Base request path', () => {
 
   it('preserves provider and OutputSink cleanup failures in deterministic order', async () => {
     const sink = new FailingFailureOutputSink();
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
-      pi: { responses: [{ status: 'failure', message: 'provider failed' }] },
+      provider: { responses: [{ status: 'failure', message: 'provider failed' }] },
     });
 
     let received: unknown;
@@ -798,9 +822,9 @@ describe('assembled Agent Base request path', () => {
   });
 
   it('propagates an individual Step override through the unchanged request composition', async () => {
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
-      pi: {
+      provider: {
         responses: [(request) => ({ status: 'success', text: request.instructions })],
       },
       stepOverrides: {
@@ -813,12 +837,14 @@ describe('assembled Agent Base request path', () => {
 
     const response = await agent.run({ message: 'hello' });
     expect(response.message.text).toBe('Overridden instructions.');
-    expect(agent.inspectPi().requests[0]?.instructions).toBe('Overridden instructions.');
+    expect(agent.inspectDeterministicProvider().requests[0]?.instructions).toBe(
+      'Overridden instructions.'
+    );
   });
 
   it('isolates a failed trace sink from the assembled request result', async () => {
     const observedFailures: string[] = [];
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
       observability: {
         sink: { record: () => Promise.reject(new Error('trace unavailable')) },
@@ -827,7 +853,7 @@ describe('assembled Agent Base request path', () => {
           return Promise.resolve();
         },
       },
-      pi: { responses: [{ status: 'success', text: 'still succeeds' }] },
+      provider: { responses: [{ status: 'success', text: 'still succeeds' }] },
     });
 
     await expect(agent.run({ message: 'hello' })).resolves.toMatchObject({
@@ -838,9 +864,9 @@ describe('assembled Agent Base request path', () => {
   });
 
   it('fails invalid request input before invoking Pi', async () => {
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
-      pi: { responses: [{ status: 'success', text: 'unused' }] },
+      provider: { responses: [{ status: 'success', text: 'unused' }] },
     });
 
     await expect(agent.run({ message: '   ' })).rejects.toEqual(
@@ -854,14 +880,14 @@ describe('assembled Agent Base request path', () => {
     ).rejects.toEqual(
       expect.objectContaining<Partial<AgentRequestError>>({ code: 'REQUEST_INPUT_INVALID' })
     );
-    expect(agent.inspectPi().callCount).toBe(0);
+    expect(agent.inspectDeterministicProvider().callCount).toBe(0);
 
     let compactionConfigurationError: unknown;
     try {
-      createPiFauxAgentBase({
+      createDeterministicAgentAPI({
         identity: { id: 'assistant' },
         sessionCompactionInstructions: '   ',
-        pi: { responses: [{ status: 'success', text: 'unused' }] },
+        provider: { responses: [{ status: 'success', text: 'unused' }] },
       });
     } catch (error: unknown) {
       compactionConfigurationError = error;
@@ -879,14 +905,14 @@ describe('assembled Agent Base request path', () => {
     const trace = new MemoryAgentTraceAdapter({ maxEvents: 256 });
     let requestSequence = 0;
     try {
-      const first = createPiFauxAgentBase({
+      const first = createDeterministicAgentAPI({
         identity: { id: 'assistant' },
         session: new SqliteSessionAdapter({ databasePath, clock: () => 10 }),
         createRunId: () => `request-${++requestSequence}`,
         createCompactionRunId: () => 'compaction-run',
         createCompactionWorkflowRunId: () => 'compaction-workflow',
         observability: { sink: trace, clock: () => 20 },
-        pi: {
+        provider: {
           responses: [
             { status: 'success', text: 'PRIVATE_ANSWER_1' },
             { status: 'success', text: 'PRIVATE_ANSWER_2' },
@@ -908,16 +934,16 @@ describe('assembled Agent Base request path', () => {
         throughTurnId: 'request-2',
         compactedTurnCount: 2,
       });
-      expect(first.inspectPi().requests.at(-1)).toMatchObject({
+      expect(first.inspectDeterministicProvider().requests.at(-1)).toMatchObject({
         kind: 'direct',
       });
 
       const reopenedSession = new SqliteSessionAdapter({ databasePath, clock: () => 30 });
-      const reopened = createPiFauxAgentBase({
+      const reopened = createDeterministicAgentAPI({
         identity: { id: 'assistant' },
         session: reopenedSession,
         createRunId: () => `request-${++requestSequence}`,
-        pi: { responses: [{ status: 'success', text: 'PRIVATE_ANSWER_5' }] },
+        provider: { responses: [{ status: 'success', text: 'PRIVATE_ANSWER_5' }] },
       });
       const requestAfterCompaction = {
         message: 'PRIVATE_USER_5',
@@ -927,9 +953,9 @@ describe('assembled Agent Base request path', () => {
       const firstAfterCompaction = await reopened.run(requestAfterCompaction);
       const replayAfterCompaction = await reopened.run(requestAfterCompaction);
       expect(replayAfterCompaction).toEqual(firstAfterCompaction);
-      expect(reopened.inspectPi().callCount).toBe(1);
+      expect(reopened.inspectDeterministicProvider().callCount).toBe(1);
 
-      const providerRequest = reopened.inspectPi().requests[0];
+      const providerRequest = reopened.inspectDeterministicProvider().requests[0];
       expect(providerRequest).toMatchObject({ kind: 'agent-loop' });
       const serializedProviderRequest = JSON.stringify(providerRequest);
       expect(serializedProviderRequest).toContain('PRIVATE_COMPACTED_CONTEXT');
@@ -968,10 +994,10 @@ describe('assembled Agent Base request path', () => {
 
   it('skips compaction before policy eligibility without consuming a Pi response', async () => {
     let requestSequence = 0;
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
       createRunId: () => `short-${++requestSequence}`,
-      pi: {
+      provider: {
         responses: [
           { status: 'success', text: 'one' },
           { status: 'success', text: 'two' },
@@ -988,7 +1014,10 @@ describe('assembled Agent Base request path', () => {
       branchId: 'main',
       reason: 'not-needed',
     });
-    expect(agent.inspectPi()).toMatchObject({ callCount: 2, pendingResponseCount: 1 });
+    expect(agent.inspectDeterministicProvider()).toMatchObject({
+      callCount: 2,
+      pendingResponseCount: 1,
+    });
   });
 
   it('routes foreground interaction and compaction to different custom Engines', async () => {
@@ -1051,7 +1080,7 @@ describe('assembled Agent Base request path', () => {
       ),
     });
     let requestSequence = 0;
-    const agent = assembleAgentBase({
+    const agent = composeAgent({
       identity: { id: 'custom-engine-agent' },
       actorCatalog,
       responsibilityCatalog,
@@ -1061,12 +1090,16 @@ describe('assembled Agent Base request path', () => {
     });
 
     for (const message of ['one', 'two', 'three', 'four']) {
-      await agent.run({ message, sessionId: 'custom-routing' });
+      await agent.invoke(FOREGROUND_AGENT_OPERATION_NAME, {
+        message,
+        sessionId: 'custom-routing',
+      });
     }
-    await expect(agent.compactSession({ sessionId: 'custom-routing' })).resolves.toMatchObject({
-      status: 'compacted',
-      compactedTurnCount: 2,
-    });
+    await expect(
+      agent.invoke(SESSION_COMPACTION_AGENT_OPERATION_NAME, {
+        sessionId: 'custom-routing',
+      })
+    ).resolves.toMatchObject({ status: 'compacted', compactedTurnCount: 2 });
 
     expect(interactionCalls).toBe(4);
     expect(directCalls).toBe(1);
@@ -1095,7 +1128,7 @@ describe('assembled Agent Base request path', () => {
         databasePath: sessionDatabasePath,
         clock: () => 10,
       });
-      const first = createPiFauxAgentBase({
+      const first = createDeterministicAgentAPI({
         identity: { id: 'navigation-assistant' },
         session: firstSession,
         requestJournal: new SqliteRequestJournalAdapter({
@@ -1106,7 +1139,7 @@ describe('assembled Agent Base request path', () => {
         createCompactionRunId: () => 'branch-compaction',
         createNavigationRunId: () => `navigation-run-${++navigationSequence}`,
         observability: { sink: trace, clock: () => 12 },
-        pi: {
+        provider: {
           responses: [
             { status: 'success', text: 'PRIVATE_MAIN_ANSWER_1' },
             { status: 'success', text: 'PRIVATE_MAIN_ANSWER_2' },
@@ -1157,7 +1190,7 @@ describe('assembled Agent Base request path', () => {
       } as const;
       const childResponse = await first.run(childRequest);
       expect(childResponse.branchId).toBe(childBranchId);
-      const childProviderRequest = first.inspectPi().requests.at(-1);
+      const childProviderRequest = first.inspectDeterministicProvider().requests.at(-1);
       const serializedChildRequest = JSON.stringify(childProviderRequest);
       expect(serializedChildRequest).toContain('PRIVATE_BRANCH_SUMMARY');
       expect(serializedChildRequest).toContain('PRIVATE_CHILD_USER');
@@ -1181,7 +1214,7 @@ describe('assembled Agent Base request path', () => {
         databasePath: sessionDatabasePath,
         clock: () => 20,
       });
-      const reopened = createPiFauxAgentBase({
+      const reopened = createDeterministicAgentAPI({
         identity: { id: 'navigation-assistant' },
         session: reopenedSession,
         requestJournal: new SqliteRequestJournalAdapter({
@@ -1189,7 +1222,7 @@ describe('assembled Agent Base request path', () => {
           clock: () => 21,
         }),
         createRunId: () => `branch-request-${++requestSequence}`,
-        pi: {
+        provider: {
           responses: [
             (request) => ({
               status: 'success',
@@ -1203,14 +1236,16 @@ describe('assembled Agent Base request path', () => {
         sessionId: 'branching',
       });
       expect(mainResponse.branchId).toBe(DEFAULT_SESSION_BRANCH_ID);
-      const serializedMainRequest = JSON.stringify(reopened.inspectPi().requests[0]);
+      const serializedMainRequest = JSON.stringify(
+        reopened.inspectDeterministicProvider().requests[0]
+      );
       expect(serializedMainRequest).toContain('PRIVATE_BRANCH_SUMMARY');
       expect(serializedMainRequest).toContain('PRIVATE_MAIN_USER_3');
       expect(serializedMainRequest).toContain('PRIVATE_MAIN_ANSWER_4');
       expect(serializedMainRequest).not.toContain('PRIVATE_CHILD_USER');
 
       await expect(reopened.run(childRequest)).resolves.toEqual(childResponse);
-      expect(reopened.inspectPi().callCount).toBe(1);
+      expect(reopened.inspectDeterministicProvider().callCount).toBe(1);
       const snapshot = await reopenedSession.inspect({
         agentId: reopened.identity.id,
         sessionId: parseSessionId('branching'),
@@ -1242,7 +1277,7 @@ describe('assembled Agent Base request path', () => {
 
   it('allows one compaction leaf Step to be replaced without invoking its Actor', async () => {
     let requestSequence = 0;
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'assistant' },
       createRunId: () => `override-${++requestSequence}`,
       sessionCompactionStepOverrides: {
@@ -1255,7 +1290,7 @@ describe('assembled Agent Base request path', () => {
           return Promise.resolve();
         },
       },
-      pi: {
+      provider: {
         responses: [
           { status: 'success', text: 'one' },
           { status: 'success', text: 'two' },
@@ -1271,11 +1306,11 @@ describe('assembled Agent Base request path', () => {
       status: 'compacted',
       revision: 1,
     });
-    expect(agent.inspectPi().callCount).toBe(4);
+    expect(agent.inspectDeterministicProvider().callCount).toBe(4);
   });
 
   it('allows navigation leaf and complete Workflow replacement', async () => {
-    const leafReplacement = createPiFauxAgentBase({
+    const leafReplacement = createDeterministicAgentAPI({
       identity: { id: 'navigation-leaf-replacement' },
       sessionNavigationStepOverrides: {
         inspectSessionNavigation: (context) => {
@@ -1288,7 +1323,7 @@ describe('assembled Agent Base request path', () => {
           context.result = Object.freeze({
             status: 'inspected',
             navigation: Object.freeze({
-              agentId: context.agentContext.identity.id,
+              agentId: context.agentRunContext.identity.id,
               sessionId: context.sessionId,
               revision: 99,
               selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
@@ -1303,7 +1338,7 @@ describe('assembled Agent Base request path', () => {
           return Promise.resolve();
         },
       },
-      pi: { responses: [{ status: 'success', text: 'unused' }] },
+      provider: { responses: [{ status: 'success', text: 'unused' }] },
     });
     await expect(
       leafReplacement.navigateSession({ sessionId: 'virtual', operation: 'inspect' })
@@ -1324,7 +1359,7 @@ describe('assembled Agent Base request path', () => {
         ]),
       }),
     });
-    const workflowReplacement = createPiFauxAgentBase({
+    const workflowReplacement = createDeterministicAgentAPI({
       identity: { id: 'navigation-workflow-replacement' },
       sessionNavigationWorkflow: {
         name: SESSION_NAVIGATION_WORKFLOW_NAME,
@@ -1340,7 +1375,7 @@ describe('assembled Agent Base request path', () => {
             },
           }),
       },
-      pi: { responses: [{ status: 'success', text: 'unused' }] },
+      provider: { responses: [{ status: 'success', text: 'unused' }] },
     });
     await expect(
       workflowReplacement.navigateSession({ sessionId: 'missing', operation: 'inspect' })
@@ -1348,10 +1383,10 @@ describe('assembled Agent Base request path', () => {
   });
 
   it('commits no navigation mutation when its Agent Run is already cancelled', async () => {
-    const agent = createPiFauxAgentBase({
+    const agent = createDeterministicAgentAPI({
       identity: { id: 'navigation-cancellation' },
       createRunId: () => 'navigation-base-request',
-      pi: { responses: [{ status: 'success', text: 'base' }] },
+      provider: { responses: [{ status: 'success', text: 'base' }] },
     });
     await agent.run({ message: 'base', sessionId: 'cancel-navigation' });
     const controller = new AbortController();
@@ -1407,7 +1442,7 @@ describe('assembled Agent Base request path', () => {
         },
       ],
     });
-    const agent = assembleAgentBase({
+    const agent = composeAgent({
       identity: { id: 'assistant' },
       createRunId: () => 'timeout-run',
       actorCatalog,
@@ -1424,7 +1459,9 @@ describe('assembled Agent Base request path', () => {
       },
     });
 
-    await expect(agent.run({ message: 'wait' })).rejects.toEqual(
+    await expect(
+      agent.invoke(FOREGROUND_AGENT_OPERATION_NAME, { message: 'wait' })
+    ).rejects.toEqual(
       expect.objectContaining<Partial<AgentRequestError>>({ code: 'REQUEST_TIMEOUT' })
     );
     const serializedTrace = JSON.stringify(trace.inspect({ agentRunId: 'timeout-run' }).events);

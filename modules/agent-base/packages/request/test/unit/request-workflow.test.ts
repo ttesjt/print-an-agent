@@ -1,7 +1,7 @@
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import {
   SKIP_STEP,
-  type BaseAgentContext,
+  type BaseAgentRunContext,
   type BaseWorkflowContext,
   type Step,
   type StepOverrides,
@@ -16,7 +16,7 @@ import {
   type RequestStepName,
 } from '../../src/index.js';
 
-interface TestAgentContext extends BaseAgentContext<string, string> {
+interface TestAgentContext extends BaseAgentRunContext<string, string> {
   readonly applied: string[];
 }
 
@@ -33,12 +33,16 @@ const LEAF_STEP_NAMES = REQUEST_STEP_NAMES.filter(
     stepName !== 'runRequest' && stepName !== 'prepareRequest' && stepName !== 'executeRequest'
 );
 
-function agentContext(): TestAgentContext {
+function agentRunContext(): TestAgentContext {
   return {
     identity: defineAgentIdentity({ id: 'request-test' }),
+    operationName: 'request-test',
     runId: 'agent-run',
     input: 'hello',
     signal: new AbortController().signal,
+    operations: Object.freeze({
+      invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
+    }),
     applied: [],
   };
 }
@@ -106,7 +110,7 @@ describe('Request Workflow skeleton', () => {
       },
     });
 
-    const error = await requestWorkflow.run(agentContext()).catch((failure: unknown) => failure);
+    const error = await requestWorkflow.run(agentRunContext()).catch((failure: unknown) => failure);
 
     expect(error).toBeInstanceOf(RequestStepNotImplementedError);
     expect(error).toMatchObject({
@@ -118,7 +122,7 @@ describe('Request Workflow skeleton', () => {
 
   it('executes fully implemented leaf Steps in canonical order', async () => {
     const requestWorkflow = workflow(implementedLeafSteps());
-    const context = agentContext();
+    const context = agentRunContext();
 
     const outcome = await requestWorkflow.run(context);
 
@@ -142,7 +146,7 @@ describe('Request Workflow skeleton', () => {
       },
     });
 
-    await expect(requestWorkflow.run(agentContext())).resolves.toMatchObject({
+    await expect(requestWorkflow.run(agentRunContext())).resolves.toMatchObject({
       status: 'completed',
       result: 'customPrepare|runAgentInteraction|completeResponse',
     });
@@ -159,7 +163,7 @@ describe('Request Workflow skeleton', () => {
       },
     });
 
-    await expect(requestWorkflow.run(agentContext())).resolves.toMatchObject({
+    await expect(requestWorkflow.run(agentRunContext())).resolves.toMatchObject({
       status: 'completed',
       result: 'replayed',
     });
@@ -184,7 +188,7 @@ describe('Request Workflow skeleton', () => {
       resolveRequestReplay: SKIP_STEP,
       gatherExternalContext: SKIP_STEP,
     });
-    await expect(requestWorkflow.run(agentContext())).resolves.toMatchObject({
+    await expect(requestWorkflow.run(agentRunContext())).resolves.toMatchObject({
       status: 'completed',
     });
   });

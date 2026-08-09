@@ -4,7 +4,6 @@ import type {
   ProviderCredentialReference,
   ProviderModelId,
   ProviderModelReference,
-  ProviderModelReferenceInput,
 } from './types.js';
 
 const PROVIDER_COMPONENT_MAX_LENGTH = 128;
@@ -30,8 +29,11 @@ function parseComponent(value: unknown, label: string): string {
   return value;
 }
 
-function parseBaseUrl(value: string | undefined): string | undefined {
+function parseBaseUrl(value: unknown): string | undefined {
   if (value === undefined) return undefined;
+  if (typeof value !== 'string') {
+    throw new AgentModelError('MODEL_REFERENCE_INVALID', 'Model base URL must be a string.');
+  }
 
   let url: URL;
   try {
@@ -51,10 +53,12 @@ function parseBaseUrl(value: string | undefined): string | undefined {
   return url.toString();
 }
 
-export function defineProviderModelReference(
-  input: ProviderModelReferenceInput
-): ProviderModelReference {
-  if (typeof input !== 'object' || input === null) {
+function isUnknownRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function defineProviderModelReference(input: unknown): ProviderModelReference {
+  if (!isUnknownRecord(input)) {
     throw new AgentModelError(
       'MODEL_REFERENCE_INVALID',
       'Provider Model Reference must be an object.'

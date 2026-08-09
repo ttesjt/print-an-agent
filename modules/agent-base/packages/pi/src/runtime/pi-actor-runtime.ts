@@ -75,7 +75,7 @@ function invocationInterruption(signal: AbortSignal): AgentModelError {
 function normalizeProviderFailure(cause: unknown, signal: AbortSignal): Error {
   if (cause instanceof AgentModelError || cause instanceof AgentToolError) return cause;
   if (signal.aborted) return invocationInterruption(signal);
-  return new AgentModelError('MODEL_PROVIDER_FAILED', 'Pi provider invocation failed.', { cause });
+  return new AgentModelError('MODEL_PROVIDER_FAILED', 'Provider invocation failed.', { cause });
 }
 
 function validateResolvedCredential(value: unknown): ProviderApiKeyCredential | undefined {
@@ -120,7 +120,7 @@ export class PiActorRuntime implements AgentLoopRuntime {
       if (!sameReference(reference, this.#modelReference)) {
         throw new AgentModelError(
           'MODEL_TARGET_NOT_FOUND',
-          `Provider model "${reference.provider}/${reference.model}" is not bound to this Pi runtime.`
+          `Provider model "${reference.provider}/${reference.model}" is not bound to this provider runtime.`
         );
       }
       const target: ResolvedExecutionTarget = Object.freeze({
@@ -202,7 +202,7 @@ export class PiActorRuntime implements AgentLoopRuntime {
     if (model === undefined || !sameReference(request.target.reference, this.#modelReference)) {
       throw new AgentModelError(
         'MODEL_RUNTIME_PROTOCOL_INVALID',
-        'Execution target was not resolved by this Pi runtime.'
+        'Execution target was not resolved by this provider runtime.'
       );
     }
     if (!Number.isSafeInteger(request.maxProviderTurns) || request.maxProviderTurns < 1) {
@@ -284,7 +284,7 @@ export class PiActorRuntime implements AgentLoopRuntime {
     if (state.completedMessage === undefined) {
       throw new AgentModelError(
         'MODEL_RUNTIME_PROTOCOL_INVALID',
-        'Pi completed without a terminal assistant response.'
+        'Provider completed without a terminal assistant response.'
       );
     }
     return Object.freeze({ message: state.completedMessage });
@@ -319,20 +319,20 @@ export class PiActorRuntime implements AgentLoopRuntime {
     if (response.stopReason === 'toolUse') {
       throw new AgentModelError(
         'MODEL_RUNTIME_PROTOCOL_INVALID',
-        'Pi direct Actor invocation produced an unsupported Tool call.'
+        'Provider direct Actor invocation produced an unsupported Tool call.'
       );
     }
     const normalized = toModelMessage(response);
     if (normalized?.role !== 'assistant') {
       throw new AgentModelError(
         'MODEL_RUNTIME_PROTOCOL_INVALID',
-        'Pi direct Actor invocation did not produce an assistant message.'
+        'Provider direct Actor invocation did not produce an assistant message.'
       );
     }
     if (normalized.text.length === 0 || normalized.text.length > request.maxOutputCharacters) {
       throw new AgentModelError(
         'MODEL_OUTPUT_LIMIT_EXCEEDED',
-        `Pi direct Actor output must contain 1-${request.maxOutputCharacters} characters.`
+        `Provider direct Actor output must contain 1-${request.maxOutputCharacters} characters.`
       );
     }
     return Object.freeze({ message: normalized });

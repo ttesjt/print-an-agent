@@ -22,7 +22,7 @@ import type {
   PiProviderRuntimeProfile,
 } from './types.js';
 
-const DEFAULT_ACTOR_ENGINE_ID = 'pi-provider';
+const DEFAULT_ACTOR_ENGINE_ID = 'provider';
 
 const NO_AMBIENT_AUTH: AuthContext = Object.freeze({
   env: () => Promise.resolve(undefined),
@@ -52,14 +52,14 @@ function createBuiltinModels(config: DefinedPiProviderConfig): {
   if (provider === undefined) {
     throw new AgentModelError(
       'MODEL_PROVIDER_NOT_FOUND',
-      `Pi builtin provider "${config.reference.provider}" was not found.`
+      `Builtin provider "${config.reference.provider}" was not found.`
     );
   }
   const catalogModel = models.getModel(config.reference.provider, config.reference.model);
   if (catalogModel === undefined) {
     throw new AgentModelError(
       'MODEL_TARGET_NOT_FOUND',
-      `Pi builtin model "${config.reference.provider}/${config.reference.model}" was not found.`
+      `Builtin model "${config.reference.provider}/${config.reference.model}" was not found.`
     );
   }
   const model = Object.freeze({

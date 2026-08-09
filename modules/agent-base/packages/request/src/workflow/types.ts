@@ -1,17 +1,17 @@
 import type {
-  AnyAgentContext,
+  AnyAgentRunContext,
   BaseWorkflowContext,
   WorkflowDefinition,
 } from '@ta-agent/base-workflow';
 import type { RequestStepName } from './names.js';
 
 export type RequestWorkflowContext<
-  C extends AnyAgentContext = AnyAgentContext,
+  C extends AnyAgentRunContext = AnyAgentRunContext,
   TResult = unknown,
 > = BaseWorkflowContext<RequestStepName, C, TResult>;
 
 export type RequestWorkflowOptions<
-  C extends AnyAgentContext,
+  C extends AnyAgentRunContext,
   WC extends RequestWorkflowContext<C, TResult>,
   TResult,
 > = Omit<

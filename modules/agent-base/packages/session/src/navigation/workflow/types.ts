@@ -1,6 +1,6 @@
 import type { AgentIdentity } from '@ta-agent/base-identity';
 import type {
-  BaseAgentContext,
+  BaseAgentRunContext,
   BaseWorkflowContext,
   StepOverrides,
   WorkflowDefinition,
@@ -18,7 +18,7 @@ export interface SessionNavigationResources {
   readonly session: NavigableSessionPort;
 }
 
-export interface SessionNavigationAgentContext extends BaseAgentContext<
+export interface SessionNavigationAgentRunContext extends BaseAgentRunContext<
   NavigateSessionInput,
   SessionNavigationOutcome
 > {
@@ -28,7 +28,7 @@ export interface SessionNavigationAgentContext extends BaseAgentContext<
 
 export interface SessionNavigationWorkflowContext extends BaseWorkflowContext<
   SessionNavigationStepName,
-  SessionNavigationAgentContext,
+  SessionNavigationAgentRunContext,
   SessionNavigationOutcome
 > {
   readonly resources: SessionNavigationResources;
@@ -40,7 +40,7 @@ export interface SessionNavigationWorkflowContext extends BaseWorkflowContext<
 export interface CreateSessionNavigationWorkflowOptions extends Omit<
   WorkflowDefinition<
     SessionNavigationStepName,
-    SessionNavigationAgentContext,
+    SessionNavigationAgentRunContext,
     SessionNavigationWorkflowContext,
     SessionNavigationOutcome
   >,

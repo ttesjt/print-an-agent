@@ -4,7 +4,7 @@ import { SESSION_NAVIGATION_WORKFLOW_NAME, type SessionNavigationStepName } from
 import { createSessionNavigationStepDefinitions } from './step-definitions.js';
 import type {
   CreateSessionNavigationWorkflowOptions,
-  SessionNavigationAgentContext,
+  SessionNavigationAgentRunContext,
   SessionNavigationWorkflowContext,
 } from './types.js';
 
@@ -12,13 +12,13 @@ export function createSessionNavigationWorkflow(
   options: CreateSessionNavigationWorkflowOptions
 ): Workflow<
   SessionNavigationStepName,
-  SessionNavigationAgentContext,
+  SessionNavigationAgentRunContext,
   SessionNavigationWorkflowContext,
   SessionNavigationOutcome
 > {
   return createWorkflow<
     SessionNavigationStepName,
-    SessionNavigationAgentContext,
+    SessionNavigationAgentRunContext,
     SessionNavigationWorkflowContext,
     SessionNavigationOutcome
   >({
@@ -30,8 +30,8 @@ export function createSessionNavigationWorkflow(
       ...base,
       resources: options.resources,
     }),
-    applyResult: (agentContext, result) => {
-      agentContext.output = result;
+    applyResult: (agentRunContext, result) => {
+      agentRunContext.output = result;
       return Promise.resolve();
     },
   });

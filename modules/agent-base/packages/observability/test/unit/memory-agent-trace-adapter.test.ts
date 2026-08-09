@@ -15,9 +15,9 @@ describe('MemoryAgentTraceAdapter', () => {
       clock: () => 1,
     });
 
-    await trace.record({ type: 'agent-run-started' });
+    await trace.record({ type: 'agent-run-started', operationName: 'test' });
     await trace.record({ type: 'workflow-run-skipped', workflowName: 'optional' });
-    await trace.record({ type: 'agent-run-completed' });
+    await trace.record({ type: 'agent-run-completed', operationName: 'test' });
 
     const snapshot = adapter.inspect();
     expect(snapshot.droppedEvents).toBe(1);
@@ -40,9 +40,9 @@ describe('MemoryAgentTraceAdapter', () => {
       sink: adapter,
       clock: () => 1,
     });
-    await first.record({ type: 'agent-run-started' });
+    await first.record({ type: 'agent-run-started', operationName: 'test' });
     const snapshot = adapter.inspect({ agentRunId: 'first' });
-    await second.record({ type: 'agent-run-started' });
+    await second.record({ type: 'agent-run-started', operationName: 'test' });
 
     expect(snapshot.events).toHaveLength(1);
     expect(adapter.inspect({ agentRunId: 'second' }).events).toHaveLength(1);
@@ -57,6 +57,7 @@ describe('MemoryAgentTraceAdapter', () => {
       sequence: 1,
       timestamp: 1,
       type: 'agent-run-started',
+      operationName: 'test',
     } as const;
 
     await adapter.record(event);
@@ -87,6 +88,7 @@ describe('MemoryAgentTraceAdapter', () => {
           sequence: 1,
           timestamp: 1,
           type: 'agent-run-started',
+          operationName: 'test',
           privateMessage: 'must not persist',
         },
       ])

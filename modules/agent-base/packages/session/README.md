@@ -15,16 +15,16 @@ new adapter or assembled Agent instance. It does not derive storage paths, persi
 automatically guess which active turns were interrupted.
 
 ```ts
-import { createPiFauxAgentBase } from '@ta-agent/base-agent';
+import { createDeterministicAgentAPI } from '@ta-agent/base-composition';
 import { SqliteSessionAdapter } from '@ta-agent/base-session';
 
 const session = new SqliteSessionAdapter({
   databasePath: '/explicit/application/data/agent-session.sqlite',
 });
-const agent = createPiFauxAgentBase({
+const agent = createDeterministicAgentAPI({
   identity: { id: 'assistant' },
   session,
-  pi: { responses: [{ status: 'success', text: 'Ready.' }] },
+  provider: { responses: [{ status: 'success', text: 'Ready.' }] },
 });
 ```
 
@@ -34,7 +34,8 @@ advances a branch head. `resolve()` captures the selected branch plus a navigati
 `beginTurn()` verifies that authority atomically, so a stale request cannot silently attach to a new
 selection. One active turn is allowed per branch.
 
-`navigateSession` is an ordinary replaceable Workflow with independently replaceable validation,
+`navigateSession` is a public Agent Operation backed by an ordinary replaceable Workflow with
+independently replaceable validation,
 inspection, and commit Steps. It supports read-only inspection, selecting an existing branch,
 creating an unselected fork at a completed ancestor, and non-destructive rewind. Rewind creates and
 selects a child branch; it never moves a source head, reparents a turn, or deletes history.
@@ -45,7 +46,8 @@ returns that branch's context message followed by its completed raw tail. CAS pr
 compactions from replacing a newer revision, and no compaction deletes or rewrites a turn. A child
 inherits a source projection only when its boundary remains an ancestor of the branch point.
 
-`compactSession` is an ordinary replaceable Workflow. Its composite Step resolves the registered
+`compactSession` is a public Agent Operation backed by an ordinary replaceable Workflow. Its
+composite Step resolves the registered
 `inspectSession`, `selectCompactionSource`, `buildCompactedContext`, and `persistCompaction` leaf
 Steps. The default Condition is replaceable, raw leaf definitions fail fast, and the official
 assembled Agent supplies concrete overrides. `buildCompactedContext` resolves the registered

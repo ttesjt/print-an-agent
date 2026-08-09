@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { traceErrorCode } from '@ta-agent/base-observability';
-import type { AnyAgentContext, BaseWorkflowContext } from '../types/context.js';
+import type { AnyAgentRunContext, BaseWorkflowContext } from '../types/context.js';
 import { AgentDefinitionError, AgentRunError } from '../types/errors.js';
 import type { ResolvedStepRegistry, StepExecutor, StepName } from '../types/step.js';
 import type {
@@ -14,7 +14,7 @@ import { resolveStepRegistry } from './step-registry.js';
 
 export class Workflow<
   TStepName extends StepName,
-  C extends AnyAgentContext,
+  C extends AnyAgentRunContext,
   WC extends BaseWorkflowContext<TStepName, C, TResult>,
   TResult,
 > implements RunnableWorkflow<C> {
@@ -61,10 +61,10 @@ export class Workflow<
     }
   }
 
-  async run(agentContext: C): Promise<WorkflowRunOutcome<C, TResult>> {
-    const decision = await this.#condition(agentContext);
+  async run(agentRunContext: C): Promise<WorkflowRunOutcome<C, TResult>> {
+    const decision = await this.#condition(agentRunContext);
     if (decision.status === 'skip') {
-      await agentContext.traceEmitter?.record({
+      await agentRunContext.traceEmitter?.record({
         type: 'workflow-run-skipped',
         workflowName: this.name,
       });
@@ -83,7 +83,7 @@ export class Workflow<
     }
 
     const workflowRunId = this.#createRunId();
-    await agentContext.traceEmitter?.record({
+    await agentRunContext.traceEmitter?.record({
       type: 'workflow-run-started',
       workflowName: this.name,
       workflowRunId,
@@ -110,7 +110,7 @@ export class Workflow<
       }
 
       if (resolved.status === 'skipped') {
-        await agentContext.traceEmitter?.record({
+        await agentRunContext.traceEmitter?.record({
           type: 'step-skipped',
           workflowName: this.name,
           workflowRunId,
@@ -118,7 +118,7 @@ export class Workflow<
         });
         return;
       }
-      await agentContext.traceEmitter?.record({
+      await agentRunContext.traceEmitter?.record({
         type: 'step-started',
         workflowName: this.name,
         workflowRunId,
@@ -126,14 +126,14 @@ export class Workflow<
       });
       try {
         await this.#executeStep({ stepName, step: resolved.step, context });
-        await agentContext.traceEmitter?.record({
+        await agentRunContext.traceEmitter?.record({
           type: 'step-completed',
           workflowName: this.name,
           workflowRunId,
           stepName,
         });
       } catch (error: unknown) {
-        await agentContext.traceEmitter?.record({
+        await agentRunContext.traceEmitter?.record({
           type: 'step-failed',
           workflowName: this.name,
           workflowRunId,
@@ -149,8 +149,8 @@ export class Workflow<
       context = this.#createContext({
         workflowName: this.name,
         workflowRunId,
-        agentContext,
-        signal: agentContext.signal,
+        agentRunContext,
+        signal: agentRunContext.signal,
         runStep,
       });
       runState.context = context;
@@ -165,8 +165,8 @@ export class Workflow<
       if (
         context.workflowName !== this.name ||
         context.workflowRunId !== workflowRunId ||
-        context.agentContext !== agentContext ||
-        context.signal !== agentContext.signal
+        context.agentRunContext !== agentRunContext ||
+        context.signal !== agentRunContext.signal
       ) {
         throw new AgentRunError(
           'WORKFLOW_CONTEXT_BASE_REPLACED',
@@ -175,7 +175,7 @@ export class Workflow<
         );
       }
     } catch (error: unknown) {
-      await agentContext.traceEmitter?.record({
+      await agentRunContext.traceEmitter?.record({
         type: 'workflow-run-failed',
         workflowName: this.name,
         workflowRunId,
@@ -235,7 +235,7 @@ export class Workflow<
           { cause: executionError }
         );
       }
-      await agentContext.traceEmitter?.record({
+      await agentRunContext.traceEmitter?.record({
         type: 'workflow-run-failed',
         workflowName: this.name,
         workflowRunId,
@@ -244,7 +244,7 @@ export class Workflow<
       throw terminalError;
     }
     if (finallyHandlerFailed) {
-      await agentContext.traceEmitter?.record({
+      await agentRunContext.traceEmitter?.record({
         type: 'workflow-run-failed',
         workflowName: this.name,
         workflowRunId,
@@ -253,7 +253,7 @@ export class Workflow<
       throw finallyHandlerError;
     }
     const completedResult = result as TResult;
-    await agentContext.traceEmitter?.record({
+    await agentRunContext.traceEmitter?.record({
       type: 'workflow-run-completed',
       workflowName: this.name,
       workflowRunId,
@@ -265,7 +265,7 @@ export class Workflow<
       workflowRunId,
       result: completedResult,
       applyTo: async (targetContext: C) => {
-        if (targetContext !== agentContext) {
+        if (targetContext !== agentRunContext) {
           throw new AgentRunError(
             'WORKFLOW_RESULT_CONTEXT_MISMATCH',
             `Workflow result from "${this.name}" cannot be applied to a different Agent Context.`,
@@ -280,7 +280,7 @@ export class Workflow<
 
 export function createWorkflow<
   TStepName extends StepName,
-  C extends AnyAgentContext,
+  C extends AnyAgentRunContext,
   WC extends BaseWorkflowContext<TStepName, C, TResult>,
   TResult,
 >(definition: WorkflowDefinition<TStepName, C, WC, TResult>): Workflow<TStepName, C, WC, TResult> {

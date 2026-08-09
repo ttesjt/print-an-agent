@@ -48,7 +48,7 @@ function isOutputSink(value: unknown): value is OutputSink {
 }
 
 function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> {
-  const input: unknown = context.agentContext.input;
+  const input: unknown = context.agentRunContext.input;
   if (typeof input !== 'object' || input === null) {
     throw new AgentRequestError('REQUEST_INPUT_INVALID', 'Agent request must be an object.');
   }
@@ -150,7 +150,7 @@ async function resolveRequestReplay(context: DefaultRequestWorkflowContext): Pro
       ...session,
       idempotencyKey: request.idempotencyKey,
       fingerprint: createRequestFingerprint({ message: request.message }),
-      requestId: context.agentContext.runId,
+      requestId: context.agentRunContext.runId,
     });
   } catch (error: unknown) {
     if (error instanceof AgentRequestError && error.code === 'REQUEST_REPLAY_CONFLICT') {
@@ -184,7 +184,7 @@ async function resolveRequestReplay(context: DefaultRequestWorkflowContext): Pro
 async function resolveSession(context: DefaultRequestWorkflowContext): Promise<void> {
   const request = requireValue(context.request, 'request');
   context.session = await context.resources.session.resolve({
-    agentId: context.agentContext.identity.id,
+    agentId: context.agentRunContext.identity.id,
     ...(request.sessionId === undefined ? {} : { requestedSessionId: request.sessionId }),
   });
   await traceSessionResolved(context);
@@ -201,7 +201,7 @@ async function beginRequest(context: DefaultRequestWorkflowContext): Promise<voi
   context.userMessage = userMessage;
   context.turn = await context.resources.session.beginTurn({
     ...session,
-    turnId: parseTurnId(context.agentContext.runId),
+    turnId: parseTurnId(context.agentRunContext.runId),
     userMessage,
   });
 }
@@ -307,7 +307,7 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
   await traceOutputStarted(context, false);
   try {
     await request.outputSink.open({
-      requestId: context.agentContext.runId,
+      requestId: context.agentRunContext.runId,
       sessionId: session.sessionId,
       branchId: requireValue(context.turn, 'turn').branchId,
     });
@@ -330,7 +330,7 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
   tools.close();
   await traceAgentLoopCompleted(context);
   context.response = Object.freeze({
-    requestId: context.agentContext.runId,
+    requestId: context.agentRunContext.runId,
     sessionId: session.sessionId,
     branchId: requireValue(context.turn, 'turn').branchId,
     message: result.message,

@@ -4,7 +4,7 @@ import { SESSION_COMPACTION_WORKFLOW_NAME, type SessionCompactionStepName } from
 import { createSessionCompactionStepDefinitions } from './step-definitions.js';
 import type {
   CreateSessionCompactionWorkflowOptions,
-  SessionCompactionAgentContext,
+  SessionCompactionAgentRunContext,
   SessionCompactionWorkflowContext,
 } from './types.js';
 
@@ -12,13 +12,13 @@ export function createSessionCompactionWorkflow(
   options: CreateSessionCompactionWorkflowOptions
 ): Workflow<
   SessionCompactionStepName,
-  SessionCompactionAgentContext,
+  SessionCompactionAgentRunContext,
   SessionCompactionWorkflowContext,
   SessionCompactionOutcome
 > {
   return createWorkflow<
     SessionCompactionStepName,
-    SessionCompactionAgentContext,
+    SessionCompactionAgentRunContext,
     SessionCompactionWorkflowContext,
     SessionCompactionOutcome
   >({
@@ -30,8 +30,8 @@ export function createSessionCompactionWorkflow(
       ...base,
       resources: options.resources,
     }),
-    applyResult: (agentContext: SessionCompactionAgentContext, result) => {
-      agentContext.output = result;
+    applyResult: (agentRunContext: SessionCompactionAgentRunContext, result) => {
+      agentRunContext.output = result;
       return Promise.resolve();
     },
   });

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import { createAgentTraceEmitter, type AgentTraceEmitter } from '@ta-agent/base-observability';
 import type {
-  BaseAgentContext,
+  BaseAgentRunContext,
   BaseWorkflowContext,
   StepDefinitions,
   StepOverrides,
@@ -19,7 +19,7 @@ import {
 
 type TestStepName = 'workflow' | 'leaf' | 'optional' | 'finish';
 
-interface TestAgentContext extends BaseAgentContext<string, string> {
+interface TestAgentContext extends BaseAgentRunContext<string, string> {
   readonly applied: string[];
 }
 
@@ -27,12 +27,16 @@ interface TestWorkflowContext extends BaseWorkflowContext<TestStepName, TestAgen
   readonly local: string[];
 }
 
-function agentContext(input = 'hello', traceEmitter?: AgentTraceEmitter): TestAgentContext {
+function agentRunContext(input = 'hello', traceEmitter?: AgentTraceEmitter): TestAgentContext {
   return {
     identity: defineAgentIdentity({ id: 'agent' }),
+    operationName: 'test',
     runId: `agent-run-${input}`,
     input,
     signal: new AbortController().signal,
+    operations: Object.freeze({
+      invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
+    }),
     applied: [],
     ...(traceEmitter === undefined ? {} : { traceEmitter }),
   };
@@ -49,7 +53,7 @@ function steps(
     leaf: {
       step: (context) => {
         observed?.add(context);
-        context.local.push(`leaf:${context.agentContext.input}`);
+        context.local.push(`leaf:${context.agentRunContext.input}`);
         return Promise.resolve();
       },
       skippable: false,
@@ -100,7 +104,7 @@ describe('Workflow', () => {
         return Promise.resolve();
       },
     });
-    const context = agentContext();
+    const context = agentRunContext();
 
     const outcome = await workflow.run(context);
 
@@ -112,7 +116,7 @@ describe('Workflow', () => {
   it('supports explicit Step skip inside a Workflow', async () => {
     const workflow = createTestWorkflow({ optional: SKIP_STEP });
 
-    await expect(workflow.run(agentContext())).resolves.toMatchObject({
+    await expect(workflow.run(agentRunContext())).resolves.toMatchObject({
       status: 'completed',
       result: 'leaf:hello',
     });
@@ -126,7 +130,7 @@ describe('Workflow', () => {
       },
     });
 
-    await expect(workflow.run(agentContext())).resolves.toMatchObject({
+    await expect(workflow.run(agentRunContext())).resolves.toMatchObject({
       status: 'completed',
       result: 'replacement',
     });
@@ -147,7 +151,7 @@ describe('Workflow', () => {
       }
     );
 
-    await expect(workflow.run(agentContext('skip'))).resolves.toEqual({
+    await expect(workflow.run(agentRunContext('skip'))).resolves.toEqual({
       status: 'skipped',
       workflowName: 'chat',
       reason: 'not applicable',
@@ -159,12 +163,15 @@ describe('Workflow', () => {
     const observed = new Set<TestWorkflowContext>();
     const workflow = createTestWorkflow({}, {}, observed);
 
-    await Promise.all([workflow.run(agentContext('first')), workflow.run(agentContext('second'))]);
+    await Promise.all([
+      workflow.run(agentRunContext('first')),
+      workflow.run(agentRunContext('second')),
+    ]);
 
     expect(observed.size).toBe(2);
     const contexts = [...observed];
     expect(contexts[0]).not.toBe(contexts[1]);
-    expect(contexts.map((context) => context.agentContext.input).sort()).toEqual([
+    expect(contexts.map((context) => context.agentRunContext.input).sort()).toEqual([
       'first',
       'second',
     ]);
@@ -182,7 +189,7 @@ describe('Workflow', () => {
       }
     );
 
-    await workflow.run(agentContext());
+    await workflow.run(agentRunContext());
 
     expect(calls).toEqual(['workflow', 'leaf', 'optional', 'finish']);
   });
@@ -211,7 +218,7 @@ describe('Workflow', () => {
       }
     );
 
-    await expect(workflow.run(agentContext())).resolves.toMatchObject({
+    await expect(workflow.run(agentRunContext())).resolves.toMatchObject({
       status: 'completed',
       result: 'result',
     });
@@ -244,7 +251,7 @@ describe('Workflow', () => {
       }
     );
 
-    await expect(workflow.run(agentContext())).rejects.toBe(failure);
+    await expect(workflow.run(agentRunContext())).rejects.toBe(failure);
     expect(calls).toEqual(['error', 'finally']);
   });
 
@@ -278,7 +285,7 @@ describe('Workflow', () => {
       }
     );
 
-    await expect(workflow.run(agentContext('hello', traceEmitter))).rejects.toBe(failure);
+    await expect(workflow.run(agentRunContext('hello', traceEmitter))).rejects.toBe(failure);
     expect(calls).toEqual([
       'trace:workflow-run-started',
       'trace:step-started',
@@ -313,7 +320,7 @@ describe('Workflow', () => {
       }
     );
 
-    await expect(workflow.run(agentContext())).rejects.toBe(failure);
+    await expect(workflow.run(agentRunContext())).rejects.toBe(failure);
     expect(calls).toEqual(['success', 'error', 'finally']);
   });
 
@@ -333,7 +340,7 @@ describe('Workflow', () => {
       }
     );
 
-    const error = await workflow.run(agentContext()).catch((failure: unknown) => failure);
+    const error = await workflow.run(agentRunContext()).catch((failure: unknown) => failure);
 
     expect(error).toBeInstanceOf(AggregateError);
     expect((error as AggregateError).errors).toEqual([
@@ -367,7 +374,7 @@ describe('Workflow', () => {
       }
     );
 
-    await expect(workflow.run(agentContext())).resolves.toMatchObject({ status: 'skipped' });
+    await expect(workflow.run(agentRunContext())).resolves.toMatchObject({ status: 'skipped' });
     expect(calls).toEqual([]);
   });
 
@@ -383,7 +390,7 @@ describe('Workflow', () => {
       }
     );
 
-    await expect(workflow.run(agentContext())).rejects.toMatchObject({
+    await expect(workflow.run(agentRunContext())).rejects.toMatchObject({
       code: 'WORKFLOW_CONTEXT_BASE_REPLACED',
     });
   });
@@ -391,19 +398,19 @@ describe('Workflow', () => {
   it('fails if the entry Step does not produce a result', async () => {
     const workflow = createTestWorkflow({ workflow: () => Promise.resolve() });
 
-    await expect(workflow.run(agentContext())).rejects.toMatchObject({
+    await expect(workflow.run(agentRunContext())).rejects.toMatchObject({
       code: 'WORKFLOW_RESULT_MISSING',
     });
   });
 
   it('prevents a result from being applied to another Agent Context', async () => {
     const workflow = createTestWorkflow();
-    const source = agentContext('source');
+    const source = agentRunContext('source');
     const outcome = await workflow.run(source);
 
     expect(outcome.status).toBe('completed');
     if (outcome.status === 'completed') {
-      await expect(outcome.applyTo(agentContext('target'))).rejects.toMatchObject({
+      await expect(outcome.applyTo(agentRunContext('target'))).rejects.toMatchObject({
         code: 'WORKFLOW_RESULT_CONTEXT_MISMATCH',
       });
     }

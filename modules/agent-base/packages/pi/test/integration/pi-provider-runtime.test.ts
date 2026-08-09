@@ -76,7 +76,7 @@ describe('ordinary Pi provider runtime', () => {
       model: 'test-model',
       baseUrl: server.baseUrl,
       authentication: 'credential-reference',
-      actorEngineId: 'pi-provider',
+      actorEngineId: 'provider',
       contextWindowTokens: 8_192,
       maxOutputTokens: 1_024,
     });

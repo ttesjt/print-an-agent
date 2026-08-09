@@ -112,7 +112,7 @@ function requireCommand(context: SessionNavigationWorkflowContext) {
 }
 
 function validateSessionNavigation(context: SessionNavigationWorkflowContext): Promise<void> {
-  const record = requireRecord(context.agentContext.input satisfies NavigateSessionInput);
+  const record = requireRecord(context.agentRunContext.input satisfies NavigateSessionInput);
   context.sessionId = parseSessionId(record.sessionId);
   context.command = parseCommand(record);
   return Promise.resolve();
@@ -121,13 +121,13 @@ function validateSessionNavigation(context: SessionNavigationWorkflowContext): P
 async function inspectSessionNavigation(context: SessionNavigationWorkflowContext): Promise<void> {
   const { command, sessionId } = requireCommand(context);
   const snapshot = await context.resources.session.inspect({
-    agentId: context.agentContext.identity.id,
+    agentId: context.agentRunContext.identity.id,
     sessionId,
   });
   if (snapshot === undefined) {
     throw new AgentSessionError(
       'SESSION_NOT_FOUND',
-      `Session "${sessionId}" does not exist for agent "${context.agentContext.identity.id}".`
+      `Session "${sessionId}" does not exist for agent "${context.agentRunContext.identity.id}".`
     );
   }
   context.snapshot = snapshot;
@@ -154,7 +154,7 @@ async function commitSessionNavigation(context: SessionNavigationWorkflowContext
   const { command, sessionId } = requireCommand(context);
   if (command.operation === 'inspect') return;
   const applied = await context.resources.session.applyNavigation({
-    agentId: context.agentContext.identity.id,
+    agentId: context.agentRunContext.identity.id,
     sessionId,
     command,
   });
@@ -165,7 +165,7 @@ async function commitSessionNavigation(context: SessionNavigationWorkflowContext
     affectedBranchId: applied.affectedBranchId,
     revision: applied.navigation.revision,
   });
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'session-navigation-applied',
     workflowName: context.workflowName,
     workflowRunId: context.workflowRunId,

@@ -19,8 +19,8 @@ function requireSnapshot(context: SessionCompactionWorkflowContext) {
 
 async function inspectSession(context: SessionCompactionWorkflowContext): Promise<void> {
   const reference = {
-    agentId: context.agentContext.identity.id,
-    sessionId: parseSessionId(context.agentContext.input.sessionId),
+    agentId: context.agentRunContext.identity.id,
+    sessionId: parseSessionId(context.agentRunContext.input.sessionId),
   };
   const snapshot = await context.resources.session.inspect(reference);
   if (snapshot === undefined) {
@@ -30,9 +30,9 @@ async function inspectSession(context: SessionCompactionWorkflowContext): Promis
     );
   }
   const branchId =
-    context.agentContext.input.branchId === undefined
+    context.agentRunContext.input.branchId === undefined
       ? snapshot.navigation.selectedBranchId
-      : parseSessionBranchId(context.agentContext.input.branchId);
+      : parseSessionBranchId(context.agentRunContext.input.branchId);
   const compaction = await context.resources.session.readCompaction({ ...reference, branchId });
   context.snapshot = snapshot;
   context.branchId = branchId;
@@ -49,7 +49,7 @@ function selectCompactionSource(context: SessionCompactionWorkflowContext): Prom
   if (selection.status === 'skipped') {
     context.result = Object.freeze({
       status: 'skipped',
-      sessionId: context.agentContext.input.sessionId,
+      sessionId: context.agentRunContext.input.sessionId,
       branchId: context.branchId ?? requireSnapshot(context).navigation.selectedBranchId,
       reason: 'not-needed',
     });
@@ -103,7 +103,7 @@ async function buildCompactedContext(context: SessionCompactionWorkflowContext):
       SESSION_COMPACTION_RESPONSIBILITY_ID
     );
     context.responsibility = responsibility;
-    await context.agentContext.traceEmitter?.record({
+    await context.agentRunContext.traceEmitter?.record({
       type: 'actor-resolved',
       workflowName: context.workflowName,
       workflowRunId: context.workflowRunId,

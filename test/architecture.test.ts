@@ -165,4 +165,66 @@ describe('module architecture', () => {
       ).toBe(false);
     }
   });
+
+  it('keeps the Agent Base CLI thin over the standalone Agent package', () => {
+    const cliRoot = join(repositoryRoot, 'modules', 'agent-base', 'apps', 'cli');
+    const manifest = JSON.parse(
+      readFileSync(join(cliRoot, 'package.json'), 'utf8')
+    ) as PackageManifest;
+    const agentBaseRuntimeDependencies = Object.keys(manifest.dependencies ?? {}).filter((name) =>
+      name.startsWith('@ta-agent/base-')
+    );
+
+    expect(agentBaseRuntimeDependencies).toEqual(['@ta-agent/base-standalone-agent']);
+    for (const forbiddenImport of [
+      '@ta-agent/base-pi',
+      '@ta-agent/base-model',
+      '@ta-agent/base-request',
+      '@ta-agent/base-session',
+      '@ta-agent/base-composition',
+      '@earendil-works/pi-',
+    ]) {
+      expect(containsTextInTypeScript(join(cliRoot, 'src'), forbiddenImport)).toBe(false);
+    }
+  });
+
+  it('keeps the standalone Agent independent of the Pi adapter', () => {
+    const standaloneRoot = join(
+      repositoryRoot,
+      'modules',
+      'agent-base',
+      'packages',
+      'standalone-agent'
+    );
+    const manifest = JSON.parse(
+      readFileSync(join(standaloneRoot, 'package.json'), 'utf8')
+    ) as PackageManifest;
+
+    expect(declaredDependencies(manifest)).not.toContain('@ta-agent/base-pi');
+    expect(containsTextInTypeScript(join(standaloneRoot, 'src'), '@ta-agent/base-pi')).toBe(false);
+    expect(containsTextInTypeScript(join(standaloneRoot, 'src'), '@earendil-works/pi-')).toBe(
+      false
+    );
+  });
+
+  it('keeps composition public contracts free of Pi names and types', () => {
+    const compositionSource = join(
+      repositoryRoot,
+      'modules',
+      'agent-base',
+      'packages',
+      'composition',
+      'src'
+    );
+    for (const publicContractFile of [
+      'index.ts',
+      'types.ts',
+      'provider-contracts.ts',
+      'deterministic-provider-contracts.ts',
+    ]) {
+      const source = readFileSync(join(compositionSource, publicContractFile), 'utf8');
+      expect(source).not.toContain('@ta-agent/base-pi');
+      expect(source).not.toMatch(/\bPi[A-Z]/);
+    }
+  });
 });

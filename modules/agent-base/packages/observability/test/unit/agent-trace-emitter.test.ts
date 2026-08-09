@@ -24,8 +24,8 @@ describe('Agent trace emitter', () => {
       clock: () => (timestamp += 1),
     });
 
-    await trace.record({ type: 'agent-run-started' });
-    await trace.record({ type: 'agent-run-completed' });
+    await trace.record({ type: 'agent-run-started', operationName: 'test' });
+    await trace.record({ type: 'agent-run-completed', operationName: 'test' });
 
     expect(events).toEqual([
       {
@@ -35,6 +35,7 @@ describe('Agent trace emitter', () => {
         sequence: 1,
         timestamp: 10,
         type: 'agent-run-started',
+        operationName: 'test',
       },
       {
         schemaVersion: 1,
@@ -43,6 +44,7 @@ describe('Agent trace emitter', () => {
         sequence: 2,
         timestamp: 11,
         type: 'agent-run-completed',
+        operationName: 'test',
       },
     ]);
     expect(events.every(Object.isFrozen)).toBe(true);
@@ -71,9 +73,9 @@ describe('Agent trace emitter', () => {
     });
 
     await Promise.all([
-      first.record({ type: 'agent-run-started' }),
-      first.record({ type: 'agent-run-completed' }),
-      second.record({ type: 'agent-run-started' }),
+      first.record({ type: 'agent-run-started', operationName: 'test' }),
+      first.record({ type: 'agent-run-completed', operationName: 'test' }),
+      second.record({ type: 'agent-run-started', operationName: 'test' }),
     ]);
 
     expect(calls.indexOf('end:first:1')).toBeLessThan(calls.indexOf('start:first:2'));
@@ -94,7 +96,9 @@ describe('Agent trace emitter', () => {
       clock: () => 1,
     });
 
-    await expect(trace.record({ type: 'agent-run-started' })).resolves.toBeUndefined();
+    await expect(
+      trace.record({ type: 'agent-run-started', operationName: 'test' })
+    ).resolves.toBeUndefined();
     expect(failures).toHaveLength(1);
     const failure = failures[0];
     expect(failure?.cause).toBe(sinkFailure);
@@ -131,7 +135,7 @@ describe('Agent trace emitter', () => {
 
     await expect(
       Reflect.apply(record, undefined, [
-        { type: 'agent-run-started', privateMessage: 'must not persist' },
+        { type: 'agent-run-started', operationName: 'test', privateMessage: 'must not persist' },
       ])
     ).rejects.toMatchObject({ code: 'TRACE_EVENT_INVALID' });
     expect(events).toEqual([]);

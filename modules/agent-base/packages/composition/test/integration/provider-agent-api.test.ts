@@ -3,7 +3,7 @@ import { AgentModelError, type ProviderCredentialResolutionRequest } from '@ta-a
 import { MemoryAgentTraceAdapter } from '@ta-agent/base-observability';
 import { MemoryOutputSink } from '@ta-agent/base-request';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createPiAgentBase } from '../../src/index.js';
+import { createProviderAgentAPI } from '../../src/index.js';
 
 interface TestServer {
   readonly baseUrl: string;
@@ -101,7 +101,7 @@ describe('ordinary Pi Agent Base composition', () => {
         Promise.resolve({ type: 'api-key' as const, apiKey: 'PRIVATE_AGENT_KEY' })
       ),
     };
-    const agent = createPiAgentBase({
+    const agent = createProviderAgentAPI({
       identity: { id: 'ordinary-agent' },
       instructionContributors: [() => 'PRIVATE_AGENT_INSTRUCTION'],
       observability: { sink: trace, clock: () => 1 },
@@ -114,8 +114,8 @@ describe('ordinary Pi Agent Base composition', () => {
         maxContextCharacters: 1_024,
         timeoutMilliseconds: 5_000,
       },
-      pi: {
-        provider: {
+      provider: {
+        config: {
           kind: 'openai-compatible',
           reference: {
             provider: 'local-openai',
@@ -131,7 +131,7 @@ describe('ordinary Pi Agent Base composition', () => {
     });
     const firstSink = new MemoryOutputSink();
 
-    await expect(agent.checkPiProviderReadiness()).resolves.toMatchObject({ status: 'ready' });
+    await expect(agent.checkProviderReadiness()).resolves.toMatchObject({ status: 'ready' });
     await expect(
       agent.run({ message: 'first turn', sessionId: 'ordinary-session', outputSink: firstSink })
     ).resolves.toMatchObject({ message: { text: 'ordinary agent response' } });
@@ -163,13 +163,13 @@ describe('ordinary Pi Agent Base composition', () => {
       provider: 'local-openai',
     });
     expect(firstResolution?.signal).toBeInstanceOf(AbortSignal);
-    expect(agent.mainActorId).toBe('main');
-    expect(agent.inspectPiProvider()).toMatchObject({
+    expect(agent.agent.resources.responsibilities.mainActorId).toBe('main');
+    expect(agent.inspectProvider()).toMatchObject({
       kind: 'openai-compatible',
       authentication: 'credential-reference',
-      actorEngineId: 'pi-provider',
+      actorEngineId: 'provider',
     });
-    expect(JSON.stringify(agent.inspectPiProvider())).not.toContain('credentials/ordinary-agent');
+    expect(JSON.stringify(agent.inspectProvider())).not.toContain('credentials/ordinary-agent');
     expect(JSON.stringify(trace.inspect())).not.toContain('PRIVATE_AGENT_KEY');
     expect(JSON.stringify(trace.inspect())).not.toContain('credentials/ordinary-agent');
     expect(JSON.stringify(trace.inspect())).not.toContain('PRIVATE_AGENT_INSTRUCTION');
@@ -178,10 +178,10 @@ describe('ordinary Pi Agent Base composition', () => {
 
   it('fails before provider I/O when the configured credential is unavailable', async () => {
     const sink = new MemoryOutputSink();
-    const agent = createPiAgentBase({
+    const agent = createProviderAgentAPI({
       identity: { id: 'ordinary-agent' },
-      pi: {
-        provider: {
+      provider: {
+        config: {
           kind: 'openai-compatible',
           reference: {
             provider: 'local-openai',
@@ -196,7 +196,7 @@ describe('ordinary Pi Agent Base composition', () => {
       },
     });
 
-    await expect(agent.checkPiProviderReadiness()).resolves.toMatchObject({
+    await expect(agent.checkProviderReadiness()).resolves.toMatchObject({
       status: 'credential-unavailable',
     });
     await expect(agent.run({ message: 'hello', outputSink: sink })).rejects.toEqual(

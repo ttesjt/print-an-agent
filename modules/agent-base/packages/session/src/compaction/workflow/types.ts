@@ -2,7 +2,7 @@ import type { ResolvedResponsibility, ResponsibilityRouter } from '@ta-agent/bas
 import type { AgentIdentity } from '@ta-agent/base-identity';
 import type { ContextModelMessage } from '@ta-agent/base-model';
 import type {
-  BaseAgentContext,
+  BaseAgentRunContext,
   BaseWorkflowContext,
   StepOverrides,
   WorkflowCondition,
@@ -27,7 +27,7 @@ export interface SessionCompactionResources {
   readonly clock: () => number;
 }
 
-export interface SessionCompactionAgentContext extends BaseAgentContext<
+export interface SessionCompactionAgentRunContext extends BaseAgentRunContext<
   CompactSessionInput,
   SessionCompactionOutcome
 > {
@@ -37,7 +37,7 @@ export interface SessionCompactionAgentContext extends BaseAgentContext<
 
 export interface SessionCompactionWorkflowContext extends BaseWorkflowContext<
   SessionCompactionStepName,
-  SessionCompactionAgentContext,
+  SessionCompactionAgentRunContext,
   SessionCompactionOutcome
 > {
   readonly resources: SessionCompactionResources;
@@ -49,12 +49,12 @@ export interface SessionCompactionWorkflowContext extends BaseWorkflowContext<
   compactedContext?: ContextModelMessage;
 }
 
-export type SessionCompactionCondition = WorkflowCondition<SessionCompactionAgentContext>;
+export type SessionCompactionCondition = WorkflowCondition<SessionCompactionAgentRunContext>;
 
 export interface CreateSessionCompactionWorkflowOptions extends Omit<
   WorkflowDefinition<
     SessionCompactionStepName,
-    SessionCompactionAgentContext,
+    SessionCompactionAgentRunContext,
     SessionCompactionWorkflowContext,
     SessionCompactionOutcome
   >,

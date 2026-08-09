@@ -1,11 +1,14 @@
 {
-  "name": "@ta-agent/base-agent",
+  "name": "@ta-agent/base-cli",
   "version": "0.1.0",
-  "description": "Official assembled Agent Base composition root.",
+  "description": "Thin standalone command-line entry point for Agent Base.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "agent-base": "./dist/main.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -19,8 +22,7 @@
     "build": "tsc --build tsconfig.build.json",
     "clean": "rm -rf dist *.tsbuildinfo",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "test": "vitest run --passWithNoTests",
-    "test:provider-smoke": "vitest run --config vitest.smoke.config.ts",
+    "test": "pnpm run build && vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "typecheck": "pnpm run build && tsc --noEmit",
@@ -30,15 +32,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/base-actor": "workspace:*",
-    "@ta-agent/base-identity": "workspace:*",
-    "@ta-agent/base-model": "workspace:*",
-    "@ta-agent/base-observability": "workspace:*",
-    "@ta-agent/base-pi": "workspace:*",
-    "@ta-agent/base-request": "workspace:*",
-    "@ta-agent/base-session": "workspace:*",
-    "@ta-agent/base-tool": "workspace:*",
-    "@ta-agent/base-workflow": "workspace:*"
+    "@ta-agent/base-standalone-agent": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

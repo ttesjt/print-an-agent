@@ -79,7 +79,7 @@ async function handleMessageEnd(
   if (normalized?.role !== 'assistant') {
     throw new AgentModelError(
       'MODEL_RUNTIME_PROTOCOL_INVALID',
-      'Pi completed without a valid assistant message.'
+      'Provider completed without a valid assistant message.'
     );
   }
   if (request.tools.tools.length > 0) {

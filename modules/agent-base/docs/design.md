@@ -66,57 +66,71 @@ applications and clients
 Utility and adapter packages are libraries. They do not start listeners, own a process lifecycle,
 or silently choose product policy.
 
-The assembled agent package is the single composition root. It selects adapters, supplies all
-required rules, and exposes a directly runnable agent API. This package is the final agent service
-from the code-architecture perspective, even when a CLI or HTTP application hosts it in a process.
+The assembled agent package is the single composition root. Its ground-level `composeAgent()`
+selects adapters, supplies all required rules, and returns the actual Agent. Correct Operation
+behavior must not depend on another facade. The package may also provide a transparent `AgentAPI`
+template with named methods and safe inspection; that API explicitly exposes its wrapped Agent and
+is primarily useful to standalone or delivery layers.
 
-The Agent Base CLI must depend on this assembled agent. It must not repeat or fork the composition.
-Another product may create a different assembled package from the same utilities.
+The Agent Base CLI depends on the standalone Agent API. It must not repeat or fork the composition.
+Framework consumers may use the raw composed Agent directly, and another product may define its own
+API projection from the same Agent primitives.
 
 ## Runtime hierarchy
 
 ```text
 Agent
-  → explicit Workflow Plan
-      → Workflow
-          → Step
+  → Agent Operation
+      → Agent Run
+          → Workflow
+              → Step
 ```
 
-The four levels have deliberately different responsibilities. Agent and Workflow are reusable,
-run-stateless domain objects. Agent Context and Workflow Context contain all mutable execution
+The levels have deliberately different responsibilities. Agent, Agent Operation, and Workflow are
+reusable run-stateless definitions. Agent Run Context and Workflow Context contain mutable execution
 state.
 
-## Agent and Agent Context
+## Agent, Agent Operation, and Agent Run Context
 
-An Agent is a reusable holder and orchestrator containing:
+An Agent is the sole reusable owner containing:
 
 - agent identity;
-- agent configuration;
-- resources and adapters;
-- a resolved Workflow Registry;
-- a default Workflow Plan;
-- an Agent Context factory.
+- global resources and adapters;
+- one immutable heterogeneous Workflow Catalog;
+- one immutable heterogeneous Agent Operation Catalog.
 
-The Agent does not retain mutable cross-request state. Every `run()` creates exactly one Agent
-Context. That Context is shared across only the Workflows selected for the current run and is the
-explicit place for cross-Workflow state.
+An Agent Operation is a static named executable capability. It declares public or internal exposure,
+typed input/output, local config and resources, an Agent Run Context factory, an explicit ordered
+Workflow Plan, and the exact other Operations it may invoke. Optional bounded Run preparation and
+terminal error mapping keep input normalization, signal policy, and public failures inside the
+Operation rather than an outer API facade. An Operation does not need an LLM.
+
+Every `agent.invoke()` creates exactly one Agent Run with an isolated Context, Run ID, signal, trace
+lifecycle, and result. The Context is shared only by the Workflows selected by that Operation and is
+the explicit place for cross-Workflow state.
 
 ```ts
-interface BaseAgentContext {
+interface BaseAgentRunContext {
   readonly identity: AgentIdentity;
+  readonly operationName: string;
   readonly runId: string;
+  readonly parentRunId?: string;
   readonly input: unknown;
   output?: unknown;
   readonly signal: AbortSignal;
+  readonly operations: AgentOperationInvoker;
 }
 ```
 
-Configuration and resources are passed to the Agent Context factory. The product decides which of
-them to expose on its extended Context. Agent Base never creates a global database or provider.
+Operation config and local resources are passed to the Agent Run Context factory. The product
+decides which of them to expose on its extended Context. Agent Base never creates a global database
+or provider.
 
-`run()` executes the configured default plan. `runPlan()` executes an explicit ordered plan, and
-`runWorkflow()` is the single-Workflow convenience. Agent never runs every registered Workflow
-implicitly.
+The Agent never runs every Workflow implicitly. It invokes one selected public Operation; that
+Operation executes only its fixed plan. Internal Operations are not externally invocable.
+Operation-to-Operation visibility is deny-by-default: a Run receives only a narrowed invoker for
+references its definition declared. Child calls create distinct correlated Runs, inherit
+cancellation by default, and fail closed on undeclared targets or invocation cycles.
 
 ## Identity
 
@@ -133,8 +147,8 @@ interface AgentIdentity {
 and resource adapters. It is not a filesystem path, provider name, model ID, or database locator.
 `displayName` is presentation metadata and must never be used as storage authority.
 
-The reusable Agent holds one immutable identity value, and every run receives that exact value in
-its Agent Context. Storage-backed identity catalogs, rename policy, deletion, import, and cloning
+The reusable Agent holds one immutable identity value, and every Agent Run receives that exact value
+in its Context. Storage-backed identity catalogs, rename policy, deletion, import, and cloning
 are intentionally not guessed by this primitive package; those require resource-lifecycle
 semantics that will be introduced with a concrete adapter.
 
@@ -176,7 +190,12 @@ A Workflow is a reusable class containing:
 - Step definitions and overrides;
 - a Workflow Context factory;
 - a Step Executor;
-- the rule that applies a completed Workflow result to the Agent Context.
+- the rule that applies a completed Workflow result to the Agent Run Context.
+
+A Workflow declares only the minimum Agent Run Context contract it reads or mutates. The Agent
+Operation that selects it must provide a compatible Context. Workflows within one Agent share an
+execution protocol, not one exact Context shape, so the same Workflow definition can be reused by
+multiple compatible Operations.
 
 Every Workflow execution creates an isolated Workflow Context:
 
@@ -184,38 +203,44 @@ Every Workflow execution creates an isolated Workflow Context:
 interface BaseWorkflowContext {
   readonly workflowName: string;
   readonly workflowRunId: string;
-  readonly agentContext: BaseAgentContext;
+  readonly agentRunContext: BaseAgentRunContext;
   readonly signal: AbortSignal;
   readonly runStep: (stepName: string) => Promise<void>;
   result?: unknown;
 }
 ```
 
-The Workflow Context owns temporary Step state. The Agent Context carries intentional cross-Workflow
-state. A completed Workflow returns a typed result and an application function; Agent orchestration
-then explicitly applies that result to the same Agent Context. Results cannot be applied to a
-different run's Context.
+The Workflow Context owns temporary Step state. The Agent Run Context carries intentional
+cross-Workflow state. A completed Workflow returns a typed result and an application function;
+Agent orchestration then explicitly applies that result to the same Agent Run Context. Results
+cannot be applied to a different Run's Context.
 
 `Workflow` is a class because it is a stable named domain object with encapsulated definitions and
 behavior. `createWorkflow()` remains a convenience for consumers that prefer factory composition.
 Subclassing is optional rather than the only extension mechanism.
 
-## Workflow Registry, configuration, and conditions
+## Workflow Catalog, override registries, and conditions
 
-The Agent Workflow Registry distinguishes two skip authorities:
+The Agent owns one immutable heterogeneous Workflow Catalog assembled from its Operation plans.
+The same Workflow object may appear in multiple plans, but two different definitions cannot reuse
+one name. An Operation plan stores exact Workflow references, so construction does not require a
+mutable or two-phase parent catalog.
+
+The separate Workflow Registry utility remains available to composition code and distinguishes two
+skip authorities:
 
 1. Agent configuration may set a registered Workflow to `SKIP_WORKFLOW`. This is permitted only
    when its registration is `skippable: true`.
 2. An active Workflow may return a skip decision from its own condition because it is not applicable
-   to the current Agent Context.
+   to the current Agent Run Context.
 
 Configuration skip prevents the Workflow from being invoked at all. Internal condition skip is a
 run-time domain decision made by the Workflow itself. Required Workflows cannot be disabled by
 configuration, but they may still define an honest applicability condition.
 
-Unknown overrides, missing implementations, name mismatches, illegal skips, and unknown Workflows
-in the default plan fail when Agent is created. Unknown names in a per-run plan fail explicitly at
-run time.
+Unknown overrides, missing implementations, name mismatches, and illegal skips fail during registry
+resolution. Agent construction validates Operation registration, exact callable references, and
+Workflow name uniqueness before any Run begins.
 
 ## Step model and registry
 
@@ -298,23 +323,23 @@ An explicitly skipped Step remains represented in the resolved registry. Calling
 One execution follows a deliberately small sequence:
 
 ```text
-1. Agent receives input, an optional AbortSignal, and an optional explicit Workflow Plan.
-2. Agent creates one Agent Context.
-3. Agent resolves each named Workflow from the ordered plan.
-4. Configuration-skipped Workflows are bypassed.
-5. Active Workflow evaluates its internal condition.
-6. Running Workflow creates one Workflow Context and invokes its entry Step.
-7. Nested Steps share that Workflow Context and resolve through its Step Registry.
-8. Workflow produces a result; Agent applies it to the shared Agent Context.
-9. After the plan completes, Agent returns Agent Context output.
+1. Caller selects one public Agent Operation and supplies typed input plus an optional AbortSignal.
+2. Agent creates one Agent Run ID, narrowed Operation invoker, trace emitter, and Run Context.
+3. Agent executes each exact Workflow reference in the Operation's fixed ordered plan.
+4. Each Workflow evaluates its internal condition.
+5. A running Workflow creates one Workflow Context and invokes its entry Step.
+6. Nested Steps share that Workflow Context and resolve through its Step Registry.
+7. Workflow produces a result; Agent applies it to the shared Agent Run Context.
+8. After the plan completes, Agent requires and returns the Agent Run Context output.
 ```
 
 Each Workflow's Step Executor wraps every active Step invocation, including nested ones. It is the
 seam for tracing, timing, permissions, and execution-wide mechanics within that Workflow.
 
-The initial implemented runtime deliberately does not yet add retries, event middleware, transaction
-management, cycle detection, background-job semantics, or a Condition Registry. Named replaceable
-Conditions should be added as concrete Steps reveal them.
+The implemented runtime deliberately does not add retries, event middleware, transaction management,
+background-job semantics, or a Condition Registry. It detects Operation invocation cycles because
+cross-Operation calls are an explicit runtime graph. Named replaceable Conditions should be added as
+concrete Steps reveal them.
 
 Workflow Runtime does provide `onSuccess`, `onError`, and guaranteed `onFinally` handlers after an
 active Workflow Context has been created. `onError` receives the original execution or success-hook
@@ -326,7 +351,8 @@ and local resource cleanup.
 
 ## Invocation vocabulary
 
-- **Agent Run** (`agent.run()`): complete public lifecycle across an explicit Workflow Plan.
+- **Agent Operation**: static named executable capability definition owned by one Agent.
+- **Agent Run** (`agent.invoke()`): one Operation invocation across its explicit Workflow Plan.
 - **Workflow Run**: one named Workflow with one Workflow Context.
 - **Request Workflow**: foreground `prepareRequest -> executeRequest` processing.
 - **Agent Loop**: inner bounded model/tool loop used by `runAgentInteraction`, normally delegated to
@@ -357,11 +383,11 @@ They own any integration with Model Workbench.
 
 ## Design rules
 
-- Keep Agent and Workflow definitions run-stateless.
-- Keep mutable state in Agent Context or Workflow Context according to its lifetime.
+- Keep Agent, Agent Operation, and Workflow definitions run-stateless.
+- Keep mutable state in Agent Run Context or Workflow Context according to its lifetime.
 - Make dependencies explicit in constructors, factories, and Contexts.
 - Keep default composition readable from one source file.
-- Execute only an explicit Workflow Plan; never iterate the entire registry implicitly.
+- Execute only the selected Operation's explicit Workflow Plan; never iterate a catalog implicitly.
 - Treat leaf, composite, and Workflow entry execution as the same Step abstraction.
 - Resolve all nested Steps through the current Workflow Context's registry.
 - Distinguish configuration skip from Workflow applicability conditions.
@@ -385,9 +411,10 @@ The current foundation contains:
   resolver port, normalized text messages and usage, bounded Agent Loop events, execution targets,
   runtime ports, and structured failures;
 - `@ta-agent/base-session`: generic session/turn authority plus the process-local memory adapter;
-- `@ta-agent/base-workflow`: reusable Agent and Workflow classes, explicit Workflow Plans,
-  Agent-level Workflow Registry, configuration and condition skips, two run-scoped Context
-  lifetimes, Step Registry, Step Executor, and registry-based composite composition.
+- `@ta-agent/base-workflow`: single-owner Agent, typed Agent Operation and Run contracts, one
+  heterogeneous Workflow Catalog, minimum Run Context contracts, explicit Workflow Plans, two
+  run-scoped Context lifetimes, Step/override registries, Step Executor, and registry-based
+  composite composition;
 - `@ta-agent/base-request`: the canonical
   `request Workflow -> runRequest -> prepareRequest/executeRequest` composition, stable Request Step
   names, fail-fast generic placeholders, concrete text-request Step overrides over injected ports, and
@@ -395,12 +422,14 @@ The current foundation contains:
 - `@ta-agent/base-pi`: the isolated low-level Pi `0.82.1` loop adapter with one shared Actor runtime,
   a deterministic faux profile, exact builtin provider/model binding, and explicit text-only
   OpenAI-compatible endpoints;
-- `@ta-agent/base-agent`: the official assembled request composition with bounded execution,
-  in-memory sessions, faux and ordinary Pi provider shortcuts, streaming, and supported
-  adapter/Step/Workflow replacement.
+- `@ta-agent/base-composition`: one Agent owner with public foreground/navigation/compaction
+  Operations, bounded execution, deterministic and ordinary-provider shortcuts, streaming, and
+  supported adapter/Step/Workflow replacement;
+- `@ta-agent/base-standalone-agent`: the closed standalone configuration and explicit Memory/SQLite
+  reference-application profile consumed by the CLI.
 
 The Workflow package accepts a product's already resolved typed config. It does not resolve or
 persist configuration itself. The composition architecture is formal, but memory persistence remains
-a development default for faux and ordinary provider shortcuts. OAuth, durable credential storage,
+a development default for deterministic and ordinary-provider shortcuts. OAuth, durable credential storage,
 dynamic provider catalog persistence, broad provider qualification, automatic failover, identity
-catalog lifecycle, and the standalone CLI remain bounded later work.
+catalog lifecycle, and managed Agent directories remain bounded later work.

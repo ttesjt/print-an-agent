@@ -1,5 +1,10 @@
 import type { AgentIdentity } from '@ta-agent/base-identity';
 import type { AgentTraceEmitter } from '@ta-agent/base-observability';
+import type {
+  AgentOperationInvoker,
+  AgentOperationName,
+  AgentOperationReferenceMap,
+} from './agent-operation.js';
 import type { StepName } from './step.js';
 import type { WorkflowName } from './workflow.js';
 
@@ -7,27 +12,34 @@ export interface StepRunner<TStepName extends StepName = StepName> {
   readonly runStep: (stepName: TStepName) => Promise<void>;
 }
 
-export interface BaseAgentContext<TInput = unknown, TOutput = unknown> {
+export interface BaseAgentRunContext<
+  TInput = unknown,
+  TOutput = unknown,
+  TCallableOperations extends AgentOperationReferenceMap = Readonly<Record<never, never>>,
+> {
   readonly identity: AgentIdentity;
+  readonly operationName: AgentOperationName;
   readonly runId: string;
+  readonly parentRunId?: string;
   readonly input: TInput;
   output?: TOutput;
   readonly signal: AbortSignal;
+  readonly operations: AgentOperationInvoker<TCallableOperations>;
   readonly traceEmitter?: AgentTraceEmitter;
 }
 
-export type AnyAgentContext = BaseAgentContext<unknown, unknown>;
+export type AnyAgentRunContext = BaseAgentRunContext<unknown, unknown>;
 
 export interface BaseWorkflowContext<
   TStepName extends StepName = StepName,
-  TAgentContext extends AnyAgentContext = AnyAgentContext,
+  TAgentContext extends AnyAgentRunContext = AnyAgentRunContext,
   TResult = unknown,
 > extends StepRunner<TStepName> {
   readonly workflowName: WorkflowName;
   readonly workflowRunId: string;
-  readonly agentContext: TAgentContext;
+  readonly agentRunContext: TAgentContext;
   readonly signal: AbortSignal;
   result?: TResult;
 }
 
-export type AnyWorkflowContext = BaseWorkflowContext<never, AnyAgentContext, unknown>;
+export type AnyWorkflowContext = BaseWorkflowContext<never, AnyAgentRunContext, unknown>;

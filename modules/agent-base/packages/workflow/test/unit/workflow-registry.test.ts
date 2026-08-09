@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type {
   AgentDefinitionError,
-  BaseAgentContext,
+  BaseAgentRunContext,
   RunnableWorkflow,
   WorkflowDefinitions,
 } from '../../src/index.js';
 import { resolveWorkflowRegistry, SKIP_WORKFLOW } from '../../src/index.js';
 
 type WorkflowName = 'required' | 'optional';
-type TestContext = BaseAgentContext;
+type TestContext = BaseAgentRunContext;
 
 function workflow(name: string): RunnableWorkflow<TestContext> {
   return {

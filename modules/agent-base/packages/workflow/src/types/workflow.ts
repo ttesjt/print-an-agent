@@ -1,4 +1,4 @@
-import type { AnyAgentContext, BaseWorkflowContext, StepRunner } from './context.js';
+import type { AnyAgentRunContext, BaseWorkflowContext, StepRunner } from './context.js';
 import type { StepDefinitions, StepExecutor, StepName, StepOverrides } from './step.js';
 
 export type WorkflowName = string;
@@ -7,8 +7,8 @@ export type WorkflowDecision =
   | Readonly<{ status: 'run' }>
   | Readonly<{ status: 'skip'; reason: string }>;
 
-export type WorkflowCondition<C extends AnyAgentContext> = (
-  agentContext: C
+export type WorkflowCondition<C extends AnyAgentRunContext> = (
+  agentRunContext: C
 ) => Promise<WorkflowDecision>;
 
 export interface WorkflowLifecycle<WC> {
@@ -19,23 +19,23 @@ export interface WorkflowLifecycle<WC> {
 
 export interface WorkflowContextFactoryInput<
   TStepName extends StepName,
-  C extends AnyAgentContext,
+  C extends AnyAgentRunContext,
 > extends StepRunner<TStepName> {
   readonly workflowName: WorkflowName;
   readonly workflowRunId: string;
-  readonly agentContext: C;
+  readonly agentRunContext: C;
   readonly signal: AbortSignal;
 }
 
 export type WorkflowContextFactory<
   TStepName extends StepName,
-  C extends AnyAgentContext,
+  C extends AnyAgentRunContext,
   WC extends BaseWorkflowContext<TStepName, C>,
 > = (input: WorkflowContextFactoryInput<TStepName, C>) => WC;
 
 export interface WorkflowDefinition<
   TStepName extends StepName,
-  C extends AnyAgentContext,
+  C extends AnyAgentRunContext,
   WC extends BaseWorkflowContext<TStepName, C, TResult>,
   TResult,
 > {
@@ -46,17 +46,17 @@ export interface WorkflowDefinition<
   readonly createContext: WorkflowContextFactory<TStepName, C, WC>;
   readonly condition?: WorkflowCondition<C>;
   readonly lifecycle?: WorkflowLifecycle<WC>;
-  readonly applyResult: (agentContext: C, result: TResult) => Promise<void>;
+  readonly applyResult: (agentRunContext: C, result: TResult) => Promise<void>;
   readonly executeStep?: StepExecutor<TStepName, WC>;
   readonly createRunId?: () => string;
 }
 
-export interface CompletedWorkflowRun<C extends AnyAgentContext, TResult> {
+export interface CompletedWorkflowRun<C extends AnyAgentRunContext, TResult> {
   readonly status: 'completed';
   readonly workflowName: WorkflowName;
   readonly workflowRunId: string;
   readonly result: TResult;
-  readonly applyTo: (agentContext: C) => Promise<void>;
+  readonly applyTo: (agentRunContext: C) => Promise<void>;
 }
 
 export interface SkippedWorkflowRun {
@@ -65,11 +65,11 @@ export interface SkippedWorkflowRun {
   readonly reason: string;
 }
 
-export type WorkflowRunOutcome<C extends AnyAgentContext, TResult> =
+export type WorkflowRunOutcome<C extends AnyAgentRunContext, TResult> =
   | CompletedWorkflowRun<C, TResult>
   | SkippedWorkflowRun;
 
-export interface RunnableWorkflow<C extends AnyAgentContext> {
+export interface RunnableWorkflow<C extends AnyAgentRunContext> {
   readonly name: WorkflowName;
-  run(agentContext: C): Promise<WorkflowRunOutcome<C, unknown>>;
+  run(agentRunContext: C): Promise<WorkflowRunOutcome<C, unknown>>;
 }

@@ -1,10 +1,10 @@
 import { parseSessionBranchId, parseSessionId } from '../../identifiers.js';
 import { selectSessionCompactionSource } from '../source-selection.js';
-import type { SessionCompactionAgentContext, SessionCompactionCondition } from './types.js';
+import type { SessionCompactionAgentRunContext, SessionCompactionCondition } from './types.js';
 import { RUN_WORKFLOW, skipWorkflow } from '@ta-agent/base-workflow';
 
 export function createShouldCompactSessionCondition(): SessionCompactionCondition {
-  return async (context: SessionCompactionAgentContext) => {
+  return async (context: SessionCompactionAgentRunContext) => {
     const reference = {
       agentId: context.identity.id,
       sessionId: parseSessionId(context.input.sessionId),

@@ -1,0 +1,53 @@
+{
+  "name": "@ta-agent/base-composition",
+  "version": "0.1.0",
+  "description": "Official Agent Base runtime composition root.",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run --passWithNoTests",
+    "test:provider-smoke": "vitest run --config vitest.smoke.config.ts",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "typecheck": "pnpm run build && tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@ta-agent/base-actor": "workspace:*",
+    "@ta-agent/base-identity": "workspace:*",
+    "@ta-agent/base-model": "workspace:*",
+    "@ta-agent/base-observability": "workspace:*",
+    "@ta-agent/base-pi": "workspace:*",
+    "@ta-agent/base-request": "workspace:*",
+    "@ta-agent/base-session": "workspace:*",
+    "@ta-agent/base-tool": "workspace:*",
+    "@ta-agent/base-workflow": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  }
+}

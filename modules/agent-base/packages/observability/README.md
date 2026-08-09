@@ -2,8 +2,10 @@
 
 Privacy-safe correlated execution tracing for Agent Base.
 
-The Agent Run ID is the trace root. Events use a closed metadata-only schema and a strictly
-increasing per-run sequence. Prompts, instructions, history, model output, tool arguments/results,
+The Agent Run ID is the trace root. Agent Run lifecycle events identify the selected Operation, and
+nested Operation calls may include only their parent Run ID for correlation. Events use a closed
+metadata-only schema and a strictly increasing per-run sequence. Prompts, instructions, history,
+model output, tool arguments/results,
 exception messages, credentials, endpoints, and Pi values are never trace fields.
 
 Tracing is diagnostic and fail-open. `NOOP_AGENT_TRACE_SINK` is the retention-free default.

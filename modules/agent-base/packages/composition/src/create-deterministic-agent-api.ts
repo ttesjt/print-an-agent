@@ -6,12 +6,15 @@ import {
   MAIN_ACTOR_ID,
 } from '@ta-agent/base-actor';
 import { createPiFauxRuntime } from '@ta-agent/base-pi';
-import { assembleAgentBase } from './assemble-agent-base.js';
-import type { CreatePiFauxAgentBaseOptions, PiFauxAgentBase } from './types.js';
+import { createAgentAPI } from './agent-api.js';
+import { composeAgent } from './compose-agent.js';
+import type { CreateDeterministicAgentAPIOptions, DeterministicAgentAPI } from './types.js';
 
-export function createPiFauxAgentBase(options: CreatePiFauxAgentBaseOptions): PiFauxAgentBase {
+export function createDeterministicAgentAPI(
+  options: CreateDeterministicAgentAPIOptions
+): DeterministicAgentAPI {
   const {
-    pi,
+    provider,
     actorCatalog: injectedActorCatalog,
     responsibilityCatalog: injectedResponsibilityCatalog,
     mainActorId,
@@ -22,7 +25,7 @@ export function createPiFauxAgentBase(options: CreatePiFauxAgentBaseOptions): Pi
   if ((injectedActorCatalog === undefined) !== (injectedResponsibilityCatalog === undefined)) {
     throw new AgentActorError(
       'ACTOR_CATALOG_INVALID',
-      'Pi faux composition requires Actor and Responsibility catalogs to be injected together.'
+      'Deterministic composition requires Actor and Responsibility catalogs to be injected together.'
     );
   }
   if (
@@ -31,7 +34,7 @@ export function createPiFauxAgentBase(options: CreatePiFauxAgentBaseOptions): Pi
   ) {
     throw new AgentActorError(
       'ACTOR_CATALOG_INVALID',
-      'Injected catalogs cannot be combined with Pi faux Actor definition shortcuts.'
+      'Injected catalogs cannot be combined with deterministic Actor definition shortcuts.'
     );
   }
   if (
@@ -41,10 +44,10 @@ export function createPiFauxAgentBase(options: CreatePiFauxAgentBaseOptions): Pi
   ) {
     throw new AgentActorError(
       'ACTOR_CATALOG_INVALID',
-      'The Pi faux shortcut catalog always names its required Actor "main".'
+      'The deterministic shortcut catalog always names its required Actor "main".'
     );
   }
-  const piProfile = createPiFauxRuntime(pi);
+  const providerProfile = createPiFauxRuntime(provider);
   const actorCatalog =
     injectedActorCatalog ??
     createActorCatalog({
@@ -52,21 +55,24 @@ export function createPiFauxAgentBase(options: CreatePiFauxAgentBaseOptions): Pi
         {
           ...mainActor,
           id: MAIN_ACTOR_ID,
-          engineId: piProfile.actorEngine.id,
+          engineId: providerProfile.actorEngine.id,
         },
       ],
-      engines: [piProfile.actorEngine],
+      engines: [providerProfile.actorEngine],
     });
   const responsibilityCatalog =
     injectedResponsibilityCatalog ??
     createResponsibilityCatalog({
       responsibilities: responsibilities ?? BUILT_IN_RESPONSIBILITIES,
     });
-  const assembled = assembleAgentBase({
+  const agent = composeAgent({
     ...baseOptions,
     actorCatalog,
     responsibilityCatalog,
     ...(mainActorId === undefined ? {} : { mainActorId }),
   });
-  return Object.freeze({ ...assembled, inspectPi: () => piProfile.inspect() });
+  return Object.freeze({
+    ...createAgentAPI(agent),
+    inspectDeterministicProvider: () => providerProfile.inspect(),
+  });
 }

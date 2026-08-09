@@ -11,11 +11,15 @@ describe('createSequentialStep', () => {
     const context: BaseWorkflowContext<StepName> = {
       workflowName: 'workflow',
       workflowRunId: 'workflow-run',
-      agentContext: {
+      agentRunContext: {
         identity: defineAgentIdentity({ id: 'agent' }),
+        operationName: 'test',
         runId: 'agent-run',
         input: undefined,
         signal: new AbortController().signal,
+        operations: Object.freeze({
+          invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
+        }),
       },
       signal: new AbortController().signal,
       runStep: (stepName) => {

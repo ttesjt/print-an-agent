@@ -1,9 +1,8 @@
 import { DEFAULT_REQUEST_POLICY } from '@ta-agent/base-request';
-import type { PiProviderConfigInput } from '@ta-agent/base-pi';
 import { describe, expect, it } from 'vitest';
-import { createPiAgentBase } from '../../src/index.js';
+import { createProviderAgentAPI, type ProviderConfigInput } from '../../src/index.js';
 
-const smokeEnabled = process.env.TA_AGENT_PI_SMOKE === '1';
+const smokeEnabled = process.env.TA_AGENT_PROVIDER_SMOKE === '1';
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name];
@@ -13,10 +12,10 @@ function requiredEnvironment(name: string): string {
   return value;
 }
 
-function providerConfig(): PiProviderConfigInput {
-  const kind = process.env.TA_AGENT_PI_SMOKE_KIND ?? 'builtin';
-  const provider = requiredEnvironment('TA_AGENT_PI_SMOKE_PROVIDER');
-  const model = requiredEnvironment('TA_AGENT_PI_SMOKE_MODEL');
+function providerConfig(): ProviderConfigInput {
+  const kind = process.env.TA_AGENT_PROVIDER_SMOKE_KIND ?? 'builtin';
+  const provider = requiredEnvironment('TA_AGENT_PROVIDER_SMOKE_PROVIDER');
+  const model = requiredEnvironment('TA_AGENT_PROVIDER_SMOKE_MODEL');
   if (kind === 'builtin') {
     return {
       kind,
@@ -24,9 +23,9 @@ function providerConfig(): PiProviderConfigInput {
         provider,
         model,
         credentialRef: 'smoke/provider-api-key',
-        ...(process.env.TA_AGENT_PI_SMOKE_BASE_URL === undefined
+        ...(process.env.TA_AGENT_PROVIDER_SMOKE_BASE_URL === undefined
           ? {}
-          : { baseUrl: process.env.TA_AGENT_PI_SMOKE_BASE_URL }),
+          : { baseUrl: process.env.TA_AGENT_PROVIDER_SMOKE_BASE_URL }),
       },
     };
   }
@@ -36,19 +35,21 @@ function providerConfig(): PiProviderConfigInput {
       reference: {
         provider,
         model,
-        baseUrl: requiredEnvironment('TA_AGENT_PI_SMOKE_BASE_URL'),
+        baseUrl: requiredEnvironment('TA_AGENT_PROVIDER_SMOKE_BASE_URL'),
         credentialRef: 'smoke/provider-api-key',
       },
-      contextWindowTokens: Number(process.env.TA_AGENT_PI_SMOKE_CONTEXT_WINDOW_TOKENS ?? '32768'),
-      maxOutputTokens: Number(process.env.TA_AGENT_PI_SMOKE_MAX_OUTPUT_TOKENS ?? '512'),
+      contextWindowTokens: Number(
+        process.env.TA_AGENT_PROVIDER_SMOKE_CONTEXT_WINDOW_TOKENS ?? '32768'
+      ),
+      maxOutputTokens: Number(process.env.TA_AGENT_PROVIDER_SMOKE_MAX_OUTPUT_TOKENS ?? '512'),
     };
   }
-  throw new Error('TA_AGENT_PI_SMOKE_KIND must be builtin or openai-compatible.');
+  throw new Error('TA_AGENT_PROVIDER_SMOKE_KIND must be builtin or openai-compatible.');
 }
 
-describe.skipIf(!smokeEnabled)('ordinary Pi provider smoke', () => {
+describe.skipIf(!smokeEnabled)('ordinary provider smoke', () => {
   it('performs one bounded, no-tool Agent request through the configured provider', async () => {
-    const agent = createPiAgentBase({
+    const agent = createProviderAgentAPI({
       identity: { id: 'provider-smoke' },
       requestPolicy: {
         ...DEFAULT_REQUEST_POLICY,
@@ -56,13 +57,13 @@ describe.skipIf(!smokeEnabled)('ordinary Pi provider smoke', () => {
         timeoutMilliseconds: 30_000,
       },
       mainActor: { invocationConfig: { temperature: 0, maxOutputTokens: 64 } },
-      pi: {
-        provider: providerConfig(),
+      provider: {
+        config: providerConfig(),
         credentialResolver: {
           resolve: () =>
             Promise.resolve({
               type: 'api-key',
-              apiKey: requiredEnvironment('TA_AGENT_PI_SMOKE_API_KEY'),
+              apiKey: requiredEnvironment('TA_AGENT_PROVIDER_SMOKE_API_KEY'),
             }),
         },
       },

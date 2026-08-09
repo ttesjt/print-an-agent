@@ -15,7 +15,7 @@ function workflowReference(context: DefaultRequestWorkflowContext) {
 
 export async function traceSessionResolved(context: DefaultRequestWorkflowContext): Promise<void> {
   if (context.session === undefined) return;
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'session-resolved',
     ...workflowReference(context),
     sessionId: context.session.sessionId,
@@ -29,7 +29,7 @@ export async function traceReplayResolved(
   status: RequestReplayTraceStatus
 ): Promise<void> {
   if (context.session === undefined) return;
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'request-replay-resolved',
     ...workflowReference(context),
     sessionId: context.session.sessionId,
@@ -40,7 +40,7 @@ export async function traceReplayResolved(
 export async function traceActorResolved(context: DefaultRequestWorkflowContext): Promise<void> {
   if (context.responsibility === undefined) return;
   const responsibility = context.responsibility;
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'actor-resolved',
     ...workflowReference(context),
     responsibilityId: responsibility.id,
@@ -56,7 +56,7 @@ export async function traceActorResolved(context: DefaultRequestWorkflowContext)
 export async function traceToolsResolved(context: DefaultRequestWorkflowContext): Promise<void> {
   if (context.tools === undefined) return;
   const policy = context.resources.toolExecutionPolicy;
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'tools-resolved',
     ...workflowReference(context),
     effectiveToolCount: context.tools.tools.length,
@@ -75,7 +75,7 @@ export async function traceOutputStarted(
   if (context.session === undefined) return;
   context.outputCharacterCount = 0;
   context.replayedOutput = replayed;
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'output-publication-started',
     ...workflowReference(context),
     sessionId: context.session.sessionId,
@@ -92,7 +92,7 @@ export function countOutputCharacters(
 
 export async function traceOutputCompleted(context: DefaultRequestWorkflowContext): Promise<void> {
   if (context.session === undefined) return;
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'output-publication-completed',
     ...workflowReference(context),
     sessionId: context.session.sessionId,
@@ -106,7 +106,7 @@ export async function traceOutputFailed(
   stage: OutputPublicationStage
 ): Promise<void> {
   if (context.session === undefined) return;
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'output-publication-failed',
     ...workflowReference(context),
     sessionId: context.session.sessionId,
@@ -119,7 +119,7 @@ export async function traceOutputFailed(
 export async function traceAgentLoopStarted(context: DefaultRequestWorkflowContext): Promise<void> {
   if (context.session === undefined || context.responsibility === undefined) return;
   context.providerTurnCount = 0;
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'agent-loop-started',
     ...workflowReference(context),
     sessionId: context.session.sessionId,
@@ -132,7 +132,7 @@ async function traceModelResponse(
   context: DefaultRequestWorkflowContext,
   message: AssistantModelMessage
 ): Promise<void> {
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'model-response-completed',
     ...workflowReference(context),
     turnIndex: context.providerTurnCount ?? 0,
@@ -154,7 +154,7 @@ export async function traceAgentLoopEvent(
 ): Promise<void> {
   if (event.type === 'turn-start') {
     context.providerTurnCount = (context.providerTurnCount ?? 0) + 1;
-    await context.agentContext.traceEmitter?.record({
+    await context.agentRunContext.traceEmitter?.record({
       type: 'provider-turn-started',
       ...workflowReference(context),
       turnIndex: context.providerTurnCount,
@@ -162,7 +162,7 @@ export async function traceAgentLoopEvent(
     return;
   }
   if (event.type === 'turn-end') {
-    await context.agentContext.traceEmitter?.record({
+    await context.agentRunContext.traceEmitter?.record({
       type: 'provider-turn-completed',
       ...workflowReference(context),
       turnIndex: context.providerTurnCount ?? 0,
@@ -170,7 +170,7 @@ export async function traceAgentLoopEvent(
     return;
   }
   if (event.type === 'tool-call-start') {
-    await context.agentContext.traceEmitter?.record({
+    await context.agentRunContext.traceEmitter?.record({
       type: 'tool-call-started',
       ...workflowReference(context),
       callId: event.callId,
@@ -179,7 +179,7 @@ export async function traceAgentLoopEvent(
     return;
   }
   if (event.type === 'tool-call-end') {
-    await context.agentContext.traceEmitter?.record({
+    await context.agentRunContext.traceEmitter?.record({
       type: 'tool-call-completed',
       ...workflowReference(context),
       callId: event.callId,
@@ -204,7 +204,7 @@ function toolSummary(context: DefaultRequestWorkflowContext) {
 export async function traceAgentLoopCompleted(
   context: DefaultRequestWorkflowContext
 ): Promise<void> {
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'agent-loop-completed',
     ...workflowReference(context),
     ...toolSummary(context),
@@ -215,7 +215,7 @@ export async function traceAgentLoopFailed(
   context: DefaultRequestWorkflowContext,
   error: unknown
 ): Promise<void> {
-  await context.agentContext.traceEmitter?.record({
+  await context.agentRunContext.traceEmitter?.record({
     type: 'agent-loop-failed',
     ...workflowReference(context),
     ...toolSummary(context),

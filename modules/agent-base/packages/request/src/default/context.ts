@@ -10,7 +10,7 @@ import type {
   SessionPort,
 } from '@ta-agent/base-session';
 import type { ToolExecutionPolicy, ToolName, ToolRegistry, ToolRuntime } from '@ta-agent/base-tool';
-import type { BaseAgentContext, BaseWorkflowContext } from '@ta-agent/base-workflow';
+import type { BaseAgentRunContext, BaseWorkflowContext } from '@ta-agent/base-workflow';
 import type { RequestStepName } from '../workflow/names.js';
 import type {
   AgentRequestInput,
@@ -39,11 +39,11 @@ export interface RequestRuntimeResources {
   readonly clock: () => number;
 }
 
-export type RequestAgentContext = BaseAgentContext<AgentRequestInput, AgentResponse>;
+export type RequestAgentRunContext = BaseAgentRunContext<AgentRequestInput, AgentResponse>;
 
 export interface DefaultRequestWorkflowContext extends BaseWorkflowContext<
   RequestStepName,
-  RequestAgentContext,
+  RequestAgentRunContext,
   AgentResponse
 > {
   readonly resources: RequestRuntimeResources;

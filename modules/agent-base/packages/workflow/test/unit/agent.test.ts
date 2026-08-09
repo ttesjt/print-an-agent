@@ -2,100 +2,74 @@ import { describe, expect, it } from 'vitest';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import { MemoryAgentTraceAdapter } from '@ta-agent/base-observability';
 import type {
-  AgentDefinition,
   AgentDefinitionError,
-  BaseAgentContext,
+  AgentRunContextFactoryInput,
+  BaseAgentRunContext,
   BaseWorkflowContext,
-  WorkflowDefinition,
-  WorkflowOverrides,
 } from '../../src/index.js';
-import { Agent, RUN_WORKFLOW, SKIP_WORKFLOW, skipWorkflow, Workflow } from '../../src/index.js';
+import {
+  createAgent,
+  defineAgentOperation,
+  defineAgentOperationReference,
+  Workflow,
+} from '../../src/index.js';
 
-type WorkflowName = 'first' | 'conditional' | 'optional' | 'complete';
-type StepName = 'workflow';
+type StepName = 'execute';
 
-interface TestAgentContext extends BaseAgentContext<string, string> {
-  readonly trace: string[];
-  readonly observedContexts: Set<TestAgentContext>;
+interface TextRunContext extends BaseAgentRunContext<string, string> {
+  readonly values: string[];
 }
 
-type TestWorkflowContext = BaseWorkflowContext<StepName, TestAgentContext, string>;
+type TextWorkflowContext = BaseWorkflowContext<StepName, TextRunContext, string>;
 
-const TEST_IDENTITY = defineAgentIdentity({ id: 'agent', displayName: 'Test Agent' });
-
-interface TestConfig {
-  readonly prefix: string;
-}
-
-interface TestResources {
-  readonly observedContexts: Set<TestAgentContext>;
-}
-
-function workflow(
-  name: WorkflowName,
-  options: Partial<
-    Pick<WorkflowDefinition<StepName, TestAgentContext, TestWorkflowContext, string>, 'condition'>
-  > = {}
-): Workflow<StepName, TestAgentContext, TestWorkflowContext, string> {
+function textWorkflow(
+  name: string,
+  prefix: string
+): Workflow<StepName, TextRunContext, TextWorkflowContext, string> {
   return new Workflow({
     name,
-    entryStep: 'workflow',
+    entryStep: 'execute',
     stepDefinitions: {
-      workflow: {
+      execute: {
+        skippable: false,
         step: (context) => {
-          context.result = `${name}:${context.agentContext.input}`;
+          context.result = `${prefix}:${context.agentRunContext.input}`;
           return Promise.resolve();
         },
-        skippable: false,
       },
     },
     createContext: (base) => ({ ...base }),
-    ...(options.condition === undefined ? {} : { condition: options.condition }),
     applyResult: (context, result) => {
-      context.observedContexts.add(context);
-      context.trace.push(result);
-      context.output = `${context.trace.join('|')}`;
+      context.values.push(result);
+      context.output = context.values.join('|');
       return Promise.resolve();
     },
   });
 }
 
-function createTestAgent(
-  workflowOverrides: WorkflowOverrides<WorkflowName, TestAgentContext> = {},
-  definitionOverrides: Partial<
-    AgentDefinition<WorkflowName, string, string, TestConfig, TestResources, TestAgentContext>
-  > = {}
-): Agent<WorkflowName, string, string, TestConfig, TestResources, TestAgentContext> {
-  const resources: TestResources = { observedContexts: new Set() };
+type NumberRunContext = BaseAgentRunContext<number, number>;
+type NumberWorkflowContext = BaseWorkflowContext<StepName, NumberRunContext, number>;
 
-  return new Agent({
-    identity: TEST_IDENTITY,
-    config: { prefix: 'unused' },
-    resources,
-    workflowPlan: ['first', 'conditional', 'optional', 'complete'],
-    workflowDefinitions: {
-      first: { workflow: workflow('first'), skippable: false },
-      conditional: {
-        workflow: workflow('conditional', {
-          condition: (context) =>
-            Promise.resolve(
-              context.input === 'skip-conditional'
-                ? skipWorkflow('condition not met')
-                : RUN_WORKFLOW
-            ),
-        }),
-        skippable: true,
+function numberWorkflow(
+  name: string
+): Workflow<StepName, NumberRunContext, NumberWorkflowContext, number> {
+  return new Workflow({
+    name,
+    entryStep: 'execute',
+    stepDefinitions: {
+      execute: {
+        skippable: false,
+        step: (context) => {
+          context.result = context.agentRunContext.input * 2;
+          return Promise.resolve();
+        },
       },
-      optional: { workflow: workflow('optional'), skippable: true },
-      complete: { workflow: workflow('complete'), skippable: false },
     },
-    workflowOverrides,
-    createContext: (base) => ({
-      ...base,
-      trace: [],
-      observedContexts: base.resources.observedContexts,
-    }),
-    ...definitionOverrides,
+    createContext: (base) => ({ ...base }),
+    applyResult: (context, result) => {
+      context.output = result;
+      return Promise.resolve();
+    },
   });
 }
 
@@ -106,163 +80,600 @@ function expectDefinitionError(run: () => unknown, code: AgentDefinitionError['c
     expect(error).toMatchObject({ code });
     return;
   }
-
   throw new Error(`Expected AgentDefinitionError with code ${code}.`);
 }
 
-describe('Agent', () => {
-  it('runs an explicit default Workflow plan in order', async () => {
-    const agent = createTestAgent({ optional: SKIP_WORKFLOW });
-
-    expect(agent.identity).toEqual(TEST_IDENTITY);
-    expect(agent.agentId).toBe(TEST_IDENTITY.id);
-    expect(Object.isFrozen(agent.identity)).toBe(true);
-    await expect(agent.run('hello')).resolves.toBe('first:hello|conditional:hello|complete:hello');
-  });
-
-  it('emits correlated Agent, Workflow, Step, and configured-skip lifecycles', async () => {
-    const trace = new MemoryAgentTraceAdapter({ maxEvents: 32 });
-    const agent = createTestAgent(
-      { optional: SKIP_WORKFLOW },
-      {
-        createRunId: () => 'agent-run',
-        observability: { sink: trace, clock: () => 1 },
-      }
-    );
-
-    await expect(agent.runPlan('hello', ['first', 'optional'])).resolves.toBe('first:hello');
-
-    expect(trace.inspect({ agentRunId: 'agent-run' }).events.map((event) => event.type)).toEqual([
-      'agent-run-started',
-      'workflow-run-started',
-      'step-started',
-      'step-completed',
-      'workflow-run-completed',
-      'workflow-run-skipped',
-      'agent-run-completed',
-    ]);
-  });
-
-  it('traces a condition skip and the resulting missing-output failure', async () => {
-    const trace = new MemoryAgentTraceAdapter({ maxEvents: 16 });
-    const agent = createTestAgent(
-      {},
-      {
-        createRunId: () => 'skipped-run',
-        observability: { sink: trace, clock: () => 1 },
-      }
-    );
-
-    await expect(agent.runPlan('skip-conditional', ['conditional'])).rejects.toMatchObject({
-      code: 'AGENT_OUTPUT_MISSING',
+describe('Agent Operations', () => {
+  it('runs differently typed public Operations through one Agent owner', async () => {
+    const text = textWorkflow('text', 'text');
+    const number = numberWorkflow('number');
+    const textOperation = defineAgentOperation({
+      name: 'text',
+      exposure: 'public',
+      workflowPlan: [text],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          string,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): TextRunContext => ({ ...base, values: [] }),
     });
-    expect(trace.inspect().events.map((event) => event.type)).toEqual([
-      'agent-run-started',
-      'workflow-run-skipped',
-      'agent-run-failed',
-    ]);
-  });
-
-  it('supports an Agent-level custom plan', async () => {
-    const agent = createTestAgent();
-
-    await expect(agent.runPlan('hello', ['first', 'complete'])).resolves.toBe(
-      'first:hello|complete:hello'
-    );
-  });
-
-  it('supports running one selected Workflow', async () => {
-    const agent = createTestAgent();
-
-    await expect(agent.runWorkflow('hello', 'first')).resolves.toBe('first:hello');
-  });
-
-  it('distinguishes internal Workflow conditions from configuration skip', async () => {
-    const agent = createTestAgent({ optional: SKIP_WORKFLOW });
-
-    await expect(agent.run('skip-conditional')).resolves.toBe(
-      'first:skip-conditional|complete:skip-conditional'
-    );
-  });
-
-  it('allows a Workflow implementation override', async () => {
-    const replacement = workflow('optional');
-    const agent = createTestAgent({ optional: replacement });
-
-    await expect(agent.runPlan('hello', ['optional'])).resolves.toBe('optional:hello');
-  });
-
-  it('creates isolated Agent Contexts for concurrent runs', async () => {
-    const agent = createTestAgent({ optional: SKIP_WORKFLOW });
-
-    await Promise.all([agent.run('first-run'), agent.run('second-run')]);
-
-    expect(agent.resources.observedContexts.size).toBe(2);
-    const contexts = [...agent.resources.observedContexts];
-    expect(contexts[0]).not.toBe(contexts[1]);
-    expect(contexts.map((context) => context.input).sort()).toEqual(['first-run', 'second-run']);
-  });
-
-  it('rejects a required Workflow configuration skip during Agent creation', () => {
-    expectDefinitionError(
-      () => createTestAgent({ first: SKIP_WORKFLOW }),
-      'WORKFLOW_NOT_SKIPPABLE'
-    );
-  });
-
-  it('rejects unknown Workflows in the default plan during Agent creation', () => {
-    expectDefinitionError(
-      () => createTestAgent({}, { workflowPlan: ['unknown' as WorkflowName] }),
-      'WORKFLOW_PLAN_UNKNOWN'
-    );
-  });
-
-  it('rejects unknown Workflows in a per-run plan', async () => {
-    const agent = createTestAgent();
-
-    await expect(agent.runPlan('hello', ['unknown' as WorkflowName])).rejects.toMatchObject({
-      code: 'WORKFLOW_NOT_REGISTERED',
+    const numberOperation = defineAgentOperation({
+      name: 'number',
+      exposure: 'public',
+      workflowPlan: [number],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
     });
-  });
-
-  it('rejects an Agent Context factory that replaces runtime-owned fields', async () => {
-    const agent = createTestAgent(
-      {},
-      {
-        createContext: (base) => ({
-          ...base,
-          identity: defineAgentIdentity({ id: 'replacement' }),
-          trace: [],
-          observedContexts: base.resources.observedContexts,
-        }),
-      }
-    );
-
-    await expect(agent.run('hello')).rejects.toMatchObject({
-      code: 'AGENT_CONTEXT_BASE_REPLACED',
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { text: textOperation, number: numberOperation },
     });
+
+    await expect(agent.invoke('text', 'hello')).resolves.toBe('text:hello');
+    await expect(agent.invoke('number', 4)).resolves.toBe(8);
+    expect(agent.operationNames).toEqual(['text', 'number']);
+    expect(agent.workflowCatalog.names).toEqual(['text', 'number']);
   });
 
-  it('requires the selected plan to produce Agent output', async () => {
-    const noOutput = new Workflow<StepName, TestAgentContext, TestWorkflowContext, string>({
-      name: 'first',
-      entryStep: 'workflow',
+  it('lets an Operation prepare its Run and map terminal errors without an outer facade', async () => {
+    const failure = new Error('raw failure');
+    const mappedFailure = new Error('mapped failure');
+    const preparedSignal = new AbortController().signal;
+    let observedInput: string | undefined;
+    let observedSignal: AbortSignal | undefined;
+    const workflow = new Workflow<StepName, TextRunContext, TextWorkflowContext, string>({
+      name: 'prepared-run',
+      entryStep: 'execute',
       stepDefinitions: {
-        workflow: {
-          step: (context) => {
-            context.result = 'result';
-            return Promise.resolve();
-          },
+        execute: {
           skippable: false,
+          step: (context) => {
+            observedInput = context.agentRunContext.input;
+            observedSignal = context.agentRunContext.signal;
+            return Promise.reject(failure);
+          },
         },
       },
       createContext: (base) => ({ ...base }),
       applyResult: () => Promise.resolve(),
     });
-    const agent = createTestAgent({ first: noOutput });
+    const operation = defineAgentOperation({
+      name: 'prepared',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      prepareRun: ({ input }) =>
+        Promise.resolve(Object.freeze({ input: input.toUpperCase(), signal: preparedSignal })),
+      mapRunError: (error, prepared) => {
+        expect(error).toBe(failure);
+        expect(prepared.input).toBe('HELLO');
+        expect(prepared.signal).toBe(preparedSignal);
+        return mappedFailure;
+      },
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          string,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): TextRunContext => ({ ...base, values: [] }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { prepared: operation },
+    });
 
-    await expect(agent.runWorkflow('hello', 'first')).rejects.toMatchObject({
-      code: 'AGENT_OUTPUT_MISSING',
+    await expect(agent.invoke('prepared', 'hello')).rejects.toBe(mappedFailure);
+    expect(observedInput).toBe('HELLO');
+    expect(observedSignal).toBe(preparedSignal);
+  });
+
+  it('reuses one Agent-owned Workflow in multiple Operation plans', async () => {
+    const shared = textWorkflow('shared', 'shared');
+    const extra = textWorkflow('extra', 'extra');
+    const createContext = (
+      base: AgentRunContextFactoryInput<
+        string,
+        Readonly<Record<string, never>>,
+        Readonly<Record<string, never>>,
+        Readonly<Record<never, never>>
+      >
+    ): TextRunContext => ({ ...base, values: [] });
+    const standard = defineAgentOperation({
+      name: 'standard',
+      exposure: 'public',
+      workflowPlan: [shared],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext,
+    });
+    const extended = defineAgentOperation({
+      name: 'extended',
+      exposure: 'public',
+      workflowPlan: [shared, extra],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext,
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { standard, extended },
+    });
+
+    await expect(agent.invoke('standard', 'hello')).resolves.toBe('shared:hello');
+    await expect(agent.invoke('extended', 'hello')).resolves.toBe('shared:hello|extra:hello');
+    expect(agent.workflowCatalog.get('shared')).toBe(shared);
+  });
+
+  it('provides only explicitly callable Operations and creates a correlated child Run', async () => {
+    const trace = new MemoryAgentTraceAdapter({ maxEvents: 32 });
+    const signal = new AbortController().signal;
+    let childContext: NumberRunContext | undefined;
+    const childWorkflow = numberWorkflow('child-workflow');
+    const child = defineAgentOperation({
+      name: 'child',
+      exposure: 'internal',
+      workflowPlan: [childWorkflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createRunId: () => 'child-run',
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => {
+        childContext = { ...base };
+        return childContext;
+      },
+    });
+    const callableOperations = Object.freeze({ child: child.reference });
+    type ParentContext = BaseAgentRunContext<string, string, typeof callableOperations> &
+      Readonly<{ values: string[] }>;
+    type ParentWorkflowContext = BaseWorkflowContext<StepName, ParentContext, string>;
+    const parentWorkflow = new Workflow<StepName, ParentContext, ParentWorkflowContext, string>({
+      name: 'parent-workflow',
+      entryStep: 'execute',
+      stepDefinitions: {
+        execute: {
+          skippable: false,
+          step: async (context) => {
+            const childResult = await context.agentRunContext.operations.invoke('child', 6);
+            context.result = `child:${childResult}`;
+          },
+        },
+      },
+      createContext: (base) => ({ ...base }),
+      applyResult: (context, result) => {
+        context.output = result;
+        return Promise.resolve();
+      },
+    });
+    const parent = defineAgentOperation({
+      name: 'parent',
+      exposure: 'public',
+      workflowPlan: [parentWorkflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      callableOperations,
+      createRunId: () => 'parent-run',
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          string,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          typeof callableOperations
+        >
+      ): ParentContext => ({ ...base, values: [] }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { parent, child },
+      observability: { sink: trace, clock: () => 1 },
+    });
+
+    await expect(agent.invoke('parent', 'start', { signal })).resolves.toBe('child:12');
+    expect(childContext).toMatchObject({
+      identity: agent.identity,
+      operationName: 'child',
+      parentRunId: 'parent-run',
+      signal,
+    });
+    const started = trace.inspect().events.filter((event) => event.type === 'agent-run-started');
+    expect(started).toEqual([
+      expect.objectContaining({ agentRunId: 'parent-run', operationName: 'parent' }),
+      expect.objectContaining({
+        agentRunId: 'child-run',
+        operationName: 'child',
+        parentRunId: 'parent-run',
+      }),
+    ]);
+  });
+
+  it('rejects conflicting definitions for one Agent-owned Workflow name', () => {
+    const first = textWorkflow('shared', 'first');
+    const second = textWorkflow('shared', 'second');
+    const createContext = (
+      base: AgentRunContextFactoryInput<
+        string,
+        Readonly<Record<string, never>>,
+        Readonly<Record<string, never>>,
+        Readonly<Record<never, never>>
+      >
+    ): TextRunContext => ({ ...base, values: [] });
+    const one = defineAgentOperation({
+      name: 'one',
+      exposure: 'public',
+      workflowPlan: [first],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext,
+    });
+    const two = defineAgentOperation({
+      name: 'two',
+      exposure: 'public',
+      workflowPlan: [second],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext,
+    });
+    expectDefinitionError(
+      () =>
+        createAgent({
+          identity: defineAgentIdentity({ id: 'agent' }),
+          resources: Object.freeze({}),
+          operations: { one, two },
+        }),
+      'WORKFLOW_NAME_DUPLICATE'
+    );
+  });
+
+  it('rejects mismatched Operation registration keys and callable references', () => {
+    const workflow = numberWorkflow('number-workflow');
+    const number = defineAgentOperation({
+      name: 'number',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
+    });
+    expectDefinitionError(
+      () =>
+        createAgent({
+          identity: defineAgentIdentity({ id: 'agent' }),
+          resources: Object.freeze({}),
+          operations: { wrong: number },
+        }),
+      'AGENT_OPERATION_NAME_MISMATCH'
+    );
+
+    const forgedReference = defineAgentOperationReference<'number', number, number>('number');
+    const callableOperations = Object.freeze({ number: forgedReference });
+    type ParentContext = BaseAgentRunContext<string, string, typeof callableOperations> &
+      Readonly<{ values: string[] }>;
+    const parent = defineAgentOperation({
+      name: 'parent',
+      exposure: 'public',
+      workflowPlan: [textWorkflow('parent-workflow', 'parent')],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      callableOperations,
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          string,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          typeof callableOperations
+        >
+      ): ParentContext => ({ ...base, values: [] }),
+    });
+    expectDefinitionError(
+      () =>
+        createAgent({
+          identity: defineAgentIdentity({ id: 'agent' }),
+          resources: Object.freeze({}),
+          operations: { parent, number },
+        }),
+      'AGENT_OPERATION_REFERENCE_MISMATCH'
+    );
+  });
+
+  it('rejects external invocation of an internal Operation', async () => {
+    const workflow = numberWorkflow('internal-workflow');
+    const internal = defineAgentOperation({
+      name: 'internal',
+      exposure: 'internal',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { internal },
+    });
+
+    await expect(
+      (agent.invoke as (name: string, input: number) => Promise<number>)('internal', 1)
+    ).rejects.toMatchObject({ code: 'AGENT_OPERATION_NOT_PUBLIC' });
+  });
+
+  it('fails closed when an Operation invokes an undeclared target', async () => {
+    type UndeclaredContext = BaseAgentRunContext<string, string>;
+    type UnsafeInvoker = Readonly<{
+      invoke(name: string, input: unknown): Promise<unknown>;
+    }>;
+    type UndeclaredWorkflowContext = BaseWorkflowContext<StepName, UndeclaredContext, string>;
+    const workflow = new Workflow<StepName, UndeclaredContext, UndeclaredWorkflowContext, string>({
+      name: 'undeclared-workflow',
+      entryStep: 'execute',
+      stepDefinitions: {
+        execute: {
+          skippable: false,
+          step: async (context) => {
+            const unsafeInvoker = context.agentRunContext.operations as unknown as UnsafeInvoker;
+            await unsafeInvoker.invoke('hidden', 1);
+            context.result = 'unreachable';
+          },
+        },
+      },
+      createContext: (base) => ({ ...base }),
+      applyResult: (context, result) => {
+        context.output = result;
+        return Promise.resolve();
+      },
+    });
+    const operation = defineAgentOperation({
+      name: 'public',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          string,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): UndeclaredContext => ({ ...base }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { public: operation },
+    });
+
+    await expect(agent.invoke('public', 'start')).rejects.toMatchObject({
+      code: 'AGENT_OPERATION_NOT_CALLABLE',
+      subjectName: 'hidden',
+    });
+  });
+
+  it('fails closed on a declared Operation invocation cycle', async () => {
+    const firstReference = defineAgentOperationReference<'first', number, number>('first');
+    const secondReference = defineAgentOperationReference<'second', number, number>('second');
+    const firstCallable = Object.freeze({ second: secondReference });
+    const secondCallable = Object.freeze({ first: firstReference });
+
+    type FirstContext = BaseAgentRunContext<number, number, typeof firstCallable>;
+    type SecondContext = BaseAgentRunContext<number, number, typeof secondCallable>;
+
+    function callingWorkflow<C extends BaseAgentRunContext<number, number>>(
+      name: string,
+      invokeTarget: (context: C) => Promise<number>
+    ): Workflow<StepName, C, BaseWorkflowContext<StepName, C, number>, number> {
+      return new Workflow({
+        name,
+        entryStep: 'execute',
+        stepDefinitions: {
+          execute: {
+            skippable: false,
+            step: async (context) => {
+              context.result = await invokeTarget(context.agentRunContext);
+            },
+          },
+        },
+        createContext: (base) => ({ ...base }),
+        applyResult: (context, result) => {
+          context.output = result;
+          return Promise.resolve();
+        },
+      });
+    }
+
+    const first = defineAgentOperation({
+      name: 'first',
+      exposure: 'public',
+      reference: firstReference,
+      workflowPlan: [
+        callingWorkflow<FirstContext>('first-workflow', (context) =>
+          context.operations.invoke('second', context.input)
+        ),
+      ],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      callableOperations: firstCallable,
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          typeof firstCallable
+        >
+      ): FirstContext => ({ ...base }),
+    });
+    const second = defineAgentOperation({
+      name: 'second',
+      exposure: 'internal',
+      reference: secondReference,
+      workflowPlan: [
+        callingWorkflow<SecondContext>('second-workflow', (context) =>
+          context.operations.invoke('first', context.input)
+        ),
+      ],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      callableOperations: secondCallable,
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          typeof secondCallable
+        >
+      ): SecondContext => ({ ...base }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { first, second },
+    });
+
+    await expect(agent.invoke('first', 1)).rejects.toMatchObject({
+      code: 'AGENT_OPERATION_INVOCATION_CYCLE',
+      subjectName: 'first',
+    });
+  });
+
+  it('creates isolated Agent Run Contexts for concurrent invocations', async () => {
+    const observed = new Set<TextRunContext>();
+    const workflow = textWorkflow('text', 'text');
+    const operation = defineAgentOperation({
+      name: 'text',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          string,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): TextRunContext => {
+        const context = { ...base, values: [] };
+        observed.add(context);
+        return context;
+      },
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { text: operation },
+    });
+
+    await Promise.all([agent.invoke('text', 'first'), agent.invoke('text', 'second')]);
+    expect(observed.size).toBe(2);
+    expect([...observed].map((context) => context.input).sort()).toEqual(['first', 'second']);
+  });
+
+  it('protects runtime-owned Context fields and requires an Operation output', async () => {
+    const workflow = numberWorkflow('number-workflow');
+    const replacing = defineAgentOperation({
+      name: 'replacing',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base, runId: 'replaced' }),
+    });
+    const replacingAgent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { replacing },
+    });
+    await expect(replacingAgent.invoke('replacing', 1)).rejects.toMatchObject({
+      code: 'AGENT_RUN_CONTEXT_BASE_REPLACED',
+    });
+
+    const noOutputWorkflow = new Workflow<
+      StepName,
+      NumberRunContext,
+      NumberWorkflowContext,
+      number
+    >({
+      name: 'no-output-workflow',
+      entryStep: 'execute',
+      stepDefinitions: {
+        execute: {
+          skippable: false,
+          step: (context) => {
+            context.result = context.agentRunContext.input;
+            return Promise.resolve();
+          },
+        },
+      },
+      createContext: (base) => ({ ...base }),
+      applyResult: () => Promise.resolve(),
+    });
+    const missing = defineAgentOperation({
+      name: 'missing',
+      exposure: 'public',
+      workflowPlan: [noOutputWorkflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
+    });
+    const missingAgent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { missing },
+    });
+    await expect(missingAgent.invoke('missing', 1)).rejects.toMatchObject({
+      code: 'AGENT_RUN_OUTPUT_MISSING',
     });
   });
 });

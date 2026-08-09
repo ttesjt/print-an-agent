@@ -1,4 +1,4 @@
-import type { AnyAgentContext, Step, StepDefinitions } from '@ta-agent/base-workflow';
+import type { AnyAgentRunContext, Step, StepDefinitions } from '@ta-agent/base-workflow';
 import { RequestStepNotImplementedError } from '../errors.js';
 import type { RequestLeafStepName, RequestStepName } from './names.js';
 import type { RequestWorkflowContext } from './types.js';
@@ -47,7 +47,7 @@ function createPlaceholderStep<WC extends RequestWorkflowContext>(
 }
 
 export function createRequestStepDefinitions<
-  C extends AnyAgentContext,
+  C extends AnyAgentRunContext,
   TResult,
   WC extends RequestWorkflowContext<C, TResult>,
 >(): StepDefinitions<RequestStepName, WC> {

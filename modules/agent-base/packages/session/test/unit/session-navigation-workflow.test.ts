@@ -4,7 +4,7 @@ import {
   createDefaultSessionNavigationStepOverrides,
   createSessionNavigationWorkflow,
   MemorySessionAdapter,
-  type SessionNavigationAgentContext,
+  type SessionNavigationAgentRunContext,
   type SessionNavigationResources,
 } from '../../src/index.js';
 
@@ -18,11 +18,15 @@ describe('Session navigation Workflow contracts', () => {
       resources,
       createRunId: () => 'navigation-workflow-run',
     });
-    const context: SessionNavigationAgentContext = {
+    const context: SessionNavigationAgentRunContext = {
       identity,
+      operationName: 'navigateSession',
       runId: 'navigation-agent-run',
       input: Object.freeze({ sessionId: 'session', operation: 'inspect' }),
       signal: new AbortController().signal,
+      operations: Object.freeze({
+        invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
+      }),
       resources,
     };
 
@@ -42,11 +46,15 @@ describe('Session navigation Workflow contracts', () => {
       stepOverrides: createDefaultSessionNavigationStepOverrides(),
       createRunId: () => 'navigation-workflow-run',
     });
-    const context: SessionNavigationAgentContext = {
+    const context: SessionNavigationAgentRunContext = {
       identity,
+      operationName: 'navigateSession',
       runId: 'navigation-agent-run',
       input: Object.freeze({ sessionId: 'session', operation: 'inspect' }),
       signal: new AbortController().signal,
+      operations: Object.freeze({
+        invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
+      }),
       resources,
     };
 

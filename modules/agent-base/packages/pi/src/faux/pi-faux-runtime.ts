@@ -23,7 +23,7 @@ import type {
 
 const DEFAULT_PROVIDER_ID = 'faux';
 const DEFAULT_MODEL_ID = 'faux-model';
-const DEFAULT_ACTOR_ENGINE_ID = 'pi-faux';
+const DEFAULT_ACTOR_ENGINE_ID = 'deterministic-provider';
 const DEFAULT_CHARACTERS_PER_CHUNK = 3;
 
 function validatePositiveNumber(value: number | undefined, name: string): void {
@@ -71,7 +71,7 @@ export function createPiFauxRuntime(options: PiFauxRuntimeOptions): PiFauxRuntim
   if (options.responses.length === 0) {
     throw new AgentModelError(
       'MODEL_REFERENCE_INVALID',
-      'Pi faux runtime requires at least one deterministic response.'
+      'Deterministic provider requires at least one response.'
     );
   }
   const providerId = options.providerId ?? DEFAULT_PROVIDER_ID;
@@ -109,7 +109,7 @@ export function createPiFauxRuntime(options: PiFauxRuntimeOptions): PiFauxRuntim
   if (model === undefined) {
     throw new AgentModelError(
       'MODEL_RUNTIME_PROTOCOL_INVALID',
-      'Pi faux provider did not register its configured model.'
+      'Deterministic provider did not register its configured model.'
     );
   }
   const runtime = new PiActorRuntime({

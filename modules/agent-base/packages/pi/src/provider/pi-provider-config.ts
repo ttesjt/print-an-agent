@@ -1,9 +1,4 @@
 import { AgentModelError, defineProviderModelReference } from '@ta-agent/base-model';
-import type {
-  PiBuiltinProviderConfigInput,
-  PiOpenAICompatibleProviderConfigInput,
-  PiProviderConfigInput,
-} from './types.js';
 
 const BUILTIN_PROVIDER_CONFIG_KEYS = Object.freeze(['kind', 'reference']);
 const OPENAI_COMPATIBLE_PROVIDER_CONFIG_KEYS = Object.freeze([
@@ -51,21 +46,25 @@ function parsePositiveInteger(value: unknown, label: string): number {
   return value as number;
 }
 
-function defineBuiltinProviderConfig(
-  input: PiBuiltinProviderConfigInput
-): DefinedPiBuiltinProviderConfig {
+type UnknownRecord = Readonly<Record<string, unknown>>;
+
+function isUnknownRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function defineBuiltinProviderConfig(input: UnknownRecord): DefinedPiBuiltinProviderConfig {
   const reference = defineProviderModelReference(input.reference);
   if (reference.credentialRef === undefined) {
     throw new AgentModelError(
       'MODEL_REFERENCE_INVALID',
-      'Pi builtin provider configuration requires a credential reference.'
+      'Builtin provider configuration requires a credential reference.'
     );
   }
   return Object.freeze({ kind: 'builtin', reference });
 }
 
 function defineOpenAICompatibleProviderConfig(
-  input: PiOpenAICompatibleProviderConfigInput
+  input: UnknownRecord
 ): DefinedPiOpenAICompatibleProviderConfig {
   const reference = defineProviderModelReference(input.reference);
   if (reference.baseUrl === undefined) {
@@ -96,27 +95,24 @@ function defineOpenAICompatibleProviderConfig(
   });
 }
 
-export function definePiProviderConfig(input: PiProviderConfigInput): DefinedPiProviderConfig {
-  if (typeof input !== 'object' || input === null) {
+export function definePiProviderConfig(input: unknown): DefinedPiProviderConfig {
+  if (!isUnknownRecord(input)) {
     throw new AgentModelError(
       'MODEL_REFERENCE_INVALID',
-      'Pi provider configuration must be an object.'
+      'Provider configuration must be an object.'
     );
   }
   if (input.kind === 'builtin') {
-    assertExactKeys(input, BUILTIN_PROVIDER_CONFIG_KEYS, 'Pi builtin provider configuration');
+    assertExactKeys(input, BUILTIN_PROVIDER_CONFIG_KEYS, 'Builtin provider configuration');
     return defineBuiltinProviderConfig(input);
   }
   if (input.kind === 'openai-compatible') {
     assertExactKeys(
       input,
       OPENAI_COMPATIBLE_PROVIDER_CONFIG_KEYS,
-      'Pi OpenAI-compatible provider configuration'
+      'OpenAI-compatible provider configuration'
     );
     return defineOpenAICompatibleProviderConfig(input);
   }
-  throw new AgentModelError(
-    'MODEL_REFERENCE_INVALID',
-    'Pi provider configuration kind is invalid.'
-  );
+  throw new AgentModelError('MODEL_REFERENCE_INVALID', 'Provider configuration kind is invalid.');
 }

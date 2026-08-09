@@ -78,12 +78,24 @@ function validateDetailsRecord(
   const type = record.type;
   if (typeof type !== 'string') invalidEvent('Trace event type must be a string.');
 
-  if (type === 'agent-run-started' || type === 'agent-run-completed') {
-    assertExactKeys(record, [], includeEnvelope);
+  if (type === 'agent-run-started') {
+    assertExactKeys(
+      record,
+      record.parentRunId === undefined ? ['operationName'] : ['operationName', 'parentRunId'],
+      includeEnvelope
+    );
+    requireString(record.operationName, 'Trace operationName');
+    if (record.parentRunId !== undefined) requireString(record.parentRunId, 'Trace parentRunId');
+    return;
+  }
+  if (type === 'agent-run-completed') {
+    assertExactKeys(record, ['operationName'], includeEnvelope);
+    requireString(record.operationName, 'Trace operationName');
     return;
   }
   if (type === 'agent-run-failed') {
-    assertExactKeys(record, ['errorCode'], includeEnvelope);
+    assertExactKeys(record, ['operationName', 'errorCode'], includeEnvelope);
+    requireString(record.operationName, 'Trace operationName');
     requireErrorCode(record.errorCode);
     return;
   }

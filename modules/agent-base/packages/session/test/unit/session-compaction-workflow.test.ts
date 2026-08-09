@@ -17,7 +17,7 @@ import {
   DEFAULT_SESSION_BRANCH_ID,
   MemorySessionAdapter,
   parseTurnId,
-  type SessionCompactionAgentContext,
+  type SessionCompactionAgentRunContext,
   type SessionCompactionResources,
 } from '../../src/index.js';
 import { assistantMessage, userMessage } from '../support/session-port-contract.js';
@@ -62,8 +62,9 @@ describe('Session compaction Workflow contracts', () => {
       condition: () => Promise.resolve(RUN_WORKFLOW),
       createRunId: () => 'workflow-run',
     });
-    const context: SessionCompactionAgentContext = {
+    const context: SessionCompactionAgentRunContext = {
       identity,
+      operationName: 'compactSession',
       runId: 'agent-run',
       input: Object.freeze({ sessionId: 'session', branchId: DEFAULT_SESSION_BRANCH_ID }),
       output: Object.freeze({
@@ -73,6 +74,9 @@ describe('Session compaction Workflow contracts', () => {
         reason: 'not-needed',
       }),
       signal: new AbortController().signal,
+      operations: Object.freeze({
+        invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
+      }),
       resources,
     };
 
@@ -121,8 +125,9 @@ describe('Session compaction Workflow contracts', () => {
       condition: () => Promise.resolve(RUN_WORKFLOW),
       createRunId: () => 'workflow-run',
     });
-    const context: SessionCompactionAgentContext = {
+    const context: SessionCompactionAgentRunContext = {
       identity,
+      operationName: 'compactSession',
       runId: 'agent-run',
       input: Object.freeze({ sessionId: 'session', branchId: DEFAULT_SESSION_BRANCH_ID }),
       output: Object.freeze({
@@ -132,6 +137,9 @@ describe('Session compaction Workflow contracts', () => {
         reason: 'not-needed',
       }),
       signal: new AbortController().signal,
+      operations: Object.freeze({
+        invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
+      }),
       resources,
     };
 

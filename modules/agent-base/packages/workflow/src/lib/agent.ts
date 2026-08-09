@@ -6,164 +6,378 @@ import {
   traceErrorCode,
   type AgentTraceRuntimeOptions,
 } from '@ta-agent/base-observability';
-import type { AgentDefinition, AgentRunOptions, RunnableAgent } from '../types/agent.js';
-import type { BaseAgentContext } from '../types/context.js';
+import type { AgentDefinition, RunnableAgent } from '../types/agent.js';
+import type {
+  AgentOperationDefinition,
+  AgentOperationDefinitionMap,
+  AgentOperationInput,
+  AgentOperationInputFromDefinition,
+  AgentOperationOutput,
+  AgentOperationOutputFromDefinition,
+  AgentOperationReferenceMap,
+  AgentRunOptions,
+  PublicAgentOperationName,
+} from '../types/agent-operation.js';
 import { AgentDefinitionError, AgentRunError } from '../types/errors.js';
-import type { WorkflowName } from '../types/workflow.js';
-import type { ResolvedWorkflowRegistry } from '../types/workflow-registry.js';
-import { resolveWorkflowRegistry } from './workflow-registry.js';
+import type { AgentWorkflowCatalog } from '../types/workflow-catalog.js';
+import type { AnyRunnableWorkflow } from '../types/workflow-catalog.js';
+import { createAgentWorkflowCatalog } from './workflow-catalog.js';
 
-export class Agent<
-  TWorkflowName extends WorkflowName,
+interface InvocationLineage {
+  readonly parentRunId?: string;
+  readonly operationNames: readonly string[];
+  readonly signal?: AbortSignal;
+}
+
+interface RegisteredAgentOperation {
+  readonly name: string;
+  readonly exposure: 'public' | 'internal';
+  readonly reference: object;
+  readonly execute: (
+    input: unknown,
+    options: AgentRunOptions,
+    lineage: InvocationLineage
+  ) => Promise<unknown>;
+}
+
+function createRegisteredOperation<
+  TName extends string,
   TInput,
   TOutput,
   TConfig,
   TResources,
-  C extends BaseAgentContext<TInput, TOutput>,
-> implements RunnableAgent<TWorkflowName, TInput, TOutput> {
-  readonly identity: AgentIdentity;
-  readonly config: TConfig;
-  readonly resources: TResources;
-  readonly workflowPlan: readonly TWorkflowName[];
-
-  readonly #workflows: ResolvedWorkflowRegistry<TWorkflowName, C>;
-  readonly #createContext: AgentDefinition<
-    TWorkflowName,
+  TCallableOperations extends AgentOperationReferenceMap,
+  C extends import('../types/context.js').BaseAgentRunContext<TInput, TOutput>,
+>(
+  operation: AgentOperationDefinition<
+    TName,
     TInput,
     TOutput,
     TConfig,
     TResources,
+    TCallableOperations,
     C
-  >['createContext'];
+  >,
+  execute: (
+    operation: AgentOperationDefinition<
+      TName,
+      TInput,
+      TOutput,
+      TConfig,
+      TResources,
+      TCallableOperations,
+      C
+    >,
+    input: TInput,
+    options: AgentRunOptions,
+    lineage: InvocationLineage
+  ) => Promise<TOutput>
+): RegisteredAgentOperation {
+  return Object.freeze({
+    name: operation.name,
+    exposure: operation.exposure,
+    reference: operation.reference,
+    execute: (input: unknown, options: AgentRunOptions, lineage: InvocationLineage) =>
+      execute(operation, input as TInput, options, lineage),
+  });
+}
+
+export class Agent<
+  TResources,
+  TOperations extends AgentOperationDefinitionMap,
+> implements RunnableAgent<TOperations> {
+  readonly identity: AgentIdentity;
+  readonly resources: TResources;
+  readonly workflowCatalog: AgentWorkflowCatalog;
+  readonly operations: TOperations;
+  readonly operationNames: readonly (keyof TOperations & string)[];
+
   readonly #observability: AgentTraceRuntimeOptions;
-  readonly #createRunId: () => string;
+  readonly #operationsByName = new Map<string, RegisteredAgentOperation>();
+  readonly #operationsByReference = new Map<object, RegisteredAgentOperation>();
 
-  constructor(definition: AgentDefinition<TWorkflowName, TInput, TOutput, TConfig, TResources, C>) {
+  constructor(definition: AgentDefinition<TResources, TOperations>) {
     this.identity = defineAgentIdentity(definition.identity);
-    this.config = definition.config;
     this.resources = definition.resources;
-    this.workflowPlan = Object.freeze([...definition.workflowPlan]);
-    this.#workflows = resolveWorkflowRegistry(
-      definition.workflowDefinitions,
-      definition.workflowOverrides
-    );
-    this.#createContext = definition.createContext;
+    this.operations = Object.freeze({ ...definition.operations });
     this.#observability = Object.freeze({ ...definition.observability });
-    this.#createRunId = definition.createRunId ?? randomUUID;
 
-    for (const workflowName of this.workflowPlan) {
-      if (this.#workflows[workflowName] === undefined) {
-        throw new AgentDefinitionError(
-          'WORKFLOW_PLAN_UNKNOWN',
-          workflowName,
-          `Default workflow plan references unregistered workflow "${workflowName}".`
-        );
+    const workflowsByName = new Map<string, AnyRunnableWorkflow>();
+    for (const value of Object.values(definition.operations)) {
+      const operation = value as import('../types/agent-operation.js').AnyAgentOperationDefinition;
+      for (const workflow of operation.workflowPlan) {
+        const registered = workflowsByName.get(workflow.name);
+        if (registered !== undefined && registered !== workflow) {
+          throw new AgentDefinitionError(
+            'WORKFLOW_NAME_DUPLICATE',
+            workflow.name,
+            `Agent Workflow "${workflow.name}" has conflicting definitions across Operations.`
+          );
+        }
+        workflowsByName.set(workflow.name, workflow);
       }
     }
+    this.workflowCatalog = createAgentWorkflowCatalog([...workflowsByName.values()]);
+
+    for (const [registrationName, value] of Object.entries(definition.operations)) {
+      const operation = value as import('../types/agent-operation.js').AnyAgentOperationDefinition;
+      if (operation.name !== registrationName) {
+        throw new AgentDefinitionError(
+          'AGENT_OPERATION_NAME_MISMATCH',
+          registrationName,
+          `Agent Operation registry key "${registrationName}" cannot resolve to Operation "${operation.name}".`
+        );
+      }
+      const registered = createRegisteredOperation(
+        operation,
+        (
+          target: typeof operation,
+          input: never,
+          options: AgentRunOptions,
+          lineage: InvocationLineage
+        ) => this.#executeOperation(target, input, options, lineage)
+      );
+      if (this.#operationsByReference.has(operation.reference)) {
+        throw new AgentDefinitionError(
+          'AGENT_OPERATION_REFERENCE_DUPLICATE',
+          registrationName,
+          `Agent Operation "${registrationName}" reuses another Operation reference.`
+        );
+      }
+      this.#operationsByName.set(registrationName, registered);
+      this.#operationsByReference.set(operation.reference, registered);
+    }
+
+    for (const value of Object.values(definition.operations)) {
+      const operation = value as import('../types/agent-operation.js').AnyAgentOperationDefinition;
+      for (const [callName, reference] of Object.entries(operation.callableOperations)) {
+        const target = this.#operationsByReference.get(reference);
+        if (target === undefined || target.name !== callName) {
+          throw new AgentDefinitionError(
+            'AGENT_OPERATION_REFERENCE_MISMATCH',
+            callName,
+            `Agent Operation "${operation.name}" references an unregistered or mismatched callable Operation "${callName}".`
+          );
+        }
+      }
+    }
+
+    this.operationNames = Object.freeze([
+      ...(Object.keys(definition.operations) as (keyof TOperations & string)[]),
+    ]);
   }
 
   get agentId(): AgentId {
     return this.identity.id;
   }
 
-  async run(input: TInput, options: AgentRunOptions<TWorkflowName> = {}): Promise<TOutput> {
-    const workflowPlan = options.workflowPlan ?? this.workflowPlan;
-    const signal = options.signal ?? new AbortController().signal;
-    const runId = this.#createRunId();
+  invoke<TName extends PublicAgentOperationName<TOperations>>(
+    operationName: TName,
+    input: AgentOperationInputFromDefinition<TOperations[TName]>,
+    options: AgentRunOptions = {}
+  ): Promise<AgentOperationOutputFromDefinition<TOperations[TName]>> {
+    const operation = this.#operationsByName.get(operationName);
+    if (operation === undefined) {
+      return Promise.reject(
+        new AgentRunError(
+          'AGENT_OPERATION_NOT_REGISTERED',
+          `Agent Operation "${operationName}" is not registered for Agent "${this.agentId}".`,
+          operationName
+        )
+      );
+    }
+    if (operation.exposure !== 'public') {
+      return Promise.reject(
+        new AgentRunError(
+          'AGENT_OPERATION_NOT_PUBLIC',
+          `Agent Operation "${operationName}" is not externally invocable.`,
+          operationName
+        )
+      );
+    }
+    return operation.execute(input, options, {
+      operationNames: Object.freeze([]),
+    }) as Promise<AgentOperationOutputFromDefinition<TOperations[TName]>>;
+  }
+
+  async #executeOperation<
+    TName extends string,
+    TInput,
+    TOutput,
+    TConfig,
+    TLocalResources,
+    TCallableOperations extends AgentOperationReferenceMap,
+    C extends import('../types/context.js').BaseAgentRunContext<TInput, TOutput>,
+  >(
+    operation: AgentOperationDefinition<
+      TName,
+      TInput,
+      TOutput,
+      TConfig,
+      TLocalResources,
+      TCallableOperations,
+      C
+    >,
+    input: TInput,
+    options: AgentRunOptions,
+    lineage: InvocationLineage
+  ): Promise<TOutput> {
+    if (lineage.operationNames.includes(operation.name)) {
+      throw new AgentRunError(
+        'AGENT_OPERATION_INVOCATION_CYCLE',
+        `Agent Operation "${operation.name}" cannot recursively invoke itself.`,
+        operation.name
+      );
+    }
+    let preparedInput = input;
+    let signal = options.signal ?? new AbortController().signal;
+    const runId = operation.createRunId?.() ?? randomUUID();
     const traceEmitter = createAgentTraceEmitter({
       agentId: this.agentId,
       agentRunId: runId,
       ...this.#observability,
     });
-    await traceEmitter.record({ type: 'agent-run-started' });
+    await traceEmitter.record({
+      type: 'agent-run-started',
+      operationName: operation.name,
+      ...(lineage.parentRunId === undefined ? {} : { parentRunId: lineage.parentRunId }),
+    });
 
     try {
-      const context = this.#createContext({
+      if (operation.prepareRun !== undefined) {
+        const prepared = await operation.prepareRun({
+          identity: this.identity,
+          input,
+          signal,
+          config: operation.config,
+          resources: operation.resources,
+        });
+        if (
+          typeof prepared !== 'object' ||
+          prepared === null ||
+          !(prepared.signal instanceof AbortSignal)
+        ) {
+          throw new AgentRunError(
+            'AGENT_RUN_PREPARATION_INVALID',
+            `Agent Operation "${operation.name}" returned an invalid Run preparation.`,
+            operation.name
+          );
+        }
+        preparedInput = prepared.input;
+        signal = prepared.signal;
+      }
+      const operations = this.#createOperationInvoker(
+        operation.callableOperations,
+        Object.freeze({
+          parentRunId: runId,
+          operationNames: Object.freeze([...lineage.operationNames, operation.name]),
+          signal,
+        })
+      );
+      const context = operation.createContext({
         identity: this.identity,
+        operationName: operation.name,
         runId,
-        input,
+        ...(lineage.parentRunId === undefined ? {} : { parentRunId: lineage.parentRunId }),
+        input: preparedInput,
         signal,
-        config: this.config,
-        resources: this.resources,
+        config: operation.config,
+        resources: operation.resources,
+        operations,
         traceEmitter,
       });
-
       if (
         context.identity !== this.identity ||
+        context.operationName !== operation.name ||
         context.runId !== runId ||
-        context.input !== input ||
+        context.parentRunId !== lineage.parentRunId ||
+        context.input !== preparedInput ||
         context.signal !== signal ||
+        context.operations !== operations ||
         context.traceEmitter !== traceEmitter
       ) {
         throw new AgentRunError(
-          'AGENT_CONTEXT_BASE_REPLACED',
-          `Agent Context factory for "${this.agentId}" replaced runtime-owned base fields.`,
-          this.agentId
+          'AGENT_RUN_CONTEXT_BASE_REPLACED',
+          `Agent Run Context factory for Operation "${operation.name}" replaced runtime-owned base fields.`,
+          operation.name
         );
       }
 
-      for (const workflowName of workflowPlan) {
-        const resolved = this.#workflows[workflowName];
-        if (resolved === undefined) {
-          throw new AgentRunError(
-            'WORKFLOW_NOT_REGISTERED',
-            `Workflow "${workflowName}" is not registered for agent "${this.agentId}".`,
-            workflowName
-          );
-        }
-        if (resolved.status === 'skipped') {
-          await traceEmitter.record({ type: 'workflow-run-skipped', workflowName });
-          continue;
-        }
-
-        const outcome = await resolved.workflow.run(context);
-        if (outcome.status === 'completed') {
-          await outcome.applyTo(context);
-        }
+      for (const workflow of operation.workflowPlan) {
+        const outcome = await workflow.run(context);
+        if (outcome.status === 'completed') await outcome.applyTo(context);
       }
-
       if (!Object.hasOwn(context, 'output')) {
         throw new AgentRunError(
-          'AGENT_OUTPUT_MISSING',
-          `Agent "${this.agentId}" completed its workflow plan without assigning context.output.`,
-          this.agentId
+          'AGENT_RUN_OUTPUT_MISSING',
+          `Agent Operation "${operation.name}" completed without assigning Agent Run Context output.`,
+          operation.name
         );
       }
-
-      await traceEmitter.record({ type: 'agent-run-completed' });
+      await traceEmitter.record({ type: 'agent-run-completed', operationName: operation.name });
       return context.output as TOutput;
     } catch (error: unknown) {
-      await traceEmitter.record({ type: 'agent-run-failed', errorCode: traceErrorCode(error) });
-      throw error;
+      const mappedError =
+        operation.mapRunError?.(error, {
+          identity: this.identity,
+          input: preparedInput,
+          signal,
+          config: operation.config,
+          resources: operation.resources,
+        }) ?? error;
+      await traceEmitter.record({
+        type: 'agent-run-failed',
+        operationName: operation.name,
+        errorCode: traceErrorCode(mappedError),
+      });
+      throw mappedError;
     }
   }
 
-  runPlan(
-    input: TInput,
-    workflowPlan: readonly TWorkflowName[],
-    options: Omit<AgentRunOptions<TWorkflowName>, 'workflowPlan'> = {}
-  ): Promise<TOutput> {
-    return this.run(input, { ...options, workflowPlan });
-  }
-
-  runWorkflow(
-    input: TInput,
-    workflowName: TWorkflowName,
-    options: Omit<AgentRunOptions<TWorkflowName>, 'workflowPlan'> = {}
-  ): Promise<TOutput> {
-    return this.runPlan(input, [workflowName], options);
+  #createOperationInvoker<TReferences extends AgentOperationReferenceMap>(
+    references: TReferences,
+    lineage: InvocationLineage
+  ): import('../types/agent-operation.js').AgentOperationInvoker<TReferences> {
+    return Object.freeze({
+      invoke: <TName extends keyof TReferences & string>(
+        name: TName,
+        input: AgentOperationInput<TReferences[TName]>,
+        options: AgentRunOptions = {}
+      ): Promise<AgentOperationOutput<TReferences[TName]>> => {
+        const reference = references[name];
+        if (reference === undefined) {
+          return Promise.reject(
+            new AgentRunError(
+              'AGENT_OPERATION_NOT_CALLABLE',
+              `Agent Operation "${name}" is not callable from this Agent Run.`,
+              name
+            )
+          );
+        }
+        const target = this.#operationsByReference.get(reference);
+        if (target === undefined || target.name !== name) {
+          return Promise.reject(
+            new AgentRunError(
+              'AGENT_OPERATION_NOT_CALLABLE',
+              `Agent Operation "${name}" is not callable from this Agent Run.`,
+              name
+            )
+          );
+        }
+        const childOptions =
+          options.signal === undefined && lineage.signal !== undefined
+            ? Object.freeze({ ...options, signal: lineage.signal })
+            : options;
+        return target.execute(input, childOptions, lineage) as Promise<
+          AgentOperationOutput<TReferences[TName]>
+        >;
+      },
+    });
   }
 }
 
-export function createAgent<
-  TWorkflowName extends WorkflowName,
-  TInput,
-  TOutput,
-  TConfig,
-  TResources,
-  C extends BaseAgentContext<TInput, TOutput>,
->(
-  definition: AgentDefinition<TWorkflowName, TInput, TOutput, TConfig, TResources, C>
-): Agent<TWorkflowName, TInput, TOutput, TConfig, TResources, C> {
+export function createAgent<TResources, const TOperations extends AgentOperationDefinitionMap>(
+  definition: AgentDefinition<TResources, TOperations>
+): Agent<TResources, TOperations> {
   return new Agent(definition);
 }

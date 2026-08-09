@@ -20,9 +20,9 @@ export type RequestReplayTraceStatus = 'claimed' | 'completed' | 'active' | 'fai
 export type OutputPublicationStage = 'open' | 'write' | 'close';
 
 export type AgentTraceEventDetails =
-  | Readonly<{ type: 'agent-run-started' }>
-  | Readonly<{ type: 'agent-run-completed' }>
-  | Readonly<{ type: 'agent-run-failed'; errorCode: string }>
+  | Readonly<{ type: 'agent-run-started'; operationName: string; parentRunId?: string }>
+  | Readonly<{ type: 'agent-run-completed'; operationName: string }>
+  | Readonly<{ type: 'agent-run-failed'; operationName: string; errorCode: string }>
   | Readonly<{ type: 'workflow-run-started' } & WorkflowReference>
   | Readonly<{ type: 'workflow-run-skipped'; workflowName: string }>
   | Readonly<{ type: 'workflow-run-completed' } & WorkflowReference>

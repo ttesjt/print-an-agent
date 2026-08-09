@@ -1,5 +1,5 @@
 import { SKIP_WORKFLOW } from '../skip-workflow.js';
-import type { AnyAgentContext } from '../types/context.js';
+import type { AnyAgentRunContext } from '../types/context.js';
 import { AgentDefinitionError } from '../types/errors.js';
 import type { RunnableWorkflow, WorkflowName } from '../types/workflow.js';
 import type {
@@ -11,7 +11,7 @@ import type {
 
 export function resolveWorkflowRegistry<
   TWorkflowName extends WorkflowName,
-  C extends AnyAgentContext,
+  C extends AnyAgentRunContext,
 >(
   definitions: WorkflowDefinitions<TWorkflowName, C>,
   overrides?: WorkflowOverrides<TWorkflowName, C>

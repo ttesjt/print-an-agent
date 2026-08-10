@@ -2,6 +2,7 @@ packages:
   - 'modules/*/apps/*'
   - 'modules/*/clients/*'
   - 'modules/*/packages/*'
+  - 'modules/*/tests/*'
   - 'tooling/templates/*'
 
 catalog:

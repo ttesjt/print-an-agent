@@ -148,9 +148,10 @@ and resource adapters. It is not a filesystem path, provider name, model ID, or 
 `displayName` is presentation metadata and must never be used as storage authority.
 
 The reusable Agent holds one immutable identity value, and every Agent Run receives that exact value
-in its Context. Storage-backed identity catalogs, rename policy, deletion, import, and cloning
-are intentionally not guessed by this primitive package; those require resource-lifecycle
-semantics that will be introduced with a concrete adapter.
+in its Context. Identity Catalog ports own active/disabled lifecycle snapshots, independent CAS
+revisions, and ordered discovery. Memory and SQLite adapters implement the same contract. Agent IDs
+cannot change, and no hard-delete contract exists. Import, clone, migration, and product identity
+semantics remain outside this generic lifecycle.
 
 ## Configuration
 
@@ -175,10 +176,11 @@ compare-and-swap: `expectedRevision: null` creates an absent document, while a n
 that exact revision. Defaults are validated through the same codec as stored data, but resolving a
 default does not silently persist it. Persistence is always an explicit write.
 
-`MemoryAgentConfigAdapter` is the deterministic reference implementation. It demonstrates the
-adapter contract and Agent isolation; it is not the production persistence decision. Session state
-uses its own port and process-local memory adapter; durable configuration and session storage remain
-separate later adapter decisions.
+`MemoryAgentConfigAdapter` is the deterministic reference implementation.
+`SqliteAgentConfigAdapter` supplies opt-in versioned durability, defensive decoding, size limits,
+restart isolation, and CAS. Config values are validated as closed JSON trees before reaching either
+adapter. Session state still uses its own port; a composition may place both packages' independent
+tables in one SQLite database without merging their authority.
 
 ## Workflow and Workflow Context
 
@@ -404,9 +406,10 @@ They own any integration with Model Workbench.
 
 The current foundation contains:
 
-- `@ta-agent/base-identity`: stable identity value and runtime validation;
-- `@ta-agent/base-config`: generic codecs, snapshots, CAS revisions, storage ports, and an in-memory
-  reference adapter;
+- `@ta-agent/base-identity`: stable identity values, active/disabled catalog lifecycle, CAS, and
+  Memory/SQLite adapters;
+- `@ta-agent/base-config`: generic codecs, closed JSON values, snapshots, CAS revisions, storage
+  ports, and Memory/SQLite adapters;
 - `@ta-agent/base-model`: Provider Model and credential references, an invocation-time credential
   resolver port, normalized text messages and usage, bounded Agent Loop events, execution targets,
   runtime ports, and structured failures;
@@ -425,11 +428,12 @@ The current foundation contains:
 - `@ta-agent/base-composition`: one Agent owner with public foreground/navigation/compaction
   Operations, bounded execution, deterministic and ordinary-provider shortcuts, streaming, and
   supported adapter/Step/Workflow replacement;
-- `@ta-agent/base-standalone-agent`: the closed standalone configuration and explicit Memory/SQLite
-  reference-application profile consumed by the CLI.
+- `@ta-agent/base-standalone-agent`: explicit-config Memory/SQLite bootstrap plus the managed
+  per-Agent directory reference profile consumed by the CLI.
 
 The Workflow package accepts a product's already resolved typed config. It does not resolve or
 persist configuration itself. The composition architecture is formal, but memory persistence remains
 a development default for deterministic and ordinary-provider shortcuts. OAuth, durable credential storage,
-dynamic provider catalog persistence, broad provider qualification, automatic failover, identity
-catalog lifecycle, and managed Agent directories remain bounded later work.
+dynamic provider catalog persistence, broad provider qualification, automatic failover, hard delete,
+Agent ID rename, cross-root migration, and distributed lifecycle coordination remain bounded later
+work.

@@ -1,15 +1,20 @@
 import { AgentBaseCliError } from './errors.js';
 import { parseAgentBaseCliCommand, type AgentBaseCliCommand } from './parse-command.js';
-import type { AgentBaseCliDependencies, AgentBaseCliRuntime } from './contracts.js';
+import type { AgentBaseCliDependencies } from './contracts.js';
 
 export const AGENT_BASE_CLI_USAGE = `Usage:
-  agent-base provider check --config <file>
-  agent-base run --config <file> (--message <text> | --message-stdin) [--session-id <id>] [--idempotency-key <key>]
-  agent-base session compact --config <file> --session-id <id> [--branch-id <id>]
-  agent-base session inspect --config <file> --session-id <id>
-  agent-base session select --config <file> --session-id <id> --branch-id <id> --expected-revision <n>
-  agent-base session fork --config <file> --session-id <id> --source-branch-id <id> --through-turn-id <id> --expected-revision <n> [--new-branch-id <id>]
-  agent-base session rewind --config <file> --session-id <id> --through-turn-id <id> --expected-revision <n> [--new-branch-id <id>]
+  agent-base agent create --root <dir> --manifest <file>
+  agent-base agent list --root <dir>
+  agent-base agent inspect --root <dir> --agent-id <id>
+  agent-base agent disable --root <dir> --agent-id <id> --expected-revision <n>
+  agent-base agent reactivate --root <dir> --agent-id <id> --expected-revision <n>
+  agent-base provider check (--config <file> | --root <dir> --agent-id <id>)
+  agent-base run (--config <file> | --root <dir> --agent-id <id>) (--message <text> | --message-stdin) [--session-id <id>] [--idempotency-key <key>]
+  agent-base session compact (--config <file> | --root <dir> --agent-id <id>) --session-id <id> [--branch-id <id>]
+  agent-base session inspect (--config <file> | --root <dir> --agent-id <id>) --session-id <id>
+  agent-base session select (--config <file> | --root <dir> --agent-id <id>) --session-id <id> --branch-id <id> --expected-revision <n>
+  agent-base session fork (--config <file> | --root <dir> --agent-id <id>) --session-id <id> --source-branch-id <id> --through-turn-id <id> --expected-revision <n> [--new-branch-id <id>]
+  agent-base session rewind (--config <file> | --root <dir> --agent-id <id>) --session-id <id> --through-turn-id <id> --expected-revision <n> [--new-branch-id <id>]
 `;
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
@@ -31,10 +36,46 @@ async function writeJson(dependencies: AgentBaseCliDependencies, value: unknown)
 
 async function executeCommand(
   command: Exclude<AgentBaseCliCommand, Readonly<{ kind: 'help' }>>,
-  runtime: AgentBaseCliRuntime,
   dependencies: AgentBaseCliDependencies
 ): Promise<number> {
   const signal = dependencies.signal;
+  if (
+    command.kind === 'agent-create' ||
+    command.kind === 'agent-list' ||
+    command.kind === 'agent-inspect' ||
+    command.kind === 'agent-disable' ||
+    command.kind === 'agent-reactivate'
+  ) {
+    const directory = await dependencies.loadManagedDirectory(command.rootDirectory);
+    if (command.kind === 'agent-create') {
+      await writeJson(
+        dependencies,
+        await directory.create(await dependencies.readJsonDocument(command.manifestPath))
+      );
+      return 0;
+    }
+    if (command.kind === 'agent-list') {
+      await writeJson(dependencies, await directory.list());
+      return 0;
+    }
+    if (command.kind === 'agent-inspect') {
+      await writeJson(dependencies, await directory.inspect(command.agentId));
+      return 0;
+    }
+    if (command.kind === 'agent-disable') {
+      await writeJson(
+        dependencies,
+        await directory.disable(command.agentId, command.expectedRevision)
+      );
+      return 0;
+    }
+    await writeJson(
+      dependencies,
+      await directory.reactivate(command.agentId, command.expectedRevision)
+    );
+    return 0;
+  }
+  const runtime = await dependencies.loadRuntime(command.runtime);
   if (command.kind === 'provider-check') {
     const outcome = await runtime.checkProvider(signal);
     await writeJson(dependencies, outcome);
@@ -134,8 +175,7 @@ export async function runAgentBaseCli(
       await dependencies.standardOutput.write(AGENT_BASE_CLI_USAGE);
       return 0;
     }
-    const runtime = await dependencies.loadRuntime(command.configPath);
-    return await executeCommand(command, runtime, dependencies);
+    return await executeCommand(command, dependencies);
   } catch (error: unknown) {
     if (dependencies.signal.aborted) return 130;
     if (

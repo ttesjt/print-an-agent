@@ -78,6 +78,54 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
 
+  modules/agent-base/tests/integration:
+    devDependencies:
+      '@ta-agent/base-actor':
+        specifier: workspace:*
+        version: link:../../packages/actor
+      '@ta-agent/base-composition':
+        specifier: workspace:*
+        version: link:../../packages/composition
+      '@ta-agent/base-config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@ta-agent/base-identity':
+        specifier: workspace:*
+        version: link:../../packages/identity
+      '@ta-agent/base-model':
+        specifier: workspace:*
+        version: link:../../packages/model
+      '@ta-agent/base-observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@ta-agent/base-request':
+        specifier: workspace:*
+        version: link:../../packages/request
+      '@ta-agent/base-session':
+        specifier: workspace:*
+        version: link:../../packages/session
+      '@ta-agent/base-standalone-agent':
+        specifier: workspace:*
+        version: link:../../packages/standalone-agent
+      '@ta-agent/base-tool':
+        specifier: workspace:*
+        version: link:../../packages/tool
+      '@ta-agent/base-workflow':
+        specifier: workspace:*
+        version: link:../../packages/workflow
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
   modules/agent-base/packages/actor:
     dependencies:
       '@ta-agent/base-model':
@@ -318,6 +366,9 @@ importers:
       '@ta-agent/base-composition':
         specifier: workspace:*
         version: link:../composition
+      '@ta-agent/base-config':
+        specifier: workspace:*
+        version: link:../config
       '@ta-agent/base-identity':
         specifier: workspace:*
         version: link:../identity

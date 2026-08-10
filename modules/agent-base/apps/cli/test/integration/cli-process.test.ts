@@ -151,6 +151,39 @@ async function createConfig(server: LoopbackServer): Promise<string> {
   return configPath;
 }
 
+async function createManagedManifest(server: LoopbackServer): Promise<
+  Readonly<{
+    rootDirectory: string;
+    manifestPath: string;
+  }>
+> {
+  const directory = await mkdtemp(join(tmpdir(), 'agent-base-managed-cli-'));
+  temporaryDirectories.push(directory);
+  const rootDirectory = join(directory, 'agents');
+  const manifestPath = join(directory, 'create-agent.json');
+  await writeFile(
+    manifestPath,
+    JSON.stringify({
+      schemaVersion: 1,
+      identity: { id: 'managed-agent', displayName: 'Managed Agent' },
+      config: {
+        provider: {
+          kind: 'openai-compatible',
+          reference: {
+            provider: 'loopback',
+            model: 'cli-test-model',
+            baseUrl: server.baseUrl,
+          },
+          contextWindowTokens: 8_192,
+          maxOutputTokens: 1_024,
+        },
+        mainActor: { invocationConfig: { temperature: 0, maxOutputTokens: 128 } },
+      },
+    })
+  );
+  return Object.freeze({ rootDirectory, manifestPath });
+}
+
 function runCli(arguments_: readonly string[]): {
   readonly completion: Promise<CliResult>;
   interrupt(): void;
@@ -180,6 +213,81 @@ function runCli(arguments_: readonly string[]): {
 }
 
 describe('standalone Agent Base CLI process', () => {
+  it('manages a directory-backed Agent lifecycle and opens it for provider execution', async () => {
+    const server = await startLoopbackServer();
+    const managed = await createManagedManifest(server);
+    const created = await runCli([
+      'agent',
+      'create',
+      '--root',
+      managed.rootDirectory,
+      '--manifest',
+      managed.manifestPath,
+    ]).completion;
+    expect(created).toMatchObject({ exitCode: 0, standardError: '' });
+    expect(JSON.parse(created.standardOutput) as unknown).toEqual({
+      agentId: 'managed-agent',
+      displayName: 'Managed Agent',
+      status: 'active',
+      identityRevision: 1,
+      configRevision: 1,
+      manifestProjection: 'current',
+    });
+    expect(created.standardOutput).not.toContain(server.baseUrl);
+
+    const run = await runCli([
+      'run',
+      '--root',
+      managed.rootDirectory,
+      '--agent-id',
+      'managed-agent',
+      '--message',
+      'hello managed Agent',
+      '--session-id',
+      'managed-session',
+    ]).completion;
+    expect(run).toMatchObject({ exitCode: 0, standardOutput: 'loopback response\n' });
+
+    const disabled = await runCli([
+      'agent',
+      'disable',
+      '--root',
+      managed.rootDirectory,
+      '--agent-id',
+      'managed-agent',
+      '--expected-revision',
+      '1',
+    ]).completion;
+    expect(disabled.standardOutput).toContain('"status":"disabled"');
+    const blocked = await runCli([
+      'provider',
+      'check',
+      '--root',
+      managed.rootDirectory,
+      '--agent-id',
+      'managed-agent',
+    ]).completion;
+    expect(blocked).toMatchObject({
+      exitCode: 1,
+      standardOutput: '',
+      standardError: 'Agent Base command failed (STANDALONE_AGENT_DISABLED).\n',
+    });
+
+    const reactivated = await runCli([
+      'agent',
+      'reactivate',
+      '--root',
+      managed.rootDirectory,
+      '--agent-id',
+      'managed-agent',
+      '--expected-revision',
+      '2',
+    ]).completion;
+    expect(reactivated.standardOutput).toContain('"status":"active"');
+    const listed = await runCli(['agent', 'list', '--root', managed.rootDirectory]).completion;
+    expect(listed.standardOutput).toContain('"agentId":"managed-agent"');
+  });
+
   it('streams through Pi and preserves Session history and replay across processes', async () => {
     const server = await startLoopbackServer();
     const configPath = await createConfig(server);

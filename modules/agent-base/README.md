@@ -32,8 +32,10 @@ Read [the Agent Base design](./docs/design.md) before adding packages.
 
 Current foundation packages:
 
-- `@ta-agent/base-identity`: stable Agent identity values;
-- `@ta-agent/base-config`: storage-agnostic typed configuration lifecycle;
+- `@ta-agent/base-identity`: stable Agent identity values, lifecycle catalogs, and Memory/SQLite
+  adapters;
+- `@ta-agent/base-config`: storage-agnostic typed configuration lifecycle with Memory/SQLite
+  adapters;
 - `@ta-agent/base-actor`: immutable Actor/Engine contracts, technical capabilities, catalogs, and
   Responsibility routing;
 - `@ta-agent/base-model`: provider-independent model, message, streaming, and loop contracts;
@@ -73,9 +75,19 @@ inspect, select, fork, and non-destructive rewind over append-only lineage. Auto
 scheduling, branch merge/delete/retention, durable trace/credential storage, OAuth, and broader
 provider qualification remain deferred.
 
-For standalone use, `@ta-agent/base-standalone-agent` exposes a closed versioned JSON configuration
-decoder and `createStandaloneAgent()`. The profile requires explicit memory or absolute-path SQLite
-persistence and optionally maps one provider credential reference to a named environment variable;
-secret material never belongs in config. The CLI exposes provider readiness, streamed requests,
-compaction, and Session inspect/select/fork/rewind. It does not select implicit filesystem paths,
-load Tools from configuration, or import Model Workbench or application runtimes.
+For standalone use, `@ta-agent/base-standalone-agent` exposes the explicit-config bootstrap and a
+storage-neutral managed lifecycle. Resource namespace publication, independently typed domain
+adapters, and optional manifest projection are separate composition boundaries. The default managed
+profile uses one explicitly configured root, one directory, and one SQLite database per Agent; an
+alternative profile uses one shared SQLite database for multiple AgentId-isolated Agents and no
+manifest. Both support create/open/list, Config CAS update, and disable/reactivate without hard
+delete. In the filesystem profile, `agent.json` is a portable secret-free projection over SQLite
+authority. The CLI adds the matching filesystem lifecycle commands and can open managed Agents
+through explicit `--root` plus `--agent-id`. It does not select an implicit root, load executable
+adapters or Tools from configuration, persist credentials, or import Model Workbench or application runtimes.
+
+`tests/integration` is a private test-only workspace that compiles and executes Agent Base as an
+external package consumer. It imports only package entry points and exercises the raw Agent,
+optional API projection, custom Engine/Tool/Step seams, ordinary loopback provider, durable replay,
+and opaque managed-resource composition. It is integration evidence, not another runtime or
+application layer.

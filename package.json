@@ -13,7 +13,7 @@
     "lint": "pnpm -r --if-present build && eslint . && pnpm python:lint",
     "lint:fix": "eslint . --fix && pnpm python:lint:fix",
     "test": "pnpm test:architecture && pnpm -r --if-present test && pnpm python:test",
-    "test:architecture": "vitest run test/architecture.test.ts",
+    "test:architecture": "pnpm -r --if-present build && vitest run test/architecture.test.ts",
     "test:watch": "pnpm -r --parallel --if-present test:watch",
     "test:coverage": "pnpm -r --if-present test:coverage",
     "typecheck": "pnpm -r --if-present typecheck && pnpm python:typecheck",

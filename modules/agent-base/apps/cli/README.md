@@ -1,15 +1,17 @@
 # `@ta-agent/base-cli`
 
-The thin standalone command-line composition for Agent Base. It reads one closed, versioned JSON
-configuration, resolves an optional credential reference from one named environment variable, and
-delegates all Agent behavior to `@ta-agent/base-standalone-agent`.
+The thin standalone command-line composition for Agent Base. It can read one explicit closed JSON
+runtime configuration or open a managed Agent by explicit `--root` and `--agent-id`. All lifecycle,
+filesystem, SQLite, and Agent behavior remains delegated to `@ta-agent/base-standalone-agent`.
 
-The CLI exposes provider readiness, one-shot or stdin request execution, Session compaction, and
-Session inspect/select/fork/rewind. Request text streams to stdout; metadata commands emit one JSON
-line. Error output contains stable codes rather than provider, credential, prompt, or response data.
+The CLI exposes Agent create/list/inspect/disable/reactivate, provider readiness, one-shot or stdin
+request execution, Session compaction, and Session inspect/select/fork/rewind. Request text streams
+to stdout; metadata commands emit one JSON line. Lifecycle output is a safe projection containing
+IDs, display name, statuses, and revisions—not provider configuration or credentials. Error output
+contains stable codes rather than paths, provider, credential, prompt, or response data.
 
-Memory and SQLite are explicit persistence profiles. Memory is process-local. SQLite requires an
-absolute database path and provides restart-safe Session and Request Journal state. The CLI does not
+Memory and SQLite remain explicit direct-config profiles. Managed mode derives the per-Agent SQLite
+path only after the operator explicitly supplies a root and validated Agent ID. The CLI does not
 choose a default storage location, load YAML, infer credentials, install tools from configuration,
 or invoke a local model.
 

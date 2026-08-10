@@ -45,8 +45,22 @@ export interface AgentBaseCliRuntime {
   ): Promise<unknown>;
 }
 
+export type AgentBaseCliRuntimeLocator =
+  | Readonly<{ kind: 'config'; configPath: string }>
+  | Readonly<{ kind: 'managed'; rootDirectory: string; agentId: string }>;
+
+export interface AgentBaseCliManagedDirectory {
+  create(manifest: unknown): Promise<unknown>;
+  list(): Promise<unknown>;
+  inspect(agentId: string): Promise<unknown>;
+  disable(agentId: string, expectedRevision: number): Promise<unknown>;
+  reactivate(agentId: string, expectedRevision: number): Promise<unknown>;
+}
+
 export interface AgentBaseCliDependencies {
-  readonly loadRuntime: (configPath: string) => Promise<AgentBaseCliRuntime>;
+  readonly loadRuntime: (locator: AgentBaseCliRuntimeLocator) => Promise<AgentBaseCliRuntime>;
+  readonly loadManagedDirectory: (rootDirectory: string) => Promise<AgentBaseCliManagedDirectory>;
+  readonly readJsonDocument: (path: string) => Promise<unknown>;
   readonly readStandardInput: (signal: AbortSignal) => Promise<string>;
   readonly standardOutput: AgentBaseCliWriter;
   readonly standardError: AgentBaseCliWriter;

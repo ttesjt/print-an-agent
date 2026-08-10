@@ -1,6 +1,7 @@
 import { isAbsolute } from 'node:path';
 import { defineActor, type ActorInvocationConfig } from '@ta-agent/base-actor';
 import { defineProviderConfig } from '@ta-agent/base-composition';
+import type { AgentConfigCodec, ConfigValue } from '@ta-agent/base-config';
 import { defineAgentIdentity, type AgentIdentity } from '@ta-agent/base-identity';
 import { AgentBaseStandaloneError } from './errors.js';
 import type {
@@ -8,6 +9,9 @@ import type {
   StandaloneMainActorConfig,
   StandalonePersistenceConfig,
   StandaloneAgentConfig,
+  StandaloneAgentDefinition,
+  StandaloneAgentDefinitionInput,
+  StandaloneAgentManifest,
 } from './types.js';
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
@@ -20,6 +24,8 @@ const CONFIG_KEYS = Object.freeze([
   'persistence',
   'mainActor',
 ]);
+const DEFINITION_KEYS = Object.freeze(['provider', 'credential', 'mainActor']);
+const MANIFEST_KEYS = Object.freeze(['schemaVersion', 'identity', 'config']);
 const IDENTITY_KEYS = Object.freeze(['id', 'displayName']);
 const CREDENTIAL_KEYS = Object.freeze(['reference', 'environmentVariable']);
 const MAIN_ACTOR_KEYS = Object.freeze(['instructions', 'invocationConfig']);
@@ -185,6 +191,73 @@ function parseStandaloneConfig(input: unknown): StandaloneAgentConfig {
   });
 }
 
+function parseStandaloneAgentDefinition(input: unknown): StandaloneAgentDefinition {
+  const record = requireRecord(input, 'Standalone Agent definition');
+  assertExactKeys(record, DEFINITION_KEYS, 'Standalone Agent definition');
+  const provider = defineProviderConfig(record.provider);
+  const credential = parseCredential(record.credential, provider.reference.credentialRef);
+  const mainActor = parseMainActor(record.mainActor);
+  return Object.freeze({
+    provider,
+    ...(credential === undefined ? {} : { credential }),
+    ...(mainActor === undefined ? {} : { mainActor }),
+  });
+}
+
+function encodeProviderReference(
+  reference: StandaloneAgentDefinition['provider']['reference']
+): ConfigValue {
+  return {
+    provider: reference.provider,
+    model: reference.model,
+    ...(reference.baseUrl === undefined ? {} : { baseUrl: reference.baseUrl }),
+    ...(reference.credentialRef === undefined ? {} : { credentialRef: reference.credentialRef }),
+  };
+}
+
+function encodeStandaloneAgentDefinition(config: StandaloneAgentDefinition): ConfigValue {
+  const provider: ConfigValue =
+    config.provider.kind === 'builtin'
+      ? {
+          kind: config.provider.kind,
+          reference: encodeProviderReference(config.provider.reference),
+        }
+      : {
+          kind: config.provider.kind,
+          reference: encodeProviderReference(config.provider.reference),
+          contextWindowTokens: config.provider.contextWindowTokens,
+          maxOutputTokens: config.provider.maxOutputTokens,
+        };
+  const credential: ConfigValue | undefined =
+    config.credential === undefined
+      ? undefined
+      : {
+          reference: config.credential.reference,
+          environmentVariable: config.credential.environmentVariable,
+        };
+  const mainActor: ConfigValue | undefined =
+    config.mainActor === undefined
+      ? undefined
+      : {
+          ...(config.mainActor.instructions === undefined
+            ? {}
+            : { instructions: config.mainActor.instructions }),
+          invocationConfig: {
+            ...(config.mainActor.invocationConfig.temperature === undefined
+              ? {}
+              : { temperature: config.mainActor.invocationConfig.temperature }),
+            ...(config.mainActor.invocationConfig.maxOutputTokens === undefined
+              ? {}
+              : { maxOutputTokens: config.mainActor.invocationConfig.maxOutputTokens }),
+          },
+        };
+  return {
+    provider,
+    ...(credential === undefined ? {} : { credential }),
+    ...(mainActor === undefined ? {} : { mainActor }),
+  };
+}
+
 export function defineStandaloneAgentConfig(input: unknown): StandaloneAgentConfig {
   try {
     return parseStandaloneConfig(input);
@@ -195,3 +268,49 @@ export function defineStandaloneAgentConfig(input: unknown): StandaloneAgentConf
     });
   }
 }
+
+export function defineStandaloneAgentDefinition(input: unknown): StandaloneAgentDefinition {
+  try {
+    return parseStandaloneAgentDefinition(input);
+  } catch (cause: unknown) {
+    if (cause instanceof AgentBaseStandaloneError) throw cause;
+    throw new AgentBaseStandaloneError('Standalone Agent definition is invalid.', { cause });
+  }
+}
+
+export function defineStandaloneAgentManifest(input: unknown): StandaloneAgentManifest {
+  try {
+    const record = requireRecord(input, 'Standalone Agent manifest');
+    assertExactKeys(record, MANIFEST_KEYS, 'Standalone Agent manifest');
+    if (record.schemaVersion !== 1) {
+      throw new AgentBaseStandaloneError('Standalone Agent manifest schemaVersion must equal 1.');
+    }
+    return Object.freeze({
+      schemaVersion: 1,
+      identity: parseIdentity(record.identity),
+      config: parseStandaloneAgentDefinition(record.config),
+    });
+  } catch (cause: unknown) {
+    if (cause instanceof AgentBaseStandaloneError) throw cause;
+    throw new AgentBaseStandaloneError('Standalone Agent manifest is invalid.', { cause });
+  }
+}
+
+export function encodeStandaloneAgentManifest(manifest: StandaloneAgentManifest): ConfigValue {
+  return {
+    schemaVersion: 1,
+    identity: {
+      id: manifest.identity.id,
+      displayName: manifest.identity.displayName,
+    },
+    config: encodeStandaloneAgentDefinition(manifest.config),
+  };
+}
+
+export const STANDALONE_AGENT_DEFINITION_CODEC: AgentConfigCodec<StandaloneAgentDefinition> =
+  Object.freeze({
+    schemaVersion: 1,
+    decode: (value: unknown) => defineStandaloneAgentDefinition(value),
+    encode: (config: StandaloneAgentDefinitionInput) =>
+      encodeStandaloneAgentDefinition(defineStandaloneAgentDefinition(config)),
+  });

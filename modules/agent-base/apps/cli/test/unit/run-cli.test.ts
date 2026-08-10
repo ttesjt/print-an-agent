@@ -39,6 +39,15 @@ function dependencies(
 } {
   return {
     loadRuntime: () => Promise.resolve(testRuntime),
+    loadManagedDirectory: () =>
+      Promise.resolve({
+        create: () => Promise.resolve({ status: 'created' }),
+        list: () => Promise.resolve([]),
+        inspect: () => Promise.resolve({ status: 'active' }),
+        disable: () => Promise.resolve({ status: 'disabled' }),
+        reactivate: () => Promise.resolve({ status: 'active' }),
+      }),
+    readJsonDocument: () => Promise.resolve({ schemaVersion: 1 }),
     readStandardInput: () => Promise.resolve(standardInput),
     standardOutput: writer(),
     standardError: writer(),
@@ -62,10 +71,80 @@ describe('Agent Base CLI command contract', () => {
       ])
     ).toEqual({
       kind: 'run',
-      configPath: 'agent.json',
+      runtime: { kind: 'config', configPath: 'agent.json' },
       messageSource: { kind: 'argument', value: 'hello' },
       sessionId: 'session-1',
       idempotencyKey: 'request-1',
+    });
+  });
+
+  it('parses managed runtime and Agent lifecycle commands without conflating their scopes', () => {
+    expect(
+      parseAgentBaseCliCommand(['provider', 'check', '--root', '/agents', '--agent-id', 'bro'])
+    ).toEqual({
+      kind: 'provider-check',
+      runtime: { kind: 'managed', rootDirectory: '/agents', agentId: 'bro' },
+    });
+    expect(
+      parseAgentBaseCliCommand([
+        'agent',
+        'disable',
+        '--root',
+        '/agents',
+        '--agent-id',
+        'bro',
+        '--expected-revision',
+        '2',
+      ])
+    ).toEqual({
+      kind: 'agent-disable',
+      rootDirectory: '/agents',
+      agentId: 'bro',
+      expectedRevision: 2,
+    });
+    expect(() =>
+      parseAgentBaseCliCommand([
+        'run',
+        '--config',
+        'agent.json',
+        '--root',
+        '/agents',
+        '--agent-id',
+        'bro',
+        '--message',
+        'hello',
+      ])
+    ).toThrow('cannot be combined');
+  });
+
+  it('routes lifecycle commands through the managed directory and emits safe JSON', async () => {
+    const baseDependencies = dependencies(runtime());
+    const disable = vi.fn(() =>
+      Promise.resolve({ agentId: 'bro', status: 'disabled', identityRevision: 2 })
+    );
+    const deps = {
+      ...baseDependencies,
+      loadManagedDirectory: () =>
+        Promise.resolve({
+          create: () => Promise.resolve({}),
+          list: () => Promise.resolve([]),
+          inspect: () => Promise.resolve({}),
+          disable,
+          reactivate: () => Promise.resolve({}),
+        }),
+    };
+
+    await expect(
+      runAgentBaseCli(
+        ['agent', 'disable', '--root', '/agents', '--agent-id', 'bro', '--expected-revision', '1'],
+        deps
+      )
+    ).resolves.toBe(0);
+    expect(disable).toHaveBeenCalledWith('bro', 1);
+    expect(JSON.parse(deps.standardOutput.output()) as unknown).toEqual({
+      agentId: 'bro',
+      status: 'disabled',
+      identityRevision: 2,
     });
   });
 

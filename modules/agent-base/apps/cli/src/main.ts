@@ -1,5 +1,9 @@
 #!/usr/bin/env node
-import { loadAgentBaseCliRuntime } from './load-runtime.js';
+import {
+  loadAgentBaseCliManagedDirectory,
+  loadAgentBaseCliRuntime,
+  readAgentBaseCliJsonDocument,
+} from './load-runtime.js';
 import {
   createNodeWriter,
   defaultAgentBaseCliProcess,
@@ -14,7 +18,10 @@ process.once('SIGINT', onInterrupt);
 
 try {
   process.exitCode = await runAgentBaseCli(cliProcess.argv, {
-    loadRuntime: (configPath) => loadAgentBaseCliRuntime(configPath, cliProcess.environment),
+    loadRuntime: (locator) => loadAgentBaseCliRuntime(locator, cliProcess.environment),
+    loadManagedDirectory: (rootDirectory) =>
+      loadAgentBaseCliManagedDirectory(rootDirectory, cliProcess.environment),
+    readJsonDocument: readAgentBaseCliJsonDocument,
     readStandardInput: (signal) => readNodeStandardInput(cliProcess.standardInput, signal),
     standardOutput: createNodeWriter(cliProcess.standardOutput),
     standardError: createNodeWriter(cliProcess.standardError),

@@ -6,11 +6,12 @@ import type {
 } from '../types/adapter.js';
 import type { AgentConfigSnapshot } from '../types/config.js';
 import { AgentConfigError } from '../types/errors.js';
+import { normalizeConfigValue } from '../lib/config-value.js';
 
 function cloneSnapshot(snapshot: AgentConfigSnapshot): AgentConfigSnapshot {
   return Object.freeze({
     ...snapshot,
-    value: structuredClone(snapshot.value),
+    value: normalizeConfigValue(snapshot.value),
   });
 }
 
@@ -36,7 +37,7 @@ export class MemoryAgentConfigAdapter implements AgentConfigReadAdapter, AgentCo
       agentId: request.agentId,
       schemaVersion: request.schemaVersion,
       revision: (currentRevision ?? 0) + 1,
-      value: structuredClone(request.value),
+      value: normalizeConfigValue(request.value),
     });
     this.#snapshots.set(request.agentId, snapshot);
     return Promise.resolve(cloneSnapshot(snapshot));

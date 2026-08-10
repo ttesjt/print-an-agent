@@ -189,6 +189,57 @@ describe('Agent config', () => {
     );
   });
 
+  it.each([
+    ['non-finite number', { enabled: true, tone: Number.NaN }],
+    ['non-JSON value', { enabled: true, tone: undefined }],
+  ])('rejects %s returned by a lying codec', async (_label, invalidValue) => {
+    const identity = defineAgentIdentity({ id: 'bro' });
+    const codec: AgentConfigCodec<TestConfig> = {
+      schemaVersion: 1,
+      decode: (value) => TEST_CODEC.decode(value),
+      encode: () => invalidValue as unknown as ConfigValue,
+    };
+
+    await expectConfigError(
+      () =>
+        writeAgentConfig({
+          identity,
+          codec,
+          adapter: new MemoryAgentConfigAdapter(),
+          config: { enabled: true, tone: 'warm' },
+          expectedRevision: null,
+        }),
+      'CONFIG_INVALID'
+    );
+  });
+
+  it('rejects cyclic and excessively nested config values', async () => {
+    const identity = defineAgentIdentity({ id: 'bro' });
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    let nested: unknown = 'leaf';
+    for (let index = 0; index < 66; index += 1) nested = [nested];
+
+    for (const invalidValue of [cyclic, nested]) {
+      const codec: AgentConfigCodec<TestConfig> = {
+        schemaVersion: 1,
+        decode: (value) => TEST_CODEC.decode(value),
+        encode: () => invalidValue as ConfigValue,
+      };
+      await expectConfigError(
+        () =>
+          writeAgentConfig({
+            identity,
+            codec,
+            adapter: new MemoryAgentConfigAdapter(),
+            config: { enabled: true, tone: 'warm' },
+            expectedRevision: null,
+          }),
+        'CONFIG_INVALID'
+      );
+    }
+  });
+
   it('isolates documents by Agent ID and clones values at the adapter boundary', async () => {
     const bro = defineAgentIdentity({ id: 'bro' });
     const mochi = defineAgentIdentity({ id: 'mochi' });
@@ -212,7 +263,9 @@ describe('Agent config', () => {
     const broSnapshot = await adapter.read(bro.id);
     if (broSnapshot === undefined) throw new Error('Expected Bro config snapshot.');
     const mutableValue = broSnapshot.value as { tone: string };
-    mutableValue.tone = 'mutated outside adapter';
+    expect(() => {
+      mutableValue.tone = 'mutated outside adapter';
+    }).toThrow(TypeError);
 
     await expect(
       resolveAgentConfig({ identity: bro, codec: TEST_CODEC, adapter })

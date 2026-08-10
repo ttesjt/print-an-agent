@@ -7,6 +7,7 @@ import type {
   WriteAgentConfigOptions,
 } from '../types/config.js';
 import { AgentConfigError } from '../types/errors.js';
+import { normalizeConfigValue } from './config-value.js';
 
 function validateSchemaVersion(schemaVersion: number): void {
   if (!Number.isSafeInteger(schemaVersion) || schemaVersion < 1) {
@@ -33,7 +34,7 @@ function encodeAndValidate<TConfig>(
 ): Readonly<{ config: TConfig; value: ConfigValue }> {
   let value: ConfigValue;
   try {
-    value = codec.encode(config);
+    value = normalizeConfigValue(codec.encode(config));
   } catch (cause: unknown) {
     throw new AgentConfigError('CONFIG_INVALID', 'Agent config could not be encoded.', { cause });
   }
@@ -64,7 +65,7 @@ function validateSnapshot<TConfig>(
     );
   }
 
-  return decodeConfig(options.codec, snapshot.value);
+  return decodeConfig(options.codec, normalizeConfigValue(snapshot.value));
 }
 
 export async function resolveAgentConfig<TConfig>(

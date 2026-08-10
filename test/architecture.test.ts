@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
@@ -28,7 +28,7 @@ interface PackageManifest {
 
 function packageManifests(moduleName: ModuleName): readonly PackageManifest[] {
   const manifests: PackageManifest[] = [];
-  for (const collection of ['apps', 'clients', 'packages']) {
+  for (const collection of ['apps', 'clients', 'packages', 'tests']) {
     const collectionPath = join(repositoryRoot, 'modules', moduleName, collection);
     if (!existsSync(collectionPath)) continue;
 
@@ -78,6 +78,50 @@ function containsTextInTypeScript(directory: string, pattern: string): boolean {
     }
   }
   return false;
+}
+
+function typeScriptFiles(directory: string): readonly string[] {
+  if (!existsSync(directory)) return [];
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = join(directory, entry.name);
+    if (entry.isDirectory()) return typeScriptFiles(entryPath);
+    return entry.isFile() && /\.[cm]?tsx?$/.test(entry.name) ? [entryPath] : [];
+  });
+}
+
+function moduleSpecifiers(source: string): readonly string[] {
+  const specifiers: string[] = [];
+  const pattern = /\b(?:from|import)\s*(?:\([^)]*?\)|[^'"\n]*?from\s*)?['"]([^'"]+)['"]/g;
+  for (const match of source.matchAll(pattern)) {
+    const specifier = match[1];
+    if (specifier !== undefined) specifiers.push(specifier);
+  }
+  return specifiers;
+}
+
+function resolveDeclarationImport(importer: string, specifier: string): string | undefined {
+  if (!specifier.startsWith('.')) return undefined;
+  const absolute = resolve(dirname(importer), specifier);
+  const candidates =
+    extname(absolute) === '.js'
+      ? [`${absolute.slice(0, -3)}.d.ts`]
+      : [`${absolute}.d.ts`, join(absolute, 'index.d.ts')];
+  return candidates.find((candidate) => existsSync(candidate));
+}
+
+function reachablePublicDeclarations(entryPoint: string): readonly string[] {
+  const pending = [entryPoint];
+  const visited = new Set<string>();
+  while (pending.length > 0) {
+    const declaration = pending.pop();
+    if (declaration === undefined || visited.has(declaration)) continue;
+    visited.add(declaration);
+    for (const specifier of moduleSpecifiers(readFileSync(declaration, 'utf8'))) {
+      const dependency = resolveDeclarationImport(declaration, specifier);
+      if (dependency !== undefined) pending.push(dependency);
+    }
+  }
+  return Object.freeze([...visited]);
 }
 
 describe('module architecture', () => {
@@ -225,6 +269,59 @@ describe('module architecture', () => {
       const source = readFileSync(join(compositionSource, publicContractFile), 'utf8');
       expect(source).not.toContain('@ta-agent/base-pi');
       expect(source).not.toMatch(/\bPi[A-Z]/);
+    }
+  });
+
+  it('keeps non-Pi Agent Base public declaration graphs free of adapter type leaks', () => {
+    const roots = [
+      join(repositoryRoot, 'modules', 'agent-base', 'apps'),
+      join(repositoryRoot, 'modules', 'agent-base', 'packages'),
+    ];
+    for (const root of roots) {
+      for (const entry of readdirSync(root, { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.name === 'pi') continue;
+        const declarationEntry = join(root, entry.name, 'dist', 'index.d.ts');
+        expect(
+          existsSync(declarationEntry),
+          `${normalize(declarationEntry)} must exist before declaration qualification`
+        ).toBe(true);
+        for (const declaration of reachablePublicDeclarations(declarationEntry)) {
+          const source = readFileSync(declaration, 'utf8');
+          for (const forbidden of [
+            '@earendil-works/pi-',
+            '@ta-agent/base-pi',
+            "from 'typebox'",
+            'from "typebox"',
+            "from 'node:sqlite'",
+            'from "node:sqlite"',
+          ]) {
+            expect(
+              source.includes(forbidden),
+              `${normalize(declaration)} must not expose ${forbidden}`
+            ).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps Agent Base module integration tests on public package entry points', () => {
+    const consumerRoot = join(repositoryRoot, 'modules', 'agent-base', 'tests', 'integration');
+    const manifest = JSON.parse(
+      readFileSync(join(consumerRoot, 'package.json'), 'utf8')
+    ) as PackageManifest;
+    for (const dependency of declaredDependencies(manifest)) {
+      expect(dependency.startsWith('@ta-agent/workbench-')).toBe(false);
+      expect(dependency.startsWith('@ta-agent/self-learn-')).toBe(false);
+      expect(dependency.startsWith('@earendil-works/')).toBe(false);
+      expect(dependency).not.toBe('typebox');
+    }
+    for (const sourceFile of typeScriptFiles(join(consumerRoot, 'test'))) {
+      for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
+        if (!specifier.startsWith('@ta-agent/')) continue;
+        expect(specifier).toMatch(/^@ta-agent\/base-[^/]+$/);
+      }
+      expect(normalize(sourceFile)).not.toContain(`${normalize('/src/')}`);
     }
   });
 });

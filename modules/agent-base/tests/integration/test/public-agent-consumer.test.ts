@@ -1,0 +1,188 @@
+import {
+  BUILT_IN_RESPONSIBILITIES,
+  MAIN_ACTOR_ID,
+  createActorCatalog,
+  createResponsibilityCatalog,
+  type ActorEngineInteractionRequest,
+} from '@ta-agent/base-actor';
+import { composeAgent, createAgentAPI } from '@ta-agent/base-composition';
+import { AgentModelError, defineProviderModelReference } from '@ta-agent/base-model';
+import { MemoryAgentTraceAdapter } from '@ta-agent/base-observability';
+import { MemoryOutputSink, type DefaultRequestWorkflowContext } from '@ta-agent/base-request';
+import { createToolRegistry, defineTool } from '@ta-agent/base-tool';
+import { describe, expect, it, vi } from 'vitest';
+
+const modelReference = defineProviderModelReference({
+  provider: 'consumer-engine',
+  model: 'consumer-model',
+});
+
+function createAssistantMessage(text: string) {
+  return Object.freeze({
+    role: 'assistant' as const,
+    text,
+    provider: modelReference.provider,
+    model: modelReference.model,
+    stopReason: 'stop' as const,
+    usage: Object.freeze({
+      inputTokens: 1,
+      outputTokens: 1,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 2,
+    }),
+    timestamp: 1,
+  });
+}
+
+async function interact(request: ActorEngineInteractionRequest) {
+  if (request.signal.aborted) {
+    throw new AgentModelError('MODEL_INVOCATION_CANCELLED', 'Consumer Engine was cancelled.');
+  }
+  await request.emit({ type: 'interaction-start' });
+  await request.emit({ type: 'turn-start' });
+  const proposal = Object.freeze({
+    callId: 'consumer-call',
+    toolName: 'lookup-label',
+    arguments: Object.freeze({ key: request.prompt.text }),
+  });
+  await request.emit({
+    type: 'tool-call-start',
+    callId: proposal.callId,
+    toolName: proposal.toolName,
+  });
+  const outcome = await request.tools.execute(proposal);
+  await request.emit({
+    type: 'tool-call-end',
+    callId: proposal.callId,
+    toolName: proposal.toolName,
+    status: outcome.status === 'success' ? 'success' : 'error',
+    resultCharacters: outcome.text.length,
+  });
+  const message = createAssistantMessage(`resolved:${outcome.text}`);
+  await request.emit({ type: 'text-delta', delta: message.text });
+  await request.emit({ type: 'assistant-complete', message });
+  await request.emit({ type: 'turn-end' });
+  await request.emit({ type: 'interaction-end' });
+  return Object.freeze({ message });
+}
+
+function createConsumerAgent() {
+  const actorCatalog = createActorCatalog({
+    engines: [
+      {
+        id: 'consumer-engine',
+        capabilities: {
+          invocationModes: ['interaction', 'direct'],
+          inputMediaTypes: ['text'],
+          interaction: { streamable: true },
+          toolCalling: true,
+          structuredOutput: false,
+          cancellation: true,
+          maxContextTokens: 8_192,
+        },
+        interact,
+        complete: ({ signal }) => {
+          if (signal.aborted) {
+            throw new AgentModelError(
+              'MODEL_INVOCATION_CANCELLED',
+              'Consumer Engine was cancelled.'
+            );
+          }
+          return Promise.resolve(Object.freeze({ message: createAssistantMessage('compacted') }));
+        },
+      },
+    ],
+    actors: [
+      {
+        id: MAIN_ACTOR_ID,
+        engineId: 'consumer-engine',
+        allowedTools: ['lookup-label'],
+      },
+    ],
+  });
+  const responsibilityCatalog = createResponsibilityCatalog({
+    responsibilities: BUILT_IN_RESPONSIBILITIES.map((responsibility) =>
+      responsibility.id === 'foreground-interaction'
+        ? { ...responsibility, allowedTools: ['lookup-label'] }
+        : responsibility
+    ),
+  });
+  const tool = defineTool({
+    name: 'lookup-label',
+    description: 'Resolve a label for public consumer qualification.',
+    parameters: {
+      type: 'object',
+      properties: { key: { type: 'string', minLength: 1, maxLength: 128 } },
+      required: ['key'],
+      additionalProperties: false,
+    },
+    execute: ({ arguments: toolArguments }) =>
+      Promise.resolve(Object.freeze({ text: `label:${toolArguments.key}` })),
+  });
+  const trace = new MemoryAgentTraceAdapter({ maxEvents: 256 });
+  const gatherExternalContext = vi.fn((_context: DefaultRequestWorkflowContext) =>
+    Promise.resolve()
+  );
+  const agent = composeAgent({
+    identity: { id: 'public-consumer' },
+    actorCatalog,
+    responsibilityCatalog,
+    toolRegistry: createToolRegistry([tool]),
+    productToolAllowList: ['lookup-label'],
+    runtimeToolAllowList: ['lookup-label'],
+    stepOverrides: { gatherExternalContext },
+    observability: { sink: trace, clock: () => 1 },
+  });
+  return Object.freeze({ agent, trace, gatherExternalContext });
+}
+
+describe('public Agent integration', () => {
+  it('uses a custom Engine, Tool, Step override, raw Agent, and transparent API projection', async () => {
+    const { agent, trace, gatherExternalContext } = createConsumerAgent();
+    const sink = new MemoryOutputSink();
+    const response = await agent.invoke('foreground', {
+      message: 'blue',
+      sessionId: 'consumer-session',
+      outputSink: sink,
+    });
+    const api = createAgentAPI(agent);
+
+    expect(response).toMatchObject({
+      message: { text: 'resolved:label:blue' },
+      toolRun: { records: [{ toolName: 'lookup-label', status: 'success' }] },
+    });
+    expect(sink.inspect()).toMatchObject({
+      status: 'closed',
+      events: [{ type: 'text-delta', delta: 'resolved:label:blue' }],
+    });
+    expect(gatherExternalContext).toHaveBeenCalledOnce();
+    expect(api.agent).toBe(agent);
+    expect(api.identity).toBe(agent.identity);
+    expect(api.operationNames).toEqual(agent.operationNames);
+
+    const serializedTrace = JSON.stringify(trace.inspect());
+    expect(serializedTrace).not.toContain('blue');
+    expect(serializedTrace).not.toContain('label:blue');
+    expect(serializedTrace).not.toContain('Respond helpfully and concisely.');
+  });
+
+  it('propagates cancellation as a structured failure and fails the OutputSink once', async () => {
+    const { agent } = createConsumerAgent();
+    const sink = new MemoryOutputSink();
+    const controller = new AbortController();
+    controller.abort('consumer cancelled');
+
+    await expect(
+      agent.invoke(
+        'foreground',
+        { message: 'cancel me', outputSink: sink },
+        { signal: controller.signal }
+      )
+    ).rejects.toMatchObject({ code: 'MODEL_INVOCATION_CANCELLED' });
+    expect(sink.inspect()).toMatchObject({
+      status: 'failed',
+      failure: { code: 'MODEL_INVOCATION_CANCELLED' },
+    });
+  });
+});

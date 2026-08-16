@@ -78,54 +78,6 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
 
-  modules/agent-base/tests/integration:
-    devDependencies:
-      '@ta-agent/base-actor':
-        specifier: workspace:*
-        version: link:../../packages/actor
-      '@ta-agent/base-composition':
-        specifier: workspace:*
-        version: link:../../packages/composition
-      '@ta-agent/base-config':
-        specifier: workspace:*
-        version: link:../../packages/config
-      '@ta-agent/base-identity':
-        specifier: workspace:*
-        version: link:../../packages/identity
-      '@ta-agent/base-model':
-        specifier: workspace:*
-        version: link:../../packages/model
-      '@ta-agent/base-observability':
-        specifier: workspace:*
-        version: link:../../packages/observability
-      '@ta-agent/base-request':
-        specifier: workspace:*
-        version: link:../../packages/request
-      '@ta-agent/base-session':
-        specifier: workspace:*
-        version: link:../../packages/session
-      '@ta-agent/base-standalone-agent':
-        specifier: workspace:*
-        version: link:../../packages/standalone-agent
-      '@ta-agent/base-tool':
-        specifier: workspace:*
-        version: link:../../packages/tool
-      '@ta-agent/base-workflow':
-        specifier: workspace:*
-        version: link:../../packages/workflow
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.12.4
-      '@vitest/coverage-v8':
-        specifier: 'catalog:'
-        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
-
   modules/agent-base/packages/actor:
     dependencies:
       '@ta-agent/base-model':
@@ -419,6 +371,221 @@ importers:
         specifier: workspace:*
         version: link:../observability
     devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
+  modules/agent-base/tests/integration:
+    devDependencies:
+      '@ta-agent/base-actor':
+        specifier: workspace:*
+        version: link:../../packages/actor
+      '@ta-agent/base-composition':
+        specifier: workspace:*
+        version: link:../../packages/composition
+      '@ta-agent/base-config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@ta-agent/base-identity':
+        specifier: workspace:*
+        version: link:../../packages/identity
+      '@ta-agent/base-model':
+        specifier: workspace:*
+        version: link:../../packages/model
+      '@ta-agent/base-observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@ta-agent/base-request':
+        specifier: workspace:*
+        version: link:../../packages/request
+      '@ta-agent/base-session':
+        specifier: workspace:*
+        version: link:../../packages/session
+      '@ta-agent/base-standalone-agent':
+        specifier: workspace:*
+        version: link:../../packages/standalone-agent
+      '@ta-agent/base-tool':
+        specifier: workspace:*
+        version: link:../../packages/tool
+      '@ta-agent/base-workflow':
+        specifier: workspace:*
+        version: link:../../packages/workflow
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
+  modules/model-workbench/packages/application:
+    dependencies:
+      '@ta-agent/workbench-control-plane':
+        specifier: workspace:*
+        version: link:../control-plane
+      '@ta-agent/workbench-persistence':
+        specifier: workspace:*
+        version: link:../persistence
+      '@ta-agent/workbench-setup':
+        specifier: workspace:*
+        version: link:../setup
+    devDependencies:
+      '@ta-agent/workbench-extension':
+        specifier: workspace:*
+        version: link:../extension
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
+  modules/model-workbench/packages/control-plane:
+    dependencies:
+      '@ta-agent/workbench-domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@ta-agent/workbench-extension':
+        specifier: workspace:*
+        version: link:../extension
+      '@ta-agent/workbench-persistence':
+        specifier: workspace:*
+        version: link:../persistence
+      '@ta-agent/workbench-setup':
+        specifier: workspace:*
+        version: link:../setup
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
+  modules/model-workbench/packages/domain:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
+  modules/model-workbench/packages/extension:
+    dependencies:
+      '@ta-agent/workbench-domain':
+        specifier: workspace:*
+        version: link:../domain
+      typebox:
+        specifier: 1.1.38
+        version: 1.1.38
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
+  modules/model-workbench/packages/persistence:
+    dependencies:
+      '@ta-agent/workbench-domain':
+        specifier: workspace:*
+        version: link:../domain
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
+  modules/model-workbench/packages/setup:
+    dependencies:
+      '@ta-agent/workbench-domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@ta-agent/workbench-extension':
+        specifier: workspace:*
+        version: link:../extension
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
+  modules/model-workbench/tests/integration:
+    devDependencies:
+      '@ta-agent/workbench-application':
+        specifier: workspace:*
+        version: link:../../packages/application
+      '@ta-agent/workbench-control-plane':
+        specifier: workspace:*
+        version: link:../../packages/control-plane
+      '@ta-agent/workbench-domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@ta-agent/workbench-extension':
+        specifier: workspace:*
+        version: link:../../packages/extension
+      '@ta-agent/workbench-persistence':
+        specifier: workspace:*
+        version: link:../../packages/persistence
+      '@ta-agent/workbench-setup':
+        specifier: workspace:*
+        version: link:../../packages/setup
       '@types/node':
         specifier: 'catalog:'
         version: 24.12.4

@@ -1,0 +1,33 @@
+{
+  "name": "@ta-agent/workbench-integration-tests",
+  "version": "0.1.0",
+  "description": "Model Workbench integration tests over public package exports.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@ta-agent/workbench-application": "workspace:*",
+    "@ta-agent/workbench-control-plane": "workspace:*",
+    "@ta-agent/workbench-domain": "workspace:*",
+    "@ta-agent/workbench-extension": "workspace:*",
+    "@ta-agent/workbench-persistence": "workspace:*",
+    "@ta-agent/workbench-setup": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  }
+}

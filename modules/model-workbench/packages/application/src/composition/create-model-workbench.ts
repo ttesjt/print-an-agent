@@ -1,0 +1,21 @@
+import {
+  createWorkbenchControlPlane,
+  type ModelWorkbenchControlPlane,
+} from '@ta-agent/workbench-control-plane';
+import { createMemoryPersistence } from '@ta-agent/workbench-persistence';
+import { resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
+
+import type { ModelWorkbenchApplicationConfiguration } from './contracts.js';
+import { createRandomWorkbenchIdSource } from './defaults.js';
+
+export function createModelWorkbench(
+  configuration: ModelWorkbenchApplicationConfiguration
+): ModelWorkbenchControlPlane {
+  const setup = resolveWorkbenchSetup(configuration.setup, configuration.extensions);
+
+  return createWorkbenchControlPlane({
+    setup,
+    persistence: configuration.persistence ?? createMemoryPersistence(),
+    idSource: configuration.idSource ?? createRandomWorkbenchIdSource(),
+  });
+}

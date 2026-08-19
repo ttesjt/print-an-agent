@@ -1,18 +1,18 @@
 import type {
-  CancelledModelRun,
-  FailedModelRun,
-  LostModelRun,
-  ModelBase,
-  SucceededModelRun,
+  CancelledInitializationRun,
+  FailedInitializationRun,
+  LostInitializationRun,
+  InitializationModelBase,
+  SucceededInitializationRun,
 } from '@ta-agent/workbench-domain';
 
 export interface SucceededInitializationCommit {
-  readonly run: SucceededModelRun;
-  readonly base: ModelBase;
+  readonly run: SucceededInitializationRun;
+  readonly base: InitializationModelBase;
 }
 
 export interface UnsuccessfulInitializationCommit {
-  readonly run: FailedModelRun | CancelledModelRun | LostModelRun;
+  readonly run: FailedInitializationRun | CancelledInitializationRun | LostInitializationRun;
 }
 
 export type InitializationCommit = SucceededInitializationCommit | UnsuccessfulInitializationCommit;

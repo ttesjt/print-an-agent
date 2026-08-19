@@ -4,6 +4,7 @@ import {
   parseInitializerId,
   parseProfileId,
   parseRuntimeBindingId,
+  parseTrainerId,
   type ModelProfile,
 } from '@ta-agent/workbench-domain';
 
@@ -17,7 +18,7 @@ import {
 
 export function parseModelProfile(input: unknown, index: number): ModelProfile {
   const path = `setup.profiles[${String(index)}]`;
-  const record = parseClosedRecord(input, path, ['profileId', 'initializers']);
+  const record = parseClosedRecord(input, path, ['profileId', 'initializers'], ['trainers']);
   const profileId = parseDomainValue(
     () => parseProfileId(record.profileId, `${path}.profileId`),
     `${path}.profileId`
@@ -54,5 +55,32 @@ export function parseModelProfile(input: unknown, index: number): ModelProfile {
   );
   if (initializers.length === 0) invalidSetup(`${path}.initializers`, 'must not be empty');
   assertUnique(initializers, ({ initializerId }) => initializerId, `${path}.initializers`);
-  return defineModelProfile({ profileId, initializers });
+  const trainerInputs = Object.hasOwn(record, 'trainers')
+    ? parseArray(record.trainers, `${path}.trainers`)
+    : [];
+  const trainers = trainerInputs.map((trainer, trainerIndex) => {
+    const trainerPath = `${path}.trainers[${String(trainerIndex)}]`;
+    const trainerRecord = parseClosedRecord(trainer, trainerPath, [
+      'trainerId',
+      'capabilityId',
+      'runtimeBindingId',
+    ]);
+    return Object.freeze({
+      trainerId: parseDomainValue(
+        () => parseTrainerId(trainerRecord.trainerId, `${trainerPath}.trainerId`),
+        `${trainerPath}.trainerId`
+      ),
+      capabilityId: parseDomainValue(
+        () => parseCapabilityId(trainerRecord.capabilityId, `${trainerPath}.capabilityId`),
+        `${trainerPath}.capabilityId`
+      ),
+      runtimeBindingId: parseDomainValue(
+        () =>
+          parseRuntimeBindingId(trainerRecord.runtimeBindingId, `${trainerPath}.runtimeBindingId`),
+        `${trainerPath}.runtimeBindingId`
+      ),
+    });
+  });
+  assertUnique(trainers, ({ trainerId }) => trainerId, `${path}.trainers`);
+  return defineModelProfile({ profileId, initializers, trainers });
 }

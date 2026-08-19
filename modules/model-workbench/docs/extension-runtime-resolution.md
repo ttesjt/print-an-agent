@@ -38,6 +38,13 @@ const setupInput = {
           runtimeBindingId: 'research.local',
         },
       ],
+      trainers: [
+        {
+          trainerId: 'lora',
+          capabilityId: 'models.train-lora',
+          runtimeBindingId: 'research.local',
+        },
+      ],
     },
   ],
 };
@@ -68,11 +75,17 @@ const extensionResources = {
         };
       },
     }),
+    defineTrainerCapability({
+      capabilityId: 'models.train-lora',
+      input: trainingInputContract,
+      train: ({ source, input }) => modelBackend.train(source, input),
+    }),
   ],
   runtimeSupports: [
     defineArtifactHandoffSupport({
       runtimeSupportId: 'artifacts.local',
       verify: ({ artifact }) => localArtifacts.verify(artifact),
+      materialize: ({ artifact }) => localArtifacts.openInput(artifact.handoff.receipt),
     }),
     defineExecutionSupport({
       runtimeSupportId: 'execution.local',
@@ -132,15 +145,18 @@ Resolution uses temporary ID maps only while compiling the graph. Every resolved
 holds:
 
 ```text
-callable Initializer Capability Runtime
+callable Initializer or Trainer Capability Runtime
 + resolved Runtime Binding
   + callable Artifact Handoff Support Runtime
   + callable Execution Support Runtime
 ```
 
-Workbench never receives a resolver or registry and never looks these IDs up during an operation.
-Creating a different graph is an outer application concern: resolve another setup, then create
-another Workbench instance.
+Workbench never receives the authoring resolver and does not re-resolve Profile slot selectors
+during an operation. Creating a different Profile graph is an outer application concern: resolve
+another setup, then create another Workbench instance. The resolved setup separately retains the
+Artifact Handoff Supports supplied by the host because a persisted `ArtifactReference` names its
+owning Support directly; this permits one Model State to contain local and remote Artifacts without
+scanning current Profile bindings.
 
 The official `createModelWorkbench()` application entry point performs these two calls and supplies
 its documented defaults. Advanced hosts can keep both stages explicit when they need custom
@@ -153,9 +169,20 @@ explicit `runs.cancel()` asks the same support to cancel it. Both completion pat
 terminal handler. A successful result reports the Artifact digest and its opaque handoff receipt.
 Workbench then creates the Base and Artifact identities, combines them with the bound Support
 identity, and asks that Support to verify the exact `ArtifactReference`. The terminal Run, Base, and
-Artifact reference are committed together only after verification succeeds. How later operations
-resolve and consume the stored handoff receipt will be defined with the first real Artifact input
-workflow.
+Artifact reference are committed together only after verification succeeds.
+
+Before Training, Workbench resolves every Base and ordered Modification in the selected Model
+State. For each Artifact it selects the Support named by `artifact.handoff.runtimeSupportId`, asks it
+to verify the durable reference, and calls `materialize()`. The Support returns a transient,
+JSON-like `binding` such as a local path or temporary remote URL. Workbench passes those bindings,
+the exact Model State, and Capability-specific input through the fixed Trainer request envelope.
+Durable handoff receipts remain distinct from transient materialized bindings.
+
+Training then uses the same completed-or-accepted execution protocol as Initialization. A successful
+Trainer result declares whether it produced a new Base or one additive Modification, plus the
+Artifact digest and handoff receipt. Workbench assigns the Artifact and parameter-asset identities,
+verifies the Artifact through the Trainer slot's bound Support, and atomically commits the terminal
+Run with the produced asset. Both records preserve the exact ordered source Model State as lineage.
 
 The executable version of this example lives in
 `tests/integration/test/extension-runtime-resolution.test.ts`.

@@ -3,12 +3,19 @@ import type {
   ArtifactHandoffSupportRuntime,
   ExecutionSupportRuntime,
   InitializerCapabilityRuntime,
+  TrainerCapabilityRuntime,
 } from '@ta-agent/workbench-extension';
 
-import type { ResolvedInitializerSlot, ResolvedModelProfile } from '../profiles/contracts.js';
+import type {
+  ResolvedInitializerSlot,
+  ResolvedModelProfile,
+  ResolvedTrainerSlot,
+} from '../profiles/contracts.js';
 import type { ResolvedRuntimeBinding } from '../runtime-bindings/contracts.js';
 
-export function capabilityEvidence(capability: InitializerCapabilityRuntime): JsonValue {
+export function capabilityEvidence(
+  capability: InitializerCapabilityRuntime | TrainerCapabilityRuntime
+): JsonValue {
   return parseJsonValue({
     family: capability.family,
     kind: capability.kind,
@@ -49,9 +56,18 @@ export function runtimeBindingEvidence(binding: ResolvedRuntimeBinding): JsonVal
   });
 }
 
-export function slotEvidence(slot: ResolvedInitializerSlot): JsonValue {
+export function initializerSlotEvidence(slot: ResolvedInitializerSlot): JsonValue {
   return parseJsonValue({
     initializerId: slot.initializerId,
+    capability: capabilityEvidence(slot.capability),
+    runtime: runtimeBindingEvidence(slot.runtime),
+    evidenceDigest: slot.evidenceDigest,
+  });
+}
+
+export function trainerSlotEvidence(slot: ResolvedTrainerSlot): JsonValue {
+  return parseJsonValue({
+    trainerId: slot.trainerId,
     capability: capabilityEvidence(slot.capability),
     runtime: runtimeBindingEvidence(slot.runtime),
     evidenceDigest: slot.evidenceDigest,
@@ -61,7 +77,8 @@ export function slotEvidence(slot: ResolvedInitializerSlot): JsonValue {
 export function profileEvidence(profile: ResolvedModelProfile): JsonValue {
   return parseJsonValue({
     profileId: profile.profileId,
-    initializers: profile.initializers.map(slotEvidence),
+    initializers: profile.initializers.map(initializerSlotEvidence),
+    trainers: profile.trainers.map(trainerSlotEvidence),
     evidenceDigest: profile.evidenceDigest,
   });
 }

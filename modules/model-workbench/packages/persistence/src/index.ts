@@ -12,5 +12,12 @@ export {
   type SucceededInitializationCommit,
   type UnsuccessfulInitializationCommit,
 } from './ports/initialization-committer.js';
+export {
+  type SucceededTrainingBaseCommit,
+  type SucceededTrainingModificationCommit,
+  type TrainingCommit,
+  type TrainingCommitter,
+  type UnsuccessfulTrainingCommit,
+} from './ports/training-committer.js';
 
 export { createMemoryPersistence } from './adapters/memory/create-memory-persistence.js';

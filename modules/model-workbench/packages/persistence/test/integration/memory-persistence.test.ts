@@ -2,21 +2,29 @@ import { describe, expect, it } from 'vitest';
 
 import {
   defineModelBase,
+  defineModelState,
   defineExecutionReference,
   defineStartingInitializationRun,
+  defineStartingTrainingRun,
+  defineModelModification,
   ModelOperationKind,
+  ModelRunResultKind,
   parseArtifactId,
   parseBaseId,
   parseCapabilityId,
   parseInitializerId,
+  parseModificationId,
   parseProfileId,
   parseRunId,
   parseRuntimeBindingId,
   parseRuntimeSupportId,
   parseSha256Digest,
+  parseTrainerId,
   succeedInitializationRun,
+  succeedTrainingRun,
   startModelRunExecution,
   updateModelRunProgress,
+  type InitializationModelBase,
 } from '@ta-agent/workbench-domain';
 
 import { createMemoryPersistence, RunTransitionPersistenceError } from '../../src/index.js';
@@ -94,6 +102,63 @@ describe('createMemoryPersistence', () => {
     await expect(persistence.runs.find(running.runId)).resolves.toEqual(running);
   });
 
+  it('rejects an Initialization result carrying Training lineage', async () => {
+    const persistence = createMemoryPersistence();
+    const running = runningRun();
+    const baseId = parseBaseId('base:trained-lineage');
+    const base = defineModelBase({
+      baseId,
+      profileId: running.profileId,
+      artifact: artifactReference('artifact:trained-lineage'),
+      lineage: {
+        kind: ModelOperationKind.Training,
+        runId: running.runId,
+        trainerId: parseTrainerId('trainer:fixture'),
+        capabilityId: running.capabilityId,
+        runtimeBindingId: running.runtimeBindingId,
+        slotEvidenceDigest,
+        source: defineModelState({ baseId: 'base:source' }),
+      },
+    });
+    await persistence.runs.create(running);
+
+    await expect(
+      persistence.commits.initialization.commit({
+        run: succeedInitializationRun(running, baseId),
+        base: base as unknown as InitializationModelBase,
+      })
+    ).rejects.toBeInstanceOf(RunTransitionPersistenceError);
+    await expect(persistence.runs.find(running.runId)).resolves.toEqual(running);
+  });
+
+  it('rejects Initialization lineage that differs from the frozen Run selection', async () => {
+    const persistence = createMemoryPersistence();
+    const running = runningRun();
+    const baseId = parseBaseId('base:mismatched-lineage');
+    const base = defineModelBase({
+      baseId,
+      profileId: running.profileId,
+      artifact: artifactReference('artifact:mismatched-lineage'),
+      lineage: {
+        kind: ModelOperationKind.Initialization,
+        runId: running.runId,
+        initializerId: parseInitializerId('initializer:different'),
+        capabilityId: running.capabilityId,
+        runtimeBindingId: running.runtimeBindingId,
+        slotEvidenceDigest,
+      },
+    });
+    await persistence.runs.create(running);
+
+    await expect(
+      persistence.commits.initialization.commit({
+        run: succeedInitializationRun(running, baseId),
+        base,
+      })
+    ).rejects.toBeInstanceOf(RunTransitionPersistenceError);
+    await expect(persistence.runs.find(running.runId)).resolves.toEqual(running);
+  });
+
   it('persists an opaque execution receipt and forbids changing it after acceptance', async () => {
     const persistence = createMemoryPersistence();
     const starting = runningRun();
@@ -125,6 +190,71 @@ describe('createMemoryPersistence', () => {
       )
     ).rejects.toThrow();
   });
+
+  it('atomically completes a Training Run with its Modification and exact source lineage', async () => {
+    const persistence = createMemoryPersistence();
+    const starting = trainingRun();
+    const modificationId = parseModificationId('modification:1');
+    const modification = defineModelModification({
+      modificationId,
+      profileId: starting.profileId,
+      artifact: artifactReference('artifact:trained'),
+      lineage: {
+        kind: ModelOperationKind.Training,
+        runId: starting.runId,
+        trainerId: starting.trainerId,
+        capabilityId: starting.capabilityId,
+        runtimeBindingId: starting.runtimeBindingId,
+        slotEvidenceDigest: starting.slotEvidenceDigest,
+        source: starting.source,
+      },
+    });
+    const succeeded = succeedTrainingRun(starting, {
+      kind: ModelRunResultKind.Modification,
+      modificationId,
+    });
+
+    await persistence.runs.create(starting);
+    await persistence.commits.training.commit({ run: succeeded, modification });
+
+    await expect(persistence.runs.find(starting.runId)).resolves.toEqual(succeeded);
+    await expect(persistence.parameters.findModification(modificationId)).resolves.toEqual(
+      modification
+    );
+  });
+
+  it('rejects Training lineage whose source differs from the frozen Run', async () => {
+    const persistence = createMemoryPersistence();
+    const starting = trainingRun();
+    const modificationId = parseModificationId('modification:mismatched');
+    const modification = defineModelModification({
+      modificationId,
+      profileId: starting.profileId,
+      artifact: artifactReference('artifact:mismatched'),
+      lineage: {
+        kind: ModelOperationKind.Training,
+        runId: starting.runId,
+        trainerId: starting.trainerId,
+        capabilityId: starting.capabilityId,
+        runtimeBindingId: starting.runtimeBindingId,
+        slotEvidenceDigest: starting.slotEvidenceDigest,
+        source: defineModelState({ baseId: 'base:different' }),
+      },
+    });
+    await persistence.runs.create(starting);
+
+    await expect(
+      persistence.commits.training.commit({
+        run: succeedTrainingRun(starting, {
+          kind: ModelRunResultKind.Modification,
+          modificationId,
+        }),
+        modification,
+      })
+    ).rejects.toBeInstanceOf(RunTransitionPersistenceError);
+    await expect(persistence.runs.find(starting.runId)).resolves.toEqual(starting);
+    await expect(persistence.parameters.findModification(modificationId)).resolves.toBeUndefined();
+  });
 });
 
 function runningRun() {
@@ -135,5 +265,28 @@ function runningRun() {
     capabilityId: parseCapabilityId('initializer.import'),
     runtimeBindingId: parseRuntimeBindingId('runtime.local'),
     slotEvidenceDigest,
+  });
+}
+
+function artifactReference(artifactId: string) {
+  return {
+    artifactId: parseArtifactId(artifactId),
+    digest: artifactDigest,
+    handoff: {
+      runtimeSupportId: parseRuntimeSupportId('artifacts.local'),
+      receipt: { location: `fixture://${artifactId}` },
+    },
+  } as const;
+}
+
+function trainingRun() {
+  return defineStartingTrainingRun({
+    runId: parseRunId('run:training'),
+    profileId: parseProfileId('research-model'),
+    trainerId: parseTrainerId('trainer:fixture'),
+    capabilityId: parseCapabilityId('trainer.fixture'),
+    runtimeBindingId: parseRuntimeBindingId('runtime.local'),
+    slotEvidenceDigest,
+    source: defineModelState({ baseId: 'base:source' }),
   });
 }

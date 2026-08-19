@@ -12,15 +12,20 @@ import {
   type ResolvedWorkbenchSetup,
 } from '@ta-agent/workbench-setup';
 import type { RunRepository } from '@ta-agent/workbench-persistence';
+import type {
+  CapabilityDispatch,
+  InitializationCapabilityResult,
+} from '@ta-agent/workbench-extension';
 
 import type { StartInitializationInput, StartInitializationResult } from './contracts.js';
-import { InitializerSlotNotFoundError, ModelProfileNotFoundError } from './errors.js';
+import { InitializerSlotNotFoundError } from './errors.js';
 import type { InitializationExecutionHandler } from './initialization-execution-handler.js';
 import type {
   ExecutionLifecycle,
   ModelWorkbenchOperationOptions,
 } from '../../execution/contracts.js';
 import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';
+import { ModelProfileNotFoundError } from '../errors.js';
 
 export interface StartInitializationDependencies {
   readonly setup: ResolvedWorkbenchSetup;
@@ -57,8 +62,9 @@ export function createStartInitialization(dependencies: StartInitializationDepen
     });
     await dependencies.runs.create(starting);
 
+    let dispatch: CapabilityDispatch<InitializationCapabilityResult>;
     try {
-      const dispatch = await initializer.capability.initialize(
+      dispatch = await initializer.capability.initialize(
         Object.freeze({
           operation: ModelOperationKind.Initialization,
           runId,
@@ -66,6 +72,11 @@ export function createStartInitialization(dependencies: StartInitializationDepen
         }),
         options
       );
+    } catch (cause: unknown) {
+      return dependencies.handler.rejectInvocation(starting, cause);
+    }
+
+    try {
       await dependencies.lifecycle.acceptCapabilityDispatch(
         {
           run: starting,
@@ -77,7 +88,7 @@ export function createStartInitialization(dependencies: StartInitializationDepen
       );
       return Object.freeze({ runId });
     } catch (cause: unknown) {
-      return dependencies.handler.rejectStart(starting, cause);
+      return dependencies.handler.rejectCompletion(starting, cause);
     }
   };
 }

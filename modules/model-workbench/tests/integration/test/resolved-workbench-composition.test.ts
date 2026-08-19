@@ -63,6 +63,7 @@ describe('resolved Workbench composition', () => {
         defineArtifactHandoffSupport({
           runtimeSupportId: 'artifacts.fixture',
           verify: verifyArtifact,
+          materialize: ({ artifact }) => Promise.resolve(artifact.handoff.receipt),
         }),
         defineExecutionSupport({
           runtimeSupportId: 'execution.fixture',

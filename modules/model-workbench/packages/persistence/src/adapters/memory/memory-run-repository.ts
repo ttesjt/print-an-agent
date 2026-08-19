@@ -1,5 +1,6 @@
 import {
   ModelRunStatus,
+  modelRunDefinitionsEqual,
   modelRunsEqual,
   type ActiveModelRun,
   type ModelRun,
@@ -39,14 +40,7 @@ export function createMemoryRunRepository(state: MemoryPersistenceState): RunRep
 }
 
 function sameFrozenRun(left: ModelRun, right: ModelRun): boolean {
-  return (
-    left.operation === right.operation &&
-    left.profileId === right.profileId &&
-    left.initializerId === right.initializerId &&
-    left.capabilityId === right.capabilityId &&
-    left.runtimeBindingId === right.runtimeBindingId &&
-    left.slotEvidenceDigest === right.slotEvidenceDigest
-  );
+  return modelRunDefinitionsEqual(left, right);
 }
 
 function isValidActiveTransition(existing: ModelRun, next: ActiveModelRun): boolean {

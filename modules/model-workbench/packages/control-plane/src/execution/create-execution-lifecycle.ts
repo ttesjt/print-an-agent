@@ -18,7 +18,12 @@ import type {
   OperationExecutionHandler,
   OperationExecutionHandlers,
 } from './contracts.js';
-import { ModelRunNotFoundError, RunCancellationError, RunObservationError } from './errors.js';
+import {
+  ModelRunNotFoundError,
+  ModelRunOperationUnavailableError,
+  RunCancellationError,
+  RunObservationError,
+} from './errors.js';
 import type { ModelWorkbenchOperationOptions } from './contracts.js';
 import type { WaitForRunOptions } from '../queries/contracts.js';
 
@@ -136,12 +141,16 @@ function handlerFor(
   handlers: OperationExecutionHandlers,
   run: ActiveModelRun
 ): OperationExecutionHandler {
-  return handlers[run.operation];
+  const handler = handlers[run.operation];
+  if (handler === undefined) {
+    throw new ModelRunOperationUnavailableError(run.runId, run.operation);
+  }
+  return handler;
 }
 
 function assertHandlersMatchOperations(handlers: OperationExecutionHandlers): void {
   for (const [operation, handler] of Object.entries(handlers)) {
-    if (handler.operation !== operation) {
+    if (handler !== undefined && handler.operation !== operation) {
       throw new TypeError(
         `Execution handler for operation "${operation}" declares "${handler.operation}".`
       );

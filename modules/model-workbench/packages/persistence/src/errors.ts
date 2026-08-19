@@ -9,7 +9,7 @@ export class WorkbenchPersistenceError extends Error {
 }
 
 export class PersistenceRecordConflictError extends WorkbenchPersistenceError {
-  constructor(kind: 'run' | 'base', identity: string) {
+  constructor(kind: 'run' | 'base' | 'modification', identity: string) {
     super(
       'PERSISTENCE_RECORD_CONFLICT',
       `The ${kind} record "${identity}" already exists with a conflicting value.`

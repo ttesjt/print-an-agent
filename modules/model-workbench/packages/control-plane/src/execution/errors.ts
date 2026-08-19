@@ -9,6 +9,20 @@ export class ModelRunNotFoundError extends WorkbenchControlPlaneError {
   }
 }
 
+export class ModelRunOperationUnavailableError extends WorkbenchControlPlaneError {
+  readonly runId: string;
+  readonly operation: string;
+
+  constructor(runId: string, operation: string) {
+    super(
+      'MODEL_RUN_OPERATION_UNAVAILABLE',
+      `Model Run "${runId}" uses unavailable operation "${operation}".`
+    );
+    this.runId = runId;
+    this.operation = operation;
+  }
+}
+
 export class RunExecutionSupportMismatchError extends WorkbenchControlPlaneError {
   readonly runId: string;
 

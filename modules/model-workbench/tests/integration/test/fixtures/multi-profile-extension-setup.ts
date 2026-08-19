@@ -54,12 +54,14 @@ const localArtifactHandoff = defineArtifactHandoffSupport({
   runtimeSupportId: 'artifacts.local',
   metadata: { transport: 'local-filesystem' },
   verify: () => Promise.resolve(),
+  materialize: ({ artifact }) => Promise.resolve(artifact.handoff.receipt),
 });
 
 const remoteArtifactHandoff = defineArtifactHandoffSupport({
   runtimeSupportId: 'artifacts.remote',
   metadata: { transport: 'remote-object-store' },
   verify: () => Promise.resolve(),
+  materialize: ({ artifact }) => Promise.resolve(artifact.handoff.receipt),
 });
 
 const localExecution = defineExecutionSupport({

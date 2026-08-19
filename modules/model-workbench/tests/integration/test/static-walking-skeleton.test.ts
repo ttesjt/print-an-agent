@@ -62,6 +62,7 @@ describe('static Model Workbench walking skeleton', () => {
         defineArtifactHandoffSupport({
           runtimeSupportId: 'fixture.artifacts',
           verify: () => Promise.resolve(),
+          materialize: ({ artifact }) => Promise.resolve(artifact.handoff.receipt),
         }),
         defineExecutionSupport({
           runtimeSupportId: 'fixture.execution',
@@ -73,6 +74,7 @@ describe('static Model Workbench walking skeleton', () => {
     const generated = {
       run: 'run:fixture',
       base: 'base:fixture',
+      modification: 'modification:fixture',
       artifact: 'artifact:fixture',
     } as const;
     const workbench = createModelWorkbench({

@@ -5,16 +5,19 @@ const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 
 declare const profileIdBrand: unique symbol;
 declare const initializerIdBrand: unique symbol;
+declare const trainerIdBrand: unique symbol;
 declare const capabilityIdBrand: unique symbol;
 declare const runtimeSupportIdBrand: unique symbol;
 declare const runtimeBindingIdBrand: unique symbol;
 declare const runIdBrand: unique symbol;
 declare const baseIdBrand: unique symbol;
+declare const modificationIdBrand: unique symbol;
 declare const artifactIdBrand: unique symbol;
 declare const sha256DigestBrand: unique symbol;
 
 export type ProfileId = string & { readonly [profileIdBrand]: 'ProfileId' };
 export type InitializerId = string & { readonly [initializerIdBrand]: 'InitializerId' };
+export type TrainerId = string & { readonly [trainerIdBrand]: 'TrainerId' };
 export type CapabilityId = string & {
   readonly [capabilityIdBrand]: 'CapabilityId';
 };
@@ -26,6 +29,7 @@ export type RuntimeBindingId = string & {
 };
 export type RunId = string & { readonly [runIdBrand]: 'RunId' };
 export type BaseId = string & { readonly [baseIdBrand]: 'BaseId' };
+export type ModificationId = string & { readonly [modificationIdBrand]: 'ModificationId' };
 export type ArtifactId = string & { readonly [artifactIdBrand]: 'ArtifactId' };
 export type Sha256Digest = string & { readonly [sha256DigestBrand]: 'Sha256Digest' };
 
@@ -35,6 +39,10 @@ export function parseProfileId(input: unknown, path = 'profileId'): ProfileId {
 
 export function parseInitializerId(input: unknown, path = 'initializerId'): InitializerId {
   return parseIdentifier(input, path) as InitializerId;
+}
+
+export function parseTrainerId(input: unknown, path = 'trainerId'): TrainerId {
+  return parseIdentifier(input, path) as TrainerId;
 }
 
 export function parseCapabilityId(input: unknown, path = 'capabilityId'): CapabilityId {
@@ -55,6 +63,10 @@ export function parseRunId(input: unknown, path = 'runId'): RunId {
 
 export function parseBaseId(input: unknown, path = 'baseId'): BaseId {
   return parseIdentifier(input, path) as BaseId;
+}
+
+export function parseModificationId(input: unknown, path = 'modificationId'): ModificationId {
+  return parseIdentifier(input, path) as ModificationId;
 }
 
 export function parseArtifactId(input: unknown, path = 'artifactId'): ArtifactId {

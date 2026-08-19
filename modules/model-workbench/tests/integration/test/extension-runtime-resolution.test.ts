@@ -50,6 +50,7 @@ describe('Extension Runtime resolution', () => {
         defineArtifactHandoffSupport({
           runtimeSupportId: 'demo.artifact-handoff',
           verify,
+          materialize: ({ artifact }) => Promise.resolve(artifact.handoff.receipt),
         }),
         defineExecutionSupport({
           runtimeSupportId: 'demo.execution',

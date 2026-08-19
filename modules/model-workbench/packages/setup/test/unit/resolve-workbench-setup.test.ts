@@ -12,12 +12,17 @@ import {
   defineExecutionSupport,
   defineInitializerCapability,
   defineJsonSchemaContract,
+  defineTrainerCapability,
   ExecutionStatus,
+  ModelCapabilityKind,
+  type TypedInitializerCapability,
 } from '@ta-agent/workbench-extension';
 
 import {
   RuntimeBindingKind,
   WorkbenchSetupError,
+  findArtifactHandoffSupport,
+  findResolvedTrainer,
   resolveWorkbenchSetup,
   type WorkbenchExtensionResources,
 } from '../../src/index.js';
@@ -113,7 +118,7 @@ describe('resolveWorkbenchSetup', () => {
       terminal: { result: { data: { imported: 'fixture://base' } } },
     });
 
-    const invalidResultCapability = initializerCapability(() =>
+    const invalidResultCapability = initializerCapability((() =>
       Promise.resolve({
         kind: CapabilityDispatchKind.Completed,
         terminal: {
@@ -126,8 +131,7 @@ describe('resolveWorkbenchSetup', () => {
             data: { imported: 42 },
           },
         },
-      })
-    );
+      })) as unknown as TypedInitializerCapability<ImportInput, ImportResultData>);
     await expect(
       invalidResultCapability.initialize({
         operation: ModelOperationKind.Initialization,
@@ -135,6 +139,41 @@ describe('resolveWorkbenchSetup', () => {
         input: { source: 'fixture://base' },
       })
     ).rejects.toThrow(InvalidWorkbenchValueError);
+  });
+
+  it('resolves Trainer slots and keeps unbound Artifact Supports available for persisted assets', () => {
+    const extraArtifactSupport = artifactHandoff('artifacts.archive', () => Promise.resolve());
+    const baseInput = validSetup();
+    const input = {
+      ...baseInput,
+      profiles: [
+        {
+          ...baseInput.profiles[0]!,
+          trainers: [
+            {
+              trainerId: 'lora',
+              capabilityId: 'trainer.lora',
+              runtimeBindingId: 'runtime.local',
+            },
+          ],
+        },
+      ],
+    };
+    const resources: WorkbenchExtensionResources = {
+      modelCapabilities: [initializerCapability(vi.fn()), trainerCapability()],
+      runtimeSupports: [...runtimeSupports(), extraArtifactSupport],
+    };
+
+    const setup = resolveWorkbenchSetup(input, resources);
+    const profile = setup.profiles[0];
+    if (profile === undefined) throw new Error('Expected one resolved Profile.');
+
+    expect(findResolvedTrainer(profile, 'lora')).toMatchObject({
+      trainerId: 'lora',
+      capability: { capabilityId: 'trainer.lora', kind: ModelCapabilityKind.Trainer },
+      runtime: { runtimeBindingId: 'runtime.local' },
+    });
+    expect(findArtifactHandoffSupport(setup, 'artifacts.archive')).toBe(extraArtifactSupport);
   });
 
   it('derives evidence from contracts, never function identity or declaration order', () => {
@@ -171,7 +210,7 @@ describe('resolveWorkbenchSetup', () => {
           initializerCapability(vi.fn(), 'capability.a'),
           initializerCapability(vi.fn(), 'capability.z'),
         ],
-        runtimeSupports: runtimeSupports(),
+        runtimeSupports: [...runtimeSupports()].reverse(),
       }
     );
     const changedContract = resolveWorkbenchSetup(validSetup(), {
@@ -228,14 +267,41 @@ describe('resolveWorkbenchSetup', () => {
       resolveWorkbenchSetup({ ...validSetup(), currentVersion: 1 }, extensionResources())
     ).toThrow('setup.currentVersion');
   });
+
+  it('rejects a Trainer slot bound to an Initializer Capability', () => {
+    const baseInput = validSetup();
+    const input = {
+      ...baseInput,
+      profiles: [
+        {
+          ...baseInput.profiles[0]!,
+          trainers: [
+            {
+              trainerId: 'invalid',
+              capabilityId: 'initializer.import',
+              runtimeBindingId: 'runtime.local',
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(() => resolveWorkbenchSetup(input, extensionResources())).toThrow(
+      'must reference Model Capability kind "trainer"'
+    );
+  });
 });
 
 interface ImportInput {
   readonly source: string;
 }
 
+interface ImportResultData {
+  readonly imported: string;
+}
+
 function initializerCapability(
-  initialize: (request: { readonly input: ImportInput }) => Promise<unknown>,
+  initialize: TypedInitializerCapability<ImportInput, ImportResultData>,
   capabilityId = 'initializer.import',
   minimumSourceLength?: number
 ) {
@@ -270,10 +336,25 @@ function initializerCapability(
   });
 }
 
+function trainerCapability() {
+  return defineTrainerCapability({
+    capabilityId: 'trainer.lora',
+    input: defineJsonSchemaContract({
+      schema: {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
+        additionalProperties: true,
+      } as const,
+    }),
+    train: vi.fn(),
+  });
+}
+
 function artifactHandoff(runtimeSupportId: string, verify: () => Promise<void>) {
   return defineArtifactHandoffSupport({
     runtimeSupportId,
     verify,
+    materialize: ({ artifact }) => Promise.resolve(artifact.handoff.receipt),
   });
 }
 
@@ -289,7 +370,7 @@ function runtimeSupports(verify: () => Promise<void> = () => Promise.resolve()) 
 }
 
 function extensionResources(overrides?: {
-  readonly initialize?: (request: { readonly input: ImportInput }) => Promise<unknown>;
+  readonly initialize?: TypedInitializerCapability<ImportInput, ImportResultData>;
   readonly verify?: () => Promise<void>;
 }): WorkbenchExtensionResources {
   return {

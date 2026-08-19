@@ -1,4 +1,12 @@
-import type { ModelBase, ModelRun, RunId, TerminalModelRun } from '@ta-agent/workbench-domain';
+import type {
+  ModelBase,
+  ModelModification,
+  ModelRun,
+  ModelState,
+  ModelStateInput,
+  RunId,
+  TerminalModelRun,
+} from '@ta-agent/workbench-domain';
 import type { ModelWorkbenchOperationOptions } from '../execution/contracts.js';
 
 export interface WaitForRunOptions extends ModelWorkbenchOperationOptions {
@@ -13,5 +21,7 @@ export interface RunControls {
 }
 
 export interface ModelAssetQueries {
+  compose(input: ModelStateInput): ModelState;
   getBase(baseId: string): Promise<ModelBase | undefined>;
+  getModification(modificationId: string): Promise<ModelModification | undefined>;
 }

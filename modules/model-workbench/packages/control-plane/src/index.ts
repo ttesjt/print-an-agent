@@ -10,10 +10,20 @@ export {
   InitializationArtifactVerificationError,
   InitializationCapabilityError,
   InitializerSlotNotFoundError,
-  ModelProfileNotFoundError,
 } from './operations/initialization/errors.js';
+export { ModelProfileNotFoundError } from './operations/errors.js';
+export {
+  ArtifactHandoffSupportNotFoundError,
+  TrainerSlotNotFoundError,
+  TrainingArtifactVerificationError,
+  TrainingCapabilityError,
+  TrainingSourceAssetMismatchError,
+  TrainingSourceAssetNotFoundError,
+  TrainingSourcePreparationError,
+} from './operations/training/errors.js';
 export {
   ModelRunNotFoundError,
+  ModelRunOperationUnavailableError,
   RunCancellationError,
   RunExecutionSupportMismatchError,
   RunObservationError,
@@ -23,6 +33,11 @@ export type {
   StartInitializationInput,
   StartInitializationResult,
 } from './operations/initialization/contracts.js';
+export type {
+  StartTrainingInput,
+  StartTrainingResult,
+  TrainingOperations,
+} from './operations/training/contracts.js';
 export type { ModelWorkbenchOperationOptions } from './execution/contracts.js';
 
 export { WorkbenchGeneratedIdKind, type WorkbenchIdSource } from './ports/workbench-id-source.js';

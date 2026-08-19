@@ -1,6 +1,8 @@
 import {
+  ModelOperationKind,
   ModelRunStatus,
   modelBasesEqual,
+  modelRunDefinitionsEqual,
   modelRunsEqual,
   type BaseId,
   type ActiveModelRun,
@@ -50,14 +52,7 @@ function commitInitialization(state: MemoryPersistenceState, input: Initializati
 }
 
 function assertSameRunIdentity(running: ActiveModelRun, terminal: ModelRun): void {
-  if (
-    running.operation !== terminal.operation ||
-    running.profileId !== terminal.profileId ||
-    running.initializerId !== terminal.initializerId ||
-    running.capabilityId !== terminal.capabilityId ||
-    running.runtimeBindingId !== terminal.runtimeBindingId ||
-    running.slotEvidenceDigest !== terminal.slotEvidenceDigest
-  ) {
+  if (!modelRunDefinitionsEqual(running, terminal)) {
     throw new RunTransitionPersistenceError(
       terminal.runId,
       'cannot change its frozen operation selection while completing.'
@@ -70,10 +65,16 @@ function isActive(run: ModelRun): run is ActiveModelRun {
 }
 
 function assertSucceededCommit(input: SucceededInitializationCommit): void {
+  const lineage = input.base.lineage;
   if (
     input.base.baseId !== input.run.result.baseId ||
-    input.base.lineage.runId !== input.run.runId ||
-    input.base.profileId !== input.run.profileId
+    input.base.profileId !== input.run.profileId ||
+    lineage.kind !== ModelOperationKind.Initialization ||
+    lineage.runId !== input.run.runId ||
+    lineage.initializerId !== input.run.initializerId ||
+    lineage.capabilityId !== input.run.capabilityId ||
+    lineage.runtimeBindingId !== input.run.runtimeBindingId ||
+    lineage.slotEvidenceDigest !== input.run.slotEvidenceDigest
   ) {
     throw new RunTransitionPersistenceError(
       input.run.runId,

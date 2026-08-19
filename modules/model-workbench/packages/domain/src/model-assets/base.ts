@@ -1,32 +1,22 @@
 import type { ArtifactReference } from './artifact.js';
-import type {
-  BaseId,
-  CapabilityId,
-  InitializerId,
-  ProfileId,
-  RunId,
-  RuntimeBindingId,
-  Sha256Digest,
-} from '../foundation/identifiers.js';
-import { ModelOperationKind } from '../operations/constants.js';
+import type { InitializationLineage, ModelBaseLineage, TrainingLineage } from './lineage.js';
+import type { BaseId, ProfileId } from '../foundation/identifiers.js';
 import { ModelAssetKind } from './constants.js';
 
-export interface ModelBase {
+export interface ModelBase<TLineage extends ModelBaseLineage = ModelBaseLineage> {
   readonly kind: typeof ModelAssetKind.Base;
   readonly baseId: BaseId;
   readonly profileId: ProfileId;
   readonly artifact: ArtifactReference;
-  readonly lineage: {
-    readonly kind: typeof ModelOperationKind.Initialization;
-    readonly runId: RunId;
-    readonly initializerId: InitializerId;
-    readonly capabilityId: CapabilityId;
-    readonly runtimeBindingId: RuntimeBindingId;
-    readonly slotEvidenceDigest: Sha256Digest;
-  };
+  readonly lineage: TLineage;
 }
 
-export function defineModelBase(input: Omit<ModelBase, 'kind'>): ModelBase {
+export type InitializationModelBase = ModelBase<InitializationLineage>;
+export type TrainingModelBase = ModelBase<TrainingLineage>;
+
+export function defineModelBase<TLineage extends ModelBaseLineage>(
+  input: Omit<ModelBase<TLineage>, 'kind'>
+): ModelBase<TLineage> {
   return Object.freeze({
     kind: ModelAssetKind.Base,
     ...input,

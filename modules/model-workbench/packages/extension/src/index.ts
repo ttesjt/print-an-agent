@@ -42,7 +42,28 @@ export {
 } from './model-capabilities/initializer/define-initializer-capability.js';
 
 export {
+  parseTrainingCapabilityResult,
+  type MaterializedBaseParameter,
+  type MaterializedModelState,
+  type MaterializedModificationParameter,
+  type TrainCapability,
+  type TrainingCapabilityRequest,
+  type TrainingCapabilityResult,
+  type TrainingCapabilityResultInput,
+} from './model-capabilities/trainer/contracts.js';
+export {
+  defineTrainerCapability,
+  type TrainerCapabilityContracts,
+  type TrainerCapabilityRuntime,
+  type TrainerCapabilityRuntimeInput,
+  type TypedTrainerCapability,
+} from './model-capabilities/trainer/define-trainer-capability.js';
+
+export {
+  type ArtifactMaterialization,
+  type ArtifactMaterializationRequest,
   type ArtifactVerificationRequest,
+  type MaterializeArtifact,
   type VerifyArtifact,
 } from './runtime-supports/artifact-handoff/contracts.js';
 export {

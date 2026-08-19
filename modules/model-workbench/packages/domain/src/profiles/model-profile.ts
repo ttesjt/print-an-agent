@@ -3,6 +3,7 @@ import type {
   InitializerId,
   ProfileId,
   RuntimeBindingId,
+  TrainerId,
 } from '../foundation/identifiers.js';
 
 export interface ProfileInitializerSlot {
@@ -11,16 +12,30 @@ export interface ProfileInitializerSlot {
   readonly runtimeBindingId: RuntimeBindingId;
 }
 
+export interface ProfileTrainerSlot {
+  readonly trainerId: TrainerId;
+  readonly capabilityId: CapabilityId;
+  readonly runtimeBindingId: RuntimeBindingId;
+}
+
 export interface ModelProfile {
   readonly profileId: ProfileId;
   readonly initializers: readonly ProfileInitializerSlot[];
+  readonly trainers: readonly ProfileTrainerSlot[];
 }
 
-export function defineModelProfile(input: ModelProfile): ModelProfile {
+export interface ModelProfileInput {
+  readonly profileId: ProfileId;
+  readonly initializers: readonly ProfileInitializerSlot[];
+  readonly trainers?: readonly ProfileTrainerSlot[];
+}
+
+export function defineModelProfile(input: ModelProfileInput): ModelProfile {
   return Object.freeze({
     profileId: input.profileId,
     initializers: Object.freeze(
       input.initializers.map((initializer) => Object.freeze(initializer))
     ),
+    trainers: Object.freeze((input.trainers ?? []).map((trainer) => Object.freeze(trainer))),
   });
 }

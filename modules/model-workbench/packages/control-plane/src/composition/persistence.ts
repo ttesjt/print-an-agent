@@ -2,6 +2,7 @@ import type {
   InitializationCommitter,
   ParameterRepository,
   RunRepository,
+  TrainingCommitter,
 } from '@ta-agent/workbench-persistence';
 
 /**
@@ -14,5 +15,6 @@ export interface ControlPlanePersistence {
   readonly parameters: ParameterRepository;
   readonly commits: {
     readonly initialization: InitializationCommitter;
+    readonly training: TrainingCommitter;
   };
 }

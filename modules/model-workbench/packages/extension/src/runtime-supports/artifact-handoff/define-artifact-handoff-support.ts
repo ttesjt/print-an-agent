@@ -3,6 +3,7 @@ import {
   parseArtifactReference,
   parseJsonValue,
   parseRuntimeSupportId,
+  type ArtifactReference,
   type RuntimeSupportId,
 } from '@ta-agent/workbench-domain';
 
@@ -13,7 +14,7 @@ import {
   parseDomainValue,
   parseExtensionMetadata,
 } from '../../foundation/validation.js';
-import type { VerifyArtifact } from './contracts.js';
+import type { ArtifactMaterialization, MaterializeArtifact, VerifyArtifact } from './contracts.js';
 
 export interface ArtifactHandoffSupportRuntime extends WorkbenchExtensionRuntime<
   typeof WorkbenchExtensionFamily.RuntimeSupport,
@@ -21,18 +22,24 @@ export interface ArtifactHandoffSupportRuntime extends WorkbenchExtensionRuntime
 > {
   readonly runtimeSupportId: RuntimeSupportId;
   readonly verify: VerifyArtifact;
+  readonly materialize: (
+    request: Parameters<MaterializeArtifact>[0],
+    options?: Parameters<MaterializeArtifact>[1]
+  ) => Promise<ArtifactMaterialization>;
 }
 
 export interface ArtifactHandoffSupportRuntimeInput {
   readonly runtimeSupportId: string;
   readonly metadata?: unknown;
   readonly verify: VerifyArtifact;
+  readonly materialize: MaterializeArtifact;
 }
 
 export function defineArtifactHandoffSupport(
   input: ArtifactHandoffSupportRuntimeInput
 ): ArtifactHandoffSupportRuntime {
   requireFunction(input.verify, 'artifactHandoffSupport.verify');
+  requireFunction(input.materialize, 'artifactHandoffSupport.materialize');
   const runtimeSupportId = parseDomainValue(
     () => parseRuntimeSupportId(input.runtimeSupportId, 'artifactHandoffSupport.runtimeSupportId'),
     'artifactHandoffSupport.runtimeSupportId'
@@ -55,14 +62,43 @@ export function defineArtifactHandoffSupport(
       request: Parameters<VerifyArtifact>[0],
       options?: Parameters<VerifyArtifact>[1]
     ) => {
-      const artifact = parseArtifactReference(
+      const artifact = parseOwnedArtifact(
+        runtimeSupportId,
         request.artifact,
         'artifactHandoffSupport.verification.artifact'
       );
-      assertOwnsArtifact(runtimeSupportId, artifact.handoff.runtimeSupportId);
       await input.verify(Object.freeze({ artifact }), options);
     },
+    materialize: async (
+      request: Parameters<MaterializeArtifact>[0],
+      options?: Parameters<MaterializeArtifact>[1]
+    ) => {
+      const artifact = parseOwnedArtifact(
+        runtimeSupportId,
+        request.artifact,
+        'artifactHandoffSupport.materialization.artifact'
+      );
+      const binding = parseJsonValue(
+        await input.materialize(Object.freeze({ artifact }), options),
+        'artifactHandoffSupport.materialization.binding'
+      );
+      return Object.freeze({
+        artifactId: artifact.artifactId,
+        digest: artifact.digest,
+        binding,
+      });
+    },
   });
+}
+
+function parseOwnedArtifact(
+  runtimeSupportId: RuntimeSupportId,
+  input: unknown,
+  path: string
+): ArtifactReference {
+  const artifact = parseArtifactReference(input, path);
+  assertOwnsArtifact(runtimeSupportId, artifact.handoff.runtimeSupportId);
+  return artifact;
 }
 
 function requireFunction(input: unknown, path: string): void {

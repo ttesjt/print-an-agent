@@ -8,11 +8,11 @@ import {
   parseArtifactReference,
   parseBaseId,
   succeedInitializationRun,
-  type ActiveModelRun,
+  type ActiveInitializationRun,
   type ArtifactReference,
   type ExecutionFailure,
-  type ModelBase,
-  type TerminalModelRun,
+  type InitializationModelBase,
+  type TerminalInitializationRun,
 } from '@ta-agent/workbench-domain';
 import {
   ExecutionStatus,
@@ -33,11 +33,11 @@ export interface CompleteInitializationDependencies {
 
 export async function completeInitialization(
   dependencies: CompleteInitializationDependencies,
-  run: ActiveModelRun,
+  run: ActiveInitializationRun,
   initializer: ResolvedInitializerSlot,
   terminal: ExecutionTerminal<InitializationCapabilityResult>,
   options?: ModelWorkbenchOperationOptions
-): Promise<TerminalModelRun> {
+): Promise<TerminalInitializationRun> {
   if (terminal.status === ExecutionStatus.Failed) {
     const failed = failModelRun(run, terminal.failure);
     await dependencies.initializationCommitter.commit({ run: failed });
@@ -85,7 +85,7 @@ export async function completeInitialization(
 
 export async function recordInitializationFailure(
   initializationCommitter: InitializationCommitter,
-  run: ActiveModelRun,
+  run: ActiveInitializationRun,
   failure: ExecutionFailure
 ): Promise<void> {
   try {
@@ -96,11 +96,11 @@ export async function recordInitializationFailure(
 }
 
 function defineInitializationBase(
-  run: ActiveModelRun,
+  run: ActiveInitializationRun,
   initializer: ResolvedInitializerSlot,
   artifact: ArtifactReference,
-  baseId: ModelBase['baseId']
-): ModelBase {
+  baseId: InitializationModelBase['baseId']
+): InitializationModelBase {
   return defineModelBase({
     baseId,
     profileId: run.profileId,

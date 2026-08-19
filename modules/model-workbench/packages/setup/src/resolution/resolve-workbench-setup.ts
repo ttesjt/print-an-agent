@@ -1,13 +1,18 @@
 import { deriveEvidenceDigest, parseJsonValue } from '@ta-agent/workbench-domain';
+import type { ArtifactHandoffSupportRuntime } from '@ta-agent/workbench-extension';
 
 import { WorkbenchSetupKind } from '../foundation/constants.js';
 import { assertUnique, parseArray, parseClosedRecord, sortBy } from '../foundation/parsing.js';
-import type { ResolvedInitializerSlot, ResolvedModelProfile } from '../profiles/contracts.js';
+import type {
+  ResolvedInitializerSlot,
+  ResolvedModelProfile,
+  ResolvedTrainerSlot,
+} from '../profiles/contracts.js';
 import { resolveModelProfile } from '../profiles/resolve-model-profile.js';
 import { indexExtensionResources } from '../resources/index-extension-resources.js';
 import { resolveRuntimeBinding } from '../runtime-bindings/resolve-runtime-binding.js';
 import type { ResolvedWorkbenchSetup, WorkbenchExtensionResources } from './contracts.js';
-import { profileEvidence } from './evidence.js';
+import { profileEvidence, runtimeSupportEvidence } from './evidence.js';
 
 export function resolveWorkbenchSetup(
   input: unknown,
@@ -32,10 +37,18 @@ export function resolveWorkbenchSetup(
   assertUnique(profiles, ({ profileId }) => profileId, 'setup.profiles');
 
   const sortedProfiles = sortBy(profiles, ({ profileId }) => profileId);
-  const evidence = parseJsonValue({ profiles: sortedProfiles.map(profileEvidence) });
+  const artifactHandoffSupports = sortBy(
+    indexedResources.artifactHandoffSupports,
+    ({ runtimeSupportId }) => runtimeSupportId
+  );
+  const evidence = parseJsonValue({
+    profiles: sortedProfiles.map(profileEvidence),
+    artifactHandoffSupports: artifactHandoffSupports.map(runtimeSupportEvidence),
+  });
   return Object.freeze({
     kind: WorkbenchSetupKind.Resolved,
     profiles: sortedProfiles,
+    artifactHandoffSupports,
     evidenceDigest: deriveEvidenceDigest(evidence),
   });
 }
@@ -52,4 +65,20 @@ export function findResolvedInitializer(
   initializerId: string
 ): ResolvedInitializerSlot | undefined {
   return profile.initializers.find((initializer) => initializer.initializerId === initializerId);
+}
+
+export function findResolvedTrainer(
+  profile: ResolvedModelProfile,
+  trainerId: string
+): ResolvedTrainerSlot | undefined {
+  return profile.trainers.find((trainer) => trainer.trainerId === trainerId);
+}
+
+export function findArtifactHandoffSupport(
+  setup: ResolvedWorkbenchSetup,
+  runtimeSupportId: string
+): ArtifactHandoffSupportRuntime | undefined {
+  return setup.artifactHandoffSupports.find(
+    (support) => support.runtimeSupportId === runtimeSupportId
+  );
 }

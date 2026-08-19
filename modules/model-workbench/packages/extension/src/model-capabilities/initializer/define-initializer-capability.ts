@@ -7,6 +7,7 @@ import {
 } from '@ta-agent/workbench-domain';
 
 import type { ExtensionValueContract } from '../../contracts/extension-value-contract.js';
+import type { CapabilityDispatch } from '../../execution-protocol/contracts.js';
 import { parseCapabilityDispatch } from '../../execution-protocol/parsing.js';
 import { ModelCapabilityKind, WorkbenchExtensionFamily } from '../../foundation/constants.js';
 import type {
@@ -18,8 +19,10 @@ import {
   parseDomainValue,
   parseExtensionMetadata,
 } from '../../foundation/validation.js';
+import { eraseValueContract } from '../shared/value-contract.js';
 import {
   parseInitializationCapabilityResult,
+  type InitializationCapabilityResultInput,
   type InitializationCapabilityResult,
   type InitializationCapabilityRequest,
   type InitializeCapability,
@@ -40,17 +43,17 @@ export interface InitializerCapabilityRuntime extends WorkbenchExtensionRuntime<
   readonly parseResult: (input: unknown, path?: string) => InitializationCapabilityResult;
 }
 
-export type TypedInitializerCapability<TInput> = (
+export type TypedInitializerCapability<TInput, TResultData = JsonValue> = (
   request: InitializationCapabilityRequest<TInput>,
   options?: ExtensionCallOptions
-) => Promise<unknown>;
+) => Promise<CapabilityDispatch<InitializationCapabilityResultInput<TResultData>>>;
 
 export interface InitializerCapabilityRuntimeInput<TInput, TResultData = JsonValue> {
   readonly capabilityId: string;
   readonly metadata?: unknown;
   readonly input: ExtensionValueContract<TInput>;
   readonly resultData?: ExtensionValueContract<TResultData>;
-  readonly initialize: TypedInitializerCapability<TInput>;
+  readonly initialize: TypedInitializerCapability<TInput, TResultData>;
 }
 
 export function defineInitializerCapability<TInput, TResultData = JsonValue>(
@@ -119,13 +122,4 @@ function createInitializerResultParser<TInput, TResultData>(
       data: parseJsonValue(input.resultData.parse(result.data, `${path}.data`), `${path}.data`),
     });
   };
-}
-
-function eraseValueContract<TValue>(
-  contract: ExtensionValueContract<TValue>
-): ExtensionValueContract<JsonValue> {
-  return Object.freeze({
-    evidence: contract.evidence,
-    parse: (input: unknown, path: string) => parseJsonValue(contract.parse(input, path), path),
-  });
 }

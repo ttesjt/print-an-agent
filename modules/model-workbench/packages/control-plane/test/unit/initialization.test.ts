@@ -10,8 +10,8 @@ import {
   ExecutionStatus,
   JsonValueContract,
   type CancelExecution,
-  type InitializationCapabilityRequest,
   type ObserveExecution,
+  type TypedInitializerCapability,
   type VerifyArtifact,
 } from '@ta-agent/workbench-extension';
 import { createMemoryPersistence } from '@ta-agent/workbench-persistence';
@@ -235,7 +235,9 @@ describe('Model Workbench initialization', () => {
   });
 
   it('records malformed Capability output but surfaces it as a protocol error', async () => {
-    const workbench = createWorkbench({ initialize: () => Promise.resolve({ status: 'maybe' }) });
+    const workbench = createWorkbench({
+      initialize: unsafeInitializer(() => Promise.resolve({ status: 'maybe' })),
+    });
 
     await expect(start(workbench)).rejects.toBeInstanceOf(InitializationCapabilityError);
     await expect(workbench.runs.get('run:1')).resolves.toMatchObject({
@@ -246,7 +248,7 @@ describe('Model Workbench initialization', () => {
 
   it('rejects Capability output that attempts to declare Workbench-owned Artifact identity', async () => {
     const workbench = createWorkbench({
-      initialize: () =>
+      initialize: unsafeInitializer(() =>
         Promise.resolve({
           kind: CapabilityDispatchKind.Completed,
           terminal: {
@@ -259,7 +261,8 @@ describe('Model Workbench initialization', () => {
               },
             },
           },
-        }),
+        })
+      ),
     });
 
     await expect(start(workbench)).rejects.toBeInstanceOf(InitializationCapabilityError);
@@ -306,11 +309,17 @@ describe('Model Workbench initialization', () => {
 });
 
 interface WorkbenchFixture {
-  readonly initialize: (request: InitializationCapabilityRequest) => Promise<unknown>;
+  readonly initialize: TypedInitializerCapability<JsonValue>;
   readonly verifyArtifact?: VerifyArtifact;
   readonly observe?: ObserveExecution;
   readonly cancel?: CancelExecution;
   readonly nextId?: (kind: WorkbenchGeneratedIdKind) => string;
+}
+
+function unsafeInitializer(
+  initialize: () => Promise<unknown>
+): TypedInitializerCapability<JsonValue> {
+  return initialize as TypedInitializerCapability<JsonValue>;
 }
 
 function createWorkbench({
@@ -358,6 +367,7 @@ function createWorkbench({
         defineArtifactHandoffSupport({
           runtimeSupportId: 'artifacts.local',
           verify: verifyArtifact,
+          materialize: ({ artifact }) => Promise.resolve(artifact.handoff.receipt),
         }),
         defineExecutionSupport({ runtimeSupportId: 'execution.local', observe, cancel }),
       ],
@@ -374,6 +384,7 @@ function idForKind(kind: WorkbenchGeneratedIdKind): string {
   return {
     run: 'run:1',
     base: 'base:1',
+    modification: 'modification:1',
     artifact: 'artifact:1',
   }[kind];
 }

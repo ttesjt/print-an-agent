@@ -32,7 +32,7 @@ export interface OperationExecutionHandler {
 }
 
 export type OperationExecutionHandlers = Readonly<
-  Record<ModelOperationKind, OperationExecutionHandler>
+  Partial<Record<ModelOperationKind, OperationExecutionHandler>>
 >;
 
 export interface AcceptCapabilityDispatchInput<TResult> {

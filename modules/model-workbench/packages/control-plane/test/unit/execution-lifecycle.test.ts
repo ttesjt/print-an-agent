@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   defineExecutionReference,
+  defineModelState,
   defineStartingInitializationRun,
+  defineStartingTrainingRun,
   failModelRun,
   ModelOperationKind,
   parseCapabilityId,
@@ -13,6 +15,7 @@ import {
   parseRuntimeBindingId,
   parseRuntimeSupportId,
   parseSha256Digest,
+  parseTrainerId,
   startModelRunExecution,
   type ActiveModelRun,
   type JsonValue,
@@ -30,7 +33,10 @@ import { createMemoryPersistence, type RunRepository } from '@ta-agent/workbench
 
 import type { OperationExecutionHandler } from '../../src/execution/contracts.js';
 import { createExecutionLifecycle } from '../../src/execution/create-execution-lifecycle.js';
-import { RunObservationError } from '../../src/execution/errors.js';
+import {
+  ModelRunOperationUnavailableError,
+  RunObservationError,
+} from '../../src/execution/errors.js';
 
 const failure = parseExecutionFailure({
   code: 'FIXTURE_TERMINAL',
@@ -190,6 +196,25 @@ describe('Execution Lifecycle Engine', () => {
 
     expect(() => createLifecycle(persistence.runs, mismatched)).toThrow('declares "training"');
   });
+
+  it('reports an operation whose execution handler is not installed', async () => {
+    const persistence = createMemoryPersistence();
+    const starting = startingTrainingRun();
+    const running = startModelRunExecution(
+      starting,
+      defineExecutionReference({
+        runtimeSupportId: parseRuntimeSupportId('execution.training'),
+        receipt: { jobId: 'job:training' },
+      })
+    );
+    await persistence.runs.create(starting);
+    await persistence.runs.updateActive(running);
+    const lifecycle = createLifecycle(persistence.runs, operationHandler(executionSupport()));
+
+    await expect(lifecycle.runs.refresh(starting.runId)).rejects.toBeInstanceOf(
+      ModelRunOperationUnavailableError
+    );
+  });
 });
 
 interface HandlerOverrides {
@@ -246,6 +271,18 @@ function startingRun() {
     capabilityId: parseCapabilityId('capability:fixture'),
     runtimeBindingId: parseRuntimeBindingId('runtime:fixture'),
     slotEvidenceDigest: parseSha256Digest(`sha256:${'a'.repeat(64)}`),
+  });
+}
+
+function startingTrainingRun() {
+  return defineStartingTrainingRun({
+    runId: parseRunId('run:training'),
+    profileId: parseProfileId('profile:fixture'),
+    trainerId: parseTrainerId('trainer:fixture'),
+    capabilityId: parseCapabilityId('capability:trainer'),
+    runtimeBindingId: parseRuntimeBindingId('runtime:training'),
+    slotEvidenceDigest: parseSha256Digest(`sha256:${'b'.repeat(64)}`),
+    source: defineModelState({ baseId: 'base:source', modificationIds: ['mod:source'] }),
   });
 }
 

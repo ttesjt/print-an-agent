@@ -3,11 +3,13 @@ import {
   ModelOperationKind,
   ModelRunStatus,
   parseExecutionFailure,
+  type ActiveInitializationRun,
   type ActiveModelRun,
   type ExecutionFailure,
   type JsonValue,
+  type RunningInitializationRun,
   type RunningModelRun,
-  type TerminalModelRun,
+  type TerminalInitializationRun,
 } from '@ta-agent/workbench-domain';
 import {
   ExecutionStatus,
@@ -22,7 +24,10 @@ import {
   type ResolvedInitializerSlot,
   type ResolvedWorkbenchSetup,
 } from '@ta-agent/workbench-setup';
-import type { InitializationCommitter } from '@ta-agent/workbench-persistence';
+import {
+  WorkbenchPersistenceError,
+  type InitializationCommitter,
+} from '@ta-agent/workbench-persistence';
 
 import { completeInitialization, recordInitializationFailure } from './complete-initialization.js';
 import {
@@ -39,12 +44,13 @@ import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';
 export interface InitializationExecutionHandler extends OperationExecutionHandler {
   readonly operation: typeof ModelOperationKind.Initialization;
   complete(
-    run: ActiveModelRun,
+    run: ActiveInitializationRun,
     initializer: ResolvedInitializerSlot,
     terminal: ExecutionTerminal<InitializationCapabilityResult>,
     options?: ModelWorkbenchOperationOptions
-  ): Promise<TerminalModelRun>;
-  rejectStart(run: ActiveModelRun, cause: unknown): Promise<never>;
+  ): Promise<TerminalInitializationRun>;
+  rejectInvocation(run: ActiveInitializationRun, cause: unknown): Promise<never>;
+  rejectCompletion(run: ActiveInitializationRun, cause: unknown): Promise<never>;
 }
 
 export interface InitializationExecutionHandlerDependencies {
@@ -59,9 +65,10 @@ export function createInitializationExecutionHandler(
   return Object.freeze({
     operation: ModelOperationKind.Initialization,
     resolveExecutionSupport: (run: ActiveModelRun): ExecutionSupportRuntime =>
-      resolveFrozenInitializer(dependencies.setup, run).runtime.supports.execution,
+      resolveFrozenInitializer(dependencies.setup, requireActiveInitializationRun(run)).runtime
+        .supports.execution,
     complete: (
-      run: ActiveModelRun,
+      run: ActiveInitializationRun,
       initializer: ResolvedInitializerSlot,
       terminal: ExecutionTerminal<InitializationCapabilityResult>,
       options?: ModelWorkbenchOperationOptions
@@ -71,27 +78,39 @@ export function createInitializationExecutionHandler(
       terminal: ExecutionTerminal<JsonValue>,
       options?: ModelWorkbenchOperationOptions
     ) => {
-      const initializer = resolveFrozenInitializer(dependencies.setup, run);
+      const initializationRun = requireRunningInitializationRun(run);
+      const initializer = resolveFrozenInitializer(dependencies.setup, initializationRun);
       try {
         return await completeInitialization(
           dependencies,
-          run,
+          initializationRun,
           initializer,
           parseObservedTerminal(initializer, terminal),
           options
         );
       } catch (cause: unknown) {
-        return rejectObservedCompletion(dependencies, run, cause);
+        return rejectObservedCompletion(dependencies, initializationRun, cause);
       }
     },
     rejectInvalidObservation: (run: RunningModelRun, cause: unknown) =>
-      rejectObservedCompletion(dependencies, run, cause),
-    rejectStart: async (run: ActiveModelRun, cause: unknown) => {
+      rejectObservedCompletion(dependencies, requireRunningInitializationRun(run), cause),
+    rejectInvocation: async (run: ActiveInitializationRun, cause: unknown) => {
       await recordInitializationFailure(
         dependencies.initializationCommitter,
         run,
         startFailure(cause)
       );
+      if (isAbortError(cause)) throw cause;
+      throw new InitializationCapabilityError(run.runId, { cause });
+    },
+    rejectCompletion: async (run: ActiveInitializationRun, cause: unknown) => {
+      if (cause instanceof WorkbenchPersistenceError) throw cause;
+      await recordInitializationFailure(
+        dependencies.initializationCommitter,
+        run,
+        startFailure(cause)
+      );
+      if (isAbortError(cause)) throw cause;
       if (cause instanceof InitializationArtifactVerificationError) throw cause;
       throw new InitializationCapabilityError(run.runId, { cause });
     },
@@ -100,7 +119,7 @@ export function createInitializationExecutionHandler(
 
 function resolveFrozenInitializer(
   setup: ResolvedWorkbenchSetup,
-  run: ActiveModelRun
+  run: ActiveInitializationRun
 ): ResolvedInitializerSlot {
   const profile = findResolvedProfile(setup, run.profileId);
   const initializer = profile && findResolvedInitializer(profile, run.initializerId);
@@ -133,7 +152,7 @@ function parseObservedTerminal(
 
 async function rejectObservedCompletion(
   dependencies: InitializationExecutionHandlerDependencies,
-  run: RunningModelRun,
+  run: RunningInitializationRun,
   cause: unknown
 ): Promise<never> {
   if (isAbortError(cause)) throw cause;
@@ -152,6 +171,20 @@ async function rejectObservedCompletion(
     observedResultFailure(cause)
   );
   throw new InitializationCapabilityError(run.runId, { cause });
+}
+
+function requireActiveInitializationRun(run: ActiveModelRun): ActiveInitializationRun {
+  if (run.operation !== ModelOperationKind.Initialization) {
+    throw new RunExecutionSupportMismatchError(run.runId);
+  }
+  return run;
+}
+
+function requireRunningInitializationRun(run: RunningModelRun): RunningInitializationRun {
+  if (run.operation !== ModelOperationKind.Initialization) {
+    throw new RunExecutionSupportMismatchError(run.runId);
+  }
+  return run;
 }
 
 function isProtocolOrCompletionError(cause: unknown): boolean {

@@ -6,6 +6,7 @@ import {
   defineArtifactHandoffSupport,
   defineExecutionSupport,
   defineInitializerCapability,
+  defineTrainerCapability,
   ExecutionStatus,
 } from '@ta-agent/workbench-extension';
 import { RuntimeBindingKind } from '@ta-agent/workbench-setup';
@@ -13,12 +14,14 @@ import { RuntimeBindingKind } from '@ta-agent/workbench-setup';
 import { createModelWorkbench } from '../../src/index.js';
 
 describe('createModelWorkbench', () => {
-  it('resolves setup input and applies the default in-memory persistence composition', async () => {
+  it('resolves setup and runs Initialization through Training with memory persistence', async () => {
     const generated = {
-      run: 'run:application',
-      base: 'base:application',
-      artifact: 'artifact:application',
+      run: ['run:initialization', 'run:training'],
+      base: ['base:source'],
+      modification: ['modification:trained'],
+      artifact: ['artifact:source', 'artifact:trained'],
     } as const;
+    const generatedIndex = { run: 0, base: 0, modification: 0, artifact: 0 };
     const workbench = createModelWorkbench({
       setup: {
         runtimeBindings: [
@@ -38,6 +41,13 @@ describe('createModelWorkbench', () => {
               {
                 initializerId: 'default',
                 capabilityId: 'initializer.fixture',
+                runtimeBindingId: 'runtime.fixture',
+              },
+            ],
+            trainers: [
+              {
+                trainerId: 'default',
+                capabilityId: 'trainer.fixture',
                 runtimeBindingId: 'runtime.fixture',
               },
             ],
@@ -63,11 +73,30 @@ describe('createModelWorkbench', () => {
                 },
               }),
           }),
+          defineTrainerCapability({
+            capabilityId: 'trainer.fixture',
+            input: JsonValueContract,
+            train: () =>
+              Promise.resolve({
+                kind: CapabilityDispatchKind.Completed,
+                terminal: {
+                  status: ExecutionStatus.Succeeded,
+                  result: {
+                    assetKind: 'modification',
+                    artifact: {
+                      digest: `sha256:${'b'.repeat(64)}`,
+                      receipt: { location: 'fixture://trained' },
+                    },
+                  },
+                },
+              }),
+          }),
         ],
         runtimeSupports: [
           defineArtifactHandoffSupport({
             runtimeSupportId: 'artifacts.fixture',
             verify: () => Promise.resolve(),
+            materialize: ({ artifact }) => Promise.resolve(artifact.handoff.receipt),
           }),
           defineExecutionSupport({
             runtimeSupportId: 'execution.fixture',
@@ -77,7 +106,13 @@ describe('createModelWorkbench', () => {
         ],
       },
       idSource: {
-        nextId: (kind) => generated[kind],
+        nextId: (kind) => {
+          const index = generatedIndex[kind];
+          const identity = generated[kind][index];
+          if (identity === undefined) throw new Error(`No generated ${kind} identity remains.`);
+          generatedIndex[kind] = index + 1;
+          return identity;
+        },
       },
     });
 
@@ -87,15 +122,33 @@ describe('createModelWorkbench', () => {
       input: null,
     });
 
-    expect(result).toEqual({ runId: 'run:application' });
-    await expect(workbench.models.getBase('base:application')).resolves.toMatchObject({
+    expect(result).toEqual({ runId: 'run:initialization' });
+    await expect(workbench.models.getBase('base:source')).resolves.toMatchObject({
       profileId: 'fixture-profile',
       artifact: {
-        artifactId: 'artifact:application',
+        artifactId: 'artifact:source',
         handoff: {
           runtimeSupportId: 'artifacts.fixture',
           receipt: { location: 'fixture://initialized' },
         },
+      },
+    });
+
+    await expect(
+      workbench.training.start({
+        profileId: 'fixture-profile',
+        trainerId: 'default',
+        source: { baseId: 'base:source' },
+        input: { steps: 1 },
+      })
+    ).resolves.toEqual({ runId: 'run:training' });
+    await expect(workbench.models.getModification('modification:trained')).resolves.toMatchObject({
+      profileId: 'fixture-profile',
+      artifact: { artifactId: 'artifact:trained' },
+      lineage: {
+        kind: 'training',
+        runId: 'run:training',
+        source: { baseId: 'base:source', modificationIds: [] },
       },
     });
   });

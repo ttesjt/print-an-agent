@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   defineModelBase,
-  defineRunningInitializationRun,
+  defineExecutionReference,
+  defineStartingInitializationRun,
   ModelOperationKind,
   parseArtifactId,
   parseBaseId,
@@ -11,8 +12,11 @@ import {
   parseProfileId,
   parseRunId,
   parseRuntimeBindingId,
+  parseRuntimeSupportId,
   parseSha256Digest,
   succeedInitializationRun,
+  startModelRunExecution,
+  updateModelRunProgress,
 } from '@ta-agent/workbench-domain';
 
 import { createMemoryPersistence, RunTransitionPersistenceError } from '../../src/index.js';
@@ -31,6 +35,10 @@ describe('createMemoryPersistence', () => {
       artifact: {
         artifactId: parseArtifactId('artifact:1'),
         digest: artifactDigest,
+        handoff: {
+          runtimeSupportId: parseRuntimeSupportId('artifacts.local'),
+          receipt: { location: 'fixture://artifact:1' },
+        },
       },
       lineage: {
         kind: ModelOperationKind.Initialization,
@@ -55,13 +63,16 @@ describe('createMemoryPersistence', () => {
   it('rejects a succeeded Run whose atomic commit names a different Base', async () => {
     const persistence = createMemoryPersistence();
     const running = runningRun();
-    const declaredBaseId = parseBaseId('base:declared');
     const differentBase = defineModelBase({
       baseId: parseBaseId('base:different'),
       profileId: running.profileId,
       artifact: {
         artifactId: parseArtifactId('artifact:1'),
         digest: artifactDigest,
+        handoff: {
+          runtimeSupportId: parseRuntimeSupportId('artifacts.local'),
+          receipt: { location: 'fixture://artifact:1' },
+        },
       },
       lineage: {
         kind: ModelOperationKind.Initialization,
@@ -76,16 +87,48 @@ describe('createMemoryPersistence', () => {
 
     await expect(
       persistence.commits.initialization.commit({
-        run: succeedInitializationRun(running, declaredBaseId),
+        run: succeedInitializationRun(running, parseBaseId('base:declared')),
         base: differentBase,
       })
     ).rejects.toBeInstanceOf(RunTransitionPersistenceError);
     await expect(persistence.runs.find(running.runId)).resolves.toEqual(running);
   });
+
+  it('persists an opaque execution receipt and forbids changing it after acceptance', async () => {
+    const persistence = createMemoryPersistence();
+    const starting = runningRun();
+    const running = startModelRunExecution(
+      starting,
+      defineExecutionReference({
+        runtimeSupportId: parseRuntimeSupportId('execution.local'),
+        receipt: { jobId: 'job:1' },
+      })
+    );
+    await persistence.runs.create(starting);
+    await persistence.runs.updateActive(running);
+    await persistence.runs.updateActive(updateModelRunProgress(running, { step: 2 }));
+
+    await expect(persistence.runs.find(running.runId)).resolves.toMatchObject({
+      status: 'running',
+      execution: { receipt: { jobId: 'job:1' } },
+      progress: { step: 2 },
+    });
+    await expect(
+      persistence.runs.updateActive(
+        startModelRunExecution(
+          starting,
+          defineExecutionReference({
+            runtimeSupportId: parseRuntimeSupportId('execution.local'),
+            receipt: { jobId: 'job:changed' },
+          })
+        )
+      )
+    ).rejects.toThrow();
+  });
 });
 
 function runningRun() {
-  return defineRunningInitializationRun({
+  return defineStartingInitializationRun({
     runId: parseRunId('run:1'),
     profileId: parseProfileId('research-model'),
     initializerId: parseInitializerId('import'),

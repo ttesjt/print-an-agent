@@ -1,6 +1,7 @@
 import type { Sha256Digest } from '@ta-agent/workbench-domain';
 import type {
-  ArtifactVerifierSupportRuntime,
+  ArtifactHandoffSupportRuntime,
+  ExecutionSupportRuntime,
   InitializerCapabilityRuntime,
 } from '@ta-agent/workbench-extension';
 
@@ -15,7 +16,7 @@ export interface WorkbenchSetupInput {
 
 export interface WorkbenchExtensionResources {
   readonly modelCapabilities: readonly InitializerCapabilityRuntime[];
-  readonly runtimeSupports: readonly ArtifactVerifierSupportRuntime[];
+  readonly runtimeSupports: readonly (ArtifactHandoffSupportRuntime | ExecutionSupportRuntime)[];
 }
 
 export interface ResolvedWorkbenchSetup {

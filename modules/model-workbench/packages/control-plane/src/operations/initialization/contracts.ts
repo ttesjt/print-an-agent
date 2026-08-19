@@ -1,5 +1,5 @@
-import type { BaseId, ExecutionFailure, RunId } from '@ta-agent/workbench-domain';
-import { CapabilityOutcomeStatus } from '@ta-agent/workbench-extension';
+import type { RunId } from '@ta-agent/workbench-domain';
+import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';
 
 export interface StartInitializationInput {
   readonly profileId: string;
@@ -7,21 +7,9 @@ export interface StartInitializationInput {
   readonly input: unknown;
 }
 
-export interface ModelWorkbenchOperationOptions {
-  readonly signal?: AbortSignal;
+export interface StartInitializationResult {
+  readonly runId: RunId;
 }
-
-export type StartInitializationResult =
-  | {
-      readonly status: typeof CapabilityOutcomeStatus.Succeeded;
-      readonly runId: RunId;
-      readonly baseId: BaseId;
-    }
-  | {
-      readonly status: typeof CapabilityOutcomeStatus.Failed;
-      readonly runId: RunId;
-      readonly failure: ExecutionFailure;
-    };
 
 export interface InitializationOperations {
   start(

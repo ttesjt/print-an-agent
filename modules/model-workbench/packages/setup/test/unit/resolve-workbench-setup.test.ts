@@ -3,15 +3,16 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   InvalidWorkbenchValueError,
   ModelOperationKind,
-  parseArtifactId,
+  parseArtifactReference,
   parseRunId,
-  parseSha256Digest,
 } from '@ta-agent/workbench-domain';
 import {
-  CapabilityOutcomeStatus,
-  defineArtifactVerifierSupport,
+  CapabilityDispatchKind,
+  defineArtifactHandoffSupport,
+  defineExecutionSupport,
   defineInitializerCapability,
   defineJsonSchemaContract,
+  ExecutionStatus,
 } from '@ta-agent/workbench-extension';
 
 import {
@@ -25,8 +26,16 @@ describe('resolveWorkbenchSetup', () => {
   it('binds separate callable Capability and Runtime Support resources into each slot', async () => {
     const initialize = vi.fn(() =>
       Promise.resolve({
-        status: CapabilityOutcomeStatus.Succeeded,
-        artifact: { artifactId: 'artifact:1', digest: `sha256:${'a'.repeat(64)}` },
+        kind: CapabilityDispatchKind.Completed,
+        terminal: {
+          status: ExecutionStatus.Succeeded,
+          result: {
+            artifact: {
+              digest: `sha256:${'a'.repeat(64)}`,
+              receipt: { location: 'fixture://artifact:1' },
+            },
+          },
+        },
       })
     );
     const verify = vi.fn(() => Promise.resolve());
@@ -39,14 +48,17 @@ describe('resolveWorkbenchSetup', () => {
     await slot.capability.initialize({
       operation: ModelOperationKind.Initialization,
       runId: parseRunId('run:1'),
-      plannedArtifactId: parseArtifactId('artifact:1'),
       input: { source: 'fixture://base' },
     });
-    await slot.runtime.supports.artifactVerifier.verify({
-      artifact: {
-        artifactId: parseArtifactId('artifact:1'),
-        digest: parseSha256Digest(`sha256:${'a'.repeat(64)}`),
-      },
+    await slot.runtime.supports.artifactHandoff.verify({
+      artifact: parseArtifactReference({
+        artifactId: 'artifact:1',
+        digest: `sha256:${'a'.repeat(64)}`,
+        handoff: {
+          runtimeSupportId: 'artifacts.local',
+          receipt: { location: 'fixture://artifact:1' },
+        },
+      }),
     });
 
     expect(initialize).toHaveBeenCalledOnce();
@@ -56,7 +68,10 @@ describe('resolveWorkbenchSetup', () => {
       capability: { capabilityId: 'initializer.import' },
       runtime: {
         runtimeBindingId: 'runtime.local',
-        supports: { artifactVerifier: { runtimeSupportId: 'artifacts.local' } },
+        supports: {
+          artifactHandoff: { runtimeSupportId: 'artifacts.local' },
+          execution: { runtimeSupportId: 'execution.local' },
+        },
       },
     });
   });
@@ -64,9 +79,17 @@ describe('resolveWorkbenchSetup', () => {
   it('uses Draft 2020-12 contracts to validate input and result data', async () => {
     const initialize = vi.fn((request: { readonly input: ImportInput }) =>
       Promise.resolve({
-        status: CapabilityOutcomeStatus.Succeeded,
-        artifact: { artifactId: 'artifact:1', digest: `sha256:${'b'.repeat(64)}` },
-        data: { imported: request.input.source },
+        kind: CapabilityDispatchKind.Completed,
+        terminal: {
+          status: ExecutionStatus.Succeeded,
+          result: {
+            artifact: {
+              digest: `sha256:${'b'.repeat(64)}`,
+              receipt: { location: 'fixture://artifact:1' },
+            },
+            data: { imported: request.input.source },
+          },
+        },
       })
     );
     const capability = initializerCapability(initialize);
@@ -75,7 +98,6 @@ describe('resolveWorkbenchSetup', () => {
       capability.initialize({
         operation: ModelOperationKind.Initialization,
         runId: parseRunId('run:1'),
-        plannedArtifactId: parseArtifactId('artifact:1'),
         input: { source: 42 },
       })
     ).rejects.toThrow(InvalidWorkbenchValueError);
@@ -85,23 +107,31 @@ describe('resolveWorkbenchSetup', () => {
       capability.initialize({
         operation: ModelOperationKind.Initialization,
         runId: parseRunId('run:1'),
-        plannedArtifactId: parseArtifactId('artifact:1'),
         input: { source: 'fixture://base' },
       })
-    ).resolves.toMatchObject({ data: { imported: 'fixture://base' } });
+    ).resolves.toMatchObject({
+      terminal: { result: { data: { imported: 'fixture://base' } } },
+    });
 
     const invalidResultCapability = initializerCapability(() =>
       Promise.resolve({
-        status: CapabilityOutcomeStatus.Succeeded,
-        artifact: { artifactId: 'artifact:1', digest: `sha256:${'b'.repeat(64)}` },
-        data: { imported: 42 },
+        kind: CapabilityDispatchKind.Completed,
+        terminal: {
+          status: ExecutionStatus.Succeeded,
+          result: {
+            artifact: {
+              digest: `sha256:${'b'.repeat(64)}`,
+              receipt: { location: 'fixture://artifact:1' },
+            },
+            data: { imported: 42 },
+          },
+        },
       })
     );
     await expect(
       invalidResultCapability.initialize({
         operation: ModelOperationKind.Initialization,
         runId: parseRunId('run:1'),
-        plannedArtifactId: parseArtifactId('artifact:1'),
         input: { source: 'fixture://base' },
       })
     ).rejects.toThrow(InvalidWorkbenchValueError);
@@ -121,7 +151,7 @@ describe('resolveWorkbenchSetup', () => {
           initializerCapability(vi.fn(), 'capability.z'),
           initializerCapability(vi.fn(), 'capability.a'),
         ],
-        runtimeSupports: [artifactVerifier('artifacts.local', vi.fn())],
+        runtimeSupports: runtimeSupports(),
       }
     );
     const second = resolveWorkbenchSetup(
@@ -141,12 +171,12 @@ describe('resolveWorkbenchSetup', () => {
           initializerCapability(vi.fn(), 'capability.a'),
           initializerCapability(vi.fn(), 'capability.z'),
         ],
-        runtimeSupports: [artifactVerifier('artifacts.local', vi.fn())],
+        runtimeSupports: runtimeSupports(),
       }
     );
     const changedContract = resolveWorkbenchSetup(validSetup(), {
       modelCapabilities: [initializerCapability(vi.fn(), 'initializer.import', 2)],
-      runtimeSupports: [artifactVerifier('artifacts.local', vi.fn())],
+      runtimeSupports: runtimeSupports(),
     });
 
     expect(second.evidenceDigest).toBe(first.evidenceDigest);
@@ -173,9 +203,9 @@ describe('resolveWorkbenchSetup', () => {
     {
       name: 'unknown Runtime Support',
       mutate: (input: ReturnType<typeof validSetup>) => {
-        input.runtimeBindings[0]!.supports.artifactVerifierId = 'missing';
+        input.runtimeBindings[0]!.supports.artifactHandoffId = 'missing';
       },
-      path: 'setup.runtimeBindings[0].supports.artifactVerifierId',
+      path: 'setup.runtimeBindings[0].supports.artifactHandoffId',
     },
   ])('rejects an $name reference', ({ mutate, path }) => {
     const input = validSetup();
@@ -188,7 +218,7 @@ describe('resolveWorkbenchSetup', () => {
     const capability = initializerCapability(vi.fn());
     const duplicateResources: WorkbenchExtensionResources = {
       modelCapabilities: [capability, capability],
-      runtimeSupports: [artifactVerifier('artifacts.local', vi.fn())],
+      runtimeSupports: runtimeSupports(),
     };
 
     expect(() => resolveWorkbenchSetup(validSetup(), duplicateResources)).toThrow(
@@ -240,8 +270,22 @@ function initializerCapability(
   });
 }
 
-function artifactVerifier(runtimeSupportId: string, verify: () => Promise<void>) {
-  return defineArtifactVerifierSupport({ runtimeSupportId, verify });
+function artifactHandoff(runtimeSupportId: string, verify: () => Promise<void>) {
+  return defineArtifactHandoffSupport({
+    runtimeSupportId,
+    verify,
+  });
+}
+
+function runtimeSupports(verify: () => Promise<void> = () => Promise.resolve()) {
+  return [
+    artifactHandoff('artifacts.local', verify),
+    defineExecutionSupport({
+      runtimeSupportId: 'execution.local',
+      observe: vi.fn(),
+      cancel: vi.fn(),
+    }),
+  ];
 }
 
 function extensionResources(overrides?: {
@@ -250,7 +294,7 @@ function extensionResources(overrides?: {
 }): WorkbenchExtensionResources {
   return {
     modelCapabilities: [initializerCapability(overrides?.initialize ?? vi.fn())],
-    runtimeSupports: [artifactVerifier('artifacts.local', overrides?.verify ?? vi.fn())],
+    runtimeSupports: runtimeSupports(overrides?.verify),
   };
 }
 
@@ -258,7 +302,10 @@ function runtimeBinding(runtimeBindingId: string) {
   return {
     kind: RuntimeBindingKind.Binding,
     runtimeBindingId,
-    supports: { artifactVerifierId: 'artifacts.local' },
+    supports: {
+      artifactHandoffId: 'artifacts.local',
+      executionSupportId: 'execution.local',
+    },
   };
 }
 

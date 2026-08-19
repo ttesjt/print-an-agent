@@ -1,10 +1,14 @@
 import type { JsonValue, RuntimeBindingId, Sha256Digest } from '@ta-agent/workbench-domain';
-import type { ArtifactVerifierSupportRuntime } from '@ta-agent/workbench-extension';
+import type {
+  ArtifactHandoffSupportRuntime,
+  ExecutionSupportRuntime,
+} from '@ta-agent/workbench-extension';
 
 import { RuntimeBindingKind } from '../foundation/constants.js';
 
 export interface RuntimeSupportSelectorsInput {
-  readonly artifactVerifierId: string;
+  readonly artifactHandoffId: string;
+  readonly executionSupportId: string;
 }
 
 export interface RuntimeBindingInput {
@@ -15,7 +19,8 @@ export interface RuntimeBindingInput {
 }
 
 export interface ResolvedRuntimeSupports {
-  readonly artifactVerifier: ArtifactVerifierSupportRuntime;
+  readonly artifactHandoff: ArtifactHandoffSupportRuntime;
+  readonly execution: ExecutionSupportRuntime;
 }
 
 export interface ResolvedRuntimeBinding {

@@ -7,11 +7,8 @@ import {
 } from '@ta-agent/workbench-domain';
 
 import type { ExtensionValueContract } from '../../contracts/extension-value-contract.js';
-import {
-  CapabilityOutcomeStatus,
-  ModelCapabilityKind,
-  WorkbenchExtensionFamily,
-} from '../../foundation/constants.js';
+import { parseCapabilityDispatch } from '../../execution-protocol/parsing.js';
+import { ModelCapabilityKind, WorkbenchExtensionFamily } from '../../foundation/constants.js';
 import type {
   ExtensionCallOptions,
   WorkbenchExtensionRuntime,
@@ -22,7 +19,8 @@ import {
   parseExtensionMetadata,
 } from '../../foundation/validation.js';
 import {
-  parseInitializationCapabilityOutcome,
+  parseInitializationCapabilityResult,
+  type InitializationCapabilityResult,
   type InitializationCapabilityRequest,
   type InitializeCapability,
 } from './contracts.js';
@@ -39,6 +37,7 @@ export interface InitializerCapabilityRuntime extends WorkbenchExtensionRuntime<
   readonly capabilityId: CapabilityId;
   readonly contracts: InitializerCapabilityContracts;
   readonly initialize: InitializeCapability;
+  readonly parseResult: (input: unknown, path?: string) => InitializationCapabilityResult;
 }
 
 export type TypedInitializerCapability<TInput> = (
@@ -88,6 +87,7 @@ export function defineInitializerCapability<TInput, TResultData = JsonValue>(
     contracts,
     evidenceDigest: deriveEvidenceDigest(evidence),
     initialize: createInitializerInvoker(input),
+    parseResult: createInitializerResultParser(input),
   });
 }
 
@@ -96,27 +96,27 @@ function createInitializerInvoker<TInput, TResultData>(
 ): InitializeCapability {
   return async (request, options) => {
     const typedInput = input.input.parse(request.input, 'initializerCapability.request.input');
-    const rawOutcome = await input.initialize(
+    const rawDispatch = await input.initialize(
       Object.freeze({ ...request, input: typedInput }),
       options
     );
-    const outcome = parseInitializationCapabilityOutcome(
-      rawOutcome,
-      'initializerCapability.outcome'
+    return parseCapabilityDispatch(
+      rawDispatch,
+      createInitializerResultParser(input),
+      'initializerCapability.dispatch'
     );
-    if (
-      outcome.status !== CapabilityOutcomeStatus.Succeeded ||
-      outcome.data === undefined ||
-      input.resultData === undefined
-    ) {
-      return outcome;
-    }
+  };
+}
+
+function createInitializerResultParser<TInput, TResultData>(
+  input: InitializerCapabilityRuntimeInput<TInput, TResultData>
+): (value: unknown, path?: string) => InitializationCapabilityResult {
+  return (value, path = 'initializerCapability.result') => {
+    const result = parseInitializationCapabilityResult(value, path);
+    if (result.data === undefined || input.resultData === undefined) return result;
     return Object.freeze({
-      ...outcome,
-      data: parseJsonValue(
-        input.resultData.parse(outcome.data, 'initializerCapability.outcome.data'),
-        'initializerCapability.outcome.data'
-      ),
+      ...result,
+      data: parseJsonValue(input.resultData.parse(result.data, `${path}.data`), `${path}.data`),
     });
   };
 }

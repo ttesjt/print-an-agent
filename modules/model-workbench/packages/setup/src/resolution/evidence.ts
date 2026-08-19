@@ -1,6 +1,7 @@
 import { parseJsonValue, type JsonValue } from '@ta-agent/workbench-domain';
 import type {
-  ArtifactVerifierSupportRuntime,
+  ArtifactHandoffSupportRuntime,
+  ExecutionSupportRuntime,
   InitializerCapabilityRuntime,
 } from '@ta-agent/workbench-extension';
 
@@ -23,7 +24,9 @@ export function capabilityEvidence(capability: InitializerCapabilityRuntime): Js
   });
 }
 
-export function runtimeSupportEvidence(support: ArtifactVerifierSupportRuntime): JsonValue {
+export function runtimeSupportEvidence(
+  support: ArtifactHandoffSupportRuntime | ExecutionSupportRuntime
+): JsonValue {
   return parseJsonValue({
     family: support.family,
     kind: support.kind,
@@ -38,7 +41,8 @@ export function runtimeBindingEvidence(binding: ResolvedRuntimeBinding): JsonVal
     kind: binding.kind,
     runtimeBindingId: binding.runtimeBindingId,
     supports: {
-      artifactVerifier: runtimeSupportEvidence(binding.supports.artifactVerifier),
+      artifactHandoff: runtimeSupportEvidence(binding.supports.artifactHandoff),
+      execution: runtimeSupportEvidence(binding.supports.execution),
     },
     evidenceDigest: binding.evidenceDigest,
     ...(binding.metadata === undefined ? {} : { metadata: binding.metadata }),

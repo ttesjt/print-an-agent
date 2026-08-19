@@ -35,6 +35,7 @@ export { deriveEvidenceDigest } from './foundation/evidence.js';
 
 export {
   parseArtifactReference,
+  type ArtifactHandoff,
   type ArtifactReference,
   type ArtifactReferenceInput,
 } from './model-assets/artifact.js';
@@ -42,14 +43,27 @@ export {
 export { parseExecutionFailure, type ExecutionFailure } from './operations/execution-failure.js';
 
 export {
-  defineRunningInitializationRun,
+  defineExecutionReference,
+  type ExecutionReference,
+} from './operations/execution-reference.js';
+
+export {
+  cancelModelRun,
+  defineStartingInitializationRun,
   failModelRun,
+  loseModelRun,
   modelRunsEqual,
+  startModelRunExecution,
   succeedInitializationRun,
+  updateModelRunProgress,
+  type ActiveModelRun,
+  type CancelledModelRun,
   type FailedModelRun,
   type InitializationRunSelection,
+  type LostModelRun,
   type ModelRun,
   type RunningModelRun,
+  type StartingModelRun,
   type SucceededModelRun,
   type TerminalModelRun,
 } from './operations/run.js';

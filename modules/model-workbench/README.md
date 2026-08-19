@@ -22,9 +22,32 @@ static Profile and Runtime Binding setup input
        -> createWorkbenchControlPlane()
   -> workbench.initialization.start()
   -> Initializer Capability
-  -> bound Artifact Verifier Support
+     -> completed terminal result
+     or accepted opaque execution receipt
+  -> workbench.runs.refresh() / wait() / cancel()
+  -> bound Execution Support when detached
+  -> bound Artifact Handoff Support verifies the reported Artifact
   -> terminal Run + immutable Base
 ```
+
+`initialization.start()` always returns a Workbench `runId`. Stopping `runs.wait()` stops only the
+caller-side wait; cancellation is a separate explicit action. Backend execution identity remains an
+opaque receipt owned by the selected Runtime Support and is durably associated with the Run.
+
+Artifact identity is separate from execution identity. A successful producing Capability reports an
+Artifact digest and an opaque handoff receipt, but not the Workbench-owned Artifact ID. Workbench
+combines those facts with its assigned ID and the bound Support identity, then accepts the resulting
+`ArtifactReference` only after that Support verifies it.
+
+The Control Plane implements this lifecycle once. Its internal Execution Lifecycle Engine owns
+dispatch acceptance, receipt persistence, observation, progress, waiting, and cancellation. Each
+operation supplies a typed handler for runtime resolution, terminal result parsing, validation, and
+asset commitment; Initialization is the first handler. New operations extend those slots rather
+than copying the execution loop.
+
+`RunObservationError` is limited to failure of the bound Execution Support's `observe()` call.
+Progress persistence and terminal commitment happen in later phases and preserve their own
+operation or persistence errors instead of being mislabeled as observation failures.
 
 Advanced hosts may call `resolveWorkbenchSetup()` and `createWorkbenchControlPlane()` separately to
 provide every persistence port and ID source explicitly. The Setup layer derives digests as evidence

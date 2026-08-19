@@ -1,4 +1,5 @@
 export { createWorkbenchControlPlane } from './composition/create-workbench-control-plane.js';
+export { WorkbenchControlPlaneError } from './foundation/errors.js';
 export type {
   ModelWorkbenchControlPlane,
   WorkbenchControlPlaneConfiguration,
@@ -6,19 +7,23 @@ export type {
 export type { ControlPlanePersistence } from './composition/persistence.js';
 
 export {
-  InitializationArtifactMismatchError,
   InitializationArtifactVerificationError,
   InitializationCapabilityError,
   InitializerSlotNotFoundError,
   ModelProfileNotFoundError,
-  WorkbenchControlPlaneError,
 } from './operations/initialization/errors.js';
+export {
+  ModelRunNotFoundError,
+  RunCancellationError,
+  RunExecutionSupportMismatchError,
+  RunObservationError,
+} from './execution/errors.js';
 export type {
   InitializationOperations,
-  ModelWorkbenchOperationOptions,
   StartInitializationInput,
   StartInitializationResult,
 } from './operations/initialization/contracts.js';
+export type { ModelWorkbenchOperationOptions } from './execution/contracts.js';
 
 export { WorkbenchGeneratedIdKind, type WorkbenchIdSource } from './ports/workbench-id-source.js';
-export type { ModelAssetQueries, RunQueries } from './queries/contracts.js';
+export type { ModelAssetQueries, RunControls, WaitForRunOptions } from './queries/contracts.js';

@@ -1,5 +1,6 @@
 import type {
-  ArtifactVerifierSupportRuntime,
+  ArtifactHandoffSupportRuntime,
+  ExecutionSupportRuntime,
   InitializerCapabilityRuntime,
 } from '@ta-agent/workbench-extension';
 
@@ -8,7 +9,10 @@ import type { WorkbenchExtensionResources } from '../resolution/contracts.js';
 
 export interface IndexedExtensionResources {
   readonly capabilityById: ReadonlyMap<string, InitializerCapabilityRuntime>;
-  readonly supportById: ReadonlyMap<string, ArtifactVerifierSupportRuntime>;
+  readonly supportById: ReadonlyMap<
+    string,
+    ArtifactHandoffSupportRuntime | ExecutionSupportRuntime
+  >;
 }
 
 export function indexExtensionResources(

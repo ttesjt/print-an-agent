@@ -5,9 +5,12 @@ export const ModelOperationKind = {
 export type ModelOperationKind = (typeof ModelOperationKind)[keyof typeof ModelOperationKind];
 
 export const ModelRunStatus = {
+  Starting: 'starting',
   Running: 'running',
   Succeeded: 'succeeded',
   Failed: 'failed',
+  Cancelled: 'cancelled',
+  Lost: 'lost',
 } as const;
 
 export type ModelRunStatus = (typeof ModelRunStatus)[keyof typeof ModelRunStatus];

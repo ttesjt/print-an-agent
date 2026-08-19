@@ -1,5 +1,4 @@
 export {
-  CapabilityOutcomeStatus,
   ModelCapabilityKind,
   RuntimeSupportKind,
   WorkbenchExtensionFamily,
@@ -28,10 +27,10 @@ export {
 } from './contracts/json-schema/constants.js';
 
 export {
-  parseInitializationCapabilityOutcome,
-  type InitializationCapabilityOutcome,
-  type InitializationCapabilityOutcomeInput,
+  parseInitializationCapabilityResult,
   type InitializationCapabilityRequest,
+  type InitializationCapabilityResult,
+  type InitializationCapabilityResultInput,
   type InitializeCapability,
 } from './model-capabilities/initializer/contracts.js';
 export {
@@ -45,9 +44,37 @@ export {
 export {
   type ArtifactVerificationRequest,
   type VerifyArtifact,
-} from './runtime-supports/artifact-verifier/contracts.js';
+} from './runtime-supports/artifact-handoff/contracts.js';
 export {
-  defineArtifactVerifierSupport,
-  type ArtifactVerifierSupportRuntime,
-  type ArtifactVerifierSupportRuntimeInput,
-} from './runtime-supports/artifact-verifier/define-artifact-verifier-support.js';
+  defineArtifactHandoffSupport,
+  type ArtifactHandoffSupportRuntime,
+  type ArtifactHandoffSupportRuntimeInput,
+} from './runtime-supports/artifact-handoff/define-artifact-handoff-support.js';
+
+export { CapabilityDispatchKind, ExecutionStatus } from './execution-protocol/constants.js';
+export type {
+  CapabilityDispatch,
+  CancelledExecution,
+  ExecutionObservation,
+  ExecutionTerminal,
+  FailedExecution,
+  LostExecution,
+  SucceededExecution,
+} from './execution-protocol/contracts.js';
+export {
+  parseCapabilityDispatch,
+  parseExecutionObservation,
+  parseExecutionTerminal,
+} from './execution-protocol/parsing.js';
+
+export type {
+  CancelExecution,
+  CancelExecutionRequest,
+  ObserveExecution,
+  ObserveExecutionRequest,
+} from './runtime-supports/execution/contracts.js';
+export {
+  defineExecutionSupport,
+  type ExecutionSupportRuntime,
+  type ExecutionSupportRuntimeInput,
+} from './runtime-supports/execution/define-execution-support.js';

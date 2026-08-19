@@ -22,7 +22,10 @@ const setupInput = {
     {
       kind: RuntimeBindingKind.Binding,
       runtimeBindingId: 'research.local',
-      supports: { artifactVerifierId: 'artifacts.local' },
+      supports: {
+        artifactHandoffId: 'artifacts.local',
+        executionSupportId: 'execution.local',
+      },
     },
   ],
   profiles: [
@@ -49,22 +52,32 @@ const extensionResources = {
     defineInitializerCapability({
       capabilityId: 'models.import',
       input: importInputContract,
-      initialize: async ({ input, plannedArtifactId }) => {
-        await modelBackend.import(input.source);
+      initialize: async ({ input }) => {
+        const artifact = await modelBackend.import(input.source);
         return {
-          status: 'succeeded',
-          artifact: {
-            artifactId: plannedArtifactId,
-            digest: await modelBackend.digest(),
+          kind: 'completed',
+          terminal: {
+            status: 'succeeded',
+            result: {
+              artifact: {
+                digest: artifact.digest,
+                receipt: artifact.receipt,
+              },
+            },
           },
         };
       },
     }),
   ],
   runtimeSupports: [
-    defineArtifactVerifierSupport({
+    defineArtifactHandoffSupport({
       runtimeSupportId: 'artifacts.local',
       verify: ({ artifact }) => localArtifacts.verify(artifact),
+    }),
+    defineExecutionSupport({
+      runtimeSupportId: 'execution.local',
+      observe: ({ executionReceipt }) => backend.observe(executionReceipt),
+      cancel: ({ executionReceipt }) => backend.cancel(executionReceipt),
     }),
   ],
 };
@@ -92,8 +105,8 @@ const importInputContract = defineJsonSchemaContract({
 `defineJsonSchemaContract()` compiles the schema into the low-level `ExtensionValueContract`, infers
 its TypeScript value type, and generates evidence from the canonical schema, dialect, and pinned
 validator engine/version. An optional `resultData` contract applies the same rule to
-Capability-specific success data. The fixed Workbench success/failure envelope is always validated
-separately.
+Capability-specific success data. The fixed Workbench dispatch and terminal envelopes are always
+validated separately.
 
 Advanced hosts may directly provide one programmatic contract:
 
@@ -121,7 +134,8 @@ holds:
 ```text
 callable Initializer Capability Runtime
 + resolved Runtime Binding
-  + callable Artifact Verifier Support Runtime
+  + callable Artifact Handoff Support Runtime
+  + callable Execution Support Runtime
 ```
 
 Workbench never receives a resolver or registry and never looks these IDs up during an operation.
@@ -132,9 +146,16 @@ The official `createModelWorkbench()` application entry point performs these two
 its documented defaults. Advanced hosts can keep both stages explicit when they need custom
 persistence or ID generation.
 
-During Initialization, Workbench calls the resolved Initializer Capability first. A successful
-Artifact candidate is then passed to the Artifact Verifier Support from the same slot's Runtime
-Binding. Workbench accepts the Base only after verification succeeds.
+During Initialization, the Capability either returns a completed terminal result or accepts a
+detached execution and returns an opaque receipt. Workbench stores that receipt on the Run. The
+public `runs.refresh()` and `runs.wait()` APIs ask the bound Execution Support to observe it; an
+explicit `runs.cancel()` asks the same support to cancel it. Both completion paths enter the same
+terminal handler. A successful result reports the Artifact digest and its opaque handoff receipt.
+Workbench then creates the Base and Artifact identities, combines them with the bound Support
+identity, and asks that Support to verify the exact `ArtifactReference`. The terminal Run, Base, and
+Artifact reference are committed together only after verification succeeds. How later operations
+resolve and consume the stored handoff receipt will be defined with the first real Artifact input
+workflow.
 
 The executable version of this example lives in
 `tests/integration/test/extension-runtime-resolution.test.ts`.

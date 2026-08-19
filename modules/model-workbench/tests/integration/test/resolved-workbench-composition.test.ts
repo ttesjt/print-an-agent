@@ -1,37 +1,37 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { createWorkbenchControlPlane } from '@ta-agent/workbench-control-plane';
-import { parseBaseId, parseRunId, type ArtifactReference } from '@ta-agent/workbench-domain';
+import { parseBaseId, parseRunId } from '@ta-agent/workbench-domain';
 import {
-  CapabilityOutcomeStatus,
+  CapabilityDispatchKind,
   JsonSchemaDialect,
-  defineArtifactVerifierSupport,
+  defineArtifactHandoffSupport,
+  defineExecutionSupport,
   defineInitializerCapability,
   defineJsonSchemaContract,
+  ExecutionStatus,
 } from '@ta-agent/workbench-extension';
 import { createMemoryPersistence } from '@ta-agent/workbench-persistence';
 import { RuntimeBindingKind, resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
 
 describe('resolved Workbench composition', () => {
   it('runs one governed Capability plus Runtime Support operation through both layers', async () => {
-    const initializeBackend = vi.fn(
-      (request: {
-        readonly input: { readonly source: string };
-        readonly plannedArtifactId: string;
-      }) =>
-        Promise.resolve({
-          status: CapabilityOutcomeStatus.Succeeded,
-          artifact: {
-            artifactId: request.plannedArtifactId,
-            digest: `sha256:${'c'.repeat(64)}`,
+    const initializeBackend = vi.fn((request: { readonly input: { readonly source: string } }) =>
+      Promise.resolve({
+        kind: CapabilityDispatchKind.Completed,
+        terminal: {
+          status: ExecutionStatus.Succeeded,
+          result: {
+            artifact: {
+              digest: `sha256:${'c'.repeat(64)}`,
+              receipt: { location: 'fixture://initialized-parameters' },
+            },
+            data: { importedFrom: request.input.source },
           },
-          data: { importedFrom: request.input.source },
-        })
+        },
+      })
     );
-    const verifyArtifact = vi.fn(({ artifact }: { readonly artifact: ArtifactReference }) => {
-      expect(artifact.digest).toBe(`sha256:${'c'.repeat(64)}`);
-      return Promise.resolve();
-    });
+    const verifyArtifact = vi.fn(() => Promise.resolve());
     const inputContract = defineJsonSchemaContract({
       schema: {
         $schema: JsonSchemaDialect.Draft202012,
@@ -60,9 +60,14 @@ describe('resolved Workbench composition', () => {
         }),
       ],
       runtimeSupports: [
-        defineArtifactVerifierSupport({
+        defineArtifactHandoffSupport({
           runtimeSupportId: 'artifacts.fixture',
           verify: verifyArtifact,
+        }),
+        defineExecutionSupport({
+          runtimeSupportId: 'execution.fixture',
+          observe: vi.fn(),
+          cancel: vi.fn(),
         }),
       ],
     };
@@ -71,7 +76,10 @@ describe('resolved Workbench composition', () => {
         {
           kind: RuntimeBindingKind.Binding,
           runtimeBindingId: 'runtime.fixture',
-          supports: { artifactVerifierId: 'artifacts.fixture' },
+          supports: {
+            artifactHandoffId: 'artifacts.fixture',
+            executionSupportId: 'execution.fixture',
+          },
         },
       ],
       profiles: [
@@ -102,11 +110,7 @@ describe('resolved Workbench composition', () => {
       input: { source: 'fixture://base' },
     });
 
-    expect(result).toEqual({
-      status: CapabilityOutcomeStatus.Succeeded,
-      runId: 'run:composition',
-      baseId: 'base:composition',
-    });
+    expect(result).toEqual({ runId: 'run:composition' });
     expect(initializeBackend).toHaveBeenCalledOnce();
     expect(verifyArtifact).toHaveBeenCalledOnce();
     await expect(workbench.runs.get(parseRunId('run:composition'))).resolves.toMatchObject({
@@ -117,7 +121,13 @@ describe('resolved Workbench composition', () => {
     });
     await expect(workbench.models.getBase(parseBaseId('base:composition'))).resolves.toMatchObject({
       profileId: 'research-model',
-      artifact: { artifactId: 'artifact:composition' },
+      artifact: {
+        artifactId: 'artifact:composition',
+        handoff: {
+          runtimeSupportId: 'artifacts.fixture',
+          receipt: { location: 'fixture://initialized-parameters' },
+        },
+      },
       lineage: {
         capabilityId: 'models.import',
         runtimeBindingId: 'runtime.fixture',

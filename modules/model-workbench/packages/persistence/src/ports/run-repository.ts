@@ -1,6 +1,7 @@
-import type { ModelRun, RunId, RunningModelRun } from '@ta-agent/workbench-domain';
+import type { ActiveModelRun, ModelRun, RunId, StartingModelRun } from '@ta-agent/workbench-domain';
 
 export interface RunRepository {
-  create(run: RunningModelRun): Promise<void>;
+  create(run: StartingModelRun): Promise<void>;
+  updateActive(run: ActiveModelRun): Promise<void>;
   find(runId: RunId): Promise<ModelRun | undefined>;
 }

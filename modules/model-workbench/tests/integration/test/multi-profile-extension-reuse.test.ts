@@ -35,14 +35,14 @@ describe('multi-Profile Extension Runtime reuse', () => {
 
     // Several Runtime Bindings can reuse the same Runtime Support Runtime.
     expect(smallImport.runtime).not.toBe(largeRandom.runtime);
-    expect(smallImport.runtime.supports.artifactVerifier).toBe(
-      largeRandom.runtime.supports.artifactVerifier
+    expect(smallImport.runtime.supports.artifactHandoff).toBe(
+      largeRandom.runtime.supports.artifactHandoff
     );
 
     // A reused Capability can still be paired with a different Runtime Binding per Profile.
     expect(smallImport.runtime).not.toBe(largeImport.runtime);
-    expect(smallImport.runtime.supports.artifactVerifier).not.toBe(
-      largeImport.runtime.supports.artifactVerifier
+    expect(smallImport.runtime.supports.artifactHandoff).not.toBe(
+      largeImport.runtime.supports.artifactHandoff
     );
   });
 });

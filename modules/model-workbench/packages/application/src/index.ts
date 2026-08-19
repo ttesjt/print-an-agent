@@ -2,7 +2,6 @@ export { createModelWorkbench } from './composition/create-model-workbench.js';
 export type { ModelWorkbenchApplicationConfiguration } from './composition/contracts.js';
 
 export {
-  InitializationArtifactMismatchError,
   InitializationArtifactVerificationError,
   InitializationCapabilityError,
   InitializerSlotNotFoundError,
@@ -14,8 +13,9 @@ export type {
   ModelAssetQueries,
   ModelWorkbenchControlPlane as ModelWorkbench,
   ModelWorkbenchOperationOptions,
-  RunQueries,
+  RunControls,
   StartInitializationInput,
   StartInitializationResult,
+  WaitForRunOptions,
   WorkbenchIdSource,
 } from '@ta-agent/workbench-control-plane';

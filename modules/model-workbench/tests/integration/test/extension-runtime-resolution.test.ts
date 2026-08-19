@@ -3,15 +3,16 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   InvalidWorkbenchValueError,
   ModelOperationKind,
-  parseArtifactId,
+  parseArtifactReference,
   parseRunId,
 } from '@ta-agent/workbench-domain';
 import {
-  CapabilityOutcomeStatus,
-  defineArtifactVerifierSupport,
+  CapabilityDispatchKind,
+  defineArtifactHandoffSupport,
+  defineExecutionSupport,
   defineExtensionValueContract,
   defineInitializerCapability,
-  parseInitializationCapabilityOutcome,
+  ExecutionStatus,
 } from '@ta-agent/workbench-extension';
 import { RuntimeBindingKind, resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
 
@@ -19,12 +20,17 @@ describe('Extension Runtime resolution', () => {
   it('resolves static selectors into typed process-local callable resources', async () => {
     const initialize = vi.fn((request: { readonly input: ImportInput }) =>
       Promise.resolve({
-        status: CapabilityOutcomeStatus.Succeeded,
-        artifact: {
-          artifactId: request.input.targetArtifactId,
-          digest: `sha256:${'d'.repeat(64)}`,
+        kind: CapabilityDispatchKind.Completed,
+        terminal: {
+          status: ExecutionStatus.Succeeded,
+          result: {
+            artifact: {
+              digest: `sha256:${'d'.repeat(64)}`,
+              receipt: { location: `fixture://${request.input.targetArtifactId}` },
+            },
+            data: { source: request.input.source },
+          },
         },
-        data: { source: request.input.source },
       })
     );
     const verify = vi.fn(() => Promise.resolve());
@@ -41,9 +47,14 @@ describe('Extension Runtime resolution', () => {
         }),
       ],
       runtimeSupports: [
-        defineArtifactVerifierSupport({
-          runtimeSupportId: 'demo.artifact-verifier',
+        defineArtifactHandoffSupport({
+          runtimeSupportId: 'demo.artifact-handoff',
           verify,
+        }),
+        defineExecutionSupport({
+          runtimeSupportId: 'demo.execution',
+          observe: vi.fn(),
+          cancel: vi.fn(),
         }),
       ],
     };
@@ -52,7 +63,10 @@ describe('Extension Runtime resolution', () => {
         {
           kind: RuntimeBindingKind.Binding,
           runtimeBindingId: 'demo.runtime',
-          supports: { artifactVerifierId: 'demo.artifact-verifier' },
+          supports: {
+            artifactHandoffId: 'demo.artifact-handoff',
+            executionSupportId: 'demo.execution',
+          },
         },
       ],
       profiles: [
@@ -76,15 +90,24 @@ describe('Extension Runtime resolution', () => {
     const outcome = await slot.capability.initialize({
       operation: ModelOperationKind.Initialization,
       runId: parseRunId('run:demo'),
-      plannedArtifactId: parseArtifactId('artifact:demo'),
       input: { source: 'fixture://base', targetArtifactId: 'artifact:demo' },
     });
-    const parsedOutcome = parseInitializationCapabilityOutcome(outcome);
-    if (parsedOutcome.status !== CapabilityOutcomeStatus.Succeeded) {
+    if (
+      outcome.kind !== CapabilityDispatchKind.Completed ||
+      outcome.terminal.status !== ExecutionStatus.Succeeded
+    ) {
       throw new Error('Expected a successful fixture outcome.');
     }
-    const { artifact } = parsedOutcome;
-    await slot.runtime.supports.artifactVerifier.verify({ artifact });
+    const { artifact } = outcome.terminal.result;
+    const reference = parseArtifactReference({
+      artifactId: 'artifact:demo',
+      digest: artifact.digest,
+      handoff: {
+        runtimeSupportId: slot.runtime.supports.artifactHandoff.runtimeSupportId,
+        receipt: artifact.receipt,
+      },
+    });
+    await slot.runtime.supports.artifactHandoff.verify({ artifact: reference });
 
     expect(initialize).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -92,7 +115,7 @@ describe('Extension Runtime resolution', () => {
       }),
       undefined
     );
-    expect(verify).toHaveBeenCalledWith({ artifact });
+    expect(verify).toHaveBeenCalledWith({ artifact: reference }, undefined);
     expect(slot.capability.contracts.input.evidence).toEqual({
       contract: 'fixture-custom-parser',
       rules: importInputSchema,

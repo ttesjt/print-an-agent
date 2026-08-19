@@ -1,12 +1,4 @@
-export class WorkbenchControlPlaneError extends Error {
-  readonly code: string;
-
-  constructor(code: string, message: string, options?: ErrorOptions) {
-    super(message, options);
-    this.name = new.target.name;
-    this.code = code;
-  }
-}
+import { WorkbenchControlPlaneError } from '../../foundation/errors.js';
 
 export class ModelProfileNotFoundError extends WorkbenchControlPlaneError {
   readonly profileId: string;
@@ -41,15 +33,6 @@ export class InitializationCapabilityError extends WorkbenchControlPlaneError {
       options
     );
     this.runId = runId;
-  }
-}
-
-export class InitializationArtifactMismatchError extends WorkbenchControlPlaneError {
-  constructor(expectedArtifactId: string, observedArtifactId: string) {
-    super(
-      'INITIALIZATION_ARTIFACT_MISMATCH',
-      `Initialization reported Artifact "${observedArtifactId}" instead of planned Artifact "${expectedArtifactId}".`
-    );
   }
 }
 

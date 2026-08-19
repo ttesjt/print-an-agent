@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CapabilityDispatchKind,
   JsonValueContract,
-  defineArtifactVerifierSupport,
+  defineArtifactHandoffSupport,
+  defineExecutionSupport,
   defineInitializerCapability,
+  ExecutionStatus,
 } from '@ta-agent/workbench-extension';
 import { RuntimeBindingKind } from '@ta-agent/workbench-setup';
 
@@ -11,14 +14,21 @@ import { createModelWorkbench } from '../../src/index.js';
 
 describe('createModelWorkbench', () => {
   it('resolves setup input and applies the default in-memory persistence composition', async () => {
-    const generated = ['run:application', 'base:application', 'artifact:application'];
+    const generated = {
+      run: 'run:application',
+      base: 'base:application',
+      artifact: 'artifact:application',
+    } as const;
     const workbench = createModelWorkbench({
       setup: {
         runtimeBindings: [
           {
             kind: RuntimeBindingKind.Binding,
             runtimeBindingId: 'runtime.fixture',
-            supports: { artifactVerifierId: 'artifacts.fixture' },
+            supports: {
+              artifactHandoffId: 'artifacts.fixture',
+              executionSupportId: 'execution.fixture',
+            },
           },
         ],
         profiles: [
@@ -39,29 +49,35 @@ describe('createModelWorkbench', () => {
           defineInitializerCapability({
             capabilityId: 'initializer.fixture',
             input: JsonValueContract,
-            initialize: ({ plannedArtifactId }) =>
+            initialize: () =>
               Promise.resolve({
-                status: 'succeeded',
-                artifact: {
-                  artifactId: plannedArtifactId,
-                  digest: `sha256:${'a'.repeat(64)}`,
+                kind: CapabilityDispatchKind.Completed,
+                terminal: {
+                  status: ExecutionStatus.Succeeded,
+                  result: {
+                    artifact: {
+                      digest: `sha256:${'a'.repeat(64)}`,
+                      receipt: { location: 'fixture://initialized' },
+                    },
+                  },
                 },
               }),
           }),
         ],
         runtimeSupports: [
-          defineArtifactVerifierSupport({
+          defineArtifactHandoffSupport({
             runtimeSupportId: 'artifacts.fixture',
             verify: () => Promise.resolve(),
+          }),
+          defineExecutionSupport({
+            runtimeSupportId: 'execution.fixture',
+            observe: () => Promise.reject(new Error('No detached execution is expected.')),
+            cancel: () => Promise.resolve(),
           }),
         ],
       },
       idSource: {
-        nextId: () => {
-          const id = generated.shift();
-          if (id === undefined) throw new Error('The fixture exhausted its generated IDs.');
-          return id;
-        },
+        nextId: (kind) => generated[kind],
       },
     });
 
@@ -71,14 +87,16 @@ describe('createModelWorkbench', () => {
       input: null,
     });
 
-    expect(result).toEqual({
-      status: 'succeeded',
-      runId: 'run:application',
-      baseId: 'base:application',
-    });
+    expect(result).toEqual({ runId: 'run:application' });
     await expect(workbench.models.getBase('base:application')).resolves.toMatchObject({
       profileId: 'fixture-profile',
-      artifact: { artifactId: 'artifact:application' },
+      artifact: {
+        artifactId: 'artifact:application',
+        handoff: {
+          runtimeSupportId: 'artifacts.fixture',
+          receipt: { location: 'fixture://initialized' },
+        },
+      },
     });
   });
 });

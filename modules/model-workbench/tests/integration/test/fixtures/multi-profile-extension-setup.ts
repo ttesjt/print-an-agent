@@ -1,8 +1,10 @@
 import {
-  CapabilityOutcomeStatus,
+  CapabilityDispatchKind,
   JsonValueContract,
-  defineArtifactVerifierSupport,
+  defineArtifactHandoffSupport,
+  defineExecutionSupport,
   defineInitializerCapability,
+  ExecutionStatus,
 } from '@ta-agent/workbench-extension';
 import {
   RuntimeBindingKind,
@@ -14,12 +16,17 @@ const importedModelCapability = defineInitializerCapability({
   capabilityId: 'models.import',
   metadata: { modelFramework: 'shared-fixture' },
   input: JsonValueContract,
-  initialize: ({ plannedArtifactId }) =>
+  initialize: () =>
     Promise.resolve({
-      status: CapabilityOutcomeStatus.Succeeded,
-      artifact: {
-        artifactId: plannedArtifactId,
-        digest: `sha256:${'a'.repeat(64)}`,
+      kind: CapabilityDispatchKind.Completed,
+      terminal: {
+        status: ExecutionStatus.Succeeded,
+        result: {
+          artifact: {
+            digest: `sha256:${'a'.repeat(64)}`,
+            receipt: { location: 'fixture://imported' },
+          },
+        },
       },
     }),
 });
@@ -28,31 +35,48 @@ const randomModelCapability = defineInitializerCapability({
   capabilityId: 'models.random',
   metadata: { modelFramework: 'shared-fixture' },
   input: JsonValueContract,
-  initialize: ({ plannedArtifactId }) =>
+  initialize: () =>
     Promise.resolve({
-      status: CapabilityOutcomeStatus.Succeeded,
-      artifact: {
-        artifactId: plannedArtifactId,
-        digest: `sha256:${'b'.repeat(64)}`,
+      kind: CapabilityDispatchKind.Completed,
+      terminal: {
+        status: ExecutionStatus.Succeeded,
+        result: {
+          artifact: {
+            digest: `sha256:${'b'.repeat(64)}`,
+            receipt: { location: 'fixture://random' },
+          },
+        },
       },
     }),
 });
 
-const localArtifactVerifier = defineArtifactVerifierSupport({
+const localArtifactHandoff = defineArtifactHandoffSupport({
   runtimeSupportId: 'artifacts.local',
   metadata: { transport: 'local-filesystem' },
   verify: () => Promise.resolve(),
 });
 
-const remoteArtifactVerifier = defineArtifactVerifierSupport({
+const remoteArtifactHandoff = defineArtifactHandoffSupport({
   runtimeSupportId: 'artifacts.remote',
   metadata: { transport: 'remote-object-store' },
   verify: () => Promise.resolve(),
 });
 
+const localExecution = defineExecutionSupport({
+  runtimeSupportId: 'execution.local',
+  observe: () => Promise.reject(new Error('No detached local execution is expected.')),
+  cancel: () => Promise.resolve(),
+});
+
+const remoteExecution = defineExecutionSupport({
+  runtimeSupportId: 'execution.remote',
+  observe: () => Promise.reject(new Error('No detached remote execution is expected.')),
+  cancel: () => Promise.resolve(),
+});
+
 export const multiProfileExtensionResources: WorkbenchExtensionResources = {
   modelCapabilities: [importedModelCapability, randomModelCapability],
-  runtimeSupports: [localArtifactVerifier, remoteArtifactVerifier],
+  runtimeSupports: [localArtifactHandoff, remoteArtifactHandoff, localExecution, remoteExecution],
 };
 
 export const multiProfileSetupInput: WorkbenchSetupInput = {
@@ -60,19 +84,28 @@ export const multiProfileSetupInput: WorkbenchSetupInput = {
     {
       kind: RuntimeBindingKind.Binding,
       runtimeBindingId: 'runtime.local',
-      supports: { artifactVerifierId: 'artifacts.local' },
+      supports: {
+        artifactHandoffId: 'artifacts.local',
+        executionSupportId: 'execution.local',
+      },
       metadata: { environment: 'local-default' },
     },
     {
       kind: RuntimeBindingKind.Binding,
       runtimeBindingId: 'runtime.local-isolated',
-      supports: { artifactVerifierId: 'artifacts.local' },
+      supports: {
+        artifactHandoffId: 'artifacts.local',
+        executionSupportId: 'execution.local',
+      },
       metadata: { environment: 'local-isolated' },
     },
     {
       kind: RuntimeBindingKind.Binding,
       runtimeBindingId: 'runtime.remote',
-      supports: { artifactVerifierId: 'artifacts.remote' },
+      supports: {
+        artifactHandoffId: 'artifacts.remote',
+        executionSupportId: 'execution.remote',
+      },
       metadata: { environment: 'remote-research' },
     },
   ],

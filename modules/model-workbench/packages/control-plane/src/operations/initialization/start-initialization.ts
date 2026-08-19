@@ -1,48 +1,32 @@
 import {
-  defineModelBase,
-  defineRunningInitializationRun,
-  failModelRun,
+  defineStartingInitializationRun,
   ModelOperationKind,
-  parseArtifactId,
-  parseBaseId,
-  parseExecutionFailure,
   parseInitializerId,
   parseJsonValue,
   parseProfileId,
   parseRunId,
-  succeedInitializationRun,
-  type ExecutionFailure,
-  type RunningModelRun,
 } from '@ta-agent/workbench-domain';
-import {
-  CapabilityOutcomeStatus,
-  parseInitializationCapabilityOutcome,
-} from '@ta-agent/workbench-extension';
 import {
   findResolvedInitializer,
   findResolvedProfile,
   type ResolvedWorkbenchSetup,
 } from '@ta-agent/workbench-setup';
-import type { InitializationCommitter, RunRepository } from '@ta-agent/workbench-persistence';
+import type { RunRepository } from '@ta-agent/workbench-persistence';
 
+import type { StartInitializationInput, StartInitializationResult } from './contracts.js';
+import { InitializerSlotNotFoundError, ModelProfileNotFoundError } from './errors.js';
+import type { InitializationExecutionHandler } from './initialization-execution-handler.js';
 import type {
+  ExecutionLifecycle,
   ModelWorkbenchOperationOptions,
-  StartInitializationInput,
-  StartInitializationResult,
-} from './contracts.js';
+} from '../../execution/contracts.js';
 import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';
-import {
-  InitializationArtifactMismatchError,
-  InitializationArtifactVerificationError,
-  InitializationCapabilityError,
-  InitializerSlotNotFoundError,
-  ModelProfileNotFoundError,
-} from './errors.js';
 
 export interface StartInitializationDependencies {
   readonly setup: ResolvedWorkbenchSetup;
   readonly runs: RunRepository;
-  readonly initializationCommitter: InitializationCommitter;
+  readonly lifecycle: ExecutionLifecycle;
+  readonly handler: InitializationExecutionHandler;
   readonly idSource: WorkbenchIdSource;
 }
 
@@ -63,12 +47,7 @@ export function createStartInitialization(dependencies: StartInitializationDepen
     }
 
     const runId = parseRunId(dependencies.idSource.nextId('run'), 'generated.runId');
-    const baseId = parseBaseId(dependencies.idSource.nextId('base'), 'generated.baseId');
-    const artifactId = parseArtifactId(
-      dependencies.idSource.nextId('artifact'),
-      'generated.artifactId'
-    );
-    const running = defineRunningInitializationRun({
+    const starting = defineStartingInitializationRun({
       runId,
       profileId,
       initializerId,
@@ -76,103 +55,31 @@ export function createStartInitialization(dependencies: StartInitializationDepen
       runtimeBindingId: initializer.runtime.runtimeBindingId,
       slotEvidenceDigest: initializer.evidenceDigest,
     });
-    await dependencies.runs.create(running);
+    await dependencies.runs.create(starting);
 
     try {
-      const rawOutcome = await initializer.capability.initialize(
+      const dispatch = await initializer.capability.initialize(
         Object.freeze({
           operation: ModelOperationKind.Initialization,
           runId,
-          plannedArtifactId: artifactId,
           input: operationInput,
         }),
         options
       );
-      const outcome = parseInitializationCapabilityOutcome(rawOutcome);
-      if (outcome.status === CapabilityOutcomeStatus.Failed) {
-        const failed = failModelRun(running, outcome.failure);
-        await dependencies.initializationCommitter.commit({ run: failed });
-        return Object.freeze({
-          status: CapabilityOutcomeStatus.Failed,
-          runId,
-          failure: outcome.failure,
-        });
-      }
-      if (outcome.artifact.artifactId !== artifactId) {
-        throw new InitializationArtifactMismatchError(artifactId, outcome.artifact.artifactId);
-      }
-      try {
-        await initializer.runtime.supports.artifactVerifier.verify(
-          Object.freeze({ artifact: outcome.artifact }),
-          options
-        );
-      } catch (cause: unknown) {
-        if (isAbortError(cause)) throw cause;
-        throw new InitializationArtifactVerificationError(runId, artifactId, { cause });
-      }
-      const base = defineModelBase({
-        baseId,
-        profileId,
-        artifact: outcome.artifact,
-        lineage: {
-          kind: ModelOperationKind.Initialization,
-          runId,
-          initializerId,
-          capabilityId: initializer.capability.capabilityId,
-          runtimeBindingId: initializer.runtime.runtimeBindingId,
-          slotEvidenceDigest: initializer.evidenceDigest,
+      await dependencies.lifecycle.acceptCapabilityDispatch(
+        {
+          run: starting,
+          dispatch,
+          complete: (terminal, completionOptions) =>
+            dependencies.handler.complete(starting, initializer, terminal, completionOptions),
         },
-      });
-      const succeeded = succeedInitializationRun(running, baseId, outcome.data);
-      await dependencies.initializationCommitter.commit({ run: succeeded, base });
-      return Object.freeze({ status: CapabilityOutcomeStatus.Succeeded, runId, baseId });
-    } catch (error: unknown) {
-      await recordExecutionFailure(dependencies.initializationCommitter, running, error);
-      if (error instanceof InitializationArtifactVerificationError) throw error;
-      throw new InitializationCapabilityError(runId, { cause: error });
+        options
+      );
+      return Object.freeze({ runId });
+    } catch (cause: unknown) {
+      return dependencies.handler.rejectStart(starting, cause);
     }
   };
-}
-
-async function recordExecutionFailure(
-  initializationCommitter: InitializationCommitter,
-  running: RunningModelRun,
-  cause: unknown
-): Promise<void> {
-  const failure = executionFailure(cause);
-  try {
-    await initializationCommitter.commit({ run: failModelRun(running, failure) });
-  } catch {
-    // Preserve the original capability or protocol failure. The persistence adapter is the only
-    // component that can safely reconcile a failed terminal commit.
-  }
-}
-
-function executionFailure(cause: unknown): ExecutionFailure {
-  if (isAbortError(cause)) {
-    return defineExecutionFailure(
-      'INITIALIZATION_ABORTED',
-      'Initialization was aborted before producing a result.'
-    );
-  }
-  if (cause instanceof InitializationArtifactVerificationError) {
-    return defineExecutionFailure(
-      'INITIALIZATION_ARTIFACT_VERIFICATION_FAILED',
-      'Initialization produced an Artifact that could not be verified.'
-    );
-  }
-  return defineExecutionFailure(
-    'INITIALIZATION_CAPABILITY_FAILED',
-    'Initializer Capability did not produce a valid result.'
-  );
-}
-
-function defineExecutionFailure(code: string, message: string): ExecutionFailure {
-  return parseExecutionFailure({ code, message, retryable: false });
-}
-
-function isAbortError(cause: unknown): boolean {
-  return cause instanceof Error && cause.name === 'AbortError';
 }
 
 function assertNotAborted(signal: AbortSignal | undefined): void {

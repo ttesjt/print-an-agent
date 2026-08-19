@@ -3,9 +3,9 @@ import {
   modelBasesEqual,
   modelRunsEqual,
   type BaseId,
+  type ActiveModelRun,
   type ModelBase,
   type ModelRun,
-  type RunningModelRun,
 } from '@ta-agent/workbench-domain';
 
 import { PersistenceRecordConflictError, RunTransitionPersistenceError } from '../../errors.js';
@@ -30,7 +30,7 @@ function commitInitialization(state: MemoryPersistenceState, input: Initializati
   if (existingRun === undefined) {
     throw new RunTransitionPersistenceError(input.run.runId, 'must exist before it can complete.');
   }
-  if (existingRun.status !== ModelRunStatus.Running) {
+  if (!isActive(existingRun)) {
     if (commitAlreadyMatches(existingRun, input, state.bases)) return;
     throw new RunTransitionPersistenceError(
       input.run.runId,
@@ -49,7 +49,7 @@ function commitInitialization(state: MemoryPersistenceState, input: Initializati
   state.runs.set(input.run.runId, input.run);
 }
 
-function assertSameRunIdentity(running: RunningModelRun, terminal: ModelRun): void {
+function assertSameRunIdentity(running: ActiveModelRun, terminal: ModelRun): void {
   if (
     running.operation !== terminal.operation ||
     running.profileId !== terminal.profileId ||
@@ -63,6 +63,10 @@ function assertSameRunIdentity(running: RunningModelRun, terminal: ModelRun): vo
       'cannot change its frozen operation selection while completing.'
     );
   }
+}
+
+function isActive(run: ModelRun): run is ActiveModelRun {
+  return run.status === ModelRunStatus.Starting || run.status === ModelRunStatus.Running;
 }
 
 function assertSucceededCommit(input: SucceededInitializationCommit): void {

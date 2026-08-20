@@ -21,13 +21,13 @@ import {
 
 import type { StartTrainingInput, StartTrainingResult } from './contracts.js';
 import { TrainerSlotNotFoundError } from './errors.js';
-import type { PrepareTrainingSource } from './prepare-training-source.js';
 import type { TrainingExecutionHandler } from './training-execution-handler.js';
 import type {
   ExecutionLifecycle,
   ModelWorkbenchOperationOptions,
 } from '../../execution/contracts.js';
 import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';
+import type { MaterializeModelState } from '../../model-states/materialize-model-state.js';
 import { ModelProfileNotFoundError } from '../errors.js';
 
 export interface StartTrainingDependencies {
@@ -35,7 +35,7 @@ export interface StartTrainingDependencies {
   readonly runs: RunRepository;
   readonly lifecycle: ExecutionLifecycle;
   readonly handler: TrainingExecutionHandler;
-  readonly prepareSource: PrepareTrainingSource;
+  readonly materializeModelState: MaterializeModelState;
   readonly idSource: WorkbenchIdSource;
 }
 
@@ -68,7 +68,10 @@ export function createStartTraining(dependencies: StartTrainingDependencies) {
 
     let materializedSource: MaterializedModelState;
     try {
-      materializedSource = await dependencies.prepareSource(runId, source, options);
+      materializedSource = await dependencies.materializeModelState(
+        Object.freeze({ runId, profileId, operation: ModelOperationKind.Training, state: source }),
+        options
+      );
     } catch (cause: unknown) {
       return dependencies.handler.rejectPreparation(starting, cause);
     }
@@ -78,6 +81,7 @@ export function createStartTraining(dependencies: StartTrainingDependencies) {
       dispatch = await trainer.capability.train(
         Object.freeze({
           operation: ModelOperationKind.Training,
+          profileId,
           runId,
           source: materializedSource,
           input: operationInput,

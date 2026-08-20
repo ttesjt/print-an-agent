@@ -6,18 +6,26 @@ const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 declare const profileIdBrand: unique symbol;
 declare const initializerIdBrand: unique symbol;
 declare const trainerIdBrand: unique symbol;
+declare const exporterIdBrand: unique symbol;
+declare const outputInvokerIdBrand: unique symbol;
 declare const capabilityIdBrand: unique symbol;
 declare const runtimeSupportIdBrand: unique symbol;
 declare const runtimeBindingIdBrand: unique symbol;
 declare const runIdBrand: unique symbol;
 declare const baseIdBrand: unique symbol;
 declare const modificationIdBrand: unique symbol;
+declare const outputIdBrand: unique symbol;
+declare const outputArtifactNameBrand: unique symbol;
 declare const artifactIdBrand: unique symbol;
 declare const sha256DigestBrand: unique symbol;
 
 export type ProfileId = string & { readonly [profileIdBrand]: 'ProfileId' };
 export type InitializerId = string & { readonly [initializerIdBrand]: 'InitializerId' };
 export type TrainerId = string & { readonly [trainerIdBrand]: 'TrainerId' };
+export type ExporterId = string & { readonly [exporterIdBrand]: 'ExporterId' };
+export type OutputInvokerId = string & {
+  readonly [outputInvokerIdBrand]: 'OutputInvokerId';
+};
 export type CapabilityId = string & {
   readonly [capabilityIdBrand]: 'CapabilityId';
 };
@@ -30,6 +38,10 @@ export type RuntimeBindingId = string & {
 export type RunId = string & { readonly [runIdBrand]: 'RunId' };
 export type BaseId = string & { readonly [baseIdBrand]: 'BaseId' };
 export type ModificationId = string & { readonly [modificationIdBrand]: 'ModificationId' };
+export type OutputId = string & { readonly [outputIdBrand]: 'OutputId' };
+export type OutputArtifactName = string & {
+  readonly [outputArtifactNameBrand]: 'OutputArtifactName';
+};
 export type ArtifactId = string & { readonly [artifactIdBrand]: 'ArtifactId' };
 export type Sha256Digest = string & { readonly [sha256DigestBrand]: 'Sha256Digest' };
 
@@ -43,6 +55,14 @@ export function parseInitializerId(input: unknown, path = 'initializerId'): Init
 
 export function parseTrainerId(input: unknown, path = 'trainerId'): TrainerId {
   return parseIdentifier(input, path) as TrainerId;
+}
+
+export function parseExporterId(input: unknown, path = 'exporterId'): ExporterId {
+  return parseIdentifier(input, path) as ExporterId;
+}
+
+export function parseOutputInvokerId(input: unknown, path = 'outputInvokerId'): OutputInvokerId {
+  return parseIdentifier(input, path) as OutputInvokerId;
 }
 
 export function parseCapabilityId(input: unknown, path = 'capabilityId'): CapabilityId {
@@ -67,6 +87,17 @@ export function parseBaseId(input: unknown, path = 'baseId'): BaseId {
 
 export function parseModificationId(input: unknown, path = 'modificationId'): ModificationId {
   return parseIdentifier(input, path) as ModificationId;
+}
+
+export function parseOutputId(input: unknown, path = 'outputId'): OutputId {
+  return parseIdentifier(input, path) as OutputId;
+}
+
+export function parseOutputArtifactName(
+  input: unknown,
+  path = 'outputArtifactName'
+): OutputArtifactName {
+  return parseIdentifier(input, path) as OutputArtifactName;
 }
 
 export function parseArtifactId(input: unknown, path = 'artifactId'): ArtifactId {

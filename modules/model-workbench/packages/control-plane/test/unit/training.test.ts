@@ -16,13 +16,14 @@ import type { JsonValue } from '@ta-agent/workbench-domain';
 import { ModelRunResultKind } from '@ta-agent/workbench-domain';
 import {
   createMemoryPersistence,
+  createSharedProfilePersistenceAdapter,
   WorkbenchPersistenceError,
 } from '@ta-agent/workbench-persistence';
 import { resolveWorkbenchSetup, RuntimeBindingKind } from '@ta-agent/workbench-setup';
 
 import {
   createWorkbenchControlPlane,
-  TrainingSourceAssetNotFoundError,
+  ModelStateAssetNotFoundError,
   type ModelWorkbenchControlPlane,
   type WorkbenchGeneratedIdKind,
 } from '../../src/index.js';
@@ -70,30 +71,35 @@ describe('Model Workbench training', () => {
       receipt: { localObject: 'source' },
     });
     expect(call[1]).toBeUndefined();
-    await expect(fixture.workbench.runs.get('run:2')).resolves.toMatchObject({
+    await expect(
+      fixture.workbench.runs.get({ profileId: ProfileId, runId: 'run:2' })
+    ).resolves.toMatchObject({
       operation: 'training',
       status: 'succeeded',
       source: { baseId: 'base:1', modificationIds: [] },
       result: { kind: 'modification', modificationId: 'modification:1' },
     });
-    await expect(fixture.workbench.models.getModification('modification:1')).resolves.toMatchObject(
-      {
+    await expect(
+      fixture.workbench.models.getModification({
         profileId: ProfileId,
-        artifact: {
-          artifactId: 'artifact:2',
-          handoff: {
-            runtimeSupportId: ArtifactSupportId,
-            receipt: { localObject: 'modification' },
-          },
+        modificationId: 'modification:1',
+      })
+    ).resolves.toMatchObject({
+      profileId: ProfileId,
+      artifact: {
+        artifactId: 'artifact:2',
+        handoff: {
+          runtimeSupportId: ArtifactSupportId,
+          receipt: { localObject: 'modification' },
         },
-        lineage: {
-          kind: 'training',
-          runId: 'run:2',
-          trainerId: TrainerId,
-          source: { baseId: 'base:1', modificationIds: [] },
-        },
-      }
-    );
+      },
+      lineage: {
+        kind: 'training',
+        runId: 'run:2',
+        trainerId: TrainerId,
+        source: { baseId: 'base:1', modificationIds: [] },
+      },
+    });
     expect(
       fixture.workbench.models.compose({
         baseId: 'base:1',
@@ -130,21 +136,30 @@ describe('Model Workbench training', () => {
       input: { steps: 4 },
     });
 
-    await expect(fixture.workbench.runs.get('run:2')).resolves.toMatchObject({
+    await expect(
+      fixture.workbench.runs.get({ profileId: ProfileId, runId: 'run:2' })
+    ).resolves.toMatchObject({
       status: 'running',
       execution: { receipt: { jobId: 'training:1' } },
     });
-    await expect(fixture.workbench.runs.refresh('run:2')).resolves.toMatchObject({
+    await expect(
+      fixture.workbench.runs.refresh({ profileId: ProfileId, runId: 'run:2' })
+    ).resolves.toMatchObject({
       status: 'running',
       progress: { step: 3 },
     });
     await expect(
-      fixture.workbench.runs.wait('run:2', { pollIntervalMilliseconds: 0 })
+      fixture.workbench.runs.wait(
+        { profileId: ProfileId, runId: 'run:2' },
+        { pollIntervalMilliseconds: 0 }
+      )
     ).resolves.toMatchObject({
       status: 'succeeded',
       result: { kind: 'base', baseId: 'base:2', data: { steps: 4 } },
     });
-    await expect(fixture.workbench.models.getBase('base:2')).resolves.toMatchObject({
+    await expect(
+      fixture.workbench.models.getBase({ profileId: ProfileId, baseId: 'base:2' })
+    ).resolves.toMatchObject({
       profileId: ProfileId,
       lineage: {
         kind: 'training',
@@ -173,12 +188,16 @@ describe('Model Workbench training', () => {
       input: null,
     });
 
-    await expect(fixture.workbench.runs.cancel('run:2')).resolves.toBe('run:2');
+    await expect(
+      fixture.workbench.runs.cancel({ profileId: ProfileId, runId: 'run:2' })
+    ).resolves.toBe('run:2');
     expect(cancel).toHaveBeenCalledWith(
-      { executionReceipt: { jobId: 'training:cancelled' } },
+      { profileId: ProfileId, executionReceipt: { jobId: 'training:cancelled' } },
       undefined
     );
-    await expect(fixture.workbench.runs.refresh('run:2')).resolves.toMatchObject({
+    await expect(
+      fixture.workbench.runs.refresh({ profileId: ProfileId, runId: 'run:2' })
+    ).resolves.toMatchObject({
       status: 'cancelled',
       reason: 'requested',
     });
@@ -209,13 +228,20 @@ describe('Model Workbench training', () => {
         input: null,
       })
     ).resolves.toEqual({ runId: 'run:2' });
-    await expect(fixture.workbench.runs.get('run:2')).resolves.toMatchObject({
+    await expect(
+      fixture.workbench.runs.get({ profileId: ProfileId, runId: 'run:2' })
+    ).resolves.toMatchObject({
       status: 'failed',
       failure: { code: 'BACKEND_TRAINING_FAILED', retryable: true },
     });
-    await expect(fixture.workbench.models.getBase('base:2')).resolves.toBeUndefined();
     await expect(
-      fixture.workbench.models.getModification('modification:1')
+      fixture.workbench.models.getBase({ profileId: ProfileId, baseId: 'base:2' })
+    ).resolves.toBeUndefined();
+    await expect(
+      fixture.workbench.models.getModification({
+        profileId: ProfileId,
+        modificationId: 'modification:1',
+      })
     ).resolves.toBeUndefined();
   });
 
@@ -230,9 +256,11 @@ describe('Model Workbench training', () => {
         source: { baseId: 'base:missing' },
         input: null,
       })
-    ).rejects.toBeInstanceOf(TrainingSourceAssetNotFoundError);
+    ).rejects.toBeInstanceOf(ModelStateAssetNotFoundError);
     expect(train).not.toHaveBeenCalled();
-    await expect(fixture.workbench.runs.get('run:1')).resolves.toMatchObject({
+    await expect(
+      fixture.workbench.runs.get({ profileId: ProfileId, runId: 'run:1' })
+    ).resolves.toMatchObject({
       operation: 'training',
       status: 'failed',
       failure: { code: 'TRAINING_SOURCE_PREPARATION_FAILED' },
@@ -258,7 +286,9 @@ describe('Model Workbench training', () => {
         input: null,
       })
     ).rejects.toBe(persistenceError);
-    await expect(fixture.workbench.runs.get('run:2')).resolves.toMatchObject({
+    await expect(
+      fixture.workbench.runs.get({ profileId: ProfileId, runId: 'run:2' })
+    ).resolves.toMatchObject({
       status: 'failed',
       failure: { code: 'TRAINING_SOURCE_PREPARATION_FAILED' },
     });
@@ -280,7 +310,9 @@ describe('Model Workbench training', () => {
         input: null,
       })
     ).rejects.toBe(abortError);
-    await expect(fixture.workbench.runs.get('run:2')).resolves.toMatchObject({
+    await expect(
+      fixture.workbench.runs.get({ profileId: ProfileId, runId: 'run:2' })
+    ).resolves.toMatchObject({
       status: 'failed',
       failure: { code: 'TRAINING_ABORTED' },
     });
@@ -381,7 +413,7 @@ function createTrainingFixture(input: TrainingFixtureInput) {
   return {
     workbench: createWorkbenchControlPlane({
       setup,
-      persistence,
+      persistence: createSharedProfilePersistenceAdapter(persistence),
       idSource: sequentialIdSource(),
     }),
   };
@@ -392,6 +424,7 @@ function sequentialIdSource() {
     run: 0,
     base: 0,
     modification: 0,
+    output: 0,
     artifact: 0,
   };
   return Object.freeze({

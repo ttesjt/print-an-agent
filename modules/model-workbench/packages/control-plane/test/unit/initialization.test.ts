@@ -14,7 +14,10 @@ import {
   type TypedInitializerCapability,
   type VerifyArtifact,
 } from '@ta-agent/workbench-extension';
-import { createMemoryPersistence } from '@ta-agent/workbench-persistence';
+import {
+  createMemoryPersistence,
+  createSharedProfilePersistenceAdapter,
+} from '@ta-agent/workbench-persistence';
 import { resolveWorkbenchSetup, RuntimeBindingKind } from '@ta-agent/workbench-setup';
 
 import {
@@ -44,6 +47,7 @@ describe('Model Workbench initialization', () => {
     expect(initialize).toHaveBeenCalledWith(
       expect.objectContaining({
         operation: 'initialization',
+        profileId: 'research-model',
         runId: 'run:1',
         input: { source: 'fixture://base' },
       }),
@@ -51,6 +55,7 @@ describe('Model Workbench initialization', () => {
     );
     expect(verifyArtifact).toHaveBeenCalledWith(
       {
+        profileId: 'research-model',
         artifact: {
           artifactId: 'artifact:1',
           digest: `sha256:${'a'.repeat(64)}`,
@@ -64,12 +69,17 @@ describe('Model Workbench initialization', () => {
     );
     expect(nextId.mock.calls.map(([kind]) => kind)).toEqual(['run', 'artifact', 'base']);
     await expect(
-      workbench.runs.wait('run:1', { pollIntervalMilliseconds: 0 })
+      workbench.runs.wait(
+        { profileId: 'research-model', runId: 'run:1' },
+        { pollIntervalMilliseconds: 0 }
+      )
     ).resolves.toMatchObject({
       status: 'succeeded',
       result: { kind: 'base', baseId: 'base:1', data: { imported: true } },
     });
-    await expect(workbench.models.getBase('base:1')).resolves.toMatchObject({
+    await expect(
+      workbench.models.getBase({ profileId: 'research-model', baseId: 'base:1' })
+    ).resolves.toMatchObject({
       baseId: 'base:1',
       artifact: {
         artifactId: 'artifact:1',
@@ -113,22 +123,30 @@ describe('Model Workbench initialization', () => {
         input: null,
       })
     ).resolves.toEqual({ runId: 'run:1' });
-    await expect(workbench.runs.get('run:1')).resolves.toMatchObject({
+    await expect(
+      workbench.runs.get({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toMatchObject({
       status: 'running',
       execution: {
         runtimeSupportId: 'execution.local',
         receipt: { jobId: 'job:remote:1', token: 'opaque' },
       },
     });
-    await expect(workbench.runs.refresh('run:1')).resolves.toMatchObject({
+    await expect(
+      workbench.runs.refresh({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toMatchObject({
       status: 'running',
       progress: { step: 3 },
     });
     await expect(
-      workbench.runs.wait('run:1', { pollIntervalMilliseconds: 0 })
+      workbench.runs.wait(
+        { profileId: 'research-model', runId: 'run:1' },
+        { pollIntervalMilliseconds: 0 }
+      )
     ).resolves.toMatchObject({ status: 'succeeded', result: { baseId: 'base:1' } });
     expect(verifyArtifact).toHaveBeenCalledWith(
       {
+        profileId: 'research-model',
         artifact: {
           artifactId: 'artifact:1',
           digest: `sha256:${'b'.repeat(64)}`,
@@ -140,7 +158,9 @@ describe('Model Workbench initialization', () => {
       },
       undefined
     );
-    await expect(workbench.models.getBase('base:1')).resolves.toMatchObject({
+    await expect(
+      workbench.models.getBase({ profileId: 'research-model', baseId: 'base:1' })
+    ).resolves.toMatchObject({
       artifact: {
         digest: `sha256:${'b'.repeat(64)}`,
         handoff: {
@@ -151,10 +171,13 @@ describe('Model Workbench initialization', () => {
     });
     expect(observe).toHaveBeenNthCalledWith(
       1,
-      { executionReceipt: { jobId: 'job:remote:1', token: 'opaque' } },
+      {
+        profileId: 'research-model',
+        executionReceipt: { jobId: 'job:remote:1', token: 'opaque' },
+      },
       undefined
     );
-    await workbench.runs.refresh('run:1');
+    await workbench.runs.refresh({ profileId: 'research-model', runId: 'run:1' });
     expect(observe).toHaveBeenCalledTimes(2);
   });
 
@@ -180,7 +203,9 @@ describe('Model Workbench initialization', () => {
       initializerId: 'import',
       input: null,
     });
-    await expect(failureWorkbench.runs.get('run:1')).resolves.toMatchObject({
+    await expect(
+      failureWorkbench.runs.get({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toMatchObject({
       status: 'failed',
       failure: { code: 'SOURCE_MISSING' },
     });
@@ -192,7 +217,9 @@ describe('Model Workbench initialization', () => {
       reason: { requestedBy: 'user' },
     });
     await start(cancelledWorkbench);
-    await expect(cancelledWorkbench.runs.refresh('run:1')).resolves.toMatchObject({
+    await expect(
+      cancelledWorkbench.runs.refresh({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toMatchObject({
       status: 'cancelled',
       reason: { requestedBy: 'user' },
     });
@@ -202,7 +229,9 @@ describe('Model Workbench initialization', () => {
       failure: { code: 'EXECUTION_MISSING', message: 'Job disappeared.', retryable: true },
     });
     await start(lostWorkbench);
-    await expect(lostWorkbench.runs.refresh('run:1')).resolves.toMatchObject({
+    await expect(
+      lostWorkbench.runs.refresh({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toMatchObject({
       status: 'lost',
       failure: { code: 'EXECUTION_MISSING' },
     });
@@ -223,15 +252,23 @@ describe('Model Workbench initialization', () => {
     const controller = new AbortController();
     controller.abort('caller stopped waiting');
     await expect(
-      workbench.runs.wait('run:1', {
-        signal: controller.signal,
-        pollIntervalMilliseconds: 0,
-      })
+      workbench.runs.wait(
+        { profileId: 'research-model', runId: 'run:1' },
+        {
+          signal: controller.signal,
+          pollIntervalMilliseconds: 0,
+        }
+      )
     ).rejects.toMatchObject({ name: 'AbortError' });
     expect(cancel).not.toHaveBeenCalled();
 
-    await expect(workbench.runs.cancel('run:1')).resolves.toBe('run:1');
-    expect(cancel).toHaveBeenCalledWith({ executionReceipt: { jobId: 'job:1' } }, undefined);
+    await expect(
+      workbench.runs.cancel({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toBe('run:1');
+    expect(cancel).toHaveBeenCalledWith(
+      { profileId: 'research-model', executionReceipt: { jobId: 'job:1' } },
+      undefined
+    );
   });
 
   it('records malformed Capability output but surfaces it as a protocol error', async () => {
@@ -240,7 +277,9 @@ describe('Model Workbench initialization', () => {
     });
 
     await expect(start(workbench)).rejects.toBeInstanceOf(InitializationCapabilityError);
-    await expect(workbench.runs.get('run:1')).resolves.toMatchObject({
+    await expect(
+      workbench.runs.get({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toMatchObject({
       status: 'failed',
       failure: { code: 'INITIALIZATION_CAPABILITY_FAILED' },
     });
@@ -266,7 +305,9 @@ describe('Model Workbench initialization', () => {
     });
 
     await expect(start(workbench)).rejects.toBeInstanceOf(InitializationCapabilityError);
-    await expect(workbench.models.getBase('base:1')).resolves.toBeUndefined();
+    await expect(
+      workbench.models.getBase({ profileId: 'research-model', baseId: 'base:1' })
+    ).resolves.toBeUndefined();
   });
 
   it('records Runtime Support verification failure and does not accept the Base', async () => {
@@ -280,11 +321,15 @@ describe('Model Workbench initialization', () => {
       name: InitializationArtifactVerificationError.name,
       cause: verificationFailure,
     });
-    await expect(workbench.runs.get('run:1')).resolves.toMatchObject({
+    await expect(
+      workbench.runs.get({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toMatchObject({
       status: 'failed',
       failure: { code: 'INITIALIZATION_ARTIFACT_VERIFICATION_FAILED' },
     });
-    await expect(workbench.models.getBase('base:1')).resolves.toBeUndefined();
+    await expect(
+      workbench.models.getBase({ profileId: 'research-model', baseId: 'base:1' })
+    ).resolves.toBeUndefined();
   });
 
   it('rejects unknown Profile and Initializer selections before creating a Run', async () => {
@@ -304,7 +349,9 @@ describe('Model Workbench initialization', () => {
         input: null,
       })
     ).rejects.toBeInstanceOf(InitializerSlotNotFoundError);
-    await expect(workbench.runs.get('run:1')).resolves.toBeUndefined();
+    await expect(
+      workbench.runs.get({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toBeUndefined();
   });
 });
 
@@ -375,7 +422,7 @@ function createWorkbench({
   );
   return createWorkbenchControlPlane({
     setup,
-    persistence: createMemoryPersistence(),
+    persistence: createSharedProfilePersistenceAdapter(createMemoryPersistence()),
     idSource: { nextId },
   });
 }
@@ -385,6 +432,7 @@ function idForKind(kind: WorkbenchGeneratedIdKind): string {
     run: 'run:1',
     base: 'base:1',
     modification: 'modification:1',
+    output: 'output:1',
     artifact: 'artifact:1',
   }[kind];
 }

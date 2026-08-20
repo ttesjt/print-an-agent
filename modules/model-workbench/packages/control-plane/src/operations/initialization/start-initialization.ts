@@ -67,6 +67,7 @@ export function createStartInitialization(dependencies: StartInitializationDepen
       dispatch = await initializer.capability.initialize(
         Object.freeze({
           operation: ModelOperationKind.Initialization,
+          profileId,
           runId,
           input: operationInput,
         }),

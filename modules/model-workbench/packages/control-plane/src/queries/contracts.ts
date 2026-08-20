@@ -1,6 +1,7 @@
 import type {
   ModelBase,
   ModelModification,
+  ModelOutput,
   ModelRun,
   ModelState,
   ModelStateInput,
@@ -14,14 +15,41 @@ export interface WaitForRunOptions extends ModelWorkbenchOperationOptions {
 }
 
 export interface RunControls {
-  get(runId: string): Promise<ModelRun | undefined>;
-  refresh(runId: string, options?: ModelWorkbenchOperationOptions): Promise<ModelRun>;
-  wait(runId: string, options?: WaitForRunOptions): Promise<TerminalModelRun>;
-  cancel(runId: string, options?: ModelWorkbenchOperationOptions): Promise<RunId>;
+  get(reference: RunReferenceInput): Promise<ModelRun | undefined>;
+  refresh(
+    reference: RunReferenceInput,
+    options?: ModelWorkbenchOperationOptions
+  ): Promise<ModelRun>;
+  wait(reference: RunReferenceInput, options?: WaitForRunOptions): Promise<TerminalModelRun>;
+  cancel(reference: RunReferenceInput, options?: ModelWorkbenchOperationOptions): Promise<RunId>;
+}
+
+export interface RunReferenceInput {
+  readonly profileId: string;
+  readonly runId: string;
 }
 
 export interface ModelAssetQueries {
   compose(input: ModelStateInput): ModelState;
-  getBase(baseId: string): Promise<ModelBase | undefined>;
-  getModification(modificationId: string): Promise<ModelModification | undefined>;
+  getBase(reference: BaseReferenceInput): Promise<ModelBase | undefined>;
+  getModification(reference: ModificationReferenceInput): Promise<ModelModification | undefined>;
+}
+
+export interface OutputQueries {
+  get(reference: OutputReferenceInput): Promise<ModelOutput | undefined>;
+}
+
+export interface BaseReferenceInput {
+  readonly profileId: string;
+  readonly baseId: string;
+}
+
+export interface ModificationReferenceInput {
+  readonly profileId: string;
+  readonly modificationId: string;
+}
+
+export interface OutputReferenceInput {
+  readonly profileId: string;
+  readonly outputId: string;
 }

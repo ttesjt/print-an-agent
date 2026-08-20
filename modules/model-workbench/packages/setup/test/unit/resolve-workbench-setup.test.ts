@@ -4,14 +4,17 @@ import {
   InvalidWorkbenchValueError,
   ModelOperationKind,
   parseArtifactReference,
+  parseProfileId,
   parseRunId,
 } from '@ta-agent/workbench-domain';
 import {
   CapabilityDispatchKind,
   defineArtifactHandoffSupport,
   defineExecutionSupport,
+  defineExporterCapability,
   defineInitializerCapability,
   defineJsonSchemaContract,
+  defineOutputInvokerCapability,
   defineTrainerCapability,
   ExecutionStatus,
   ModelCapabilityKind,
@@ -21,7 +24,9 @@ import {
 import {
   RuntimeBindingKind,
   WorkbenchSetupError,
-  findArtifactHandoffSupport,
+  findProfileArtifactHandoffSupport,
+  findResolvedExporter,
+  findResolvedOutputInvoker,
   findResolvedTrainer,
   resolveWorkbenchSetup,
   type WorkbenchExtensionResources,
@@ -52,10 +57,12 @@ describe('resolveWorkbenchSetup', () => {
 
     await slot.capability.initialize({
       operation: ModelOperationKind.Initialization,
+      profileId: parseProfileId('profile:demo'),
       runId: parseRunId('run:1'),
       input: { source: 'fixture://base' },
     });
     await slot.runtime.supports.artifactHandoff.verify({
+      profileId: parseProfileId('profile:demo'),
       artifact: parseArtifactReference({
         artifactId: 'artifact:1',
         digest: `sha256:${'a'.repeat(64)}`,
@@ -81,6 +88,43 @@ describe('resolveWorkbenchSetup', () => {
     });
   });
 
+  it('allows an Output Invoker binding to omit Execution Support', () => {
+    const invocationBinding = {
+      kind: RuntimeBindingKind.Binding,
+      runtimeBindingId: 'runtime.invocation',
+      supports: { artifactHandoffId: 'artifacts.local' },
+    } as const;
+    const setup = resolveWorkbenchSetup(
+      {
+        runtimeBindings: [runtimeBinding('runtime.local'), invocationBinding],
+        profiles: [
+          {
+            ...profile('research-model', 'import', 'initializer.import', 'runtime.local'),
+            outputInvokers: [
+              {
+                outputInvokerId: 'generate',
+                capabilityId: 'output-invoker.llama-cpp',
+                runtimeBindingId: 'runtime.invocation',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        modelCapabilities: [initializerCapability(vi.fn()), outputInvokerCapability()],
+        runtimeSupports: runtimeSupports(),
+      }
+    );
+
+    const resolvedProfile = setup.profiles[0];
+    if (resolvedProfile === undefined) throw new Error('Expected one resolved Profile.');
+    const outputInvoker = findResolvedOutputInvoker(resolvedProfile, 'generate');
+    expect(outputInvoker?.runtime.supports.artifactHandoff.runtimeSupportId).toBe(
+      'artifacts.local'
+    );
+    expect(outputInvoker?.runtime.supports.execution).toBeUndefined();
+  });
+
   it('uses Draft 2020-12 contracts to validate input and result data', async () => {
     const initialize = vi.fn((request: { readonly input: ImportInput }) =>
       Promise.resolve({
@@ -102,6 +146,7 @@ describe('resolveWorkbenchSetup', () => {
     await expect(
       capability.initialize({
         operation: ModelOperationKind.Initialization,
+        profileId: parseProfileId('profile:demo'),
         runId: parseRunId('run:1'),
         input: { source: 42 },
       })
@@ -111,6 +156,7 @@ describe('resolveWorkbenchSetup', () => {
     await expect(
       capability.initialize({
         operation: ModelOperationKind.Initialization,
+        profileId: parseProfileId('profile:demo'),
         runId: parseRunId('run:1'),
         input: { source: 'fixture://base' },
       })
@@ -135,14 +181,14 @@ describe('resolveWorkbenchSetup', () => {
     await expect(
       invalidResultCapability.initialize({
         operation: ModelOperationKind.Initialization,
+        profileId: parseProfileId('profile:demo'),
         runId: parseRunId('run:1'),
         input: { source: 'fixture://base' },
       })
     ).rejects.toThrow(InvalidWorkbenchValueError);
   });
 
-  it('resolves Trainer slots and keeps unbound Artifact Supports available for persisted assets', () => {
-    const extraArtifactSupport = artifactHandoff('artifacts.archive', () => Promise.resolve());
+  it('resolves Trainer slots and Profile-scoped Artifact Supports', () => {
     const baseInput = validSetup();
     const input = {
       ...baseInput,
@@ -161,7 +207,7 @@ describe('resolveWorkbenchSetup', () => {
     };
     const resources: WorkbenchExtensionResources = {
       modelCapabilities: [initializerCapability(vi.fn()), trainerCapability()],
-      runtimeSupports: [...runtimeSupports(), extraArtifactSupport],
+      runtimeSupports: runtimeSupports(),
     };
 
     const setup = resolveWorkbenchSetup(input, resources);
@@ -173,7 +219,61 @@ describe('resolveWorkbenchSetup', () => {
       capability: { capabilityId: 'trainer.lora', kind: ModelCapabilityKind.Trainer },
       runtime: { runtimeBindingId: 'runtime.local' },
     });
-    expect(findArtifactHandoffSupport(setup, 'artifacts.archive')).toBe(extraArtifactSupport);
+    expect(findProfileArtifactHandoffSupport(profile, 'artifacts.local')).toBe(
+      profile.trainers[0]?.runtime.supports.artifactHandoff
+    );
+  });
+
+  it('resolves Exporter and Output Invoker slots as separate capability bindings', () => {
+    const baseInput = validSetup();
+    const input = {
+      ...baseInput,
+      profiles: [
+        {
+          ...baseInput.profiles[0]!,
+          exporters: [
+            {
+              exporterId: 'gguf',
+              capabilityId: 'exporter.gguf',
+              runtimeBindingId: 'runtime.local',
+            },
+          ],
+          outputInvokers: [
+            {
+              outputInvokerId: 'llama-cpp',
+              capabilityId: 'output-invoker.llama-cpp',
+              runtimeBindingId: 'runtime.local',
+            },
+          ],
+        },
+      ],
+    };
+    const resources: WorkbenchExtensionResources = {
+      modelCapabilities: [
+        initializerCapability(vi.fn()),
+        exporterCapability(),
+        outputInvokerCapability(),
+      ],
+      runtimeSupports: runtimeSupports(),
+    };
+
+    const setup = resolveWorkbenchSetup(input, resources);
+    const profile = setup.profiles[0];
+    if (profile === undefined) throw new Error('Expected one resolved Profile.');
+
+    expect(findResolvedExporter(profile, 'gguf')).toMatchObject({
+      exporterId: 'gguf',
+      capability: { capabilityId: 'exporter.gguf', kind: ModelCapabilityKind.Exporter },
+      runtime: { runtimeBindingId: 'runtime.local' },
+    });
+    expect(findResolvedOutputInvoker(profile, 'llama-cpp')).toMatchObject({
+      outputInvokerId: 'llama-cpp',
+      capability: {
+        capabilityId: 'output-invoker.llama-cpp',
+        kind: ModelCapabilityKind.OutputInvoker,
+      },
+      runtime: { runtimeBindingId: 'runtime.local' },
+    });
   });
 
   it('derives evidence from contracts, never function identity or declaration order', () => {
@@ -221,6 +321,52 @@ describe('resolveWorkbenchSetup', () => {
     expect(second.evidenceDigest).toBe(first.evidenceDigest);
     expect(changedContract.evidenceDigest).not.toBe(
       resolveWorkbenchSetup(validSetup(), extensionResources()).evidenceDigest
+    );
+  });
+
+  it('keeps optional Profile infrastructure routing configuration outside Profile evidence', () => {
+    const firstBase = validSetup();
+    const firstInput = {
+      ...firstBase,
+      profiles: firstBase.profiles.map((profile) => ({
+        ...profile,
+        infrastructure: {
+          persistence: { configuration: { database: 'profile-a.sqlite' } },
+        },
+      })),
+    };
+    const secondBase = validSetup();
+    const secondInput = {
+      ...secondBase,
+      profiles: secondBase.profiles.map((profile) => ({
+        ...profile,
+        infrastructure: {
+          persistence: { configuration: { database: 'profile-b.sqlite' } },
+        },
+      })),
+    };
+
+    const first = resolveWorkbenchSetup(firstInput, extensionResources());
+    const second = resolveWorkbenchSetup(secondInput, extensionResources());
+
+    expect(first.profiles[0]?.infrastructure.persistence.configuration).toEqual({
+      database: 'profile-a.sqlite',
+    });
+    expect(second.evidenceDigest).toBe(first.evidenceDigest);
+  });
+
+  it('rejects non-object Profile persistence configuration', () => {
+    const base = validSetup();
+    const input = {
+      ...base,
+      profiles: base.profiles.map((profile) => ({
+        ...profile,
+        infrastructure: { persistence: { configuration: ['not', 'an', 'object'] } },
+      })),
+    };
+
+    expect(() => resolveWorkbenchSetup(input, extensionResources())).toThrow(
+      'setup.profiles[0].infrastructure.persistence.configuration'
     );
   });
 
@@ -347,6 +493,33 @@ function trainerCapability() {
       } as const,
     }),
     train: vi.fn(),
+  });
+}
+
+function exporterCapability() {
+  return defineExporterCapability({
+    capabilityId: 'exporter.gguf',
+    input: jsonObjectContract(),
+    export: vi.fn(),
+  });
+}
+
+function outputInvokerCapability() {
+  return defineOutputInvokerCapability({
+    capabilityId: 'output-invoker.llama-cpp',
+    input: jsonObjectContract(),
+    output: jsonObjectContract(),
+    invoke: vi.fn(),
+  });
+}
+
+function jsonObjectContract() {
+  return defineJsonSchemaContract({
+    schema: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      additionalProperties: true,
+    } as const,
   });
 }
 

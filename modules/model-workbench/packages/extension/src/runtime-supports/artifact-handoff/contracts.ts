@@ -2,16 +2,19 @@ import type {
   ArtifactId,
   ArtifactReference,
   JsonValue,
+  ProfileId,
   Sha256Digest,
 } from '@ta-agent/workbench-domain';
 
 import type { ExtensionCallOptions } from '../../foundation/extension-runtime.js';
 
 export interface ArtifactVerificationRequest {
+  readonly profileId: ProfileId;
   readonly artifact: ArtifactReference;
 }
 
 export interface ArtifactMaterializationRequest {
+  readonly profileId: ProfileId;
   readonly artifact: ArtifactReference;
 }
 

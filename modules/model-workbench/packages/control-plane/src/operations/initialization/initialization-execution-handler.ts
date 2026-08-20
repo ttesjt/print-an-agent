@@ -196,7 +196,7 @@ function observedResultFailure(cause: unknown): ExecutionFailure {
     code: 'INITIALIZATION_OBSERVED_RESULT_INVALID',
     message: 'Observed Initialization result could not be accepted.',
     retryable: false,
-    details: { cause: cause instanceof Error ? cause.message : 'unknown error' },
+    diagnostics: { cause: cause instanceof Error ? cause.message : 'unknown error' },
   });
 }
 

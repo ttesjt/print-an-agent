@@ -4,38 +4,27 @@ import {
   ModelRunResultKind,
   parseJsonValue,
   parseSha256Digest,
-  type BaseId,
   type JsonValue,
-  type ModelState,
-  type ModificationId,
+  type ProfileId,
   type RunId,
   type Sha256Digest,
 } from '@ta-agent/workbench-domain';
 
-import type { ArtifactMaterialization } from '../../runtime-supports/artifact-handoff/contracts.js';
 import type { CapabilityDispatch } from '../../execution-protocol/contracts.js';
 import { parseClosedRecord } from '../../foundation/parsing.js';
 import type { ExtensionCallOptions } from '../../foundation/extension-runtime.js';
 
-export interface MaterializedBaseParameter {
-  readonly baseId: BaseId;
-  readonly artifact: ArtifactMaterialization;
-}
+import type { MaterializedModelState } from '../shared/materialized-model-state.js';
 
-export interface MaterializedModificationParameter {
-  readonly modificationId: ModificationId;
-  readonly artifact: ArtifactMaterialization;
-}
-
-/** Exact Model State identity plus transient Artifact inputs prepared for one Trainer call. */
-export interface MaterializedModelState {
-  readonly state: ModelState;
-  readonly base: MaterializedBaseParameter;
-  readonly modifications: readonly MaterializedModificationParameter[];
-}
+export type {
+  MaterializedBaseParameter,
+  MaterializedModelState,
+  MaterializedModificationParameter,
+} from '../shared/materialized-model-state.js';
 
 export interface TrainingCapabilityRequest<TInput = JsonValue> {
   readonly operation: typeof ModelOperationKind.Training;
+  readonly profileId: ProfileId;
   readonly runId: RunId;
   readonly source: MaterializedModelState;
   readonly input: TInput;

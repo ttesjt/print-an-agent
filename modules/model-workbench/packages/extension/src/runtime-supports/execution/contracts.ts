@@ -1,9 +1,10 @@
-import type { JsonValue } from '@ta-agent/workbench-domain';
+import type { JsonValue, ProfileId } from '@ta-agent/workbench-domain';
 
 import type { ExecutionObservation } from '../../execution-protocol/contracts.js';
 import type { ExtensionCallOptions } from '../../foundation/extension-runtime.js';
 
 export interface ObserveExecutionRequest {
+  readonly profileId: ProfileId;
   readonly executionReceipt: JsonValue;
 }
 
@@ -13,6 +14,7 @@ export type ObserveExecution = (
 ) => Promise<ExecutionObservation<JsonValue>>;
 
 export interface CancelExecutionRequest {
+  readonly profileId: ProfileId;
   readonly executionReceipt: JsonValue;
 }
 

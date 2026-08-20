@@ -129,7 +129,7 @@ async function acceptArtifact(
     },
   });
   try {
-    await support.verify(Object.freeze({ artifact }), options);
+    await support.verify(Object.freeze({ profileId: run.profileId, artifact }), options);
     return artifact;
   } catch (cause: unknown) {
     if (isAbortError(cause)) throw cause;

@@ -1,24 +1,18 @@
 import {
-  RuntimeSupportKind,
+  type ModelCapabilityRuntime,
   type ArtifactHandoffSupportRuntime,
   type ExecutionSupportRuntime,
-  type InitializerCapabilityRuntime,
-  type TrainerCapabilityRuntime,
 } from '@ta-agent/workbench-extension';
 
 import { assertUnique } from '../foundation/parsing.js';
 import type { WorkbenchExtensionResources } from '../resolution/contracts.js';
 
 export interface IndexedExtensionResources {
-  readonly capabilityById: ReadonlyMap<
-    string,
-    InitializerCapabilityRuntime | TrainerCapabilityRuntime
-  >;
+  readonly capabilityById: ReadonlyMap<string, ModelCapabilityRuntime>;
   readonly supportById: ReadonlyMap<
     string,
     ArtifactHandoffSupportRuntime | ExecutionSupportRuntime
   >;
-  readonly artifactHandoffSupports: readonly ArtifactHandoffSupportRuntime[];
 }
 
 export function indexExtensionResources(
@@ -41,12 +35,6 @@ export function indexExtensionResources(
     ),
     supportById: new Map(
       resources.runtimeSupports.map((support) => [support.runtimeSupportId, support])
-    ),
-    artifactHandoffSupports: Object.freeze(
-      resources.runtimeSupports.filter(
-        (support): support is ArtifactHandoffSupportRuntime =>
-          support.kind === RuntimeSupportKind.ArtifactHandoff
-      )
     ),
   });
 }

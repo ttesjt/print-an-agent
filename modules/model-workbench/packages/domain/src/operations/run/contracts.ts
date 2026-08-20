@@ -1,8 +1,10 @@
 import type {
   BaseId,
   CapabilityId,
+  ExporterId,
   InitializerId,
   ModificationId,
+  OutputId,
   ProfileId,
   RunId,
   RuntimeBindingId,
@@ -36,6 +38,11 @@ export interface TrainingRunSelection extends ModelRunSelectionBase {
   readonly source: ModelState;
 }
 
+export interface ExportRunSelection extends ModelRunSelectionBase {
+  readonly exporterId: ExporterId;
+  readonly source: ModelState;
+}
+
 interface ModelRunIdentity {
   readonly kind: typeof ModelRecordKind.Run;
   readonly runId: RunId;
@@ -47,6 +54,10 @@ interface InitializationRunDefinition extends ModelRunIdentity, InitializationRu
 
 interface TrainingRunDefinition extends ModelRunIdentity, TrainingRunSelection {
   readonly operation: typeof ModelOperationKind.Training;
+}
+
+interface ExportRunDefinition extends ModelRunIdentity, ExportRunSelection {
+  readonly operation: typeof ModelOperationKind.Export;
 }
 
 interface StartingRunLifecycle {
@@ -91,6 +102,12 @@ export interface ModificationRunResult {
   readonly data?: JsonValue;
 }
 
+export interface OutputRunResult {
+  readonly kind: typeof ModelRunResultKind.Output;
+  readonly outputId: OutputId;
+  readonly data?: JsonValue;
+}
+
 export type TrainingRunResult = BaseRunResult | ModificationRunResult;
 
 export type StartingInitializationRun = InitializationRunDefinition & StartingRunLifecycle;
@@ -121,15 +138,33 @@ export type FailedTrainingRun = TrainingRunDefinition & FailedRunLifecycle;
 export type CancelledTrainingRun = TrainingRunDefinition & CancelledRunLifecycle;
 export type LostTrainingRun = TrainingRunDefinition & LostRunLifecycle;
 
-export type StartingModelRun = StartingInitializationRun | StartingTrainingRun;
-export type RunningModelRun = RunningInitializationRun | RunningTrainingRun;
+export type StartingExportRun = ExportRunDefinition & StartingRunLifecycle;
+export type RunningExportRun = ExportRunDefinition & RunningRunLifecycle;
+export type SucceededExportRun = ExportRunDefinition &
+  ExecutedRunLifecycle & {
+    readonly status: typeof ModelRunStatus.Succeeded;
+    readonly result: OutputRunResult;
+  };
+export type FailedExportRun = ExportRunDefinition & FailedRunLifecycle;
+export type CancelledExportRun = ExportRunDefinition & CancelledRunLifecycle;
+export type LostExportRun = ExportRunDefinition & LostRunLifecycle;
+
+export type StartingModelRun = StartingInitializationRun | StartingTrainingRun | StartingExportRun;
+export type RunningModelRun = RunningInitializationRun | RunningTrainingRun | RunningExportRun;
 export type ActiveInitializationRun = StartingInitializationRun | RunningInitializationRun;
 export type ActiveTrainingRun = StartingTrainingRun | RunningTrainingRun;
-export type ActiveModelRun = ActiveInitializationRun | ActiveTrainingRun;
-export type SucceededModelRun = SucceededInitializationRun | SucceededTrainingRun;
-export type FailedModelRun = FailedInitializationRun | FailedTrainingRun;
-export type CancelledModelRun = CancelledInitializationRun | CancelledTrainingRun;
-export type LostModelRun = LostInitializationRun | LostTrainingRun;
+export type ActiveExportRun = StartingExportRun | RunningExportRun;
+export type ActiveModelRun = ActiveInitializationRun | ActiveTrainingRun | ActiveExportRun;
+export type SucceededModelRun =
+  | SucceededInitializationRun
+  | SucceededTrainingRun
+  | SucceededExportRun;
+export type FailedModelRun = FailedInitializationRun | FailedTrainingRun | FailedExportRun;
+export type CancelledModelRun =
+  | CancelledInitializationRun
+  | CancelledTrainingRun
+  | CancelledExportRun;
+export type LostModelRun = LostInitializationRun | LostTrainingRun | LostExportRun;
 export type TerminalInitializationRun =
   | SucceededInitializationRun
   | FailedInitializationRun
@@ -140,7 +175,13 @@ export type TerminalTrainingRun =
   | FailedTrainingRun
   | CancelledTrainingRun
   | LostTrainingRun;
-export type TerminalModelRun = TerminalInitializationRun | TerminalTrainingRun;
+export type TerminalExportRun =
+  | SucceededExportRun
+  | FailedExportRun
+  | CancelledExportRun
+  | LostExportRun;
+export type TerminalModelRun = TerminalInitializationRun | TerminalTrainingRun | TerminalExportRun;
 export type InitializationModelRun = ActiveInitializationRun | TerminalInitializationRun;
 export type TrainingModelRun = ActiveTrainingRun | TerminalTrainingRun;
-export type ModelRun = InitializationModelRun | TrainingModelRun;
+export type ExportModelRun = ActiveExportRun | TerminalExportRun;
+export type ModelRun = InitializationModelRun | TrainingModelRun | ExportModelRun;

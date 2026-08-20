@@ -1,10 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { InvalidWorkbenchValueError, parseArtifactReference } from '@ta-agent/workbench-domain';
+import {
+  InvalidWorkbenchValueError,
+  parseArtifactReference,
+  parseProfileId,
+} from '@ta-agent/workbench-domain';
 
 import { RuntimeSupportKind, defineArtifactHandoffSupport } from '../../src/index.js';
 
 describe('Artifact Handoff Support', () => {
+  const profileId = parseProfileId('profile:fixture');
   it('verifies an exact ArtifactReference', async () => {
     const verify = vi.fn(() => Promise.resolve());
     const support = defineArtifactHandoffSupport({
@@ -14,8 +19,8 @@ describe('Artifact Handoff Support', () => {
     });
     const artifact = artifactReference('artifacts.fixture');
 
-    await support.verify({ artifact });
-    expect(verify).toHaveBeenCalledWith({ artifact }, undefined);
+    await support.verify({ profileId, artifact });
+    expect(verify).toHaveBeenCalledWith({ profileId, artifact }, undefined);
     expect(support.kind).toBe(RuntimeSupportKind.ArtifactHandoff);
   });
 
@@ -28,12 +33,12 @@ describe('Artifact Handoff Support', () => {
     });
     const artifact = artifactReference('artifacts.fixture');
 
-    await expect(support.materialize({ artifact })).resolves.toEqual({
+    await expect(support.materialize({ profileId, artifact })).resolves.toEqual({
       artifactId: artifact.artifactId,
       digest: artifact.digest,
       binding: { localPath: '/tmp/model' },
     });
-    expect(materialize).toHaveBeenCalledWith({ artifact }, undefined);
+    expect(materialize).toHaveBeenCalledWith({ profileId, artifact }, undefined);
   });
 
   it('rejects a materialized binding that is not JSON-like', async () => {
@@ -44,7 +49,7 @@ describe('Artifact Handoff Support', () => {
     });
 
     await expect(
-      support.materialize({ artifact: artifactReference('artifacts.fixture') })
+      support.materialize({ profileId, artifact: artifactReference('artifacts.fixture') })
     ).rejects.toBeInstanceOf(InvalidWorkbenchValueError);
   });
 
@@ -57,10 +62,10 @@ describe('Artifact Handoff Support', () => {
     });
 
     await expect(
-      support.verify({ artifact: artifactReference('artifacts.other') })
+      support.verify({ profileId, artifact: artifactReference('artifacts.other') })
     ).rejects.toThrow('must equal bound Runtime Support "artifacts.fixture"');
     await expect(
-      support.materialize({ artifact: artifactReference('artifacts.other') })
+      support.materialize({ profileId, artifact: artifactReference('artifacts.other') })
     ).rejects.toThrow('must equal bound Runtime Support "artifacts.fixture"');
     expect(verify).not.toHaveBeenCalled();
   });

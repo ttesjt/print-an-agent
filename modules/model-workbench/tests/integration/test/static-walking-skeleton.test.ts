@@ -75,6 +75,7 @@ describe('static Model Workbench walking skeleton', () => {
       run: 'run:fixture',
       base: 'base:fixture',
       modification: 'modification:fixture',
+      output: 'output:fixture',
       artifact: 'artifact:fixture',
     } as const;
     const workbench = createModelWorkbench({
@@ -92,10 +93,15 @@ describe('static Model Workbench walking skeleton', () => {
     });
 
     expect(result).toEqual({ runId: 'run:fixture' });
-    const storedRun = await workbench.runs.get(result.runId);
+    const storedRun = await workbench.runs.get({
+      profileId: 'fixture-profile',
+      runId: result.runId,
+    });
     expect(storedRun).toMatchObject({ status: 'succeeded' });
     expect(storedRun?.slotEvidenceDigest).toMatch(/^sha256:[0-9a-f]{64}$/u);
-    await expect(workbench.models.getBase('base:fixture')).resolves.toMatchObject({
+    await expect(
+      workbench.models.getBase({ profileId: 'fixture-profile', baseId: 'base:fixture' })
+    ).resolves.toMatchObject({
       profileId: 'fixture-profile',
       artifact: {
         artifactId: 'artifact:fixture',

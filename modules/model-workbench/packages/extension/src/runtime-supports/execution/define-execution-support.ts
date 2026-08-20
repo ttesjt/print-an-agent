@@ -1,6 +1,7 @@
 import {
   deriveEvidenceDigest,
   parseJsonValue,
+  parseProfileId,
   parseRuntimeSupportId,
   type RuntimeSupportId,
 } from '@ta-agent/workbench-domain';
@@ -64,11 +65,31 @@ export function defineExecutionSupport(
     observe: async (
       request: Parameters<ObserveExecution>[0],
       options?: Parameters<ObserveExecution>[1]
-    ) =>
-      parseExecutionObservation(
-        await input.observe(request, options),
+    ) => {
+      const profileId = parseDomainValue(
+        () => parseProfileId(request.profileId, 'executionSupport.observation.profileId'),
+        'executionSupport.observation.profileId'
+      );
+      return parseExecutionObservation(
+        await input.observe(
+          Object.freeze({ profileId, executionReceipt: request.executionReceipt }),
+          options
+        ),
         'executionSupport.observation'
-      ),
-    cancel: input.cancel,
+      );
+    },
+    cancel: async (
+      request: Parameters<CancelExecution>[0],
+      options?: Parameters<CancelExecution>[1]
+    ) => {
+      const profileId = parseDomainValue(
+        () => parseProfileId(request.profileId, 'executionSupport.cancellation.profileId'),
+        'executionSupport.cancellation.profileId'
+      );
+      await input.cancel(
+        Object.freeze({ profileId, executionReceipt: request.executionReceipt }),
+        options
+      );
+    },
   });
 }

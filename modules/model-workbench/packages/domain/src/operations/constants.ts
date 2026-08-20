@@ -1,6 +1,7 @@
 export const ModelOperationKind = {
   Initialization: 'initialization',
   Training: 'training',
+  Export: 'export',
 } as const;
 
 export type ModelOperationKind = (typeof ModelOperationKind)[keyof typeof ModelOperationKind];
@@ -25,6 +26,7 @@ export type ModelRecordKind = (typeof ModelRecordKind)[keyof typeof ModelRecordK
 export const ModelRunResultKind = {
   Base: 'base',
   Modification: 'modification',
+  Output: 'output',
 } as const;
 
 export type ModelRunResultKind = (typeof ModelRunResultKind)[keyof typeof ModelRunResultKind];

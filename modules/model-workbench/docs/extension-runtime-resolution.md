@@ -45,6 +45,20 @@ const setupInput = {
           runtimeBindingId: 'research.local',
         },
       ],
+      exporters: [
+        {
+          exporterId: 'gguf',
+          capabilityId: 'models.export-gguf',
+          runtimeBindingId: 'research.local',
+        },
+      ],
+      outputInvokers: [
+        {
+          outputInvokerId: 'llama-cpp',
+          capabilityId: 'models.invoke-llama-cpp',
+          runtimeBindingId: 'research.local',
+        },
+      ],
     },
   ],
 };
@@ -145,7 +159,7 @@ Resolution uses temporary ID maps only while compiling the graph. Every resolved
 holds:
 
 ```text
-callable Initializer or Trainer Capability Runtime
+callable Initializer, Trainer, Exporter, or Output Invoker Capability Runtime
 + resolved Runtime Binding
   + callable Artifact Handoff Support Runtime
   + callable Execution Support Runtime
@@ -153,26 +167,33 @@ callable Initializer or Trainer Capability Runtime
 
 Workbench never receives the authoring resolver and does not re-resolve Profile slot selectors
 during an operation. Creating a different Profile graph is an outer application concern: resolve
-another setup, then create another Workbench instance. The resolved setup separately retains the
-Artifact Handoff Supports supplied by the host because a persisted `ArtifactReference` names its
-owning Support directly; this permits one Model State to contain local and remote Artifacts without
-scanning current Profile bindings.
+another setup, then create another Workbench instance. Each resolved Profile retains the Artifact
+Handoff Supports reachable through its slots. A persisted `ArtifactReference` names its owning
+Support directly, but Control Plane lookup remains inside the requested Profile scope.
 
 The official `createModelWorkbench()` application entry point performs these two calls and supplies
 its documented defaults. Advanced hosts can keep both stages explicit when they need custom
 persistence or ID generation.
 
+Every public operation and asset query starts from a `profileId`. The optional outer setup field
+`profile.infrastructure.persistence.configuration` is a JSON object passed unchanged to the
+host-supplied `ProfilePersistenceAdapter`; it is routing configuration, not Model Profile domain
+evidence or lineage. The adapter returns the narrow Run, parameter, Output, and committer ports for
+that Profile. The default memory adapter creates an isolated composition per Profile, while a
+custom adapter may route to separate SQLite files, schemas, databases, or remote stores.
+
 During Initialization, the Capability either returns a completed terminal result or accepts a
 detached execution and returns an opaque receipt. Workbench stores that receipt on the Run. The
-public `runs.refresh()` and `runs.wait()` APIs ask the bound Execution Support to observe it; an
-explicit `runs.cancel()` asks the same support to cancel it. Both completion paths enter the same
+public profile-scoped `runs.refresh()` and `runs.wait()` APIs ask the bound Execution Support to
+observe it; an explicit `runs.cancel()` asks the same support to cancel it. Both completion paths enter the same
 terminal handler. A successful result reports the Artifact digest and its opaque handoff receipt.
 Workbench then creates the Base and Artifact identities, combines them with the bound Support
 identity, and asks that Support to verify the exact `ArtifactReference`. The terminal Run, Base, and
 Artifact reference are committed together only after verification succeeds.
 
 Before Training, Workbench resolves every Base and ordered Modification in the selected Model
-State. For each Artifact it selects the Support named by `artifact.handoff.runtimeSupportId`, asks it
+State. For each Artifact it selects the Support named by `artifact.handoff.runtimeSupportId` within
+the current Profile, asks it
 to verify the durable reference, and calls `materialize()`. The Support returns a transient,
 JSON-like `binding` such as a local path or temporary remote URL. Workbench passes those bindings,
 the exact Model State, and Capability-specific input through the fixed Trainer request envelope.
@@ -184,6 +205,22 @@ Artifact digest and handoff receipt. Workbench assigns the Artifact and paramete
 verifies the Artifact through the Trainer slot's bound Support, and atomically commits the terminal
 Run with the produced asset. Both records preserve the exact ordered source Model State as lineage.
 
+Export uses that same Model State materialization and execution lifecycle. A successful Exporter
+reports a non-empty, uniquely named Artifact result set. Workbench assigns the Output and Artifact
+identities, verifies every member through the Exporter slot's bound Artifact Handoff Support, and
+atomically commits the terminal Export Run with the immutable Output. The Output records the exact
+source Model State and frozen Exporter slot selection as lineage; exporting does not invoke or
+publish it.
+
+Output Invocation starts from an explicit Profile and Output identity, then selects an Output
+Invoker from that Profile. Workbench asks each Artifact's owning Handoff Support to verify and
+materialize a transient binding while preserving the exact Output identity in the Capability
+request. The Invoker returns either one completed result or an AsyncIterable stream. Its output
+Contract validates the completed result or each stream chunk lazily. Invocation is intentionally
+outside the durable execution lifecycle: it creates no Run, model asset, or managed Session.
+Workbench forwards the caller's `AbortSignal`, while the Output Invoker remains responsible for
+cooperative cancellation throughout the lifetime of any returned stream.
+
 The executable version of this example lives in
 `tests/integration/test/extension-runtime-resolution.test.ts`.
 
@@ -194,3 +231,6 @@ resolution assertions live in `tests/integration/test/multi-profile-extension-re
 
 The complete outer-resolution to governed-operation example lives in
 `tests/integration/test/resolved-workbench-composition.test.ts`.
+
+The fixed request and result semantics for all Model Capability kinds are summarized in
+[Model Capability Contracts](./model-capability-contracts.md).

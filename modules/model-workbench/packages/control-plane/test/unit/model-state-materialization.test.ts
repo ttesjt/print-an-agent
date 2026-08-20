@@ -19,19 +19,19 @@ import {
   type ModelModification,
 } from '@ta-agent/workbench-domain';
 import { defineArtifactHandoffSupport } from '@ta-agent/workbench-extension';
-import { WorkbenchSetupKind, type ResolvedWorkbenchSetup } from '@ta-agent/workbench-setup';
 import type { ParameterRepository } from '@ta-agent/workbench-persistence';
 
 import {
   ArtifactHandoffSupportNotFoundError,
-  TrainingSourceAssetNotFoundError,
-} from '../../src/operations/training/errors.js';
-import { createPrepareTrainingSource } from '../../src/operations/training/prepare-training-source.js';
+  ModelStateAssetNotFoundError,
+  ModelStateAssetProfileMismatchError,
+} from '../../src/model-states/errors.js';
+import { createModelStateMaterializer } from '../../src/model-states/materialize-model-state.js';
 
 const runId = parseRunId('run:training');
 const slotEvidenceDigest = parseSha256Digest(`sha256:${'e'.repeat(64)}`);
 
-describe('prepare Training source', () => {
+describe('materialize Model State', () => {
   it('verifies and materializes every parameter Artifact through its owning Support', async () => {
     const local = artifactSupport('artifacts.local', '/materialized/base');
     const remote = artifactSupport('artifacts.remote', '/materialized/modification');
@@ -44,12 +44,19 @@ describe('prepare Training source', () => {
       baseId: base.baseId,
       modificationIds: modifications.map(({ modificationId }) => modificationId),
     });
-    const prepare = createPrepareTrainingSource({
-      setup: resolvedSetup([local.support, remote.support]),
+    const prepare = createModelStateMaterializer({
+      artifactHandoffSupports: [local.support, remote.support],
       parameters: parameterRepository(base, modifications),
     });
 
-    await expect(prepare(runId, state)).resolves.toMatchObject({
+    await expect(
+      prepare({
+        runId,
+        profileId: parseProfileId('profile:fixture'),
+        operation: ModelOperationKind.Training,
+        state,
+      })
+    ).resolves.toMatchObject({
       state,
       base: {
         baseId: 'base:source',
@@ -76,28 +83,55 @@ describe('prepare Training source', () => {
       baseId: base.baseId,
       modificationIds: ['modification:missing'],
     });
-    const prepareMissingAsset = createPrepareTrainingSource({
-      setup: resolvedSetup([]),
-      parameters: parameterRepository(base, []),
-    });
-    await expect(prepareMissingAsset(runId, missingModification)).rejects.toBeInstanceOf(
-      TrainingSourceAssetNotFoundError
-    );
-
-    const prepareMissingSupport = createPrepareTrainingSource({
-      setup: resolvedSetup([]),
+    const prepareMissingAsset = createModelStateMaterializer({
+      artifactHandoffSupports: [],
       parameters: parameterRepository(base, []),
     });
     await expect(
-      prepareMissingSupport(runId, defineModelState({ baseId: base.baseId }))
+      prepareMissingAsset({
+        runId,
+        profileId: parseProfileId('profile:fixture'),
+        operation: ModelOperationKind.Training,
+        state: missingModification,
+      })
+    ).rejects.toBeInstanceOf(ModelStateAssetNotFoundError);
+
+    const prepareMissingSupport = createModelStateMaterializer({
+      artifactHandoffSupports: [],
+      parameters: parameterRepository(base, []),
+    });
+    await expect(
+      prepareMissingSupport({
+        runId,
+        profileId: parseProfileId('profile:fixture'),
+        operation: ModelOperationKind.Training,
+        state: defineModelState({ baseId: base.baseId }),
+      })
     ).rejects.toBeInstanceOf(ArtifactHandoffSupportNotFoundError);
+  });
+
+  it('rejects a parameter asset owned by another Profile', async () => {
+    const base = modelBase('profile:other');
+    const prepare = createModelStateMaterializer({
+      artifactHandoffSupports: [],
+      parameters: parameterRepository(base, []),
+    });
+
+    await expect(
+      prepare({
+        runId,
+        profileId: parseProfileId('profile:fixture'),
+        operation: ModelOperationKind.Training,
+        state: defineModelState({ baseId: base.baseId }),
+      })
+    ).rejects.toBeInstanceOf(ModelStateAssetProfileMismatchError);
   });
 });
 
-function modelBase(): ModelBase {
+function modelBase(profileId = 'profile:fixture'): ModelBase {
   return defineModelBase({
     baseId: parseBaseId('base:source'),
-    profileId: parseProfileId('profile:fixture'),
+    profileId: parseProfileId(profileId),
     artifact: artifactReference('artifact:base', 'artifacts.local', 'base'),
     lineage: {
       kind: ModelOperationKind.Initialization,
@@ -166,15 +200,4 @@ function parameterRepository(
     findBase: (baseId) => Promise.resolve(baseId === base.baseId ? base : undefined),
     findModification: (modificationId) => Promise.resolve(modificationById.get(modificationId)),
   };
-}
-
-function resolvedSetup(
-  artifactHandoffSupports: ResolvedWorkbenchSetup['artifactHandoffSupports']
-): ResolvedWorkbenchSetup {
-  return Object.freeze({
-    kind: WorkbenchSetupKind.Resolved,
-    profiles: Object.freeze([]),
-    artifactHandoffSupports: Object.freeze([...artifactHandoffSupports]),
-    evidenceDigest: parseSha256Digest(`sha256:${'f'.repeat(64)}`),
-  });
 }

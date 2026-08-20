@@ -3,6 +3,7 @@ import type {
   JsonValue,
   ModelOperationKind,
   ModelRun,
+  RunId,
   RunningModelRun,
   StartingModelRun,
   TerminalModelRun,
@@ -13,7 +14,7 @@ import type {
   ExecutionTerminal,
 } from '@ta-agent/workbench-extension';
 
-import type { RunControls } from '../queries/contracts.js';
+import type { WaitForRunOptions } from '../queries/contracts.js';
 
 export interface ModelWorkbenchOperationOptions {
   readonly signal?: AbortSignal;
@@ -45,9 +46,17 @@ export interface AcceptCapabilityDispatchInput<TResult> {
 }
 
 export interface ExecutionLifecycle {
-  readonly runs: RunControls;
+  readonly runs: ExecutionRunControls;
   acceptCapabilityDispatch<TResult>(
     input: AcceptCapabilityDispatchInput<TResult>,
     options?: ModelWorkbenchOperationOptions
   ): Promise<ModelRun>;
+}
+
+/** Internal controls bound to one already-resolved Profile persistence scope. */
+export interface ExecutionRunControls {
+  get(runId: string): Promise<ModelRun | undefined>;
+  refresh(runId: string, options?: ModelWorkbenchOperationOptions): Promise<ModelRun>;
+  wait(runId: string, options?: WaitForRunOptions): Promise<TerminalModelRun>;
+  cancel(runId: string, options?: ModelWorkbenchOperationOptions): Promise<RunId>;
 }

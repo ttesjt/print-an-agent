@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { createWorkbenchControlPlane } from '@ta-agent/workbench-control-plane';
-import { parseBaseId, parseRunId } from '@ta-agent/workbench-domain';
 import {
   CapabilityDispatchKind,
   JsonSchemaDialect,
@@ -11,7 +10,10 @@ import {
   defineJsonSchemaContract,
   ExecutionStatus,
 } from '@ta-agent/workbench-extension';
-import { createMemoryPersistence } from '@ta-agent/workbench-persistence';
+import {
+  createMemoryPersistence,
+  createSharedProfilePersistenceAdapter,
+} from '@ta-agent/workbench-persistence';
 import { RuntimeBindingKind, resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
 
 describe('resolved Workbench composition', () => {
@@ -99,7 +101,7 @@ describe('resolved Workbench composition', () => {
     const setup = resolveWorkbenchSetup(setupInput, extensionResources);
     const workbench = createWorkbenchControlPlane({
       setup,
-      persistence: createMemoryPersistence(),
+      persistence: createSharedProfilePersistenceAdapter(createMemoryPersistence()),
       idSource: {
         nextId: (kind) => `${kind}:composition`,
       },
@@ -114,13 +116,17 @@ describe('resolved Workbench composition', () => {
     expect(result).toEqual({ runId: 'run:composition' });
     expect(initializeBackend).toHaveBeenCalledOnce();
     expect(verifyArtifact).toHaveBeenCalledOnce();
-    await expect(workbench.runs.get(parseRunId('run:composition'))).resolves.toMatchObject({
+    await expect(
+      workbench.runs.get({ profileId: 'research-model', runId: 'run:composition' })
+    ).resolves.toMatchObject({
       status: 'succeeded',
       capabilityId: 'models.import',
       runtimeBindingId: 'runtime.fixture',
       result: { data: { importedFrom: 'fixture://base' } },
     });
-    await expect(workbench.models.getBase(parseBaseId('base:composition'))).resolves.toMatchObject({
+    await expect(
+      workbench.models.getBase({ profileId: 'research-model', baseId: 'base:composition' })
+    ).resolves.toMatchObject({
       profileId: 'research-model',
       artifact: {
         artifactId: 'artifact:composition',

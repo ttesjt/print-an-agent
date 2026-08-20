@@ -1,5 +1,6 @@
 import type {
   CapabilityId,
+  ExporterId,
   InitializerId,
   RunId,
   RuntimeBindingId,
@@ -24,6 +25,12 @@ export interface InitializationLineage extends ModelOperationLineageBase {
 export interface TrainingLineage extends ModelOperationLineageBase {
   readonly kind: typeof ModelOperationKind.Training;
   readonly trainerId: TrainerId;
+  readonly source: ModelState;
+}
+
+export interface ExportLineage extends ModelOperationLineageBase {
+  readonly kind: typeof ModelOperationKind.Export;
+  readonly exporterId: ExporterId;
   readonly source: ModelState;
 }
 

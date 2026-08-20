@@ -6,31 +6,53 @@ import {
   defineExecutionReference,
   defineStartingInitializationRun,
   defineStartingTrainingRun,
+  defineStartingExportRun,
   defineModelModification,
+  defineModelOutput,
   ModelOperationKind,
   ModelRunResultKind,
   parseArtifactId,
   parseBaseId,
   parseCapabilityId,
   parseInitializerId,
+  parseExporterId,
   parseModificationId,
   parseProfileId,
+  parseOutputArtifactName,
+  parseOutputId,
   parseRunId,
   parseRuntimeBindingId,
   parseRuntimeSupportId,
   parseSha256Digest,
   parseTrainerId,
   succeedInitializationRun,
+  succeedExportRun,
   succeedTrainingRun,
   startModelRunExecution,
   updateModelRunProgress,
   type InitializationModelBase,
 } from '@ta-agent/workbench-domain';
 
-import { createMemoryPersistence, RunTransitionPersistenceError } from '../../src/index.js';
+import {
+  createMemoryPersistence,
+  createMemoryProfilePersistenceAdapter,
+  RunTransitionPersistenceError,
+} from '../../src/index.js';
 
 const slotEvidenceDigest = parseSha256Digest(`sha256:${'1'.repeat(64)}`);
 const artifactDigest = parseSha256Digest(`sha256:${'2'.repeat(64)}`);
+
+describe('createMemoryProfilePersistenceAdapter', () => {
+  it('reuses one composition within a Profile and isolates different Profiles', async () => {
+    const adapter = createMemoryProfilePersistenceAdapter();
+    const first = await adapter.forProfile({ profileId: parseProfileId('profile:first') });
+    const firstAgain = await adapter.forProfile({ profileId: parseProfileId('profile:first') });
+    const second = await adapter.forProfile({ profileId: parseProfileId('profile:second') });
+
+    expect(firstAgain).toBe(first);
+    expect(second).not.toBe(first);
+  });
+});
 
 describe('createMemoryPersistence', () => {
   it('atomically completes an Initialization Run with its Base asset', async () => {
@@ -255,6 +277,73 @@ describe('createMemoryPersistence', () => {
     await expect(persistence.runs.find(starting.runId)).resolves.toEqual(starting);
     await expect(persistence.parameters.findModification(modificationId)).resolves.toBeUndefined();
   });
+
+  it('atomically completes an Export Run with its exact Output and lineage', async () => {
+    const persistence = createMemoryPersistence();
+    const starting = exportRun();
+    const outputId = parseOutputId('output:1');
+    const output = defineModelOutput({
+      outputId,
+      profileId: starting.profileId,
+      artifacts: [
+        {
+          name: parseOutputArtifactName('model'),
+          artifact: artifactReference('artifact:output'),
+        },
+      ],
+      lineage: {
+        kind: ModelOperationKind.Export,
+        runId: starting.runId,
+        exporterId: starting.exporterId,
+        capabilityId: starting.capabilityId,
+        runtimeBindingId: starting.runtimeBindingId,
+        slotEvidenceDigest: starting.slotEvidenceDigest,
+        source: starting.source,
+      },
+    });
+    const succeeded = succeedExportRun(starting, outputId);
+
+    await persistence.runs.create(starting);
+    await persistence.commits.export.commit({ run: succeeded, output });
+
+    await expect(persistence.runs.find(starting.runId)).resolves.toEqual(succeeded);
+    await expect(persistence.outputs.findOutput(outputId)).resolves.toEqual(output);
+  });
+
+  it('rejects Export lineage whose source differs from the frozen Run', async () => {
+    const persistence = createMemoryPersistence();
+    const starting = exportRun();
+    const outputId = parseOutputId('output:mismatched');
+    const output = defineModelOutput({
+      outputId,
+      profileId: starting.profileId,
+      artifacts: [
+        {
+          name: parseOutputArtifactName('model'),
+          artifact: artifactReference('artifact:output-mismatched'),
+        },
+      ],
+      lineage: {
+        kind: ModelOperationKind.Export,
+        runId: starting.runId,
+        exporterId: starting.exporterId,
+        capabilityId: starting.capabilityId,
+        runtimeBindingId: starting.runtimeBindingId,
+        slotEvidenceDigest: starting.slotEvidenceDigest,
+        source: defineModelState({ baseId: 'base:different' }),
+      },
+    });
+    await persistence.runs.create(starting);
+
+    await expect(
+      persistence.commits.export.commit({
+        run: succeedExportRun(starting, outputId),
+        output,
+      })
+    ).rejects.toBeInstanceOf(RunTransitionPersistenceError);
+    await expect(persistence.runs.find(starting.runId)).resolves.toEqual(starting);
+    await expect(persistence.outputs.findOutput(outputId)).resolves.toBeUndefined();
+  });
 });
 
 function runningRun() {
@@ -288,5 +377,20 @@ function trainingRun() {
     runtimeBindingId: parseRuntimeBindingId('runtime.local'),
     slotEvidenceDigest,
     source: defineModelState({ baseId: 'base:source' }),
+  });
+}
+
+function exportRun() {
+  return defineStartingExportRun({
+    runId: parseRunId('run:export'),
+    profileId: parseProfileId('research-model'),
+    exporterId: parseExporterId('exporter:fixture'),
+    capabilityId: parseCapabilityId('exporter.fixture'),
+    runtimeBindingId: parseRuntimeBindingId('runtime.local'),
+    slotEvidenceDigest,
+    source: defineModelState({
+      baseId: 'base:source',
+      modificationIds: ['modification:source'],
+    }),
   });
 }

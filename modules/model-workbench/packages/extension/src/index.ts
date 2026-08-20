@@ -4,6 +4,8 @@ export {
   WorkbenchExtensionFamily,
 } from './foundation/constants.js';
 
+export type { ModelCapabilityRuntime } from './model-capabilities/contracts.js';
+
 export { WorkbenchExtensionError } from './foundation/errors.js';
 export {
   type ExtensionCallOptions,
@@ -58,6 +60,41 @@ export {
   type TrainerCapabilityRuntimeInput,
   type TypedTrainerCapability,
 } from './model-capabilities/trainer/define-trainer-capability.js';
+
+export {
+  parseExportCapabilityResult,
+  type ExportCapability,
+  type ExportCapabilityRequest,
+  type ExportCapabilityResult,
+  type ExportCapabilityResultInput,
+  type ExportedArtifact,
+  type ExportedArtifactInput,
+} from './model-capabilities/exporter/contracts.js';
+export {
+  defineExporterCapability,
+  type ExporterCapabilityContracts,
+  type ExporterCapabilityRuntime,
+  type ExporterCapabilityRuntimeInput,
+  type TypedExporterCapability,
+} from './model-capabilities/exporter/define-exporter-capability.js';
+
+export { OutputInvocationKind } from './model-capabilities/output-invoker/constants.js';
+export {
+  type CompletedOutputInvocation,
+  type InvokeOutputCapability,
+  type MaterializedModelOutput,
+  type MaterializedOutputArtifact,
+  type OutputInvocation,
+  type OutputInvocationCapabilityRequest,
+  type StreamingOutputInvocation,
+} from './model-capabilities/output-invoker/contracts.js';
+export {
+  defineOutputInvokerCapability,
+  type OutputInvokerCapabilityContracts,
+  type OutputInvokerCapabilityRuntime,
+  type OutputInvokerCapabilityRuntimeInput,
+  type TypedOutputInvokerCapability,
+} from './model-capabilities/output-invoker/define-output-invoker-capability.js';
 
 export {
   type ArtifactMaterialization,

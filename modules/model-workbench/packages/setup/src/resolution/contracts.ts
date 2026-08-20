@@ -2,8 +2,7 @@ import type { Sha256Digest } from '@ta-agent/workbench-domain';
 import type {
   ArtifactHandoffSupportRuntime,
   ExecutionSupportRuntime,
-  InitializerCapabilityRuntime,
-  TrainerCapabilityRuntime,
+  ModelCapabilityRuntime,
 } from '@ta-agent/workbench-extension';
 
 import { WorkbenchSetupKind } from '../foundation/constants.js';
@@ -16,13 +15,12 @@ export interface WorkbenchSetupInput {
 }
 
 export interface WorkbenchExtensionResources {
-  readonly modelCapabilities: readonly (InitializerCapabilityRuntime | TrainerCapabilityRuntime)[];
+  readonly modelCapabilities: readonly ModelCapabilityRuntime[];
   readonly runtimeSupports: readonly (ArtifactHandoffSupportRuntime | ExecutionSupportRuntime)[];
 }
 
 export interface ResolvedWorkbenchSetup {
   readonly kind: typeof WorkbenchSetupKind.Resolved;
   readonly profiles: readonly ResolvedModelProfile[];
-  readonly artifactHandoffSupports: readonly ArtifactHandoffSupportRuntime[];
   readonly evidenceDigest: Sha256Digest;
 }

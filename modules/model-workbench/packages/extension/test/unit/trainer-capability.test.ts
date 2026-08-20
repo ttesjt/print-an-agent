@@ -6,6 +6,7 @@ import {
   defineModelState,
   parseArtifactReference,
   parseBaseId,
+  parseProfileId,
   parseRunId,
 } from '@ta-agent/workbench-domain';
 
@@ -48,6 +49,7 @@ describe('Trainer Capability', () => {
     await expect(
       capability.train({
         operation: ModelOperationKind.Training,
+        profileId: parseProfileId('profile:fixture'),
         runId: parseRunId('run:training'),
         source,
         input: { steps: 4 },
@@ -92,6 +94,7 @@ describe('Trainer Capability', () => {
     await expect(
       capability.train({
         operation: ModelOperationKind.Training,
+        profileId: parseProfileId('profile:fixture'),
         runId: parseRunId('run:training'),
         source: materializedSource(),
         input: { steps: 0 },
@@ -102,6 +105,7 @@ describe('Trainer Capability', () => {
     await expect(
       capability.train({
         operation: ModelOperationKind.Training,
+        profileId: parseProfileId('profile:fixture'),
         runId: parseRunId('run:training'),
         source: materializedSource(),
         input: { steps: 1 },

@@ -7,6 +7,7 @@ import {
   defineExecutionReference,
   defineModelState,
   defineStartingTrainingRun,
+  defineStartingExportRun,
   modelRunDefinitionsEqual,
   parseBaseId,
   parseCapabilityId,
@@ -17,8 +18,11 @@ import {
   parseRuntimeSupportId,
   parseSha256Digest,
   parseTrainerId,
+  parseExporterId,
+  parseOutputId,
   startModelRunExecution,
   succeedTrainingRun,
+  succeedExportRun,
   updateModelRunProgress,
 } from '../../src/index.js';
 
@@ -89,6 +93,39 @@ describe('Training Model Run', () => {
 
     expect(modelRunDefinitionsEqual(original, same)).toBe(true);
     expect(modelRunDefinitionsEqual(original, reordered)).toBe(false);
+  });
+});
+
+describe('Export Model Run', () => {
+  it('freezes its source State and records the produced Output identity', () => {
+    const source = defineModelState({
+      baseId: 'base:source',
+      modificationIds: ['mod:one'],
+    });
+    const starting = defineStartingExportRun({
+      runId: parseRunId('run:export'),
+      profileId: parseProfileId('profile:fixture'),
+      exporterId: parseExporterId('exporter:fixture'),
+      capabilityId: parseCapabilityId('capability:exporter'),
+      runtimeBindingId: parseRuntimeBindingId('runtime:fixture'),
+      slotEvidenceDigest: parseSha256Digest(`sha256:${'b'.repeat(64)}`),
+      source,
+    });
+    const succeeded = succeedExportRun(starting, parseOutputId('output:fixture'), {
+      format: 'gguf',
+    });
+
+    expect(succeeded).toMatchObject({
+      operation: ModelOperationKind.Export,
+      status: ModelRunStatus.Succeeded,
+      exporterId: 'exporter:fixture',
+      source,
+      result: {
+        kind: ModelRunResultKind.Output,
+        outputId: 'output:fixture',
+        data: { format: 'gguf' },
+      },
+    });
   });
 });
 

@@ -39,10 +39,12 @@ export function resolveRuntimeBinding(
     () => parseRuntimeBindingId(record.runtimeBindingId, `${path}.runtimeBindingId`),
     `${path}.runtimeBindingId`
   );
-  const supportsRecord = parseClosedRecord(record.supports, `${path}.supports`, [
-    'artifactHandoffId',
-    'executionSupportId',
-  ]);
+  const supportsRecord = parseClosedRecord(
+    record.supports,
+    `${path}.supports`,
+    ['artifactHandoffId'],
+    ['executionSupportId']
+  );
   const artifactHandoffId = parseDomainValue(
     () =>
       parseRuntimeSupportId(supportsRecord.artifactHandoffId, `${path}.supports.artifactHandoffId`),
@@ -54,34 +56,38 @@ export function resolveRuntimeBinding(
     RuntimeSupportKind.ArtifactHandoff,
     `${path}.supports.artifactHandoffId`
   );
-  const executionSupportId = parseDomainValue(
-    () =>
-      parseRuntimeSupportId(
-        supportsRecord.executionSupportId,
+  const execution = Object.hasOwn(supportsRecord, 'executionSupportId')
+    ? requireRuntimeSupport(
+        supportById,
+        parseDomainValue(
+          () =>
+            parseRuntimeSupportId(
+              supportsRecord.executionSupportId,
+              `${path}.supports.executionSupportId`
+            ),
+          `${path}.supports.executionSupportId`
+        ),
+        RuntimeSupportKind.Execution,
         `${path}.supports.executionSupportId`
-      ),
-    `${path}.supports.executionSupportId`
-  );
-  const execution = requireRuntimeSupport(
-    supportById,
-    executionSupportId,
-    RuntimeSupportKind.Execution,
-    `${path}.supports.executionSupportId`
-  );
+      )
+    : undefined;
   const metadata = parseOptionalMetadata(record, path);
   const evidence = parseJsonValue({
     kind: RuntimeBindingKind.Binding,
     runtimeBindingId,
     supports: {
       artifactHandoff: runtimeSupportEvidence(artifactHandoff),
-      execution: runtimeSupportEvidence(execution),
+      ...(execution === undefined ? {} : { execution: runtimeSupportEvidence(execution) }),
     },
     ...(metadata === undefined ? {} : { metadata }),
   });
   return Object.freeze({
     kind: RuntimeBindingKind.Binding,
     runtimeBindingId,
-    supports: Object.freeze({ artifactHandoff, execution }),
+    supports: Object.freeze({
+      artifactHandoff,
+      ...(execution === undefined ? {} : { execution }),
+    }),
     ...(metadata === undefined ? {} : { metadata }),
     evidenceDigest: deriveEvidenceDigest(evidence),
   });

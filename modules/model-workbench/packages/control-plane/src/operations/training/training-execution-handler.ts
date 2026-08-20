@@ -175,7 +175,7 @@ function observedResultFailure(cause: unknown): ExecutionFailure {
     code: 'TRAINING_OBSERVED_RESULT_INVALID',
     message: 'Observed Training result could not be accepted.',
     retryable: false,
-    details: { cause: cause instanceof Error ? cause.message : 'unknown error' },
+    diagnostics: { cause: cause instanceof Error ? cause.message : 'unknown error' },
   });
 }
 

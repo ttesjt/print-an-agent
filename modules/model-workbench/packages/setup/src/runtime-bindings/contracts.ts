@@ -8,7 +8,7 @@ import { RuntimeBindingKind } from '../foundation/constants.js';
 
 export interface RuntimeSupportSelectorsInput {
   readonly artifactHandoffId: string;
-  readonly executionSupportId: string;
+  readonly executionSupportId?: string;
 }
 
 export interface RuntimeBindingInput {
@@ -20,7 +20,7 @@ export interface RuntimeBindingInput {
 
 export interface ResolvedRuntimeSupports {
   readonly artifactHandoff: ArtifactHandoffSupportRuntime;
-  readonly execution: ExecutionSupportRuntime;
+  readonly execution?: ExecutionSupportRuntime;
 }
 
 export interface ResolvedRuntimeBinding {
@@ -29,4 +29,10 @@ export interface ResolvedRuntimeBinding {
   readonly supports: ResolvedRuntimeSupports;
   readonly metadata?: JsonValue;
   readonly evidenceDigest: Sha256Digest;
+}
+
+export interface ResolvedExecutionRuntimeBinding extends ResolvedRuntimeBinding {
+  readonly supports: ResolvedRuntimeSupports & {
+    readonly execution: ExecutionSupportRuntime;
+  };
 }

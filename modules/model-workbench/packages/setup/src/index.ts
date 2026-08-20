@@ -2,8 +2,10 @@ export { RuntimeBindingKind, WorkbenchSetupKind } from './foundation/constants.j
 export { WorkbenchSetupError } from './foundation/errors.js';
 
 export {
-  findArtifactHandoffSupport,
+  findProfileArtifactHandoffSupport,
   findResolvedInitializer,
+  findResolvedExporter,
+  findResolvedOutputInvoker,
   findResolvedProfile,
   findResolvedTrainer,
   resolveWorkbenchSetup,
@@ -11,14 +13,21 @@ export {
 
 export type {
   ModelProfileInput,
+  ProfileInfrastructureInput,
+  ResolvedProfileInfrastructure,
   ProfileInitializerSlotInput,
+  ProfileExporterSlotInput,
+  ProfileOutputInvokerSlotInput,
   ProfileTrainerSlotInput,
   ResolvedInitializerSlot,
+  ResolvedExporterSlot,
   ResolvedModelProfile,
   ResolvedTrainerSlot,
+  ResolvedOutputInvokerSlot,
 } from './profiles/contracts.js';
 export type {
   ResolvedRuntimeBinding,
+  ResolvedExecutionRuntimeBinding,
   ResolvedRuntimeSupports,
   RuntimeBindingInput,
   RuntimeSupportSelectorsInput,

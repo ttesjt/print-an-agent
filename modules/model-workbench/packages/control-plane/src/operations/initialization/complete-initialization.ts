@@ -69,7 +69,7 @@ export async function completeInitialization(
     },
   });
   try {
-    await artifactSupport.verify(Object.freeze({ artifact }), options);
+    await artifactSupport.verify(Object.freeze({ profileId: run.profileId, artifact }), options);
   } catch (cause: unknown) {
     if (isAbortError(cause)) throw cause;
     throw new InitializationArtifactVerificationError(run.runId, artifactId, {

@@ -2,6 +2,7 @@ export * from './contracts.js';
 export {
   cancelModelRun,
   defineStartingInitializationRun,
+  defineStartingExportRun,
   defineStartingTrainingRun,
   failModelRun,
   loseModelRun,
@@ -9,6 +10,7 @@ export {
   modelRunsEqual,
   startModelRunExecution,
   succeedInitializationRun,
+  succeedExportRun,
   succeedTrainingRun,
   updateModelRunProgress,
 } from './model-run.js';

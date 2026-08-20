@@ -2,6 +2,7 @@ export const WorkbenchGeneratedIdKind = {
   Run: 'run',
   Base: 'base',
   Modification: 'modification',
+  Output: 'output',
   Artifact: 'artifact',
 } as const;
 

@@ -6,13 +6,15 @@ import { assertUnique, parseArray, parseClosedRecord, sortBy } from '../foundati
 import type {
   ResolvedInitializerSlot,
   ResolvedModelProfile,
+  ResolvedExporterSlot,
+  ResolvedOutputInvokerSlot,
   ResolvedTrainerSlot,
 } from '../profiles/contracts.js';
 import { resolveModelProfile } from '../profiles/resolve-model-profile.js';
 import { indexExtensionResources } from '../resources/index-extension-resources.js';
 import { resolveRuntimeBinding } from '../runtime-bindings/resolve-runtime-binding.js';
 import type { ResolvedWorkbenchSetup, WorkbenchExtensionResources } from './contracts.js';
-import { profileEvidence, runtimeSupportEvidence } from './evidence.js';
+import { profileEvidence } from './evidence.js';
 
 export function resolveWorkbenchSetup(
   input: unknown,
@@ -37,18 +39,12 @@ export function resolveWorkbenchSetup(
   assertUnique(profiles, ({ profileId }) => profileId, 'setup.profiles');
 
   const sortedProfiles = sortBy(profiles, ({ profileId }) => profileId);
-  const artifactHandoffSupports = sortBy(
-    indexedResources.artifactHandoffSupports,
-    ({ runtimeSupportId }) => runtimeSupportId
-  );
   const evidence = parseJsonValue({
     profiles: sortedProfiles.map(profileEvidence),
-    artifactHandoffSupports: artifactHandoffSupports.map(runtimeSupportEvidence),
   });
   return Object.freeze({
     kind: WorkbenchSetupKind.Resolved,
     profiles: sortedProfiles,
-    artifactHandoffSupports,
     evidenceDigest: deriveEvidenceDigest(evidence),
   });
 }
@@ -74,11 +70,28 @@ export function findResolvedTrainer(
   return profile.trainers.find((trainer) => trainer.trainerId === trainerId);
 }
 
-export function findArtifactHandoffSupport(
-  setup: ResolvedWorkbenchSetup,
+export function findResolvedExporter(
+  profile: ResolvedModelProfile,
+  exporterId: string
+): ResolvedExporterSlot | undefined {
+  return profile.exporters.find((exporter) => exporter.exporterId === exporterId);
+}
+
+export function findResolvedOutputInvoker(
+  profile: ResolvedModelProfile,
+  outputInvokerId: string
+): ResolvedOutputInvokerSlot | undefined {
+  return profile.outputInvokers.find(
+    (outputInvoker) => outputInvoker.outputInvokerId === outputInvokerId
+  );
+}
+
+/** Finds an Artifact Handoff Support reachable through one Profile's bound slots. */
+export function findProfileArtifactHandoffSupport(
+  profile: ResolvedModelProfile,
   runtimeSupportId: string
 ): ArtifactHandoffSupportRuntime | undefined {
-  return setup.artifactHandoffSupports.find(
+  return profile.artifactHandoffSupports.find(
     (support) => support.runtimeSupportId === runtimeSupportId
   );
 }

@@ -3,6 +3,7 @@ import {
   parseJsonValue,
   parseSha256Digest,
   type JsonValue,
+  type ProfileId,
   type RunId,
   type Sha256Digest,
 } from '@ta-agent/workbench-domain';
@@ -13,6 +14,7 @@ import type { ExtensionCallOptions } from '../../foundation/extension-runtime.js
 
 export interface InitializationCapabilityRequest<TInput = JsonValue> {
   readonly operation: typeof ModelOperationKind.Initialization;
+  readonly profileId: ProfileId;
   readonly runId: RunId;
   readonly input: TInput;
 }

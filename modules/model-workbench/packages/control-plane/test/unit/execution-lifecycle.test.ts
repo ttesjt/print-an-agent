@@ -34,6 +34,7 @@ import { createMemoryPersistence, type RunRepository } from '@ta-agent/workbench
 import type { OperationExecutionHandler } from '../../src/execution/contracts.js';
 import { createExecutionLifecycle } from '../../src/execution/create-execution-lifecycle.js';
 import {
+  ModelRunNotFoundError,
   ModelRunOperationUnavailableError,
   RunObservationError,
 } from '../../src/execution/errors.js';
@@ -215,6 +216,36 @@ describe('Execution Lifecycle Engine', () => {
       ModelRunOperationUnavailableError
     );
   });
+
+  it('rejects a same-Profile Run returned for a different requested identity', async () => {
+    const persistence = createMemoryPersistence();
+    const wrongStarting = startingRun('run:wrong');
+    const observe = vi.fn(() =>
+      Promise.resolve({ status: ExecutionStatus.Running, progress: { step: 1 } })
+    );
+    const cancel = vi.fn(() => Promise.resolve());
+    const support = defineExecutionSupport({
+      runtimeSupportId: 'execution.fixture',
+      observe,
+      cancel,
+    });
+    const wrongRunning = runningRun(wrongStarting, support.runtimeSupportId);
+    const misroutingRuns: RunRepository = Object.freeze({
+      ...persistence.runs,
+      find: () => Promise.resolve(wrongRunning),
+    });
+    const lifecycle = createLifecycle(misroutingRuns, operationHandler(support));
+
+    await expect(lifecycle.runs.get('run:requested')).resolves.toBeUndefined();
+    await expect(lifecycle.runs.refresh('run:requested')).rejects.toBeInstanceOf(
+      ModelRunNotFoundError
+    );
+    await expect(lifecycle.runs.cancel('run:requested')).rejects.toBeInstanceOf(
+      ModelRunNotFoundError
+    );
+    expect(observe).not.toHaveBeenCalled();
+    expect(cancel).not.toHaveBeenCalled();
+  });
 });
 
 interface HandlerOverrides {
@@ -247,6 +278,7 @@ function operationHandler(support: ExecutionSupportRuntime, overrides: HandlerOv
 
 function createLifecycle(runs: RunRepository, handler: OperationExecutionHandler) {
   return createExecutionLifecycle({
+    profileId: parseProfileId('profile:fixture'),
     runs,
     handlers: { [ModelOperationKind.Initialization]: handler },
   });
@@ -263,9 +295,9 @@ function executionSupport(
   });
 }
 
-function startingRun() {
+function startingRun(runId = 'run:fixture') {
   return defineStartingInitializationRun({
-    runId: parseRunId('run:fixture'),
+    runId: parseRunId(runId),
     profileId: parseProfileId('profile:fixture'),
     initializerId: parseInitializerId('initializer:fixture'),
     capabilityId: parseCapabilityId('capability:fixture'),

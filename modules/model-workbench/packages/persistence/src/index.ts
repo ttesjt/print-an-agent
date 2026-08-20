@@ -6,6 +6,7 @@ export {
 
 export { type RunRepository } from './ports/run-repository.js';
 export { type ParameterRepository } from './ports/parameter-repository.js';
+export { type OutputRepository } from './ports/output-repository.js';
 export {
   type InitializationCommit,
   type InitializationCommitter,
@@ -19,5 +20,18 @@ export {
   type TrainingCommitter,
   type UnsuccessfulTrainingCommit,
 } from './ports/training-committer.js';
+export {
+  type ExportCommit,
+  type ExportCommitter,
+  type SucceededExportCommit,
+  type UnsuccessfulExportCommit,
+} from './ports/export-committer.js';
+export type {
+  ProfilePersistence,
+  ProfilePersistenceAdapter,
+  ProfilePersistenceScope,
+} from './ports/profile-persistence-adapter.js';
 
 export { createMemoryPersistence } from './adapters/memory/create-memory-persistence.js';
+export { createMemoryProfilePersistenceAdapter } from './adapters/memory/create-memory-profile-persistence-adapter.js';
+export { createSharedProfilePersistenceAdapter } from './adapters/shared/create-shared-profile-persistence-adapter.js';

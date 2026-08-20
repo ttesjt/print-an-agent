@@ -2,32 +2,41 @@ import { parseJsonValue, type JsonValue } from '@ta-agent/workbench-domain';
 import type {
   ArtifactHandoffSupportRuntime,
   ExecutionSupportRuntime,
-  InitializerCapabilityRuntime,
-  TrainerCapabilityRuntime,
+  ModelCapabilityRuntime,
 } from '@ta-agent/workbench-extension';
 
 import type {
   ResolvedInitializerSlot,
   ResolvedModelProfile,
+  ResolvedExporterSlot,
+  ResolvedOutputInvokerSlot,
   ResolvedTrainerSlot,
 } from '../profiles/contracts.js';
 import type { ResolvedRuntimeBinding } from '../runtime-bindings/contracts.js';
 
-export function capabilityEvidence(
-  capability: InitializerCapabilityRuntime | TrainerCapabilityRuntime
-): JsonValue {
+export function capabilityEvidence(capability: ModelCapabilityRuntime): JsonValue {
   return parseJsonValue({
     family: capability.family,
     kind: capability.kind,
     capabilityId: capability.capabilityId,
-    contracts: {
-      input: capability.contracts.input.evidence,
-      ...(capability.contracts.resultData === undefined
-        ? {}
-        : { resultData: capability.contracts.resultData.evidence }),
-    },
+    contracts: capabilityContractsEvidence(capability),
     evidenceDigest: capability.evidenceDigest,
     ...(capability.metadata === undefined ? {} : { metadata: capability.metadata }),
+  });
+}
+
+function capabilityContractsEvidence(capability: ModelCapabilityRuntime): JsonValue {
+  if ('output' in capability.contracts) {
+    return parseJsonValue({
+      input: capability.contracts.input.evidence,
+      output: capability.contracts.output.evidence,
+    });
+  }
+  return parseJsonValue({
+    input: capability.contracts.input.evidence,
+    ...(capability.contracts.resultData === undefined
+      ? {}
+      : { resultData: capability.contracts.resultData.evidence }),
   });
 }
 
@@ -49,7 +58,9 @@ export function runtimeBindingEvidence(binding: ResolvedRuntimeBinding): JsonVal
     runtimeBindingId: binding.runtimeBindingId,
     supports: {
       artifactHandoff: runtimeSupportEvidence(binding.supports.artifactHandoff),
-      execution: runtimeSupportEvidence(binding.supports.execution),
+      ...(binding.supports.execution === undefined
+        ? {}
+        : { execution: runtimeSupportEvidence(binding.supports.execution) }),
     },
     evidenceDigest: binding.evidenceDigest,
     ...(binding.metadata === undefined ? {} : { metadata: binding.metadata }),
@@ -74,11 +85,31 @@ export function trainerSlotEvidence(slot: ResolvedTrainerSlot): JsonValue {
   });
 }
 
+export function exporterSlotEvidence(slot: ResolvedExporterSlot): JsonValue {
+  return parseJsonValue({
+    exporterId: slot.exporterId,
+    capability: capabilityEvidence(slot.capability),
+    runtime: runtimeBindingEvidence(slot.runtime),
+    evidenceDigest: slot.evidenceDigest,
+  });
+}
+
+export function outputInvokerSlotEvidence(slot: ResolvedOutputInvokerSlot): JsonValue {
+  return parseJsonValue({
+    outputInvokerId: slot.outputInvokerId,
+    capability: capabilityEvidence(slot.capability),
+    runtime: runtimeBindingEvidence(slot.runtime),
+    evidenceDigest: slot.evidenceDigest,
+  });
+}
+
 export function profileEvidence(profile: ResolvedModelProfile): JsonValue {
   return parseJsonValue({
     profileId: profile.profileId,
     initializers: profile.initializers.map(initializerSlotEvidence),
     trainers: profile.trainers.map(trainerSlotEvidence),
+    exporters: profile.exporters.map(exporterSlotEvidence),
+    outputInvokers: profile.outputInvokers.map(outputInvokerSlotEvidence),
     evidenceDigest: profile.evidenceDigest,
   });
 }

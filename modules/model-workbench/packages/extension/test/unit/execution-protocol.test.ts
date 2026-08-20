@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { InvalidWorkbenchValueError } from '@ta-agent/workbench-domain';
+import { InvalidWorkbenchValueError, parseProfileId } from '@ta-agent/workbench-domain';
 
 import {
   CapabilityDispatchKind,
@@ -59,9 +59,12 @@ describe('Execution Protocol', () => {
         }),
       cancel: vi.fn(),
     });
-    await expect(support.observe({ executionReceipt: { jobId: 'job:1' } })).rejects.toThrow(
-      InvalidWorkbenchValueError
-    );
+    await expect(
+      support.observe({
+        profileId: parseProfileId('profile:fixture'),
+        executionReceipt: { jobId: 'job:1' },
+      })
+    ).rejects.toThrow(InvalidWorkbenchValueError);
   });
 
   it('keeps support behavior out of extension evidence while preserving identity', () => {

@@ -4,6 +4,7 @@ import {
   InvalidWorkbenchValueError,
   ModelOperationKind,
   parseArtifactReference,
+  parseProfileId,
   parseRunId,
 } from '@ta-agent/workbench-domain';
 import {
@@ -90,6 +91,7 @@ describe('Extension Runtime resolution', () => {
 
     const outcome = await slot.capability.initialize({
       operation: ModelOperationKind.Initialization,
+      profileId: parseProfileId('demo-profile'),
       runId: parseRunId('run:demo'),
       input: { source: 'fixture://base', targetArtifactId: 'artifact:demo' },
     });
@@ -108,7 +110,10 @@ describe('Extension Runtime resolution', () => {
         receipt: artifact.receipt,
       },
     });
-    await slot.runtime.supports.artifactHandoff.verify({ artifact: reference });
+    await slot.runtime.supports.artifactHandoff.verify({
+      profileId: parseProfileId('demo-profile'),
+      artifact: reference,
+    });
 
     expect(initialize).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -116,7 +121,10 @@ describe('Extension Runtime resolution', () => {
       }),
       undefined
     );
-    expect(verify).toHaveBeenCalledWith({ artifact: reference }, undefined);
+    expect(verify).toHaveBeenCalledWith(
+      { profileId: 'demo-profile', artifact: reference },
+      undefined
+    );
     expect(slot.capability.contracts.input.evidence).toEqual({
       contract: 'fixture-custom-parser',
       rules: importInputSchema,

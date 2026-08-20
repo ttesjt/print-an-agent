@@ -22,13 +22,16 @@ static Profile and Runtime Binding setup input
        -> createWorkbenchControlPlane()
   -> workbench.initialization.start()
      or workbench.training.start()
+     or workbench.exports.start()
+     or workbench.outputInvocations.invoke()
   -> selected Model Capability
      -> completed terminal result
      or accepted opaque execution receipt
   -> workbench.runs.refresh() / wait() / cancel()
   -> bound Execution Support when detached
-  -> bound Artifact Handoff Support verifies the reported Artifact
+  -> bound Artifact Handoff Support verifies or materializes the relevant Artifact
   -> terminal Run + immutable Base or additive Modification
+     or immutable Output
 ```
 
 `initialization.start()` always returns a Workbench `runId`. Stopping `runs.wait()` stops only the
@@ -41,6 +44,19 @@ and materialize a transient input binding. The Trainer returns either a new Base
 Modification. The terminal Run records the exact source Model State, and the produced asset records
 the same source in its lineage. `models.compose()` can derive another ordered Model State without
 registering or persisting every combination.
+
+`exports.start()` accepts the same exact Model State shape and materializes it through the shared
+Model State preparation service. The Exporter returns a non-empty set of uniquely named Artifact
+results. Workbench assigns Output and Artifact identities, verifies every Artifact through the
+Exporter slot's bound Support, and atomically commits the terminal Export Run with one immutable
+Output. `outputs.get()` returns the accepted Output and its exact source-state lineage.
+
+`outputInvocations.invoke()` starts from an explicit Profile and Output identity. Workbench verifies
+and materializes every named Artifact through the Support recorded in its durable reference, then
+calls that Profile's selected Invoker with those transient bindings. The Invoker returns either a
+completed value or a lazily consumed stream; the same output Contract validates the completed value
+or every stream chunk. Invocation creates no Run, model asset, managed Session, or serving
+lifecycle.
 
 Artifact identity is separate from execution identity. A successful producing Capability reports an
 Artifact digest and an opaque handoff receipt, but not the Workbench-owned Artifact ID. Workbench
@@ -56,8 +72,8 @@ temporary URLs itself.
 The Control Plane implements this lifecycle once. Its internal Execution Lifecycle Engine owns
 dispatch acceptance, receipt persistence, observation, progress, waiting, and cancellation. Each
 operation supplies a typed handler for runtime resolution, terminal result parsing, validation, and
-asset commitment. Initialization and Training use the same lifecycle rather than copying the
-execution loop.
+commitment. Initialization, Training, and Export use the same lifecycle rather than copying the
+execution loop. Output Invocation deliberately uses its own non-durable streaming call path.
 
 `RunObservationError` is limited to failure of the bound Execution Support's `observe()` call.
 Progress persistence and terminal commitment happen in later phases and preserve their own
@@ -70,6 +86,8 @@ configuration version, compatibility policy, or prerequisite for ordinary API ca
 
 See [Extension Runtime Resolution](./docs/extension-runtime-resolution.md) for the separation between
 serializable selectors, typed Capability contracts, live resources, and the resolved callable graph.
+See [Model Capability Contracts](./docs/model-capability-contracts.md) for the complete Initializer,
+Trainer, Exporter, and Output Invoker SPI surface.
 
 This module must not import Agent Base or application runtimes. Its TypeScript APIs must remain usable
 without either module, a database, Python, a model framework, or a process runner.

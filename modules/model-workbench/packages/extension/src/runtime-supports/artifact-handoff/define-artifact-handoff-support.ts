@@ -2,6 +2,7 @@ import {
   deriveEvidenceDigest,
   parseArtifactReference,
   parseJsonValue,
+  parseProfileId,
   parseRuntimeSupportId,
   type ArtifactReference,
   type RuntimeSupportId,
@@ -67,7 +68,11 @@ export function defineArtifactHandoffSupport(
         request.artifact,
         'artifactHandoffSupport.verification.artifact'
       );
-      await input.verify(Object.freeze({ artifact }), options);
+      const profileId = parseDomainValue(
+        () => parseProfileId(request.profileId, 'artifactHandoffSupport.verification.profileId'),
+        'artifactHandoffSupport.verification.profileId'
+      );
+      await input.verify(Object.freeze({ profileId, artifact }), options);
     },
     materialize: async (
       request: Parameters<MaterializeArtifact>[0],
@@ -78,8 +83,12 @@ export function defineArtifactHandoffSupport(
         request.artifact,
         'artifactHandoffSupport.materialization.artifact'
       );
+      const profileId = parseDomainValue(
+        () => parseProfileId(request.profileId, 'artifactHandoffSupport.materialization.profileId'),
+        'artifactHandoffSupport.materialization.profileId'
+      );
       const binding = parseJsonValue(
-        await input.materialize(Object.freeze({ artifact }), options),
+        await input.materialize(Object.freeze({ profileId, artifact }), options),
         'artifactHandoffSupport.materialization.binding'
       );
       return Object.freeze({

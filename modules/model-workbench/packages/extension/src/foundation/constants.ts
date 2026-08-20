@@ -9,6 +9,8 @@ export type WorkbenchExtensionFamily =
 export const ModelCapabilityKind = {
   Initializer: 'initializer',
   Trainer: 'trainer',
+  Exporter: 'exporter',
+  OutputInvoker: 'output-invoker',
 } as const;
 
 export type ModelCapabilityKind = (typeof ModelCapabilityKind)[keyof typeof ModelCapabilityKind];

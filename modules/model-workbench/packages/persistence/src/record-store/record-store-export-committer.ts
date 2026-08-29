@@ -2,7 +2,6 @@ import {
   ModelOperationKind,
   ModelRunStatus,
   modelOutputsEqual,
-  modelRunDefinitionsEqual,
   modelRunsEqual,
   modelStatesEqual,
   type ActiveModelRun,
@@ -10,35 +9,47 @@ import {
   type ModelRun,
 } from '@ta-agent/workbench-domain';
 
-import { PersistenceRecordConflictError, RunTransitionPersistenceError } from '../../errors.js';
+import { PersistenceRecordConflictError, RunTransitionPersistenceError } from '../errors.js';
 import type {
   ExportCommit,
   ExportCommitter,
   SucceededExportCommit,
-} from '../../ports/export-committer.js';
-import type { MemoryPersistenceState } from './memory-persistence-state.js';
+} from '../ports/export-committer.js';
+import type { RecordBackedPersistenceOptions } from './create-record-backed-persistence.js';
+import type { PersistenceRecordStore } from './persistence-record-store.js';
+import { assertProfileScope } from './profile-scope.js';
+import { activeRunCanComplete } from './run-transition.js';
 
-export function createMemoryExportCommitter(state: MemoryPersistenceState): ExportCommitter {
+export function createRecordStoreExportCommitter(
+  store: PersistenceRecordStore,
+  options: RecordBackedPersistenceOptions
+): ExportCommitter {
   return Object.freeze({
     commit: (input: ExportCommit): Promise<void> =>
-      Promise.resolve().then(() => commitExport(state, input)),
+      Promise.resolve().then(() => {
+        assertProfileScope(options.profileId, input.run, 'run', input.run.runId);
+        if (isSucceededCommit(input)) {
+          assertProfileScope(options.profileId, input.output, 'output', input.output.outputId);
+        }
+        store.transaction(() => commitExport(store, input));
+      }),
   });
 }
 
-function commitExport(state: MemoryPersistenceState, input: ExportCommit): void {
+function commitExport(store: PersistenceRecordStore, input: ExportCommit): void {
   assertCommitShape(input);
-  const existingRun = state.runs.get(input.run.runId);
+  const existingRun = store.runs.find(input.run.runId);
   if (existingRun === undefined) {
     throw new RunTransitionPersistenceError(input.run.runId, 'must exist before it can complete.');
   }
   if (!isActive(existingRun)) {
-    if (commitAlreadyMatches(state, existingRun, input)) return;
+    if (commitAlreadyMatches(store, existingRun, input)) return;
     throw new RunTransitionPersistenceError(
       input.run.runId,
       'has already reached a terminal state.'
     );
   }
-  if (!modelRunDefinitionsEqual(existingRun, input.run)) {
+  if (!activeRunCanComplete(existingRun, input.run)) {
     throw new RunTransitionPersistenceError(
       input.run.runId,
       'cannot change its frozen operation selection while completing.'
@@ -47,9 +58,9 @@ function commitExport(state: MemoryPersistenceState, input: ExportCommit): void 
 
   if (isSucceededCommit(input)) {
     assertSucceededCommit(input);
-    storeOutput(state, input.output);
+    storeOutput(store, input.output);
   }
-  state.runs.set(input.run.runId, input.run);
+  store.runs.store(input.run.runId, input.run);
 }
 
 function assertCommitShape(input: ExportCommit): void {
@@ -86,22 +97,22 @@ function invalidSucceededCommit(runId: string): never {
   );
 }
 
-function storeOutput(state: MemoryPersistenceState, output: ModelOutput): void {
-  const existing = state.outputs.get(output.outputId);
+function storeOutput(store: PersistenceRecordStore, output: ModelOutput): void {
+  const existing = store.outputs.find(output.outputId);
   if (existing !== undefined && !modelOutputsEqual(existing, output)) {
     throw new PersistenceRecordConflictError('output', output.outputId);
   }
-  state.outputs.set(output.outputId, output);
+  store.outputs.store(output.outputId, output);
 }
 
 function commitAlreadyMatches(
-  state: MemoryPersistenceState,
+  store: PersistenceRecordStore,
   storedRun: ModelRun,
   input: ExportCommit
 ): boolean {
   if (!modelRunsEqual(storedRun, input.run)) return false;
   if (!isSucceededCommit(input)) return true;
-  const output = state.outputs.get(input.output.outputId);
+  const output = store.outputs.find(input.output.outputId);
   return output !== undefined && modelOutputsEqual(output, input.output);
 }
 

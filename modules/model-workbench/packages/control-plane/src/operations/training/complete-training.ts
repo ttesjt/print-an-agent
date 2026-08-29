@@ -29,10 +29,12 @@ import type { ResolvedTrainerSlot } from '@ta-agent/workbench-setup';
 import { TrainingArtifactVerificationError } from './errors.js';
 import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';
 import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';
+import { readWorkbenchClock, type WorkbenchClock } from '../../ports/workbench-clock.js';
 
 export interface CompleteTrainingDependencies {
   readonly trainingCommitter: TrainingCommitter;
   readonly idSource: WorkbenchIdSource;
+  readonly clock: WorkbenchClock;
 }
 
 export async function completeTraining(
@@ -42,18 +44,19 @@ export async function completeTraining(
   terminal: ExecutionTerminal<TrainingCapabilityResult>,
   options?: ModelWorkbenchOperationOptions
 ): Promise<TerminalTrainingRun> {
+  const terminalRecordedAt = readWorkbenchClock(dependencies.clock, 'clock.terminalRecordedAt');
   if (terminal.status === ExecutionStatus.Failed) {
-    const failed = failModelRun(run, terminal.failure);
+    const failed = failModelRun(run, terminal.failure, terminalRecordedAt);
     await dependencies.trainingCommitter.commit({ run: failed });
     return failed;
   }
   if (terminal.status === ExecutionStatus.Cancelled) {
-    const cancelled = cancelModelRun(run, terminal.reason);
+    const cancelled = cancelModelRun(run, terminalRecordedAt, terminal.reason);
     await dependencies.trainingCommitter.commit({ run: cancelled });
     return cancelled;
   }
   if (terminal.status === ExecutionStatus.Lost) {
-    const lost = loseModelRun(run, terminal.failure);
+    const lost = loseModelRun(run, terminal.failure, terminalRecordedAt);
     await dependencies.trainingCommitter.commit({ run: lost });
     return lost;
   }
@@ -71,6 +74,7 @@ export async function completeTraining(
     const succeeded = succeedTrainingRun(
       run,
       Object.freeze({ kind: ModelRunResultKind.Base, baseId }),
+      terminalRecordedAt,
       terminal.result.data
     );
     await dependencies.trainingCommitter.commit({ run: succeeded, base });
@@ -90,6 +94,7 @@ export async function completeTraining(
   const succeeded = succeedTrainingRun(
     run,
     Object.freeze({ kind: ModelRunResultKind.Modification, modificationId }),
+    terminalRecordedAt,
     terminal.result.data
   );
   await dependencies.trainingCommitter.commit({ run: succeeded, modification });
@@ -97,12 +102,18 @@ export async function completeTraining(
 }
 
 export async function recordTrainingFailure(
-  trainingCommitter: TrainingCommitter,
+  dependencies: Pick<CompleteTrainingDependencies, 'trainingCommitter' | 'clock'>,
   run: ActiveTrainingRun,
   failure: ExecutionFailure
 ): Promise<void> {
   try {
-    await trainingCommitter.commit({ run: failModelRun(run, failure) });
+    await dependencies.trainingCommitter.commit({
+      run: failModelRun(
+        run,
+        failure,
+        readWorkbenchClock(dependencies.clock, 'clock.terminalRecordedAt')
+      ),
+    });
   } catch {
     // The persistence adapter owns reconciliation. Preserve the original execution error.
   }

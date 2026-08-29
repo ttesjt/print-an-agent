@@ -1,24 +1,23 @@
 import {
-  defineExecutionReference,
   InvalidWorkbenchValueError,
   ModelRunStatus,
   parseRunId,
   type ProfileId,
-  startModelRunExecution,
   updateModelRunProgress,
   type ActiveModelRun,
   type ModelRun,
   type TerminalModelRun,
 } from '@ta-agent/workbench-domain';
-import { CapabilityDispatchKind, ExecutionStatus } from '@ta-agent/workbench-extension';
+import { ExecutionStatus } from '@ta-agent/workbench-extension';
 import type { RunRepository } from '@ta-agent/workbench-persistence';
 
 import type {
-  AcceptCapabilityDispatchInput,
   ExecutionLifecycle,
   OperationExecutionHandler,
   OperationExecutionHandlers,
 } from './contracts.js';
+import { StartingRunResumeKind } from './contracts.js';
+import { defineStartingRunResumeContext } from './dispatch-model-run.js';
 import {
   ModelRunNotFoundError,
   ModelRunOperationUnavailableError,
@@ -52,29 +51,7 @@ export function createExecutionLifecycle(
       wait: (runId: string, options?: WaitForRunOptions) => waitForRun(refresh, runId, options),
       cancel: createCancelRun(dependencies),
     }),
-    acceptCapabilityDispatch: createAcceptCapabilityDispatch(dependencies),
   });
-}
-
-function createAcceptCapabilityDispatch(
-  dependencies: ExecutionLifecycleDependencies
-): ExecutionLifecycle['acceptCapabilityDispatch'] {
-  return async function acceptCapabilityDispatch<TResult>(
-    input: AcceptCapabilityDispatchInput<TResult>,
-    options?: ModelWorkbenchOperationOptions
-  ): Promise<ModelRun> {
-    if (input.dispatch.kind === CapabilityDispatchKind.Completed) {
-      return input.complete(input.dispatch.terminal, options);
-    }
-    const support = handlerFor(dependencies.handlers, input.run).resolveExecutionSupport(input.run);
-    const execution = defineExecutionReference({
-      runtimeSupportId: support.runtimeSupportId,
-      receipt: input.dispatch.executionReceipt,
-    });
-    const running = startModelRunExecution(input.run, execution);
-    await dependencies.runs.updateActive(running);
-    return running;
-  };
 }
 
 function createRefreshRun(dependencies: ExecutionLifecycleDependencies) {
@@ -84,9 +61,15 @@ function createRefreshRun(dependencies: ExecutionLifecycleDependencies) {
   ): Promise<ModelRun> {
     assertNotAborted(options?.signal, 'Run observation was aborted.');
     const run = await requireRun(dependencies.runs, dependencies.profileId, inputRunId);
-    if (isTerminal(run) || run.status === ModelRunStatus.Starting) return run;
+    if (isTerminal(run)) return run;
 
     const handler = handlerFor(dependencies.handlers, run);
+    if (run.status === ModelRunStatus.Starting) {
+      return handler.resumeStarting(
+        run,
+        defineStartingRunResumeContext(StartingRunResumeKind.Recovery, options)
+      );
+    }
     const support = handler.resolveExecutionSupport(run);
     let observation;
     try {
@@ -114,9 +97,21 @@ function createRefreshRun(dependencies: ExecutionLifecycleDependencies) {
 function createCancelRun(dependencies: ExecutionLifecycleDependencies) {
   return async function cancelRun(inputRunId: string, options?: ModelWorkbenchOperationOptions) {
     assertNotAborted(options?.signal, 'Run cancellation was aborted.');
-    const run = await requireRun(dependencies.runs, dependencies.profileId, inputRunId);
-    if (isTerminal(run) || run.status === ModelRunStatus.Starting) return run.runId;
-    const support = handlerFor(dependencies.handlers, run).resolveExecutionSupport(run);
+    let run = await requireRun(dependencies.runs, dependencies.profileId, inputRunId);
+    if (isTerminal(run)) return run.runId;
+    const handler = handlerFor(dependencies.handlers, run);
+    if (run.status === ModelRunStatus.Starting) {
+      if (run.dispatchedAt === undefined) {
+        await handler.cancelStarting(run, options);
+        return run.runId;
+      }
+      run = await handler.resumeStarting(
+        run,
+        defineStartingRunResumeContext(StartingRunResumeKind.Recovery, options)
+      );
+      if (isTerminal(run)) return run.runId;
+    }
+    const support = handler.resolveExecutionSupport(run);
     try {
       await support.cancel(
         Object.freeze({ profileId: run.profileId, executionReceipt: run.execution.receipt }),

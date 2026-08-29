@@ -1,17 +1,10 @@
 import {
   defineModelState,
   defineStartingTrainingRun,
-  ModelOperationKind,
-  parseJsonValue,
   parseProfileId,
   parseRunId,
   parseTrainerId,
 } from '@ta-agent/workbench-domain';
-import type {
-  CapabilityDispatch,
-  MaterializedModelState,
-  TrainingCapabilityResult,
-} from '@ta-agent/workbench-extension';
 import type { RunRepository } from '@ta-agent/workbench-persistence';
 import {
   findResolvedProfile,
@@ -22,21 +15,21 @@ import {
 import type { StartTrainingInput, StartTrainingResult } from './contracts.js';
 import { TrainerSlotNotFoundError } from './errors.js';
 import type { TrainingExecutionHandler } from './training-execution-handler.js';
-import type {
-  ExecutionLifecycle,
-  ModelWorkbenchOperationOptions,
+import {
+  StartingRunResumeKind,
+  type ModelWorkbenchOperationOptions,
 } from '../../execution/contracts.js';
+import { defineStartingRunResumeContext } from '../../execution/dispatch-model-run.js';
 import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';
-import type { MaterializeModelState } from '../../model-states/materialize-model-state.js';
+import { readWorkbenchClock, type WorkbenchClock } from '../../ports/workbench-clock.js';
 import { ModelProfileNotFoundError } from '../errors.js';
 
 export interface StartTrainingDependencies {
   readonly setup: ResolvedWorkbenchSetup;
   readonly runs: RunRepository;
-  readonly lifecycle: ExecutionLifecycle;
   readonly handler: TrainingExecutionHandler;
-  readonly materializeModelState: MaterializeModelState;
   readonly idSource: WorkbenchIdSource;
+  readonly clock: WorkbenchClock;
 }
 
 export function createStartTraining(dependencies: StartTrainingDependencies) {
@@ -48,11 +41,11 @@ export function createStartTraining(dependencies: StartTrainingDependencies) {
     const profileId = parseProfileId(input.profileId, 'training.profileId');
     const trainerId = parseTrainerId(input.trainerId, 'training.trainerId');
     const source = defineModelState(input.source);
-    const operationInput = parseJsonValue(input.input, 'training.input');
     const profile = findResolvedProfile(dependencies.setup, profileId);
     if (profile === undefined) throw new ModelProfileNotFoundError(profileId);
     const trainer = findResolvedTrainer(profile, trainerId);
     if (trainer === undefined) throw new TrainerSlotNotFoundError(profileId, trainerId);
+    const operationInput = trainer.capability.contracts.input.parse(input.input, 'training.input');
 
     const runId = parseRunId(dependencies.idSource.nextId('run'), 'generated.runId');
     const starting = defineStartingTrainingRun({
@@ -63,49 +56,15 @@ export function createStartTraining(dependencies: StartTrainingDependencies) {
       runtimeBindingId: trainer.runtime.runtimeBindingId,
       slotEvidenceDigest: trainer.evidenceDigest,
       source,
+      input: operationInput,
+      createdAt: readWorkbenchClock(dependencies.clock, 'clock.createdAt'),
     });
     await dependencies.runs.create(starting);
-
-    let materializedSource: MaterializedModelState;
-    try {
-      materializedSource = await dependencies.materializeModelState(
-        Object.freeze({ runId, profileId, operation: ModelOperationKind.Training, state: source }),
-        options
-      );
-    } catch (cause: unknown) {
-      return dependencies.handler.rejectPreparation(starting, cause);
-    }
-
-    let dispatch: CapabilityDispatch<TrainingCapabilityResult>;
-    try {
-      dispatch = await trainer.capability.train(
-        Object.freeze({
-          operation: ModelOperationKind.Training,
-          profileId,
-          runId,
-          source: materializedSource,
-          input: operationInput,
-        }),
-        options
-      );
-    } catch (cause: unknown) {
-      return dependencies.handler.rejectInvocation(starting, cause);
-    }
-
-    try {
-      await dependencies.lifecycle.acceptCapabilityDispatch(
-        {
-          run: starting,
-          dispatch,
-          complete: (terminal, completionOptions) =>
-            dependencies.handler.complete(starting, trainer, terminal, completionOptions),
-        },
-        options
-      );
-      return Object.freeze({ runId });
-    } catch (cause: unknown) {
-      return dependencies.handler.rejectCompletion(starting, cause);
-    }
+    await dependencies.handler.resumeStarting(
+      starting,
+      defineStartingRunResumeContext(StartingRunResumeKind.InitialDispatch, options)
+    );
+    return Object.freeze({ runId });
   };
 }
 

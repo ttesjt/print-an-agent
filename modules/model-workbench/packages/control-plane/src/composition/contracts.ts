@@ -7,12 +7,14 @@ import type { ExportOperations } from '../operations/export/contracts.js';
 import type { TrainingOperations } from '../operations/training/contracts.js';
 import type { OutputInvocationOperations } from '../operations/output-invocation/contracts.js';
 import type { WorkbenchIdSource } from '../ports/workbench-id-source.js';
+import type { WorkbenchClock } from '../ports/workbench-clock.js';
 import type { ModelAssetQueries, OutputQueries, RunControls } from '../queries/contracts.js';
 
 export interface WorkbenchControlPlaneConfiguration {
   readonly setup: ResolvedWorkbenchSetup;
   readonly persistence: ProfilePersistenceAdapter;
   readonly idSource: WorkbenchIdSource;
+  readonly clock: WorkbenchClock;
 }
 
 export interface ModelWorkbenchControlPlane {

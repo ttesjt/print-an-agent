@@ -34,9 +34,11 @@ static Profile and Runtime Binding setup input
      or immutable Output
 ```
 
-`initialization.start()` always returns a Workbench `runId`. Stopping `runs.wait()` stops only the
-caller-side wait; cancellation is a separate explicit action. Backend execution identity remains an
-opaque receipt owned by the selected Runtime Support and is durably associated with the Run.
+`initialization.start()` always returns a Workbench `runId`. Before dispatch, Workbench validates the
+Capability-specific input and persists that exact JSON value on the Run. Stopping `runs.wait()` or
+`runs.refresh()` stops only that caller-side recovery attempt and leaves the durable Run recoverable;
+cancellation is a separate explicit action. Backend execution identity remains an opaque receipt
+owned by the selected Runtime Support and is durably associated with the Run.
 
 `training.start()` accepts a Base plus an ordered Modification ID stack. Workbench derives the exact
 Model State receipt, loads every parameter asset, and asks each Artifact's owning Support to verify
@@ -58,6 +60,12 @@ completed value or a lazily consumed stream; the same output Contract validates 
 or every stream chunk. Invocation creates no Run, model asset, managed Session, or serving
 lifecycle.
 
+Profile-scoped discovery is available through `runs.list()`, `models.listBases()`,
+`models.listModifications()`, and `outputs.list()`. Each query is bounded and cursor-paginated. Run
+discovery can additionally filter by operation, status, and Workbench-recorded creation time. These
+queries expose the lineage already stored on immutable asset records; they do not introduce tags,
+promotion state, a metrics database, or configuration authority.
+
 Artifact identity is separate from execution identity. A successful producing Capability reports an
 Artifact digest and an opaque handoff receipt, but not the Workbench-owned Artifact ID. Workbench
 combines those facts with its assigned ID and the bound Support identity, then accepts the resulting
@@ -75,6 +83,19 @@ operation supplies a typed handler for runtime resolution, terminal result parsi
 commitment. Initialization, Training, and Export use the same lifecycle rather than copying the
 execution loop. Output Invocation deliberately uses its own non-durable streaming call path.
 
+A `starting` Run is itself recoverable. Workbench records `createdAt`, the validated operation
+input, and the frozen Profile slot before invoking the Capability. Immediately before invocation it
+records `dispatchedAt`. A later `runs.refresh()` or `runs.wait()` can re-drive a `starting` Run with
+the same `profileId` and `runId`; a durable Capability bridge must treat that pair as its idempotent
+submission identity and return the existing execution or terminal result rather than start a second
+backend job. `terminalRecordedAt` is the time Workbench first accepts a terminal observation, not a
+backend-reported finish time.
+
+Cancellation also respects the dispatch window. An undispatched `starting` Run can be committed as
+cancelled without calling the Capability. For a dispatched `starting` Run, Workbench first performs
+the same idempotent recovery to regain its execution receipt or terminal result; only a recovered
+running execution is sent to Runtime Support `cancel()`.
+
 `RunObservationError` is limited to failure of the bound Execution Support's `observe()` call.
 Progress persistence and terminal commitment happen in later phases and preserve their own
 operation or persistence errors instead of being mislabeled as observation failures.
@@ -88,6 +109,10 @@ See [Extension Runtime Resolution](./docs/extension-runtime-resolution.md) for t
 serializable selectors, typed Capability contracts, live resources, and the resolved callable graph.
 See [Model Capability Contracts](./docs/model-capability-contracts.md) for the complete Initializer,
 Trainer, Exporter, and Output Invoker SPI surface.
+See [Local Runtime Supports](./docs/local-runtime-supports.md) for the default Profile-scoped local
+Artifact and detached-execution receipt protocols.
+See [Using Model Workbench](./docs/using-model-workbench.md) for the public composition boundary,
+CLI module contract, and the deterministic local acceptance path.
 
 This module must not import Agent Base or application runtimes. Its TypeScript APIs must remain usable
 without either module, a database, Python, a model framework, or a process runner.

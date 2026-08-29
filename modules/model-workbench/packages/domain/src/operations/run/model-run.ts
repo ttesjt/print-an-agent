@@ -1,5 +1,6 @@
 import type { BaseId, ModificationId, OutputId, RunId } from '../../foundation/identifiers.js';
-import type { JsonValue } from '../../foundation/json.js';
+import { canonicalJson, parseJsonValue, type JsonValue } from '../../foundation/json.js';
+import type { Timestamp } from '../../foundation/timestamp.js';
 import { modelStatesEqual } from '../../model-assets/model-state.js';
 import {
   ModelOperationKind,
@@ -19,6 +20,10 @@ import type {
   CancelledExportRun,
   CancelledModelRun,
   CancelledTrainingRun,
+  DispatchedStartingExportRun,
+  DispatchedStartingInitializationRun,
+  DispatchedStartingModelRun,
+  DispatchedStartingTrainingRun,
   FailedInitializationRun,
   FailedExportRun,
   FailedModelRun,
@@ -81,26 +86,49 @@ export function defineStartingExportRun(
 }
 
 export function startModelRunExecution(
-  run: StartingInitializationRun,
+  run: DispatchedStartingInitializationRun,
   execution: ExecutionReference
 ): RunningInitializationRun;
 export function startModelRunExecution(
-  run: StartingTrainingRun,
+  run: DispatchedStartingTrainingRun,
   execution: ExecutionReference
 ): RunningTrainingRun;
 export function startModelRunExecution(
-  run: StartingExportRun,
+  run: DispatchedStartingExportRun,
   execution: ExecutionReference
 ): RunningExportRun;
 export function startModelRunExecution(
-  run: StartingModelRun,
+  run: DispatchedStartingModelRun,
   execution: ExecutionReference
 ): RunningModelRun;
 export function startModelRunExecution(
-  run: StartingModelRun,
+  run: DispatchedStartingModelRun,
   execution: ExecutionReference
 ): RunningModelRun {
   return Object.freeze({ ...run, status: ModelRunStatus.Running, execution });
+}
+
+export function markModelRunDispatched(
+  run: StartingInitializationRun,
+  dispatchedAt: Timestamp
+): DispatchedStartingInitializationRun;
+export function markModelRunDispatched(
+  run: StartingTrainingRun,
+  dispatchedAt: Timestamp
+): DispatchedStartingTrainingRun;
+export function markModelRunDispatched(
+  run: StartingExportRun,
+  dispatchedAt: Timestamp
+): DispatchedStartingExportRun;
+export function markModelRunDispatched(
+  run: StartingModelRun,
+  dispatchedAt: Timestamp
+): DispatchedStartingModelRun;
+export function markModelRunDispatched(
+  run: StartingModelRun,
+  dispatchedAt: Timestamp
+): DispatchedStartingModelRun {
+  return Object.freeze({ ...run, dispatchedAt });
 }
 
 export function updateModelRunProgress(
@@ -131,11 +159,13 @@ export function updateModelRunProgress(
 export function succeedInitializationRun(
   run: ActiveInitializationRun,
   baseId: BaseId,
+  terminalRecordedAt: Timestamp,
   data?: JsonValue
 ): SucceededInitializationRun {
   return Object.freeze({
     ...run,
     status: ModelRunStatus.Succeeded,
+    terminalRecordedAt,
     result: Object.freeze({
       kind: ModelRunResultKind.Base,
       baseId,
@@ -147,6 +177,7 @@ export function succeedInitializationRun(
 export function succeedTrainingRun(
   run: ActiveTrainingRun,
   result: Readonly<{ readonly kind: typeof ModelRunResultKind.Base; readonly baseId: BaseId }>,
+  terminalRecordedAt: Timestamp,
   data?: JsonValue
 ): SucceededTrainingBaseRun;
 export function succeedTrainingRun(
@@ -155,6 +186,7 @@ export function succeedTrainingRun(
     readonly kind: typeof ModelRunResultKind.Modification;
     readonly modificationId: ModificationId;
   }>,
+  terminalRecordedAt: Timestamp,
   data?: JsonValue
 ): SucceededTrainingModificationRun;
 export function succeedTrainingRun(
@@ -166,6 +198,7 @@ export function succeedTrainingRun(
         readonly modificationId: ModificationId;
       }
   >,
+  terminalRecordedAt: Timestamp,
   data?: JsonValue
 ): SucceededTrainingRun {
   if (result.kind === ModelRunResultKind.Base) {
@@ -173,23 +206,35 @@ export function succeedTrainingRun(
       ...result,
       ...(data === undefined ? {} : { data }),
     });
-    return Object.freeze({ ...run, status: ModelRunStatus.Succeeded, result: runResult });
+    return Object.freeze({
+      ...run,
+      status: ModelRunStatus.Succeeded,
+      terminalRecordedAt,
+      result: runResult,
+    });
   }
   const runResult: ModificationRunResult = Object.freeze({
     ...result,
     ...(data === undefined ? {} : { data }),
   });
-  return Object.freeze({ ...run, status: ModelRunStatus.Succeeded, result: runResult });
+  return Object.freeze({
+    ...run,
+    status: ModelRunStatus.Succeeded,
+    terminalRecordedAt,
+    result: runResult,
+  });
 }
 
 export function succeedExportRun(
   run: ActiveExportRun,
   outputId: OutputId,
+  terminalRecordedAt: Timestamp,
   data?: JsonValue
 ): SucceededExportRun {
   return Object.freeze({
     ...run,
     status: ModelRunStatus.Succeeded,
+    terminalRecordedAt,
     result: Object.freeze({
       kind: ModelRunResultKind.Output,
       outputId,
@@ -200,39 +245,101 @@ export function succeedExportRun(
 
 export function failModelRun(
   run: ActiveInitializationRun,
-  failure: ExecutionFailure
+  failure: ExecutionFailure,
+  terminalRecordedAt: Timestamp
 ): FailedInitializationRun;
-export function failModelRun(run: ActiveTrainingRun, failure: ExecutionFailure): FailedTrainingRun;
-export function failModelRun(run: ActiveExportRun, failure: ExecutionFailure): FailedExportRun;
-export function failModelRun(run: ActiveModelRun, failure: ExecutionFailure): FailedModelRun;
-export function failModelRun(run: ActiveModelRun, failure: ExecutionFailure): FailedModelRun {
-  return Object.freeze({ ...run, status: ModelRunStatus.Failed, failure }) as FailedModelRun;
+export function failModelRun(
+  run: ActiveTrainingRun,
+  failure: ExecutionFailure,
+  terminalRecordedAt: Timestamp
+): FailedTrainingRun;
+export function failModelRun(
+  run: ActiveExportRun,
+  failure: ExecutionFailure,
+  terminalRecordedAt: Timestamp
+): FailedExportRun;
+export function failModelRun(
+  run: ActiveModelRun,
+  failure: ExecutionFailure,
+  terminalRecordedAt: Timestamp
+): FailedModelRun;
+export function failModelRun(
+  run: ActiveModelRun,
+  failure: ExecutionFailure,
+  terminalRecordedAt: Timestamp
+): FailedModelRun {
+  return Object.freeze({
+    ...run,
+    status: ModelRunStatus.Failed,
+    terminalRecordedAt,
+    failure,
+  }) as FailedModelRun;
 }
 
 export function cancelModelRun(
   run: ActiveInitializationRun,
+  terminalRecordedAt: Timestamp,
   reason?: JsonValue
 ): CancelledInitializationRun;
-export function cancelModelRun(run: ActiveTrainingRun, reason?: JsonValue): CancelledTrainingRun;
-export function cancelModelRun(run: ActiveExportRun, reason?: JsonValue): CancelledExportRun;
-export function cancelModelRun(run: ActiveModelRun, reason?: JsonValue): CancelledModelRun;
-export function cancelModelRun(run: ActiveModelRun, reason?: JsonValue): CancelledModelRun {
+export function cancelModelRun(
+  run: ActiveTrainingRun,
+  terminalRecordedAt: Timestamp,
+  reason?: JsonValue
+): CancelledTrainingRun;
+export function cancelModelRun(
+  run: ActiveExportRun,
+  terminalRecordedAt: Timestamp,
+  reason?: JsonValue
+): CancelledExportRun;
+export function cancelModelRun(
+  run: ActiveModelRun,
+  terminalRecordedAt: Timestamp,
+  reason?: JsonValue
+): CancelledModelRun;
+export function cancelModelRun(
+  run: ActiveModelRun,
+  terminalRecordedAt: Timestamp,
+  reason?: JsonValue
+): CancelledModelRun {
   return Object.freeze({
     ...run,
     status: ModelRunStatus.Cancelled,
+    terminalRecordedAt,
     ...(reason === undefined ? {} : { reason }),
   }) as CancelledModelRun;
 }
 
 export function loseModelRun(
   run: ActiveInitializationRun,
-  failure: ExecutionFailure
+  failure: ExecutionFailure,
+  terminalRecordedAt: Timestamp
 ): LostInitializationRun;
-export function loseModelRun(run: ActiveTrainingRun, failure: ExecutionFailure): LostTrainingRun;
-export function loseModelRun(run: ActiveExportRun, failure: ExecutionFailure): LostExportRun;
-export function loseModelRun(run: ActiveModelRun, failure: ExecutionFailure): LostModelRun;
-export function loseModelRun(run: ActiveModelRun, failure: ExecutionFailure): LostModelRun {
-  return Object.freeze({ ...run, status: ModelRunStatus.Lost, failure }) as LostModelRun;
+export function loseModelRun(
+  run: ActiveTrainingRun,
+  failure: ExecutionFailure,
+  terminalRecordedAt: Timestamp
+): LostTrainingRun;
+export function loseModelRun(
+  run: ActiveExportRun,
+  failure: ExecutionFailure,
+  terminalRecordedAt: Timestamp
+): LostExportRun;
+export function loseModelRun(
+  run: ActiveModelRun,
+  failure: ExecutionFailure,
+  terminalRecordedAt: Timestamp
+): LostModelRun;
+export function loseModelRun(
+  run: ActiveModelRun,
+  failure: ExecutionFailure,
+  terminalRecordedAt: Timestamp
+): LostModelRun {
+  return Object.freeze({
+    ...run,
+    status: ModelRunStatus.Lost,
+    terminalRecordedAt,
+    failure,
+  }) as LostModelRun;
 }
 
 export function modelRunDefinitionsEqual(left: ModelRun, right: ModelRun): boolean {
@@ -242,7 +349,9 @@ export function modelRunDefinitionsEqual(left: ModelRun, right: ModelRun): boole
     left.profileId !== right.profileId ||
     left.capabilityId !== right.capabilityId ||
     left.runtimeBindingId !== right.runtimeBindingId ||
-    left.slotEvidenceDigest !== right.slotEvidenceDigest
+    left.slotEvidenceDigest !== right.slotEvidenceDigest ||
+    left.createdAt !== right.createdAt ||
+    canonicalJson(left.input) !== canonicalJson(right.input)
   ) {
     return false;
   }
@@ -268,5 +377,5 @@ export function modelRunDefinitionsEqual(left: ModelRun, right: ModelRun): boole
 }
 
 export function modelRunsEqual(left: ModelRun, right: ModelRun): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return canonicalJson(parseJsonValue(left)) === canonicalJson(parseJsonValue(right));
 }

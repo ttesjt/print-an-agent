@@ -2,11 +2,14 @@ import { deriveEvidenceDigest } from '../foundation/evidence.js';
 import {
   parseBaseId,
   parseModificationId,
+  parseSha256Digest,
   type BaseId,
   type ModificationId,
   type Sha256Digest,
 } from '../foundation/identifiers.js';
 import { parseJsonValue } from '../foundation/json.js';
+import { InvalidWorkbenchValueError } from '../foundation/errors.js';
+import { parseClosedRecord, parseLiteral } from '../foundation/record-parser.js';
 import { ModelStateKind } from './constants.js';
 
 export interface ModelStateInput {
@@ -36,6 +39,33 @@ export function defineModelState(input: ModelStateInput): ModelState {
     modificationIds,
     evidenceDigest: deriveEvidenceDigest(evidence),
   });
+}
+
+export function parseModelState(input: unknown, path = 'modelState'): ModelState {
+  const record = parseClosedRecord(input, path, [
+    'kind',
+    'baseId',
+    'modificationIds',
+    'evidenceDigest',
+  ]);
+  parseLiteral(record.kind, ModelStateKind.State, `${path}.kind`);
+  if (!Array.isArray(record.modificationIds)) {
+    throw new InvalidWorkbenchValueError(`${path}.modificationIds`, 'must be an array');
+  }
+  const state = defineModelState({
+    baseId: parseBaseId(record.baseId, `${path}.baseId`),
+    modificationIds: record.modificationIds.map((value, index) =>
+      parseModificationId(value, `${path}.modificationIds[${String(index)}]`)
+    ),
+  });
+  const evidenceDigest = parseSha256Digest(record.evidenceDigest, `${path}.evidenceDigest`);
+  if (evidenceDigest !== state.evidenceDigest) {
+    throw new InvalidWorkbenchValueError(
+      `${path}.evidenceDigest`,
+      'must match the exact Base and ordered Modification stack'
+    );
+  }
+  return state;
 }
 
 export function modelStatesEqual(left: ModelState, right: ModelState): boolean {

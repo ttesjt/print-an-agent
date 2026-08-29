@@ -12,6 +12,7 @@ import type {
   TrainerId,
 } from '../../foundation/identifiers.js';
 import type { JsonValue } from '../../foundation/json.js';
+import type { Timestamp } from '../../foundation/timestamp.js';
 import type { ModelState } from '../../model-assets/model-state.js';
 import {
   ModelOperationKind,
@@ -27,6 +28,8 @@ interface ModelRunSelectionBase {
   readonly capabilityId: CapabilityId;
   readonly runtimeBindingId: RuntimeBindingId;
   readonly slotEvidenceDigest: Sha256Digest;
+  readonly input: JsonValue;
+  readonly createdAt: Timestamp;
 }
 
 export interface InitializationRunSelection extends ModelRunSelectionBase {
@@ -62,15 +65,19 @@ interface ExportRunDefinition extends ModelRunIdentity, ExportRunSelection {
 
 interface StartingRunLifecycle {
   readonly status: typeof ModelRunStatus.Starting;
+  readonly dispatchedAt?: Timestamp;
 }
 
 interface RunningRunLifecycle {
   readonly status: typeof ModelRunStatus.Running;
+  readonly dispatchedAt: Timestamp;
   readonly execution: ExecutionReference;
   readonly progress?: JsonValue;
 }
 
 interface ExecutedRunLifecycle {
+  readonly dispatchedAt?: Timestamp;
+  readonly terminalRecordedAt: Timestamp;
   readonly execution?: ExecutionReference;
   readonly progress?: JsonValue;
 }
@@ -150,6 +157,19 @@ export type CancelledExportRun = ExportRunDefinition & CancelledRunLifecycle;
 export type LostExportRun = ExportRunDefinition & LostRunLifecycle;
 
 export type StartingModelRun = StartingInitializationRun | StartingTrainingRun | StartingExportRun;
+export type DispatchedStartingInitializationRun = StartingInitializationRun & {
+  readonly dispatchedAt: Timestamp;
+};
+export type DispatchedStartingTrainingRun = StartingTrainingRun & {
+  readonly dispatchedAt: Timestamp;
+};
+export type DispatchedStartingExportRun = StartingExportRun & {
+  readonly dispatchedAt: Timestamp;
+};
+export type DispatchedStartingModelRun =
+  | DispatchedStartingInitializationRun
+  | DispatchedStartingTrainingRun
+  | DispatchedStartingExportRun;
 export type RunningModelRun = RunningInitializationRun | RunningTrainingRun | RunningExportRun;
 export type ActiveInitializationRun = StartingInitializationRun | RunningInitializationRun;
 export type ActiveTrainingRun = StartingTrainingRun | RunningTrainingRun;

@@ -1,9 +1,17 @@
-import type { OutputArtifactName, OutputId, ProfileId } from '../foundation/identifiers.js';
+import {
+  parseOutputArtifactName,
+  parseOutputId,
+  parseProfileId,
+  type OutputArtifactName,
+  type OutputId,
+  type ProfileId,
+} from '../foundation/identifiers.js';
 import { InvalidWorkbenchValueError } from '../foundation/errors.js';
 import { canonicalJson, parseJsonValue } from '../foundation/json.js';
-import type { ArtifactReference } from './artifact.js';
+import { parseClosedRecord, parseLiteral } from '../foundation/record-parser.js';
+import { parseArtifactReference, type ArtifactReference } from './artifact.js';
 import { ModelAssetKind } from './constants.js';
-import type { ExportLineage } from './lineage.js';
+import { parseExportLineage, type ExportLineage } from './lineage.js';
 
 export interface NamedOutputArtifact {
   readonly name: OutputArtifactName;
@@ -42,6 +50,33 @@ export function defineModelOutput(input: Omit<ModelOutput, 'kind'>): ModelOutput
         .map((artifact) => Object.freeze(artifact))
     ),
     lineage: Object.freeze(input.lineage),
+  });
+}
+
+export function parseModelOutput(input: unknown, path = 'modelOutput'): ModelOutput {
+  const record = parseClosedRecord(input, path, [
+    'kind',
+    'outputId',
+    'profileId',
+    'artifacts',
+    'lineage',
+  ]);
+  parseLiteral(record.kind, ModelAssetKind.Output, `${path}.kind`);
+  if (!Array.isArray(record.artifacts)) {
+    throw new InvalidWorkbenchValueError(`${path}.artifacts`, 'must be an array');
+  }
+  return defineModelOutput({
+    outputId: parseOutputId(record.outputId, `${path}.outputId`),
+    profileId: parseProfileId(record.profileId, `${path}.profileId`),
+    artifacts: record.artifacts.map((value, index) => {
+      const artifactPath = `${path}.artifacts[${String(index)}]`;
+      const artifact = parseClosedRecord(value, artifactPath, ['name', 'artifact']);
+      return Object.freeze({
+        name: parseOutputArtifactName(artifact.name, `${artifactPath}.name`),
+        artifact: parseArtifactReference(artifact.artifact, `${artifactPath}.artifact`),
+      });
+    }),
+    lineage: parseExportLineage(record.lineage, `${path}.lineage`),
   });
 }
 

@@ -6,6 +6,7 @@ export {
   defineStartingTrainingRun,
   failModelRun,
   loseModelRun,
+  markModelRunDispatched,
   modelRunDefinitionsEqual,
   modelRunsEqual,
   startModelRunExecution,
@@ -14,3 +15,4 @@ export {
   succeedTrainingRun,
   updateModelRunProgress,
 } from './model-run.js';
+export { parseModelRun } from './parse-model-run.js';

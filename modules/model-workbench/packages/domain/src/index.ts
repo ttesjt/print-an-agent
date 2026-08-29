@@ -43,6 +43,8 @@ export {
   type JsonValue,
 } from './foundation/json.js';
 
+export { parseTimestamp, type Timestamp } from './foundation/timestamp.js';
+
 export { deriveEvidenceDigest } from './foundation/evidence.js';
 
 export {
@@ -56,6 +58,7 @@ export { parseExecutionFailure, type ExecutionFailure } from './operations/execu
 
 export {
   defineExecutionReference,
+  parseExecutionReference,
   type ExecutionReference,
 } from './operations/execution-reference.js';
 
@@ -65,6 +68,7 @@ export {
   defineStartingExportRun,
   failModelRun,
   loseModelRun,
+  markModelRunDispatched,
   modelRunsEqual,
   startModelRunExecution,
   succeedInitializationRun,
@@ -72,6 +76,7 @@ export {
   updateModelRunProgress,
   defineStartingTrainingRun,
   modelRunDefinitionsEqual,
+  parseModelRun,
   succeedTrainingRun,
   type ActiveInitializationRun,
   type ActiveExportRun,
@@ -82,6 +87,10 @@ export {
   type CancelledExportRun,
   type CancelledModelRun,
   type CancelledTrainingRun,
+  type DispatchedStartingExportRun,
+  type DispatchedStartingInitializationRun,
+  type DispatchedStartingModelRun,
+  type DispatchedStartingTrainingRun,
   type FailedInitializationRun,
   type FailedExportRun,
   type FailedModelRun,
@@ -123,6 +132,7 @@ export {
 export {
   defineModelBase,
   modelBasesEqual,
+  parseModelBase,
   type InitializationModelBase,
   type ModelBase,
   type TrainingModelBase,
@@ -131,12 +141,14 @@ export {
 export {
   defineModelModification,
   modelModificationsEqual,
+  parseModelModification,
   type ModelModification,
 } from './model-assets/modification.js';
 
 export {
   defineModelState,
   modelStatesEqual,
+  parseModelState,
   type ModelState,
   type ModelStateInput,
 } from './model-assets/model-state.js';
@@ -144,6 +156,7 @@ export {
 export {
   defineModelOutput,
   modelOutputsEqual,
+  parseModelOutput,
   type ModelOutput,
   type NamedOutputArtifact,
 } from './model-assets/output.js';

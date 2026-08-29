@@ -9,6 +9,8 @@ import {
   type JsonValue,
   type RunningModelRun,
   type RunningTrainingRun,
+  type StartingModelRun,
+  type StartingTrainingRun,
   type TerminalTrainingRun,
 } from '@ta-agent/workbench-domain';
 import {
@@ -18,7 +20,11 @@ import {
   type ExecutionTerminal,
   type TrainingCapabilityResult,
 } from '@ta-agent/workbench-extension';
-import { WorkbenchPersistenceError, type TrainingCommitter } from '@ta-agent/workbench-persistence';
+import {
+  WorkbenchPersistenceError,
+  type RunRepository,
+  type TrainingCommitter,
+} from '@ta-agent/workbench-persistence';
 import {
   findResolvedProfile,
   findResolvedTrainer,
@@ -31,8 +37,16 @@ import { TrainingArtifactVerificationError, TrainingCapabilityError } from './er
 import type {
   ModelWorkbenchOperationOptions,
   OperationExecutionHandler,
+  StartingRunResumeContext,
 } from '../../execution/contracts.js';
+import {
+  acceptCapabilityDispatch,
+  recordModelRunDispatch,
+  recoveryAbortPreservesStartingRun,
+} from '../../execution/dispatch-model-run.js';
 import { RunExecutionSupportMismatchError } from '../../execution/errors.js';
+import type { MaterializeModelState } from '../../model-states/materialize-model-state.js';
+import type { WorkbenchClock } from '../../ports/workbench-clock.js';
 import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';
 
 export interface TrainingExecutionHandler extends OperationExecutionHandler {
@@ -51,7 +65,10 @@ export interface TrainingExecutionHandler extends OperationExecutionHandler {
 export interface TrainingExecutionHandlerDependencies {
   readonly setup: ResolvedWorkbenchSetup;
   readonly trainingCommitter: TrainingCommitter;
+  readonly runs: RunRepository;
+  readonly materializeModelState: MaterializeModelState;
   readonly idSource: WorkbenchIdSource;
+  readonly clock: WorkbenchClock;
 }
 
 export function createTrainingExecutionHandler(
@@ -59,6 +76,10 @@ export function createTrainingExecutionHandler(
 ): TrainingExecutionHandler {
   return Object.freeze({
     operation: ModelOperationKind.Training,
+    resumeStarting: (run: StartingModelRun, context: StartingRunResumeContext) =>
+      resumeTraining(dependencies, requireStartingTrainingRun(run), context),
+    cancelStarting: (run: StartingModelRun, options?: ModelWorkbenchOperationOptions) =>
+      cancelStartingTraining(dependencies, requireStartingTrainingRun(run), options),
     resolveExecutionSupport: (run: ActiveModelRun): ExecutionSupportRuntime =>
       resolveFrozenTrainer(dependencies.setup, requireActiveTrainingRun(run)).runtime.supports
         .execution,
@@ -89,22 +110,117 @@ export function createTrainingExecutionHandler(
     },
     rejectInvalidObservation: (run: RunningModelRun, cause: unknown) =>
       rejectObservedCompletion(dependencies, requireRunningTrainingRun(run), cause),
-    rejectPreparation: async (run: ActiveTrainingRun, cause: unknown) => {
-      await recordTrainingFailure(dependencies.trainingCommitter, run, preparationFailure(cause));
-      throw cause;
-    },
-    rejectInvocation: async (run: ActiveTrainingRun, cause: unknown) => {
-      await recordTrainingFailure(dependencies.trainingCommitter, run, invocationFailure(cause));
-      if (isAbortError(cause)) throw cause;
-      throw new TrainingCapabilityError(run.runId, { cause });
-    },
-    rejectCompletion: async (run: ActiveTrainingRun, cause: unknown) => {
-      if (cause instanceof WorkbenchPersistenceError) throw cause;
-      await recordTrainingFailure(dependencies.trainingCommitter, run, completionFailure(cause));
-      if (isAbortError(cause) || cause instanceof TrainingArtifactVerificationError) throw cause;
-      throw new TrainingCapabilityError(run.runId, { cause });
-    },
+    rejectPreparation: (run: ActiveTrainingRun, cause: unknown) =>
+      rejectPreparation(dependencies, run, cause),
+    rejectInvocation: (run: ActiveTrainingRun, cause: unknown) =>
+      rejectInvocation(dependencies, run, cause),
+    rejectCompletion: (run: ActiveTrainingRun, cause: unknown) =>
+      rejectCompletion(dependencies, run, cause),
   });
+}
+
+async function resumeTraining(
+  dependencies: TrainingExecutionHandlerDependencies,
+  run: StartingTrainingRun,
+  context: StartingRunResumeContext
+) {
+  const options = context.options;
+  const trainer = resolveFrozenTrainer(dependencies.setup, run);
+  let materializedSource;
+  try {
+    materializedSource = await dependencies.materializeModelState(
+      Object.freeze({
+        runId: run.runId,
+        profileId: run.profileId,
+        operation: ModelOperationKind.Training,
+        state: run.source,
+      }),
+      options
+    );
+  } catch (cause: unknown) {
+    if (recoveryAbortPreservesStartingRun(context, cause)) throw cause;
+    return rejectPreparation(dependencies, run, cause);
+  }
+
+  const dispatched = await recordModelRunDispatch(dependencies.runs, dependencies.clock, run);
+  let capabilityDispatch;
+  try {
+    capabilityDispatch = await trainer.capability.train(
+      Object.freeze({
+        operation: ModelOperationKind.Training,
+        profileId: dispatched.profileId,
+        runId: dispatched.runId,
+        source: materializedSource,
+        input: dispatched.input,
+      }),
+      options
+    );
+  } catch (cause: unknown) {
+    if (recoveryAbortPreservesStartingRun(context, cause)) throw cause;
+    return rejectInvocation(dependencies, dispatched, cause);
+  }
+
+  try {
+    return await acceptCapabilityDispatch(
+      dependencies.runs,
+      {
+        run: dispatched,
+        dispatch: capabilityDispatch,
+        executionSupport: trainer.runtime.supports.execution,
+        complete: (terminal, completionOptions) =>
+          completeTraining(dependencies, dispatched, trainer, terminal, completionOptions),
+      },
+      options
+    );
+  } catch (cause: unknown) {
+    if (recoveryAbortPreservesStartingRun(context, cause)) throw cause;
+    return rejectCompletion(dependencies, dispatched, cause);
+  }
+}
+
+function cancelStartingTraining(
+  dependencies: TrainingExecutionHandlerDependencies,
+  run: StartingTrainingRun,
+  options?: ModelWorkbenchOperationOptions
+): Promise<TerminalTrainingRun> {
+  const trainer = resolveFrozenTrainer(dependencies.setup, run);
+  return completeTraining(
+    dependencies,
+    run,
+    trainer,
+    Object.freeze({ status: ExecutionStatus.Cancelled }),
+    options
+  );
+}
+
+async function rejectPreparation(
+  dependencies: TrainingExecutionHandlerDependencies,
+  run: ActiveTrainingRun,
+  cause: unknown
+): Promise<never> {
+  await recordTrainingFailure(dependencies, run, preparationFailure(cause));
+  throw cause;
+}
+
+async function rejectInvocation(
+  dependencies: TrainingExecutionHandlerDependencies,
+  run: ActiveTrainingRun,
+  cause: unknown
+): Promise<never> {
+  await recordTrainingFailure(dependencies, run, invocationFailure(cause));
+  if (isAbortError(cause)) throw cause;
+  throw new TrainingCapabilityError(run.runId, { cause });
+}
+
+async function rejectCompletion(
+  dependencies: TrainingExecutionHandlerDependencies,
+  run: ActiveTrainingRun,
+  cause: unknown
+): Promise<never> {
+  if (cause instanceof WorkbenchPersistenceError) throw cause;
+  await recordTrainingFailure(dependencies, run, completionFailure(cause));
+  if (isAbortError(cause) || cause instanceof TrainingArtifactVerificationError) throw cause;
+  throw new TrainingCapabilityError(run.runId, { cause });
 }
 
 function resolveFrozenTrainer(
@@ -144,11 +260,11 @@ async function rejectObservedCompletion(
 ): Promise<never> {
   if (isAbortError(cause)) throw cause;
   if (cause instanceof TrainingArtifactVerificationError) {
-    await recordTrainingFailure(dependencies.trainingCommitter, run, observedResultFailure(cause));
+    await recordTrainingFailure(dependencies, run, observedResultFailure(cause));
     throw cause;
   }
   if (!isProtocolOrCompletionError(cause)) throw cause;
-  await recordTrainingFailure(dependencies.trainingCommitter, run, observedResultFailure(cause));
+  await recordTrainingFailure(dependencies, run, observedResultFailure(cause));
   throw new TrainingCapabilityError(run.runId, { cause });
 }
 
@@ -160,6 +276,13 @@ function requireActiveTrainingRun(run: ActiveModelRun): ActiveTrainingRun {
 }
 
 function requireRunningTrainingRun(run: RunningModelRun): RunningTrainingRun {
+  if (run.operation !== ModelOperationKind.Training) {
+    throw new RunExecutionSupportMismatchError(run.runId);
+  }
+  return run;
+}
+
+function requireStartingTrainingRun(run: StartingModelRun): StartingTrainingRun {
   if (run.operation !== ModelOperationKind.Training) {
     throw new RunExecutionSupportMismatchError(run.runId);
   }

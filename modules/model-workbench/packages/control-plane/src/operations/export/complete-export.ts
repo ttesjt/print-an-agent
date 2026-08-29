@@ -27,10 +27,12 @@ import type { ResolvedExporterSlot } from '@ta-agent/workbench-setup';
 import { ExportArtifactVerificationError } from './errors.js';
 import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';
 import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';
+import { readWorkbenchClock, type WorkbenchClock } from '../../ports/workbench-clock.js';
 
 export interface CompleteExportDependencies {
   readonly exportCommitter: ExportCommitter;
   readonly idSource: WorkbenchIdSource;
+  readonly clock: WorkbenchClock;
 }
 
 export async function completeExport(
@@ -40,18 +42,19 @@ export async function completeExport(
   terminal: ExecutionTerminal<ExportCapabilityResult>,
   options?: ModelWorkbenchOperationOptions
 ): Promise<TerminalExportRun> {
+  const terminalRecordedAt = readWorkbenchClock(dependencies.clock, 'clock.terminalRecordedAt');
   if (terminal.status === ExecutionStatus.Failed) {
-    const failed = failModelRun(run, terminal.failure);
+    const failed = failModelRun(run, terminal.failure, terminalRecordedAt);
     await dependencies.exportCommitter.commit({ run: failed });
     return failed;
   }
   if (terminal.status === ExecutionStatus.Cancelled) {
-    const cancelled = cancelModelRun(run, terminal.reason);
+    const cancelled = cancelModelRun(run, terminalRecordedAt, terminal.reason);
     await dependencies.exportCommitter.commit({ run: cancelled });
     return cancelled;
   }
   if (terminal.status === ExecutionStatus.Lost) {
-    const lost = loseModelRun(run, terminal.failure);
+    const lost = loseModelRun(run, terminal.failure, terminalRecordedAt);
     await dependencies.exportCommitter.commit({ run: lost });
     return lost;
   }
@@ -68,18 +71,24 @@ export async function completeExport(
     artifacts,
     lineage: defineExportLineage(run),
   });
-  const succeeded = succeedExportRun(run, outputId, terminal.result.data);
+  const succeeded = succeedExportRun(run, outputId, terminalRecordedAt, terminal.result.data);
   await dependencies.exportCommitter.commit({ run: succeeded, output });
   return succeeded;
 }
 
 export async function recordExportFailure(
-  exportCommitter: ExportCommitter,
+  dependencies: Pick<CompleteExportDependencies, 'exportCommitter' | 'clock'>,
   run: ActiveExportRun,
   failure: ExecutionFailure
 ): Promise<void> {
   try {
-    await exportCommitter.commit({ run: failModelRun(run, failure) });
+    await dependencies.exportCommitter.commit({
+      run: failModelRun(
+        run,
+        failure,
+        readWorkbenchClock(dependencies.clock, 'clock.terminalRecordedAt')
+      ),
+    });
   } catch {
     // The persistence adapter owns reconciliation. Preserve the original execution error.
   }

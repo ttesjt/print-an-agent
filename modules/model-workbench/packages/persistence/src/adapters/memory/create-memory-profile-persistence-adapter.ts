@@ -15,7 +15,7 @@ export function createMemoryProfilePersistenceAdapter(): ProfilePersistenceAdapt
     forProfile: ({ profileId }: ProfilePersistenceScope) => {
       let persistence = persistenceByProfile.get(profileId);
       if (persistence === undefined) {
-        persistence = createMemoryPersistence();
+        persistence = createMemoryPersistence({ profileId });
         persistenceByProfile.set(profileId, persistence);
       }
       return Promise.resolve(persistence);

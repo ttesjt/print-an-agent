@@ -199,5 +199,7 @@ function parameterRepository(
   return {
     findBase: (baseId) => Promise.resolve(baseId === base.baseId ? base : undefined),
     findModification: (modificationId) => Promise.resolve(modificationById.get(modificationId)),
+    listBases: () => Promise.resolve({ records: [base], hasMore: false }),
+    listModifications: () => Promise.resolve({ records: modifications, hasMore: false }),
   };
 }

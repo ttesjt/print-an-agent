@@ -9,8 +9,10 @@ import {
   defineStartingExportRun,
   defineModelModification,
   defineModelOutput,
+  failModelRun,
   ModelOperationKind,
   ModelRunResultKind,
+  markModelRunDispatched,
   parseArtifactId,
   parseBaseId,
   parseCapabilityId,
@@ -25,6 +27,7 @@ import {
   parseRuntimeSupportId,
   parseSha256Digest,
   parseTrainerId,
+  parseTimestamp,
   succeedInitializationRun,
   succeedExportRun,
   succeedTrainingRun,
@@ -79,7 +82,9 @@ describe('createMemoryPersistence', () => {
         slotEvidenceDigest,
       },
     });
-    const succeeded = succeedInitializationRun(running, baseId, { source: 'fixture' });
+    const succeeded = succeedInitializationRun(running, baseId, TERMINAL_RECORDED_AT, {
+      source: 'fixture',
+    });
 
     await persistence.runs.create(running);
     await persistence.commits.initialization.commit({ run: succeeded, base });
@@ -117,8 +122,33 @@ describe('createMemoryPersistence', () => {
 
     await expect(
       persistence.commits.initialization.commit({
-        run: succeedInitializationRun(running, parseBaseId('base:declared')),
+        run: succeedInitializationRun(running, parseBaseId('base:declared'), TERMINAL_RECORDED_AT),
         base: differentBase,
+      })
+    ).rejects.toBeInstanceOf(RunTransitionPersistenceError);
+    await expect(persistence.runs.find(running.runId)).resolves.toEqual(running);
+  });
+
+  it('rejects a terminal commit that changes the durable operation input', async () => {
+    const persistence = createMemoryPersistence();
+    const running = runningRun();
+    const altered = Object.freeze({
+      ...running,
+      input: Object.freeze({ source: 'fixture://different' }),
+    });
+    await persistence.runs.create(running);
+
+    await expect(
+      persistence.commits.initialization.commit({
+        run: failModelRun(
+          altered,
+          Object.freeze({
+            code: 'FIXTURE_FAILURE',
+            message: 'fixture failure',
+            retryable: false,
+          }),
+          TERMINAL_RECORDED_AT
+        ),
       })
     ).rejects.toBeInstanceOf(RunTransitionPersistenceError);
     await expect(persistence.runs.find(running.runId)).resolves.toEqual(running);
@@ -146,7 +176,7 @@ describe('createMemoryPersistence', () => {
 
     await expect(
       persistence.commits.initialization.commit({
-        run: succeedInitializationRun(running, baseId),
+        run: succeedInitializationRun(running, baseId, TERMINAL_RECORDED_AT),
         base: base as unknown as InitializationModelBase,
       })
     ).rejects.toBeInstanceOf(RunTransitionPersistenceError);
@@ -174,7 +204,7 @@ describe('createMemoryPersistence', () => {
 
     await expect(
       persistence.commits.initialization.commit({
-        run: succeedInitializationRun(running, baseId),
+        run: succeedInitializationRun(running, baseId, TERMINAL_RECORDED_AT),
         base,
       })
     ).rejects.toBeInstanceOf(RunTransitionPersistenceError);
@@ -231,10 +261,14 @@ describe('createMemoryPersistence', () => {
         source: starting.source,
       },
     });
-    const succeeded = succeedTrainingRun(starting, {
-      kind: ModelRunResultKind.Modification,
-      modificationId,
-    });
+    const succeeded = succeedTrainingRun(
+      starting,
+      {
+        kind: ModelRunResultKind.Modification,
+        modificationId,
+      },
+      TERMINAL_RECORDED_AT
+    );
 
     await persistence.runs.create(starting);
     await persistence.commits.training.commit({ run: succeeded, modification });
@@ -267,10 +301,14 @@ describe('createMemoryPersistence', () => {
 
     await expect(
       persistence.commits.training.commit({
-        run: succeedTrainingRun(starting, {
-          kind: ModelRunResultKind.Modification,
-          modificationId,
-        }),
+        run: succeedTrainingRun(
+          starting,
+          {
+            kind: ModelRunResultKind.Modification,
+            modificationId,
+          },
+          TERMINAL_RECORDED_AT
+        ),
         modification,
       })
     ).rejects.toBeInstanceOf(RunTransitionPersistenceError);
@@ -301,7 +339,7 @@ describe('createMemoryPersistence', () => {
         source: starting.source,
       },
     });
-    const succeeded = succeedExportRun(starting, outputId);
+    const succeeded = succeedExportRun(starting, outputId, TERMINAL_RECORDED_AT);
 
     await persistence.runs.create(starting);
     await persistence.commits.export.commit({ run: succeeded, output });
@@ -337,7 +375,7 @@ describe('createMemoryPersistence', () => {
 
     await expect(
       persistence.commits.export.commit({
-        run: succeedExportRun(starting, outputId),
+        run: succeedExportRun(starting, outputId, TERMINAL_RECORDED_AT),
         output,
       })
     ).rejects.toBeInstanceOf(RunTransitionPersistenceError);
@@ -347,14 +385,19 @@ describe('createMemoryPersistence', () => {
 });
 
 function runningRun() {
-  return defineStartingInitializationRun({
-    runId: parseRunId('run:1'),
-    profileId: parseProfileId('research-model'),
-    initializerId: parseInitializerId('import'),
-    capabilityId: parseCapabilityId('initializer.import'),
-    runtimeBindingId: parseRuntimeBindingId('runtime.local'),
-    slotEvidenceDigest,
-  });
+  return markModelRunDispatched(
+    defineStartingInitializationRun({
+      runId: parseRunId('run:1'),
+      profileId: parseProfileId('research-model'),
+      initializerId: parseInitializerId('import'),
+      capabilityId: parseCapabilityId('initializer.import'),
+      runtimeBindingId: parseRuntimeBindingId('runtime.local'),
+      slotEvidenceDigest,
+      input: { source: 'fixture' },
+      createdAt: CREATED_AT,
+    }),
+    DISPATCHED_AT
+  );
 }
 
 function artifactReference(artifactId: string) {
@@ -369,28 +412,42 @@ function artifactReference(artifactId: string) {
 }
 
 function trainingRun() {
-  return defineStartingTrainingRun({
-    runId: parseRunId('run:training'),
-    profileId: parseProfileId('research-model'),
-    trainerId: parseTrainerId('trainer:fixture'),
-    capabilityId: parseCapabilityId('trainer.fixture'),
-    runtimeBindingId: parseRuntimeBindingId('runtime.local'),
-    slotEvidenceDigest,
-    source: defineModelState({ baseId: 'base:source' }),
-  });
+  return markModelRunDispatched(
+    defineStartingTrainingRun({
+      runId: parseRunId('run:training'),
+      profileId: parseProfileId('research-model'),
+      trainerId: parseTrainerId('trainer:fixture'),
+      capabilityId: parseCapabilityId('trainer.fixture'),
+      runtimeBindingId: parseRuntimeBindingId('runtime.local'),
+      slotEvidenceDigest,
+      source: defineModelState({ baseId: 'base:source' }),
+      input: { epochs: 1 },
+      createdAt: CREATED_AT,
+    }),
+    DISPATCHED_AT
+  );
 }
 
 function exportRun() {
-  return defineStartingExportRun({
-    runId: parseRunId('run:export'),
-    profileId: parseProfileId('research-model'),
-    exporterId: parseExporterId('exporter:fixture'),
-    capabilityId: parseCapabilityId('exporter.fixture'),
-    runtimeBindingId: parseRuntimeBindingId('runtime.local'),
-    slotEvidenceDigest,
-    source: defineModelState({
-      baseId: 'base:source',
-      modificationIds: ['modification:source'],
+  return markModelRunDispatched(
+    defineStartingExportRun({
+      runId: parseRunId('run:export'),
+      profileId: parseProfileId('research-model'),
+      exporterId: parseExporterId('exporter:fixture'),
+      capabilityId: parseCapabilityId('exporter.fixture'),
+      runtimeBindingId: parseRuntimeBindingId('runtime.local'),
+      slotEvidenceDigest,
+      source: defineModelState({
+        baseId: 'base:source',
+        modificationIds: ['modification:source'],
+      }),
+      input: { format: 'fixture' },
+      createdAt: CREATED_AT,
     }),
-  });
+    DISPATCHED_AT
+  );
 }
+
+const CREATED_AT = parseTimestamp('2026-08-24T10:00:00.000Z');
+const DISPATCHED_AT = parseTimestamp('2026-08-24T10:00:01.000Z');
+const TERMINAL_RECORDED_AT = parseTimestamp('2026-08-24T10:05:00.000Z');

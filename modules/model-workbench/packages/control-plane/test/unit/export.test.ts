@@ -453,6 +453,7 @@ function createExportFixture(input: ExportFixtureInput) {
       setup,
       persistence: createSharedProfilePersistenceAdapter(configuredPersistence),
       idSource: sequentialIdSource(),
+      clock: { now: () => '2026-08-24T10:00:00.000Z' },
     }),
   };
 }

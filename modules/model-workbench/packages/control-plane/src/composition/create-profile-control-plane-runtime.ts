@@ -30,20 +30,32 @@ export function createProfileControlPlaneRuntime(
   profile: ResolvedModelProfile,
   persistence: ProfilePersistence
 ): ProfileControlPlaneRuntime {
+  const materializeModelState = createModelStateMaterializer({
+    artifactHandoffSupports: profile.artifactHandoffSupports,
+    parameters: persistence.parameters,
+  });
   const initializationHandler = createInitializationExecutionHandler({
     setup: configuration.setup,
     initializationCommitter: persistence.commits.initialization,
+    runs: persistence.runs,
     idSource: configuration.idSource,
+    clock: configuration.clock,
   });
   const trainingHandler = createTrainingExecutionHandler({
     setup: configuration.setup,
     trainingCommitter: persistence.commits.training,
+    runs: persistence.runs,
+    materializeModelState,
     idSource: configuration.idSource,
+    clock: configuration.clock,
   });
   const exportHandler = createExportExecutionHandler({
     setup: configuration.setup,
     exportCommitter: persistence.commits.export,
+    runs: persistence.runs,
+    materializeModelState,
     idSource: configuration.idSource,
+    clock: configuration.clock,
   });
   const lifecycle = createExecutionLifecycle({
     profileId: profile.profileId,
@@ -54,11 +66,6 @@ export function createProfileControlPlaneRuntime(
       [ModelOperationKind.Export]: exportHandler,
     },
   });
-  const materializeModelState = createModelStateMaterializer({
-    artifactHandoffSupports: profile.artifactHandoffSupports,
-    parameters: persistence.parameters,
-  });
-
   return Object.freeze({
     profile,
     persistence,
@@ -66,25 +73,23 @@ export function createProfileControlPlaneRuntime(
     startInitialization: createStartInitialization({
       setup: configuration.setup,
       runs: persistence.runs,
-      lifecycle,
       handler: initializationHandler,
       idSource: configuration.idSource,
+      clock: configuration.clock,
     }),
     startTraining: createStartTraining({
       setup: configuration.setup,
       runs: persistence.runs,
-      lifecycle,
       handler: trainingHandler,
-      materializeModelState,
       idSource: configuration.idSource,
+      clock: configuration.clock,
     }),
     startExport: createStartExport({
       setup: configuration.setup,
       runs: persistence.runs,
-      lifecycle,
       handler: exportHandler,
-      materializeModelState,
       idSource: configuration.idSource,
+      clock: configuration.clock,
     }),
     invokeOutput: createInvokeOutput({
       profile,

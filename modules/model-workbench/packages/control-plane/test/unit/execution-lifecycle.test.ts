@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  cancelModelRun,
   defineExecutionReference,
   defineModelState,
   defineStartingInitializationRun,
   defineStartingTrainingRun,
   failModelRun,
+  markModelRunDispatched,
   ModelOperationKind,
   parseCapabilityId,
   parseExecutionFailure,
@@ -16,10 +18,12 @@ import {
   parseRuntimeSupportId,
   parseSha256Digest,
   parseTrainerId,
+  parseTimestamp,
   startModelRunExecution,
   type ActiveModelRun,
   type JsonValue,
   type RunningModelRun,
+  type StartingModelRun,
   type TerminalModelRun,
 } from '@ta-agent/workbench-domain';
 import {
@@ -31,8 +35,12 @@ import {
 } from '@ta-agent/workbench-extension';
 import { createMemoryPersistence, type RunRepository } from '@ta-agent/workbench-persistence';
 
-import type { OperationExecutionHandler } from '../../src/execution/contracts.js';
+import {
+  StartingRunResumeKind,
+  type OperationExecutionHandler,
+} from '../../src/execution/contracts.js';
 import { createExecutionLifecycle } from '../../src/execution/create-execution-lifecycle.js';
+import { acceptCapabilityDispatch } from '../../src/execution/dispatch-model-run.js';
 import {
   ModelRunNotFoundError,
   ModelRunOperationUnavailableError,
@@ -52,18 +60,25 @@ describe('Execution Lifecycle Engine', () => {
     await persistence.runs.create(starting);
     const support = executionSupport();
     const handler = operationHandler(support);
-    const complete = vi.fn(() => Promise.resolve(failModelRun(starting, failure)));
-    const lifecycle = createLifecycle(persistence.runs, handler);
+    const dispatched = markModelRunDispatched(starting, DISPATCHED_AT);
+    const complete = vi.fn(() =>
+      Promise.resolve(failModelRun(dispatched, failure, TERMINAL_RECORDED_AT))
+    );
 
     await expect(
-      lifecycle.acceptCapabilityDispatch({
-        run: starting,
-        dispatch: {
-          kind: CapabilityDispatchKind.Completed,
-          terminal: { status: ExecutionStatus.Failed, failure },
+      acceptCapabilityDispatch(
+        persistence.runs,
+        {
+          run: dispatched,
+          dispatch: {
+            kind: CapabilityDispatchKind.Completed,
+            terminal: { status: ExecutionStatus.Failed, failure },
+          },
+          executionSupport: support,
+          complete,
         },
-        complete,
-      })
+        undefined
+      )
     ).resolves.toMatchObject({ status: 'failed' });
 
     expect(complete).toHaveBeenCalledOnce();
@@ -75,18 +90,19 @@ describe('Execution Lifecycle Engine', () => {
     const starting = startingRun();
     await persistence.runs.create(starting);
     const handler = operationHandler(executionSupport('execution.selected'));
-    const lifecycle = createLifecycle(persistence.runs, handler);
+    const dispatched = markModelRunDispatched(starting, DISPATCHED_AT);
 
-    await lifecycle.acceptCapabilityDispatch({
-      run: starting,
+    await acceptCapabilityDispatch(persistence.runs, {
+      run: dispatched,
       dispatch: {
         kind: CapabilityDispatchKind.Accepted,
         executionReceipt: { backendJobId: 'job:1' },
       },
+      executionSupport: handler.resolveExecutionSupport(dispatched),
       complete: vi.fn(),
     });
 
-    expect(handler.resolveExecutionSupport).toHaveBeenCalledWith(starting);
+    expect(handler.resolveExecutionSupport).toHaveBeenCalledWith(dispatched);
     await expect(persistence.runs.find(starting.runId)).resolves.toMatchObject({
       status: 'running',
       execution: {
@@ -106,7 +122,7 @@ describe('Execution Lifecycle Engine', () => {
       .mockResolvedValueOnce({ status: ExecutionStatus.Failed, failure });
     const handler = operationHandler(executionSupport('execution.fixture', observe));
     const lifecycle = createLifecycle(persistence.runs, handler);
-    await accept(lifecycle, starting);
+    await accept(persistence.runs, starting, handler.resolveExecutionSupport(starting));
 
     await expect(lifecycle.runs.refresh(starting.runId)).resolves.toMatchObject({
       status: 'running',
@@ -134,7 +150,11 @@ describe('Execution Lifecycle Engine', () => {
       { rejectInvalidObservation }
     );
     const malformedLifecycle = createLifecycle(malformedPersistence.runs, malformedHandler);
-    await accept(malformedLifecycle, malformedRun);
+    await accept(
+      malformedPersistence.runs,
+      malformedRun,
+      malformedHandler.resolveExecutionSupport(malformedRun)
+    );
 
     await expect(malformedLifecycle.runs.refresh(malformedRun.runId)).rejects.toBe(rejection);
     expect(rejectInvalidObservation).toHaveBeenCalledOnce();
@@ -149,7 +169,13 @@ describe('Execution Lifecycle Engine', () => {
         executionSupport('execution.unavailable', () => Promise.reject(backendFailure))
       )
     );
-    await accept(unavailableLifecycle, unavailableRun);
+    await accept(
+      unavailablePersistence.runs,
+      unavailableRun,
+      operationHandler(
+        executionSupport('execution.unavailable', () => Promise.reject(backendFailure))
+      ).resolveExecutionSupport(unavailableRun)
+    );
 
     await expect(unavailableLifecycle.runs.refresh(unavailableRun.runId)).rejects.toMatchObject({
       name: RunObservationError.name,
@@ -198,11 +224,84 @@ describe('Execution Lifecycle Engine', () => {
     expect(() => createLifecycle(persistence.runs, mismatched)).toThrow('declares "training"');
   });
 
+  it('routes a persisted starting Run back through its operation handler', async () => {
+    const persistence = createMemoryPersistence();
+    const starting = startingRun();
+    await persistence.runs.create(starting);
+    const support = executionSupport();
+    const running = runningRun(starting, support.runtimeSupportId);
+    const resumeStarting = vi.fn(() => Promise.resolve(running));
+    const handler = operationHandler(support, { resumeStarting });
+    const lifecycle = createLifecycle(persistence.runs, handler);
+
+    await expect(lifecycle.runs.refresh(starting.runId)).resolves.toBe(running);
+    expect(resumeStarting).toHaveBeenCalledWith(starting, {
+      kind: StartingRunResumeKind.Recovery,
+    });
+  });
+
+  it('recovers a dispatched starting Run before requesting backend cancellation', async () => {
+    const persistence = createMemoryPersistence();
+    const starting = markModelRunDispatched(startingRun(), DISPATCHED_AT);
+    await persistence.runs.create(starting);
+    const cancel = vi.fn(() => Promise.resolve());
+    const support = defineExecutionSupport({
+      runtimeSupportId: 'execution.fixture',
+      observe: () => Promise.resolve({ status: ExecutionStatus.Running }),
+      cancel,
+    });
+    const running = startModelRunExecution(
+      starting,
+      defineExecutionReference({
+        runtimeSupportId: support.runtimeSupportId,
+        receipt: { backendJobId: 'job:recovered' },
+      })
+    );
+    const resumeStarting = vi.fn(() => Promise.resolve(running));
+    const lifecycle = createLifecycle(
+      persistence.runs,
+      operationHandler(support, { resumeStarting })
+    );
+
+    await expect(lifecycle.runs.cancel(starting.runId)).resolves.toBe(starting.runId);
+    expect(resumeStarting).toHaveBeenCalledWith(starting, {
+      kind: StartingRunResumeKind.Recovery,
+    });
+    expect(cancel).toHaveBeenCalledWith(
+      {
+        profileId: starting.profileId,
+        executionReceipt: { backendJobId: 'job:recovered' },
+      },
+      undefined
+    );
+  });
+
+  it('terminalizes an undispatched starting Run without starting a backend task', async () => {
+    const persistence = createMemoryPersistence();
+    const starting = startingRun();
+    await persistence.runs.create(starting);
+    const cancelled = cancelModelRun(starting, TERMINAL_RECORDED_AT);
+    const cancelStarting = vi.fn(async () => {
+      await persistence.commits.initialization.commit({ run: cancelled });
+      return cancelled;
+    });
+    const resumeStarting = vi.fn<OperationExecutionHandler['resumeStarting']>();
+    const lifecycle = createLifecycle(
+      persistence.runs,
+      operationHandler(executionSupport(), { cancelStarting, resumeStarting })
+    );
+
+    await expect(lifecycle.runs.cancel(starting.runId)).resolves.toBe(starting.runId);
+    expect(cancelStarting).toHaveBeenCalledWith(starting, undefined);
+    expect(resumeStarting).not.toHaveBeenCalled();
+    await expect(persistence.runs.find(starting.runId)).resolves.toEqual(cancelled);
+  });
+
   it('reports an operation whose execution handler is not installed', async () => {
     const persistence = createMemoryPersistence();
     const starting = startingTrainingRun();
     const running = startModelRunExecution(
-      starting,
+      markModelRunDispatched(starting, DISPATCHED_AT),
       defineExecutionReference({
         runtimeSupportId: parseRuntimeSupportId('execution.training'),
         receipt: { jobId: 'job:training' },
@@ -249,6 +348,8 @@ describe('Execution Lifecycle Engine', () => {
 });
 
 interface HandlerOverrides {
+  readonly resumeStarting?: OperationExecutionHandler['resumeStarting'];
+  readonly cancelStarting?: OperationExecutionHandler['cancelStarting'];
   readonly completeObserved?: (
     run: RunningModelRun,
     terminal: ExecutionTerminal<JsonValue>
@@ -257,11 +358,28 @@ interface HandlerOverrides {
 }
 
 function operationHandler(support: ExecutionSupportRuntime, overrides: HandlerOverrides = {}) {
+  const resumeStarting = vi.fn(
+    overrides.resumeStarting ??
+      ((run: StartingModelRun) =>
+        Promise.resolve(
+          startModelRunExecution(
+            markModelRunDispatched(run, DISPATCHED_AT),
+            defineExecutionReference({
+              runtimeSupportId: support.runtimeSupportId,
+              receipt: { backendJobId: 'job:1' },
+            })
+          )
+        ))
+  );
+  const cancelStarting = vi.fn(
+    overrides.cancelStarting ??
+      ((run: StartingModelRun) => Promise.resolve(cancelModelRun(run, TERMINAL_RECORDED_AT)))
+  );
   const resolveExecutionSupport = vi.fn((_run: ActiveModelRun) => support);
   const completeObserved = vi.fn(
     overrides.completeObserved ??
       ((run: RunningModelRun, _terminal: ExecutionTerminal<JsonValue>) =>
-        Promise.resolve(failModelRun(run, failure)))
+        Promise.resolve(failModelRun(run, failure, TERMINAL_RECORDED_AT)))
   );
   const rejectInvalidObservation = vi.fn(
     overrides.rejectInvalidObservation ??
@@ -270,6 +388,8 @@ function operationHandler(support: ExecutionSupportRuntime, overrides: HandlerOv
   );
   return {
     operation: ModelOperationKind.Initialization,
+    resumeStarting,
+    cancelStarting,
     resolveExecutionSupport,
     completeObserved,
     rejectInvalidObservation,
@@ -303,6 +423,8 @@ function startingRun(runId = 'run:fixture') {
     capabilityId: parseCapabilityId('capability:fixture'),
     runtimeBindingId: parseRuntimeBindingId('runtime:fixture'),
     slotEvidenceDigest: parseSha256Digest(`sha256:${'a'.repeat(64)}`),
+    input: { fixture: true },
+    createdAt: CREATED_AT,
   });
 }
 
@@ -315,6 +437,8 @@ function startingTrainingRun() {
     runtimeBindingId: parseRuntimeBindingId('runtime:training'),
     slotEvidenceDigest: parseSha256Digest(`sha256:${'b'.repeat(64)}`),
     source: defineModelState({ baseId: 'base:source', modificationIds: ['mod:source'] }),
+    input: { fixture: true },
+    createdAt: CREATED_AT,
   });
 }
 
@@ -323,21 +447,27 @@ function runningRun(
   runtimeSupportId: ReturnType<typeof parseRuntimeSupportId>
 ) {
   return startModelRunExecution(
-    starting,
+    markModelRunDispatched(starting, DISPATCHED_AT),
     defineExecutionReference({ runtimeSupportId, receipt: { backendJobId: 'job:1' } })
   );
 }
 
 function accept(
-  lifecycle: ReturnType<typeof createLifecycle>,
-  run: ReturnType<typeof startingRun>
+  runs: RunRepository,
+  run: ReturnType<typeof startingRun>,
+  support: ExecutionSupportRuntime
 ) {
-  return lifecycle.acceptCapabilityDispatch({
-    run,
+  return acceptCapabilityDispatch(runs, {
+    run: markModelRunDispatched(run, DISPATCHED_AT),
     dispatch: {
       kind: CapabilityDispatchKind.Accepted,
       executionReceipt: { backendJobId: 'job:1' },
     },
+    executionSupport: support,
     complete: vi.fn(),
   });
 }
+
+const CREATED_AT = parseTimestamp('2026-08-24T10:00:00.000Z');
+const DISPATCHED_AT = parseTimestamp('2026-08-24T10:00:01.000Z');
+const TERMINAL_RECORDED_AT = parseTimestamp('2026-08-24T10:05:00.000Z');

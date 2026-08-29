@@ -1,22 +1,12 @@
-import { createMemoryInitializationCommitter } from './memory-initialization-committer.js';
-import { createMemoryParameterRepository } from './memory-parameter-repository.js';
-import { createMemoryRunRepository } from './memory-run-repository.js';
-import { createMemoryTrainingCommitter } from './memory-training-committer.js';
-import { createMemoryExportCommitter } from './memory-export-committer.js';
-import { createMemoryOutputRepository } from './memory-output-repository.js';
-import { createMemoryPersistenceState } from './memory-persistence-state.js';
+import type { ProfileId } from '@ta-agent/workbench-domain';
 
-export function createMemoryPersistence() {
-  const state = createMemoryPersistenceState();
+import { createRecordBackedPersistence } from '../../record-store/create-record-backed-persistence.js';
+import { createMemoryPersistenceRecordStore } from './memory-persistence-record-store.js';
 
-  return Object.freeze({
-    runs: createMemoryRunRepository(state),
-    parameters: createMemoryParameterRepository(state),
-    outputs: createMemoryOutputRepository(state),
-    commits: Object.freeze({
-      initialization: createMemoryInitializationCommitter(state),
-      training: createMemoryTrainingCommitter(state),
-      export: createMemoryExportCommitter(state),
-    }),
-  });
+export interface MemoryPersistenceOptions {
+  readonly profileId?: ProfileId;
+}
+
+export function createMemoryPersistence(options: MemoryPersistenceOptions = {}) {
+  return createRecordBackedPersistence(createMemoryPersistenceRecordStore(), options);
 }

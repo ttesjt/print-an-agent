@@ -1,8 +1,6 @@
 import {
   defineStartingInitializationRun,
-  ModelOperationKind,
   parseInitializerId,
-  parseJsonValue,
   parseProfileId,
   parseRunId,
 } from '@ta-agent/workbench-domain';
@@ -12,27 +10,24 @@ import {
   type ResolvedWorkbenchSetup,
 } from '@ta-agent/workbench-setup';
 import type { RunRepository } from '@ta-agent/workbench-persistence';
-import type {
-  CapabilityDispatch,
-  InitializationCapabilityResult,
-} from '@ta-agent/workbench-extension';
-
 import type { StartInitializationInput, StartInitializationResult } from './contracts.js';
 import { InitializerSlotNotFoundError } from './errors.js';
 import type { InitializationExecutionHandler } from './initialization-execution-handler.js';
-import type {
-  ExecutionLifecycle,
-  ModelWorkbenchOperationOptions,
+import {
+  StartingRunResumeKind,
+  type ModelWorkbenchOperationOptions,
 } from '../../execution/contracts.js';
+import { defineStartingRunResumeContext } from '../../execution/dispatch-model-run.js';
 import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';
+import { readWorkbenchClock, type WorkbenchClock } from '../../ports/workbench-clock.js';
 import { ModelProfileNotFoundError } from '../errors.js';
 
 export interface StartInitializationDependencies {
   readonly setup: ResolvedWorkbenchSetup;
   readonly runs: RunRepository;
-  readonly lifecycle: ExecutionLifecycle;
   readonly handler: InitializationExecutionHandler;
   readonly idSource: WorkbenchIdSource;
+  readonly clock: WorkbenchClock;
 }
 
 export function createStartInitialization(dependencies: StartInitializationDependencies) {
@@ -43,13 +38,16 @@ export function createStartInitialization(dependencies: StartInitializationDepen
     assertNotAborted(options?.signal);
     const profileId = parseProfileId(input.profileId, 'initialization.profileId');
     const initializerId = parseInitializerId(input.initializerId, 'initialization.initializerId');
-    const operationInput = parseJsonValue(input.input, 'initialization.input');
     const profile = findResolvedProfile(dependencies.setup, profileId);
     if (profile === undefined) throw new ModelProfileNotFoundError(profileId);
     const initializer = findResolvedInitializer(profile, initializerId);
     if (initializer === undefined) {
       throw new InitializerSlotNotFoundError(profileId, initializerId);
     }
+    const operationInput = initializer.capability.contracts.input.parse(
+      input.input,
+      'initialization.input'
+    );
 
     const runId = parseRunId(dependencies.idSource.nextId('run'), 'generated.runId');
     const starting = defineStartingInitializationRun({
@@ -59,38 +57,15 @@ export function createStartInitialization(dependencies: StartInitializationDepen
       capabilityId: initializer.capability.capabilityId,
       runtimeBindingId: initializer.runtime.runtimeBindingId,
       slotEvidenceDigest: initializer.evidenceDigest,
+      input: operationInput,
+      createdAt: readWorkbenchClock(dependencies.clock, 'clock.createdAt'),
     });
     await dependencies.runs.create(starting);
-
-    let dispatch: CapabilityDispatch<InitializationCapabilityResult>;
-    try {
-      dispatch = await initializer.capability.initialize(
-        Object.freeze({
-          operation: ModelOperationKind.Initialization,
-          profileId,
-          runId,
-          input: operationInput,
-        }),
-        options
-      );
-    } catch (cause: unknown) {
-      return dependencies.handler.rejectInvocation(starting, cause);
-    }
-
-    try {
-      await dependencies.lifecycle.acceptCapabilityDispatch(
-        {
-          run: starting,
-          dispatch,
-          complete: (terminal, completionOptions) =>
-            dependencies.handler.complete(starting, initializer, terminal, completionOptions),
-        },
-        options
-      );
-      return Object.freeze({ runId });
-    } catch (cause: unknown) {
-      return dependencies.handler.rejectCompletion(starting, cause);
-    }
+    await dependencies.handler.resumeStarting(
+      starting,
+      defineStartingRunResumeContext(StartingRunResumeKind.InitialDispatch, options)
+    );
+    return Object.freeze({ runId });
   };
 }
 

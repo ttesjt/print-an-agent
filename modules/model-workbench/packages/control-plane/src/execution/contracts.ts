@@ -8,11 +8,7 @@ import type {
   StartingModelRun,
   TerminalModelRun,
 } from '@ta-agent/workbench-domain';
-import type {
-  CapabilityDispatch,
-  ExecutionSupportRuntime,
-  ExecutionTerminal,
-} from '@ta-agent/workbench-extension';
+import type { ExecutionSupportRuntime, ExecutionTerminal } from '@ta-agent/workbench-extension';
 
 import type { WaitForRunOptions } from '../queries/contracts.js';
 
@@ -20,9 +16,30 @@ export interface ModelWorkbenchOperationOptions {
   readonly signal?: AbortSignal;
 }
 
+export const StartingRunResumeKind = {
+  InitialDispatch: 'initial-dispatch',
+  Recovery: 'recovery',
+} as const;
+
+export type StartingRunResumeKind =
+  (typeof StartingRunResumeKind)[keyof typeof StartingRunResumeKind];
+
+export interface StartingRunResumeContext {
+  readonly kind: StartingRunResumeKind;
+  readonly options?: ModelWorkbenchOperationOptions;
+}
+
 /** Operation-specific slots consumed by the fixed execution lifecycle. */
 export interface OperationExecutionHandler {
   readonly operation: ModelOperationKind;
+  resumeStarting(
+    run: StartingModelRun,
+    context: StartingRunResumeContext
+  ): Promise<RunningModelRun | TerminalModelRun>;
+  cancelStarting(
+    run: StartingModelRun,
+    options?: ModelWorkbenchOperationOptions
+  ): Promise<TerminalModelRun>;
   resolveExecutionSupport(run: ActiveModelRun): ExecutionSupportRuntime;
   completeObserved(
     run: RunningModelRun,
@@ -36,21 +53,8 @@ export type OperationExecutionHandlers = Readonly<
   Partial<Record<ModelOperationKind, OperationExecutionHandler>>
 >;
 
-export interface AcceptCapabilityDispatchInput<TResult> {
-  readonly run: StartingModelRun;
-  readonly dispatch: CapabilityDispatch<TResult>;
-  readonly complete: (
-    terminal: ExecutionTerminal<TResult>,
-    options?: ModelWorkbenchOperationOptions
-  ) => Promise<TerminalModelRun>;
-}
-
 export interface ExecutionLifecycle {
   readonly runs: ExecutionRunControls;
-  acceptCapabilityDispatch<TResult>(
-    input: AcceptCapabilityDispatchInput<TResult>,
-    options?: ModelWorkbenchOperationOptions
-  ): Promise<ModelRun>;
 }
 
 /** Internal controls bound to one already-resolved Profile persistence scope. */

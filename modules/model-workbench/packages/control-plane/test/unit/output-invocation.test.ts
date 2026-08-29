@@ -214,6 +214,7 @@ function createInvocationFixture(input: InvocationFixtureInput) {
       ? Object.freeze({
           ...persistence,
           outputs: Object.freeze({
+            ...persistence.outputs,
             findOutput: async (outputId: Parameters<typeof persistence.outputs.findOutput>[0]) => {
               const output = await persistence.outputs.findOutput(outputId);
               return output === undefined
@@ -334,6 +335,7 @@ function createInvocationFixture(input: InvocationFixtureInput) {
       setup,
       persistence: createSharedProfilePersistenceAdapter(configuredPersistence),
       idSource: sequentialIdSource(),
+      clock: { now: () => '2026-08-24T10:00:00.000Z' },
     }),
   };
 }

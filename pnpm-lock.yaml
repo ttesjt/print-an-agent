@@ -432,6 +432,25 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
 
+  modules/model-workbench/apps/cli:
+    dependencies:
+      '@ta-agent/workbench-application':
+        specifier: workspace:*
+        version: link:../../packages/application
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
   modules/model-workbench/packages/application:
     dependencies:
       '@ta-agent/workbench-control-plane':
@@ -525,6 +544,28 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
 
+  modules/model-workbench/packages/local-runtime:
+    dependencies:
+      '@ta-agent/workbench-domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@ta-agent/workbench-extension':
+        specifier: workspace:*
+        version: link:../extension
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
   modules/model-workbench/packages/persistence:
     dependencies:
       '@ta-agent/workbench-domain':
@@ -580,6 +621,9 @@ importers:
       '@ta-agent/workbench-extension':
         specifier: workspace:*
         version: link:../../packages/extension
+      '@ta-agent/workbench-local-runtime':
+        specifier: workspace:*
+        version: link:../../packages/local-runtime
       '@ta-agent/workbench-persistence':
         specifier: workspace:*
         version: link:../../packages/persistence

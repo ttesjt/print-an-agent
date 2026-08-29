@@ -76,13 +76,19 @@ export type {
 export type { ModelWorkbenchOperationOptions } from './execution/contracts.js';
 
 export { WorkbenchGeneratedIdKind, type WorkbenchIdSource } from './ports/workbench-id-source.js';
+export type { WorkbenchClock } from './ports/workbench-clock.js';
 export type {
   ModelAssetQueries,
   BaseReferenceInput,
+  DiscoveryPageInput,
+  ListModelAssetsInput,
+  ListOutputsInput,
+  ListRunsInput,
   ModificationReferenceInput,
   OutputReferenceInput,
   OutputQueries,
   RunReferenceInput,
   RunControls,
+  RecordPage,
   WaitForRunOptions,
 } from './queries/contracts.js';

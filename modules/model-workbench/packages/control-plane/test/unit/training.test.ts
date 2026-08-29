@@ -415,6 +415,7 @@ function createTrainingFixture(input: TrainingFixtureInput) {
       setup,
       persistence: createSharedProfilePersistenceAdapter(persistence),
       idSource: sequentialIdSource(),
+      clock: { now: () => '2026-08-24T10:00:00.000Z' },
     }),
   };
 }

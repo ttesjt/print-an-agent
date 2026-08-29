@@ -9,6 +9,8 @@ import {
   type JsonValue,
   type RunningExportRun,
   type RunningModelRun,
+  type StartingExportRun,
+  type StartingModelRun,
   type TerminalExportRun,
 } from '@ta-agent/workbench-domain';
 import {
@@ -18,7 +20,11 @@ import {
   type ExecutionTerminal,
   type ExportCapabilityResult,
 } from '@ta-agent/workbench-extension';
-import { WorkbenchPersistenceError, type ExportCommitter } from '@ta-agent/workbench-persistence';
+import {
+  WorkbenchPersistenceError,
+  type ExportCommitter,
+  type RunRepository,
+} from '@ta-agent/workbench-persistence';
 import {
   findResolvedExporter,
   findResolvedProfile,
@@ -31,8 +37,16 @@ import { ExportArtifactVerificationError, ExportCapabilityError } from './errors
 import type {
   ModelWorkbenchOperationOptions,
   OperationExecutionHandler,
+  StartingRunResumeContext,
 } from '../../execution/contracts.js';
+import {
+  acceptCapabilityDispatch,
+  recordModelRunDispatch,
+  recoveryAbortPreservesStartingRun,
+} from '../../execution/dispatch-model-run.js';
 import { RunExecutionSupportMismatchError } from '../../execution/errors.js';
+import type { MaterializeModelState } from '../../model-states/materialize-model-state.js';
+import type { WorkbenchClock } from '../../ports/workbench-clock.js';
 import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';
 
 export interface ExportExecutionHandler extends OperationExecutionHandler {
@@ -51,7 +65,10 @@ export interface ExportExecutionHandler extends OperationExecutionHandler {
 export interface ExportExecutionHandlerDependencies {
   readonly setup: ResolvedWorkbenchSetup;
   readonly exportCommitter: ExportCommitter;
+  readonly runs: RunRepository;
+  readonly materializeModelState: MaterializeModelState;
   readonly idSource: WorkbenchIdSource;
+  readonly clock: WorkbenchClock;
 }
 
 export function createExportExecutionHandler(
@@ -59,6 +76,10 @@ export function createExportExecutionHandler(
 ): ExportExecutionHandler {
   return Object.freeze({
     operation: ModelOperationKind.Export,
+    resumeStarting: (run: StartingModelRun, context: StartingRunResumeContext) =>
+      resumeExport(dependencies, requireStartingExportRun(run), context),
+    cancelStarting: (run: StartingModelRun, options?: ModelWorkbenchOperationOptions) =>
+      cancelStartingExport(dependencies, requireStartingExportRun(run), options),
     resolveExecutionSupport: (run: ActiveModelRun): ExecutionSupportRuntime =>
       resolveFrozenExporter(dependencies.setup, requireActiveExportRun(run)).runtime.supports
         .execution,
@@ -89,22 +110,117 @@ export function createExportExecutionHandler(
     },
     rejectInvalidObservation: (run: RunningModelRun, cause: unknown) =>
       rejectObservedCompletion(dependencies, requireRunningExportRun(run), cause),
-    rejectPreparation: async (run: ActiveExportRun, cause: unknown) => {
-      await recordExportFailure(dependencies.exportCommitter, run, preparationFailure(cause));
-      throw cause;
-    },
-    rejectInvocation: async (run: ActiveExportRun, cause: unknown) => {
-      await recordExportFailure(dependencies.exportCommitter, run, invocationFailure(cause));
-      if (isAbortError(cause)) throw cause;
-      throw new ExportCapabilityError(run.runId, { cause });
-    },
-    rejectCompletion: async (run: ActiveExportRun, cause: unknown) => {
-      if (cause instanceof WorkbenchPersistenceError) throw cause;
-      await recordExportFailure(dependencies.exportCommitter, run, completionFailure(cause));
-      if (isAbortError(cause) || cause instanceof ExportArtifactVerificationError) throw cause;
-      throw new ExportCapabilityError(run.runId, { cause });
-    },
+    rejectPreparation: (run: ActiveExportRun, cause: unknown) =>
+      rejectPreparation(dependencies, run, cause),
+    rejectInvocation: (run: ActiveExportRun, cause: unknown) =>
+      rejectInvocation(dependencies, run, cause),
+    rejectCompletion: (run: ActiveExportRun, cause: unknown) =>
+      rejectCompletion(dependencies, run, cause),
   });
+}
+
+async function resumeExport(
+  dependencies: ExportExecutionHandlerDependencies,
+  run: StartingExportRun,
+  context: StartingRunResumeContext
+) {
+  const options = context.options;
+  const exporter = resolveFrozenExporter(dependencies.setup, run);
+  let materializedSource;
+  try {
+    materializedSource = await dependencies.materializeModelState(
+      Object.freeze({
+        runId: run.runId,
+        profileId: run.profileId,
+        operation: ModelOperationKind.Export,
+        state: run.source,
+      }),
+      options
+    );
+  } catch (cause: unknown) {
+    if (recoveryAbortPreservesStartingRun(context, cause)) throw cause;
+    return rejectPreparation(dependencies, run, cause);
+  }
+
+  const dispatched = await recordModelRunDispatch(dependencies.runs, dependencies.clock, run);
+  let capabilityDispatch;
+  try {
+    capabilityDispatch = await exporter.capability.export(
+      Object.freeze({
+        operation: ModelOperationKind.Export,
+        profileId: dispatched.profileId,
+        runId: dispatched.runId,
+        source: materializedSource,
+        input: dispatched.input,
+      }),
+      options
+    );
+  } catch (cause: unknown) {
+    if (recoveryAbortPreservesStartingRun(context, cause)) throw cause;
+    return rejectInvocation(dependencies, dispatched, cause);
+  }
+
+  try {
+    return await acceptCapabilityDispatch(
+      dependencies.runs,
+      {
+        run: dispatched,
+        dispatch: capabilityDispatch,
+        executionSupport: exporter.runtime.supports.execution,
+        complete: (terminal, completionOptions) =>
+          completeExport(dependencies, dispatched, exporter, terminal, completionOptions),
+      },
+      options
+    );
+  } catch (cause: unknown) {
+    if (recoveryAbortPreservesStartingRun(context, cause)) throw cause;
+    return rejectCompletion(dependencies, dispatched, cause);
+  }
+}
+
+function cancelStartingExport(
+  dependencies: ExportExecutionHandlerDependencies,
+  run: StartingExportRun,
+  options?: ModelWorkbenchOperationOptions
+): Promise<TerminalExportRun> {
+  const exporter = resolveFrozenExporter(dependencies.setup, run);
+  return completeExport(
+    dependencies,
+    run,
+    exporter,
+    Object.freeze({ status: ExecutionStatus.Cancelled }),
+    options
+  );
+}
+
+async function rejectPreparation(
+  dependencies: ExportExecutionHandlerDependencies,
+  run: ActiveExportRun,
+  cause: unknown
+): Promise<never> {
+  await recordExportFailure(dependencies, run, preparationFailure(cause));
+  throw cause;
+}
+
+async function rejectInvocation(
+  dependencies: ExportExecutionHandlerDependencies,
+  run: ActiveExportRun,
+  cause: unknown
+): Promise<never> {
+  await recordExportFailure(dependencies, run, invocationFailure(cause));
+  if (isAbortError(cause)) throw cause;
+  throw new ExportCapabilityError(run.runId, { cause });
+}
+
+async function rejectCompletion(
+  dependencies: ExportExecutionHandlerDependencies,
+  run: ActiveExportRun,
+  cause: unknown
+): Promise<never> {
+  if (cause instanceof WorkbenchPersistenceError) throw cause;
+  await recordExportFailure(dependencies, run, completionFailure(cause));
+  if (isAbortError(cause) || cause instanceof ExportArtifactVerificationError) throw cause;
+  throw new ExportCapabilityError(run.runId, { cause });
 }
 
 function resolveFrozenExporter(
@@ -144,11 +260,11 @@ async function rejectObservedCompletion(
 ): Promise<never> {
   if (isAbortError(cause)) throw cause;
   if (cause instanceof ExportArtifactVerificationError) {
-    await recordExportFailure(dependencies.exportCommitter, run, observedResultFailure(cause));
+    await recordExportFailure(dependencies, run, observedResultFailure(cause));
     throw cause;
   }
   if (!isProtocolOrCompletionError(cause)) throw cause;
-  await recordExportFailure(dependencies.exportCommitter, run, observedResultFailure(cause));
+  await recordExportFailure(dependencies, run, observedResultFailure(cause));
   throw new ExportCapabilityError(run.runId, { cause });
 }
 
@@ -160,6 +276,13 @@ function requireActiveExportRun(run: ActiveModelRun): ActiveExportRun {
 }
 
 function requireRunningExportRun(run: RunningModelRun): RunningExportRun {
+  if (run.operation !== ModelOperationKind.Export) {
+    throw new RunExecutionSupportMismatchError(run.runId);
+  }
+  return run;
+}
+
+function requireStartingExportRun(run: StartingModelRun): StartingExportRun {
   if (run.operation !== ModelOperationKind.Export) {
     throw new RunExecutionSupportMismatchError(run.runId);
   }

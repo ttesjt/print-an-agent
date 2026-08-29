@@ -19,6 +19,7 @@
     "@ta-agent/workbench-control-plane": "workspace:*",
     "@ta-agent/workbench-domain": "workspace:*",
     "@ta-agent/workbench-extension": "workspace:*",
+    "@ta-agent/workbench-local-runtime": "workspace:*",
     "@ta-agent/workbench-persistence": "workspace:*",
     "@ta-agent/workbench-setup": "workspace:*",
     "@types/node": "catalog:",

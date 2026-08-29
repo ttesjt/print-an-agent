@@ -5,8 +5,8 @@ remote backend is normally exposed through a thin TypeScript bridge, but the mod
 semantics below do not depend on that transport.
 
 Every fixed request envelope includes the owning `profileId`; a Capability or Runtime Support call
-never relies on a global persistence or Artifact namespace. All four capabilities currently use
-the same dispatch protocol:
+never relies on a global persistence or Artifact namespace. Initializer, Trainer, and Exporter use
+the same durable dispatch protocol:
 
 ```text
 completed -> terminal succeeded / failed / cancelled / lost
@@ -16,6 +16,24 @@ accepted  -> opaque executionReceipt
 An accepted execution is later observed through the Runtime Binding's Execution Support. Its
 terminal result has exactly the same capability-specific shape as a directly completed execution.
 The receipt is backend-owned JSON; Workbench stores it without interpreting it.
+
+Before dispatch, Workbench validates the Capability-specific input Contract and stores the resulting
+JSON value on the Run. It also records Workbench-owned `createdAt`, `dispatchedAt`, and
+`terminalRecordedAt` timestamps. These timestamps describe Control Plane observation; they are not
+backend execution times and are never supplied by the Capability.
+
+If a host stops before an accepted receipt or completed result is persisted, the Run remains
+`starting`. A later `runs.refresh()` or `runs.wait()` re-invokes the same Capability with the exact
+persisted input, frozen slot, `profileId`, and `runId`. A bridge that can detach execution must use
+`profileId + runId` as an idempotent submission identity. Re-dispatch must recover the existing
+backend execution or terminal result, never silently start another job.
+
+The `AbortSignal` supplied to `runs.refresh()` or `runs.wait()` controls only that caller-side
+recovery attempt. If it aborts while a `starting` Run is being re-dispatched, Workbench leaves the
+Run recoverable instead of recording an execution failure. Explicit `runs.cancel()` is the only
+control-plane cancellation request. It terminalizes an undispatched Run locally; for a dispatched
+Run it first uses idempotent re-dispatch to recover the execution receipt, then delegates
+cancellation to the bound Execution Support.
 
 ## Initializer
 

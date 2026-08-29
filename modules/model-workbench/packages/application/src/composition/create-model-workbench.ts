@@ -6,7 +6,7 @@ import { createMemoryProfilePersistenceAdapter } from '@ta-agent/workbench-persi
 import { resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
 
 import type { ModelWorkbenchApplicationConfiguration } from './contracts.js';
-import { createRandomWorkbenchIdSource } from './defaults.js';
+import { createRandomWorkbenchIdSource, createSystemWorkbenchClock } from './defaults.js';
 
 export function createModelWorkbench(
   configuration: ModelWorkbenchApplicationConfiguration
@@ -17,5 +17,6 @@ export function createModelWorkbench(
     setup,
     persistence: configuration.persistence ?? createMemoryProfilePersistenceAdapter(),
     idSource: configuration.idSource ?? createRandomWorkbenchIdSource(),
+    clock: configuration.clock ?? createSystemWorkbenchClock(),
   });
 }

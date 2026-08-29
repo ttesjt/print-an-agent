@@ -182,14 +182,22 @@ evidence or lineage. The adapter returns the narrow Run, parameter, Output, and 
 that Profile. The default memory adapter creates an isolated composition per Profile, while a
 custom adapter may route to separate SQLite files, schemas, databases, or remote stores.
 
-During Initialization, the Capability either returns a completed terminal result or accepts a
-detached execution and returns an opaque receipt. Workbench stores that receipt on the Run. The
-public profile-scoped `runs.refresh()` and `runs.wait()` APIs ask the bound Execution Support to
-observe it; an explicit `runs.cancel()` asks the same support to cancel it. Both completion paths enter the same
-terminal handler. A successful result reports the Artifact digest and its opaque handoff receipt.
+During Initialization, Workbench first validates and persists the Capability-specific input and
+frozen slot selection on a `starting` Run. It records dispatch, then the Capability either returns a
+completed terminal result or accepts a detached execution and returns an opaque receipt. Workbench
+stores that receipt on the Run. The public profile-scoped `runs.refresh()` and `runs.wait()` APIs ask
+the bound Execution Support to observe it; an explicit `runs.cancel()` asks the same support to
+cancel it. Both completion paths enter the same terminal handler. A successful result reports the
+Artifact digest and its opaque handoff receipt.
 Workbench then creates the Base and Artifact identities, combines them with the bound Support
 identity, and asks that Support to verify the exact `ArtifactReference`. The terminal Run, Base, and
 Artifact reference are committed together only after verification succeeds.
+
+If persistence stops between dispatch and receipt acceptance, a subsequent `refresh()` re-drives the
+`starting` Run with its original `profileId`, `runId`, validated input, and frozen slot. Durable
+Capability bridges must use `profileId + runId` as an idempotent submission identity. Workbench owns
+the Run timestamps; `terminalRecordedAt` records when Workbench observes and accepts the terminal
+state, even if the backend actually finished while Workbench was offline.
 
 Before Training, Workbench resolves every Base and ordered Modification in the selected Model
 State. For each Artifact it selects the Support named by `artifact.handoff.runtimeSupportId` within

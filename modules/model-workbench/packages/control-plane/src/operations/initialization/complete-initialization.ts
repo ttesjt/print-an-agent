@@ -24,11 +24,13 @@ import type { InitializationCommitter } from '@ta-agent/workbench-persistence';
 
 import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';
 import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';
+import { readWorkbenchClock, type WorkbenchClock } from '../../ports/workbench-clock.js';
 import { InitializationArtifactVerificationError } from './errors.js';
 
 export interface CompleteInitializationDependencies {
   readonly initializationCommitter: InitializationCommitter;
   readonly idSource: WorkbenchIdSource;
+  readonly clock: WorkbenchClock;
 }
 
 export async function completeInitialization(
@@ -38,18 +40,19 @@ export async function completeInitialization(
   terminal: ExecutionTerminal<InitializationCapabilityResult>,
   options?: ModelWorkbenchOperationOptions
 ): Promise<TerminalInitializationRun> {
+  const terminalRecordedAt = readWorkbenchClock(dependencies.clock, 'clock.terminalRecordedAt');
   if (terminal.status === ExecutionStatus.Failed) {
-    const failed = failModelRun(run, terminal.failure);
+    const failed = failModelRun(run, terminal.failure, terminalRecordedAt);
     await dependencies.initializationCommitter.commit({ run: failed });
     return failed;
   }
   if (terminal.status === ExecutionStatus.Cancelled) {
-    const cancelled = cancelModelRun(run, terminal.reason);
+    const cancelled = cancelModelRun(run, terminalRecordedAt, terminal.reason);
     await dependencies.initializationCommitter.commit({ run: cancelled });
     return cancelled;
   }
   if (terminal.status === ExecutionStatus.Lost) {
-    const lost = loseModelRun(run, terminal.failure);
+    const lost = loseModelRun(run, terminal.failure, terminalRecordedAt);
     await dependencies.initializationCommitter.commit({ run: lost });
     return lost;
   }
@@ -78,18 +81,24 @@ export async function completeInitialization(
   }
   const baseId = parseBaseId(dependencies.idSource.nextId('base'), 'generated.baseId');
   const base = defineInitializationBase(run, initializer, artifact, baseId);
-  const succeeded = succeedInitializationRun(run, baseId, result.data);
+  const succeeded = succeedInitializationRun(run, baseId, terminalRecordedAt, result.data);
   await dependencies.initializationCommitter.commit({ run: succeeded, base });
   return succeeded;
 }
 
 export async function recordInitializationFailure(
-  initializationCommitter: InitializationCommitter,
+  dependencies: Pick<CompleteInitializationDependencies, 'initializationCommitter' | 'clock'>,
   run: ActiveInitializationRun,
   failure: ExecutionFailure
 ): Promise<void> {
   try {
-    await initializationCommitter.commit({ run: failModelRun(run, failure) });
+    await dependencies.initializationCommitter.commit({
+      run: failModelRun(
+        run,
+        failure,
+        readWorkbenchClock(dependencies.clock, 'clock.terminalRecordedAt')
+      ),
+    });
   } catch {
     // The persistence adapter owns reconciliation. Preserve the original execution error.
   }

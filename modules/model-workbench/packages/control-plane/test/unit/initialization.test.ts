@@ -1,22 +1,26 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { JsonValue } from '@ta-agent/workbench-domain';
+import type { ActiveModelRun, JsonValue } from '@ta-agent/workbench-domain';
 
 import {
   CapabilityDispatchKind,
   defineArtifactHandoffSupport,
   defineExecutionSupport,
   defineInitializerCapability,
+  defineJsonSchemaContract,
   ExecutionStatus,
   JsonValueContract,
   type CancelExecution,
   type ObserveExecution,
   type TypedInitializerCapability,
   type VerifyArtifact,
+  type ExtensionValueContract,
 } from '@ta-agent/workbench-extension';
 import {
   createMemoryPersistence,
   createSharedProfilePersistenceAdapter,
+  type ProfilePersistence,
+  WorkbenchPersistenceError,
 } from '@ta-agent/workbench-persistence';
 import { resolveWorkbenchSetup, RuntimeBindingKind } from '@ta-agent/workbench-setup';
 
@@ -34,7 +38,12 @@ describe('Model Workbench initialization', () => {
     const initialize = vi.fn(() => Promise.resolve(completedSuccess({ imported: true })));
     const verifyArtifact = vi.fn<VerifyArtifact>(() => Promise.resolve());
     const nextId = vi.fn(idForKind);
-    const workbench = createWorkbench({ initialize, verifyArtifact, nextId });
+    const now = vi
+      .fn<() => string>()
+      .mockReturnValueOnce('2026-08-24T10:00:00.000Z')
+      .mockReturnValueOnce('2026-08-24T10:00:01.000Z')
+      .mockReturnValueOnce('2026-08-24T10:05:00.000Z');
+    const workbench = createWorkbench({ initialize, verifyArtifact, nextId, now });
 
     await expect(
       workbench.initialization.start({
@@ -75,6 +84,10 @@ describe('Model Workbench initialization', () => {
       )
     ).resolves.toMatchObject({
       status: 'succeeded',
+      input: { source: 'fixture://base' },
+      createdAt: '2026-08-24T10:00:00.000Z',
+      dispatchedAt: '2026-08-24T10:00:01.000Z',
+      terminalRecordedAt: '2026-08-24T10:05:00.000Z',
       result: { kind: 'base', baseId: 'base:1', data: { imported: true } },
     });
     await expect(
@@ -95,6 +108,111 @@ describe('Model Workbench initialization', () => {
         runtimeBindingId: 'runtime.local',
       },
     });
+  });
+
+  it('validates the selected Capability input Contract before creating a Run', async () => {
+    const initialize = vi.fn(() => Promise.resolve(completedSuccess()));
+    const inputContract = defineJsonSchemaContract({
+      schema: {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
+        properties: { source: { type: 'string' } },
+        required: ['source'],
+        additionalProperties: false,
+      },
+    });
+    const workbench = createWorkbench({ initialize, inputContract });
+
+    await expect(
+      workbench.initialization.start({
+        profileId: 'research-model',
+        initializerId: 'import',
+        input: { source: 42 },
+      })
+    ).rejects.toMatchObject({ code: 'WORKBENCH_VALUE_INVALID' });
+
+    expect(initialize).not.toHaveBeenCalled();
+    await expect(
+      workbench.runs.get({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toBeUndefined();
+  });
+
+  it('recovers a dispatched starting Run with the same idempotent submission identity', async () => {
+    const stored = createMemoryPersistence();
+    let rejectRunningUpdate = true;
+    const persistence: ProfilePersistence = Object.freeze({
+      ...stored,
+      runs: Object.freeze({
+        ...stored.runs,
+        updateActive: (run: ActiveModelRun) => {
+          if (run.status === 'running' && rejectRunningUpdate) {
+            rejectRunningUpdate = false;
+            return Promise.reject(
+              new WorkbenchPersistenceError(
+                'FIXTURE_PERSISTENCE_INTERRUPTED',
+                'simulated host crash before receipt persistence'
+              )
+            );
+          }
+          return stored.runs.updateActive(run);
+        },
+      }),
+    });
+    const executionReceipt = { backendJobId: 'job:stable' };
+    const submissions = new Map<string, typeof executionReceipt>();
+    let abortRecovery: (() => void) | undefined;
+    let spawned = 0;
+    const initialize: TypedInitializerCapability<JsonValue> = (request) => {
+      if (abortRecovery !== undefined) {
+        const abort = abortRecovery;
+        abortRecovery = undefined;
+        abort();
+        const error = new Error('Caller stopped waiting during recovery.');
+        error.name = 'AbortError';
+        return Promise.reject(error);
+      }
+      let receipt = submissions.get(request.runId);
+      if (receipt === undefined) {
+        receipt = executionReceipt;
+        submissions.set(request.runId, receipt);
+        spawned += 1;
+      }
+      return Promise.resolve({
+        kind: CapabilityDispatchKind.Accepted,
+        executionReceipt: receipt,
+      });
+    };
+    const first = createWorkbench({ initialize, persistence });
+
+    await expect(start(first)).rejects.toThrow('simulated host crash');
+    const interrupted = await first.runs.get({
+      profileId: 'research-model',
+      runId: 'run:1',
+    });
+    expect(interrupted?.status).toBe('starting');
+    expect(typeof interrupted?.dispatchedAt).toBe('string');
+
+    const restarted = createWorkbench({ initialize, persistence });
+    const controller = new AbortController();
+    abortRecovery = () => controller.abort('caller stopped waiting');
+    await expect(
+      restarted.runs.wait(
+        { profileId: 'research-model', runId: 'run:1' },
+        { signal: controller.signal, pollIntervalMilliseconds: 0 }
+      )
+    ).rejects.toMatchObject({ name: 'AbortError' });
+    await expect(
+      restarted.runs.get({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toMatchObject({ status: 'starting' });
+
+    await expect(
+      restarted.runs.refresh({ profileId: 'research-model', runId: 'run:1' })
+    ).resolves.toMatchObject({
+      status: 'running',
+      execution: { receipt: executionReceipt },
+    });
+    expect(spawned).toBe(1);
+    expect(submissions.size).toBe(1);
   });
 
   it('persists an accepted execution receipt and verifies the same result through observation', async () => {
@@ -361,6 +479,9 @@ interface WorkbenchFixture {
   readonly observe?: ObserveExecution;
   readonly cancel?: CancelExecution;
   readonly nextId?: (kind: WorkbenchGeneratedIdKind) => string;
+  readonly now?: () => string;
+  readonly inputContract?: ExtensionValueContract<JsonValue>;
+  readonly persistence?: ProfilePersistence;
 }
 
 function unsafeInitializer(
@@ -375,6 +496,9 @@ function createWorkbench({
   observe = vi.fn(),
   cancel = vi.fn(),
   nextId = idForKind,
+  now = () => '2026-08-24T10:00:00.000Z',
+  inputContract = JsonValueContract,
+  persistence = createMemoryPersistence(),
 }: WorkbenchFixture) {
   const setup = resolveWorkbenchSetup(
     {
@@ -406,7 +530,7 @@ function createWorkbench({
         defineInitializerCapability({
           capabilityId: 'initializer.import',
           metadata: { modelFramework: 'fixture' },
-          input: JsonValueContract,
+          input: inputContract,
           initialize,
         }),
       ],
@@ -422,8 +546,9 @@ function createWorkbench({
   );
   return createWorkbenchControlPlane({
     setup,
-    persistence: createSharedProfilePersistenceAdapter(createMemoryPersistence()),
+    persistence: createSharedProfilePersistenceAdapter(persistence),
     idSource: { nextId },
+    clock: { now },
   });
 }
 

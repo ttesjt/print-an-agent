@@ -8,6 +8,7 @@ import {
   defineModelState,
   defineStartingTrainingRun,
   defineStartingExportRun,
+  markModelRunDispatched,
   modelRunDefinitionsEqual,
   parseBaseId,
   parseCapabilityId,
@@ -18,6 +19,7 @@ import {
   parseRuntimeSupportId,
   parseSha256Digest,
   parseTrainerId,
+  parseTimestamp,
   parseExporterId,
   parseOutputId,
   startModelRunExecution,
@@ -30,7 +32,7 @@ describe('Training Model Run', () => {
   it('freezes an exact source Model State and preserves it through execution', () => {
     const starting = trainingRun();
     const running = startModelRunExecution(
-      starting,
+      markModelRunDispatched(starting, DISPATCHED_AT),
       defineExecutionReference({
         runtimeSupportId: parseRuntimeSupportId('execution.fixture'),
         receipt: { jobId: 'job:1' },
@@ -40,6 +42,7 @@ describe('Training Model Run', () => {
     const succeeded = succeedTrainingRun(
       progressed,
       { kind: ModelRunResultKind.Modification, modificationId: parseModificationId('mod:new') },
+      TERMINAL_RECORDED_AT,
       { epochs: 1 }
     );
 
@@ -65,14 +68,22 @@ describe('Training Model Run', () => {
   });
 
   it('supports either a new Base or an additive Modification result', () => {
-    const baseResult = succeedTrainingRun(trainingRun(), {
-      kind: ModelRunResultKind.Base,
-      baseId: parseBaseId('base:trained'),
-    });
-    const modificationResult = succeedTrainingRun(trainingRun(), {
-      kind: ModelRunResultKind.Modification,
-      modificationId: parseModificationId('mod:trained'),
-    });
+    const baseResult = succeedTrainingRun(
+      trainingRun(),
+      {
+        kind: ModelRunResultKind.Base,
+        baseId: parseBaseId('base:trained'),
+      },
+      TERMINAL_RECORDED_AT
+    );
+    const modificationResult = succeedTrainingRun(
+      trainingRun(),
+      {
+        kind: ModelRunResultKind.Modification,
+        modificationId: parseModificationId('mod:trained'),
+      },
+      TERMINAL_RECORDED_AT
+    );
 
     expect(baseResult.result).toEqual({ kind: ModelRunResultKind.Base, baseId: 'base:trained' });
     expect(modificationResult.result).toEqual({
@@ -110,10 +121,15 @@ describe('Export Model Run', () => {
       runtimeBindingId: parseRuntimeBindingId('runtime:fixture'),
       slotEvidenceDigest: parseSha256Digest(`sha256:${'b'.repeat(64)}`),
       source,
+      input: { format: 'gguf' },
+      createdAt: CREATED_AT,
     });
-    const succeeded = succeedExportRun(starting, parseOutputId('output:fixture'), {
-      format: 'gguf',
-    });
+    const succeeded = succeedExportRun(
+      starting,
+      parseOutputId('output:fixture'),
+      TERMINAL_RECORDED_AT,
+      { format: 'gguf' }
+    );
 
     expect(succeeded).toMatchObject({
       operation: ModelOperationKind.Export,
@@ -143,5 +159,11 @@ function trainingRun(
     runtimeBindingId: parseRuntimeBindingId('runtime:fixture'),
     slotEvidenceDigest: parseSha256Digest(`sha256:${'a'.repeat(64)}`),
     source,
+    input: { epochs: 1 },
+    createdAt: CREATED_AT,
   });
 }
+
+const CREATED_AT = parseTimestamp('2026-08-24T10:00:00.000Z');
+const DISPATCHED_AT = parseTimestamp('2026-08-24T10:00:01.000Z');
+const TERMINAL_RECORDED_AT = parseTimestamp('2026-08-24T10:05:00.000Z');

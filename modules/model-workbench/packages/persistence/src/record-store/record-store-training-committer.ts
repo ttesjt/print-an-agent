@@ -4,7 +4,6 @@ import {
   ModelRunStatus,
   modelBasesEqual,
   modelModificationsEqual,
-  modelRunDefinitionsEqual,
   modelRunsEqual,
   modelStatesEqual,
   type ActiveModelRun,
@@ -13,38 +12,55 @@ import {
   type ModelRun,
 } from '@ta-agent/workbench-domain';
 
-import { PersistenceRecordConflictError, RunTransitionPersistenceError } from '../../errors.js';
+import { PersistenceRecordConflictError, RunTransitionPersistenceError } from '../errors.js';
 import type {
   SucceededTrainingBaseCommit,
   SucceededTrainingModificationCommit,
   TrainingCommit,
   TrainingCommitter,
-} from '../../ports/training-committer.js';
-import type { MemoryPersistenceState } from './memory-persistence-state.js';
+} from '../ports/training-committer.js';
+import type { RecordBackedPersistenceOptions } from './create-record-backed-persistence.js';
+import type { PersistenceRecordStore } from './persistence-record-store.js';
+import { assertProfileScope } from './profile-scope.js';
+import { activeRunCanComplete } from './run-transition.js';
 
-export function createMemoryTrainingCommitter(state: MemoryPersistenceState): TrainingCommitter {
+export function createRecordStoreTrainingCommitter(
+  store: PersistenceRecordStore,
+  options: RecordBackedPersistenceOptions
+): TrainingCommitter {
   return Object.freeze({
     commit: (input: TrainingCommit): Promise<void> =>
-      Promise.resolve().then(() => commitTraining(state, input)),
+      Promise.resolve().then(() => {
+        assertProfileScope(options.profileId, input.run, 'run', input.run.runId);
+        if (isSucceededBaseCommit(input)) {
+          assertProfileScope(options.profileId, input.base, 'base', input.base.baseId);
+        }
+        if (isSucceededModificationCommit(input)) {
+          assertProfileScope(
+            options.profileId,
+            input.modification,
+            'modification',
+            input.modification.modificationId
+          );
+        }
+        store.transaction(() => commitTraining(store, input));
+      }),
   });
 }
 
-function commitTraining(state: MemoryPersistenceState, input: TrainingCommit): void {
+function commitTraining(store: PersistenceRecordStore, input: TrainingCommit): void {
   const runId = input.run.runId;
-  const existingRun = state.runs.get(runId);
+  const existingRun = store.runs.find(runId);
   if (existingRun === undefined) {
-    throw new RunTransitionPersistenceError(input.run.runId, 'must exist before it can complete.');
+    throw new RunTransitionPersistenceError(runId, 'must exist before it can complete.');
   }
   if (!isActive(existingRun)) {
-    if (commitAlreadyMatches(state, existingRun, input)) return;
-    throw new RunTransitionPersistenceError(
-      input.run.runId,
-      'has already reached a terminal state.'
-    );
+    if (commitAlreadyMatches(store, existingRun, input)) return;
+    throw new RunTransitionPersistenceError(runId, 'has already reached a terminal state.');
   }
-  if (!modelRunDefinitionsEqual(existingRun, input.run)) {
+  if (!activeRunCanComplete(existingRun, input.run)) {
     throw new RunTransitionPersistenceError(
-      input.run.runId,
+      runId,
       'cannot change its frozen operation selection while completing.'
     );
   }
@@ -53,15 +69,15 @@ function commitTraining(state: MemoryPersistenceState, input: TrainingCommit): v
   if (input.run.status === ModelRunStatus.Succeeded) {
     if (isSucceededBaseCommit(input)) {
       assertSucceededBaseCommit(input);
-      storeBase(state, input.base);
+      storeBase(store, input.base);
     } else if (isSucceededModificationCommit(input)) {
       assertSucceededModificationCommit(input);
-      storeModification(state, input.modification);
+      storeModification(store, input.modification);
     } else {
       invalidSucceededCommit(runId);
     }
   }
-  state.runs.set(input.run.runId, input.run);
+  store.runs.store(runId, input.run);
 }
 
 function assertSucceededBaseCommit(input: SucceededTrainingBaseCommit): void {
@@ -84,24 +100,6 @@ function assertSucceededModificationCommit(input: SucceededTrainingModificationC
   }
 }
 
-function assertCommitShape(input: TrainingCommit): void {
-  const runId = input.run.runId;
-  const hasBase = 'base' in input;
-  const hasModification = 'modification' in input;
-  if (input.run.status !== ModelRunStatus.Succeeded) {
-    if (hasBase || hasModification) invalidSucceededCommit(runId);
-    return;
-  }
-  const expectsBase = input.run.result.kind === ModelRunResultKind.Base;
-  if (
-    hasBase === hasModification ||
-    (expectsBase && !hasBase) ||
-    (!expectsBase && !hasModification)
-  ) {
-    invalidSucceededCommit(runId);
-  }
-}
-
 function lineageMatchesRun(
   lineage: SucceededTrainingBaseCommit['base']['lineage'],
   run: SucceededTrainingBaseCommit['run'] | SucceededTrainingModificationCommit['run']
@@ -117,49 +115,62 @@ function lineageMatchesRun(
   );
 }
 
+function assertCommitShape(input: TrainingCommit): void {
+  const hasBase = 'base' in input;
+  const hasModification = 'modification' in input;
+  if (input.run.status !== ModelRunStatus.Succeeded) {
+    if (hasBase || hasModification) invalidSucceededCommit(input.run.runId);
+    return;
+  }
+  const expectsBase = input.run.result.kind === ModelRunResultKind.Base;
+  if (
+    hasBase === hasModification ||
+    (expectsBase && !hasBase) ||
+    (!expectsBase && !hasModification)
+  ) {
+    invalidSucceededCommit(input.run.runId);
+  }
+}
+
+function storeBase(store: PersistenceRecordStore, base: ModelBase): void {
+  const existing = store.bases.find(base.baseId);
+  if (existing !== undefined && !modelBasesEqual(existing, base)) {
+    throw new PersistenceRecordConflictError('base', base.baseId);
+  }
+  store.bases.store(base.baseId, base);
+}
+
+function storeModification(store: PersistenceRecordStore, modification: ModelModification): void {
+  const existing = store.modifications.find(modification.modificationId);
+  if (existing !== undefined && !modelModificationsEqual(existing, modification)) {
+    throw new PersistenceRecordConflictError('modification', modification.modificationId);
+  }
+  store.modifications.store(modification.modificationId, modification);
+}
+
+function commitAlreadyMatches(
+  store: PersistenceRecordStore,
+  storedRun: ModelRun,
+  input: TrainingCommit
+): boolean {
+  const runStatus: ModelRunStatus = input.run.status;
+  if (!modelRunsEqual(storedRun, input.run)) return false;
+  if (isSucceededBaseCommit(input)) {
+    const base = store.bases.find(input.base.baseId);
+    return base !== undefined && modelBasesEqual(base, input.base);
+  }
+  if (isSucceededModificationCommit(input)) {
+    const modification = store.modifications.find(input.modification.modificationId);
+    return modification !== undefined && modelModificationsEqual(modification, input.modification);
+  }
+  return runStatus !== ModelRunStatus.Succeeded;
+}
+
 function invalidSucceededCommit(runId: string): never {
   throw new RunTransitionPersistenceError(
     runId,
     'must commit the exact parameter asset declared by the succeeded Training Run.'
   );
-}
-
-function storeBase(state: MemoryPersistenceState, base: ModelBase): void {
-  const existing = state.bases.get(base.baseId);
-  if (existing !== undefined && !modelBasesEqual(existing, base)) {
-    throw new PersistenceRecordConflictError('base', base.baseId);
-  }
-  state.bases.set(base.baseId, base);
-}
-
-function storeModification(state: MemoryPersistenceState, modification: ModelModification): void {
-  const existing = state.modifications.get(modification.modificationId);
-  if (existing !== undefined && !modelModificationsEqual(existing, modification)) {
-    throw new PersistenceRecordConflictError('modification', modification.modificationId);
-  }
-  state.modifications.set(modification.modificationId, modification);
-}
-
-function commitAlreadyMatches(
-  state: MemoryPersistenceState,
-  storedRun: ModelRun,
-  input: TrainingCommit
-): boolean {
-  if (!modelRunsEqual(storedRun, input.run)) return false;
-  if (input.run.status === ModelRunStatus.Succeeded) {
-    if (isSucceededBaseCommit(input)) {
-      const base = state.bases.get(input.base.baseId);
-      return base !== undefined && modelBasesEqual(base, input.base);
-    }
-    if (isSucceededModificationCommit(input)) {
-      const modification = state.modifications.get(input.modification.modificationId);
-      return (
-        modification !== undefined && modelModificationsEqual(modification, input.modification)
-      );
-    }
-    return false;
-  }
-  return true;
 }
 
 function isActive(run: ModelRun): run is ActiveModelRun {

@@ -52,10 +52,10 @@ because replay and external context are optional capabilities. The official comp
 replay and skips external context. A product that needs a materially different lifecycle may override
 a leaf, a composite, or the complete `runRequest` entry Step.
 
-The package provides `MemoryRequestJournalAdapter` as the development default and an opt-in
-`SqliteRequestJournalAdapter` for restart-safe local replay. Both implement the same
-`RequestJournalPort`. SQLite requires an explicit path and can coexist with Agent Base Session tables
-in one physical database without pretending the two ports share a transaction.
+The package defines the `RequestJournalPort` and replay behavior without selecting persistence.
+Official Memory and restart-safe SQLite journal implementations live in
+`@ta-agent/base-local-adapters`; physical names never enter request fingerprints or replay domain
+identity.
 
 ```ts
 const response = await agent.run({
@@ -89,9 +89,10 @@ events.
 - `workflow/` owns the generic Workflow shape, names, types, and fail-fast Step definitions.
 - `default/` owns the official assembled profile's Context, concrete Step overrides, and failure
   lifecycle.
-- `adapters/` owns concrete replaceable boundary implementations such as `MemoryOutputSink`.
-- `replay/` owns Request Journal contracts, identity/fingerprint rules, response wire validation, and
-  memory/SQLite adapter families.
+- `replay/` owns Request Journal contracts, identity/fingerprint rules, and response wire validation.
+
+Concrete local OutputSink and Request Journal implementations are intentionally owned by
+`@ta-agent/base-local-adapters`.
 
 New directories should follow independent responsibilities or expected implementation families, not
 mechanical file kinds. A growing Step implementation should split by cohesive capability group rather

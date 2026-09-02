@@ -16,9 +16,10 @@ const identity = defineAgentIdentity({
 
 `id` is the immutable key used to address config, sessions, and resources. `displayName` is
 presentation data and never storage authority. Catalog snapshots add an independent `active` or
-`disabled` lifecycle state, CAS revision, and timestamps. The package provides Memory and versioned
-SQLite adapters plus create/read/list/disable/reactivate application functions. It deliberately has
-no hard delete, ID mutation, filesystem layout, or product personality semantics.
+`disabled` lifecycle state, CAS revision, and timestamps. The package provides
+create/read/list/disable/reactivate application functions over an injected catalog port. It
+deliberately has no concrete storage choice, hard delete, ID mutation, filesystem layout, or product
+personality semantics.
 
-SQLite paths are explicit and reject symbolic links. A caller may share one SQLite file with other
-Agent Base adapters because every package owns separate namespaced schema metadata and tables.
+Official Memory and SQLite implementations live in `@ta-agent/base-local-adapters`. Consumers may
+use those local implementations or provide any catalog adapter that satisfies this package's port.

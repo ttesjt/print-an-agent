@@ -2,9 +2,9 @@ import { createProviderAgentAPI } from '@ta-agent/base-composition';
 import type { AgentIdentity } from '@ta-agent/base-identity';
 import { createStandaloneCredentialResolver } from '../credential-resolver.js';
 import type {
-  CreateStandaloneAgentOptions,
   StandaloneAgent,
   StandaloneAgentDefinition,
+  StandaloneCredentialRuntimeOptions,
 } from '../types.js';
 import type { ManagedAgentRuntimePorts } from './contracts.js';
 
@@ -12,7 +12,7 @@ export function createManagedStandaloneAgent(
   identity: AgentIdentity,
   definition: StandaloneAgentDefinition,
   ports: ManagedAgentRuntimePorts,
-  options: CreateStandaloneAgentOptions
+  options: StandaloneCredentialRuntimeOptions
 ): StandaloneAgent {
   const credentialResolver =
     definition.credential === undefined

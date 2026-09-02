@@ -210,6 +210,48 @@ describe('module architecture', () => {
     }
   });
 
+  it('keeps generic Agent Base domains independent from official local adapters', () => {
+    const packagesRoot = join(repositoryRoot, 'modules', 'agent-base', 'packages');
+    const domainPackages = ['config', 'identity', 'observability', 'request', 'session'];
+    for (const packageName of domainPackages) {
+      const packageRoot = join(packagesRoot, packageName);
+      const manifest = JSON.parse(
+        readFileSync(join(packageRoot, 'package.json'), 'utf8')
+      ) as PackageManifest;
+      expect(declaredDependencies(manifest)).not.toContain('@ta-agent/base-local-adapters');
+      expect(
+        containsTextInTypeScript(join(packageRoot, 'test'), '@ta-agent/base-local-adapters'),
+        `${manifest.name ?? packageName} tests must use local fakes instead of official adapters`
+      ).toBe(false);
+    }
+
+    for (const adapterSource of [
+      join(packagesRoot, 'config', 'src', 'adapters'),
+      join(packagesRoot, 'identity', 'src', 'catalog', 'adapters'),
+      join(packagesRoot, 'observability', 'src', 'adapters'),
+      join(packagesRoot, 'request', 'src', 'adapters'),
+      join(packagesRoot, 'request', 'src', 'replay', 'adapters'),
+      join(packagesRoot, 'session', 'src', 'adapters'),
+    ]) {
+      expect(
+        typeScriptFiles(adapterSource),
+        `${normalize(adapterSource)} must stay implementation-free`
+      ).toEqual([]);
+    }
+
+    const localManifest = JSON.parse(
+      readFileSync(join(packagesRoot, 'local-adapters', 'package.json'), 'utf8')
+    ) as PackageManifest;
+    expect(Object.keys(localManifest.dependencies ?? {}).sort()).toEqual([
+      '@ta-agent/base-config',
+      '@ta-agent/base-identity',
+      '@ta-agent/base-model',
+      '@ta-agent/base-observability',
+      '@ta-agent/base-request',
+      '@ta-agent/base-session',
+    ]);
+  });
+
   it('keeps the Agent Base CLI thin over the standalone Agent package', () => {
     const cliRoot = join(repositoryRoot, 'modules', 'agent-base', 'apps', 'cli');
     const manifest = JSON.parse(

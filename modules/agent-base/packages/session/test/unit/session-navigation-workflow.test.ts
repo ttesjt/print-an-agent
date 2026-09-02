@@ -3,16 +3,19 @@ import { describe, expect, it } from 'vitest';
 import {
   createDefaultSessionNavigationStepOverrides,
   createSessionNavigationWorkflow,
-  MemorySessionAdapter,
+  DEFAULT_SESSION_BRANCH_ID,
+  parseSessionId,
   type SessionNavigationAgentRunContext,
   type SessionNavigationResources,
+  type SessionSnapshot,
 } from '../../src/index.js';
+import { createSessionPortStub } from '../support/session-port-stub.js';
 
 describe('Session navigation Workflow contracts', () => {
   it('keeps unresolved raw leaf Steps as stable fail-fast placeholders', async () => {
     const identity = defineAgentIdentity({ id: 'navigation-workflow-agent' });
     const resources: SessionNavigationResources = Object.freeze({
-      session: new MemorySessionAdapter(),
+      session: createSessionPortStub(),
     });
     const workflow = createSessionNavigationWorkflow({
       resources,
@@ -38,8 +41,28 @@ describe('Session navigation Workflow contracts', () => {
 
   it('inspects through ordered default Steps without mutating navigation authority', async () => {
     const identity = defineAgentIdentity({ id: 'navigation-inspect-agent' });
-    const session = new MemorySessionAdapter({ clock: () => 1 });
-    await session.resolve({ agentId: identity.id, requestedSessionId: 'session' });
+    const sessionId = parseSessionId('session');
+    const snapshot: SessionSnapshot = Object.freeze({
+      agentId: identity.id,
+      sessionId,
+      navigation: Object.freeze({
+        agentId: identity.id,
+        sessionId,
+        revision: 0,
+        selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
+        branches: Object.freeze([
+          Object.freeze({ branchId: DEFAULT_SESSION_BRANCH_ID, createdAt: 1 }),
+        ]),
+      }),
+      turns: Object.freeze([]),
+    });
+    const inspectCalls: unknown[] = [];
+    const session = createSessionPortStub({
+      inspect: (reference) => {
+        inspectCalls.push(reference);
+        return Promise.resolve(snapshot);
+      },
+    });
     const resources: SessionNavigationResources = Object.freeze({ session });
     const workflow = createSessionNavigationWorkflow({
       resources,
@@ -65,8 +88,6 @@ describe('Session navigation Workflow contracts', () => {
         navigation: { revision: 0, selectedBranchId: 'main' },
       },
     });
-    await expect(
-      session.resolve({ agentId: identity.id, requestedSessionId: 'session' })
-    ).resolves.toMatchObject({ navigationRevision: 0 });
+    expect(inspectCalls).toEqual([{ agentId: identity.id, sessionId }]);
   });
 });

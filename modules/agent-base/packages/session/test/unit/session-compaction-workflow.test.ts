@@ -8,6 +8,7 @@ import {
   type ActorDirectHandler,
 } from '@ta-agent/base-actor';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
+import { defineProviderModelReference } from '@ta-agent/base-model';
 import { RUN_WORKFLOW } from '@ta-agent/base-workflow';
 import { describe, expect, it } from 'vitest';
 import {
@@ -15,12 +16,15 @@ import {
   createSessionCompactionWorkflow,
   DEFAULT_SESSION_COMPACTION_POLICY,
   DEFAULT_SESSION_BRANCH_ID,
-  MemorySessionAdapter,
+  parseSessionId,
   parseTurnId,
   type SessionCompactionAgentRunContext,
   type SessionCompactionResources,
+  type SessionSnapshot,
 } from '../../src/index.js';
-import { assistantMessage, userMessage } from '../support/session-port-contract.js';
+import { createSessionPortStub } from '../support/session-port-stub.js';
+
+const model = defineProviderModelReference({ provider: 'test', model: 'test-model' });
 
 function createTestResponsibilities(complete?: ActorDirectHandler) {
   const engine = defineActorEngine({
@@ -34,7 +38,26 @@ function createTestResponsibilities(complete?: ActorDirectHandler) {
     },
     complete:
       complete ??
-      (() => Promise.resolve(Object.freeze({ message: assistantMessage('unused', 1) }))),
+      (() =>
+        Promise.resolve(
+          Object.freeze({
+            message: Object.freeze({
+              role: 'assistant',
+              text: 'unused',
+              provider: model.provider,
+              model: model.model,
+              stopReason: 'stop',
+              usage: Object.freeze({
+                inputTokens: 1,
+                outputTokens: 1,
+                cacheReadTokens: 0,
+                cacheWriteTokens: 0,
+                totalTokens: 2,
+              }),
+              timestamp: 1,
+            }),
+          })
+        )),
   });
   return createResponsibilityRouter({
     actorCatalog: createActorCatalog({
@@ -47,11 +70,60 @@ function createTestResponsibilities(complete?: ActorDirectHandler) {
   });
 }
 
+function createTwoTurnSnapshot(agentId: SessionSnapshot['agentId']): SessionSnapshot {
+  const sessionId = parseSessionId('session');
+  const turns = ['one', 'two'].map((name, index) =>
+    Object.freeze({
+      status: 'completed' as const,
+      turnId: parseTurnId(name),
+      branchId: DEFAULT_SESSION_BRANCH_ID,
+      userMessage: Object.freeze({
+        role: 'user' as const,
+        text: `user-${name}`,
+        timestamp: index * 2 + 1,
+      }),
+      assistantMessage: Object.freeze({
+        role: 'assistant' as const,
+        text: `assistant-${name}`,
+        provider: model.provider,
+        model: model.model,
+        stopReason: 'stop' as const,
+        usage: Object.freeze({
+          inputTokens: 1,
+          outputTokens: 1,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 2,
+        }),
+        timestamp: index * 2 + 2,
+      }),
+    })
+  );
+  return Object.freeze({
+    agentId,
+    sessionId,
+    navigation: Object.freeze({
+      agentId,
+      sessionId,
+      revision: 0,
+      selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
+      branches: Object.freeze([
+        Object.freeze({
+          branchId: DEFAULT_SESSION_BRANCH_ID,
+          headTurnId: parseTurnId('two'),
+          createdAt: 0,
+        }),
+      ]),
+    }),
+    turns: Object.freeze(turns),
+  });
+}
+
 describe('Session compaction Workflow contracts', () => {
   it('keeps unresolved raw leaf Steps as stable fail-fast placeholders', async () => {
     const identity = defineAgentIdentity({ id: 'workflow-agent' });
     const resources: SessionCompactionResources = Object.freeze({
-      session: new MemorySessionAdapter(),
+      session: createSessionPortStub(),
       responsibilities: createTestResponsibilities(),
       instructions: 'Compact.',
       policy: DEFAULT_SESSION_COMPACTION_POLICY,
@@ -88,28 +160,11 @@ describe('Session compaction Workflow contracts', () => {
 
   it('returns an explicit skip when eligibility changes between Condition and Steps', async () => {
     const identity = defineAgentIdentity({ id: 'race-agent' });
-    const session = new MemorySessionAdapter();
-    let reference = await session.resolve({
-      agentId: identity.id,
-      requestedSessionId: 'session',
+    const snapshot = createTwoTurnSnapshot(identity.id);
+    const session = createSessionPortStub({
+      inspect: () => Promise.resolve(snapshot),
+      readCompaction: () => Promise.resolve(undefined),
     });
-    for (const [index, turnName] of ['one', 'two'].entries()) {
-      reference = await session.resolve({
-        agentId: identity.id,
-        requestedSessionId: 'session',
-      });
-      const turnId = parseTurnId(turnName);
-      await session.beginTurn({
-        ...reference,
-        turnId,
-        userMessage: userMessage(`user-${turnName}`, index * 2 + 1),
-      });
-      await session.completeTurn({
-        ...reference,
-        turnId,
-        assistantMessage: assistantMessage(`assistant-${turnName}`, index * 2 + 2),
-      });
-    }
     const resources: SessionCompactionResources = Object.freeze({
       session,
       responsibilities: createTestResponsibilities(() => {
@@ -147,6 +202,5 @@ describe('Session compaction Workflow contracts', () => {
       status: 'completed',
       result: { status: 'skipped', reason: 'not-needed' },
     });
-    expect(await session.readCompaction(reference)).toBeUndefined();
   });
 });

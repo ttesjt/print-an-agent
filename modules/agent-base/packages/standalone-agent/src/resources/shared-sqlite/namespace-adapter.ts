@@ -8,15 +8,19 @@ import type {
   StagedAgentResourceNamespace,
 } from '../../managed-agent/contracts.js';
 import type { SharedSqliteAgentResourceNamespace } from './types.js';
+import {
+  quoteSqliteIdentifier,
+  resolveSqliteManagedNamespaceTableNames,
+  type SqliteManagedNamespaceTableNames,
+  type SqliteManagedNamespaceTableNamingInput,
+} from './table-names.js';
 
-const SCHEMA_COMPONENT = '@ta-agent/base-standalone-agent:managed-namespace';
+const SCHEMA_COMPONENT = 'managed_namespace';
 const CURRENT_SCHEMA_VERSION = 1;
 const DEFAULT_BUSY_TIMEOUT_MILLISECONDS = 5_000;
 const MAX_BUSY_TIMEOUT_MILLISECONDS = 2_147_483_647;
-const EXPECTED_TABLE_COLUMNS = Object.freeze({
-  ta_agent_base_managed_namespace_schema: Object.freeze(['component', 'version']),
-  ta_agent_base_managed_namespaces: Object.freeze(['agent_id', 'state']),
-});
+const SCHEMA_COLUMNS = Object.freeze(['component', 'version']);
+const NAMESPACE_COLUMNS = Object.freeze(['agent_id', 'state']);
 
 type SqliteRow = Record<string, SQLOutputValue>;
 type NamespaceState = 'pending' | 'published';
@@ -24,6 +28,7 @@ type NamespaceState = 'pending' | 'published';
 interface SharedSqliteConfiguration {
   readonly databasePath: string;
   readonly busyTimeoutMilliseconds: number;
+  readonly tableNames: SqliteManagedNamespaceTableNames;
 }
 
 function storageError(message: string, cause?: unknown): AgentBaseStandaloneError {
@@ -90,11 +95,16 @@ function runTransaction<T>(database: DatabaseSync, action: () => T): T {
   }
 }
 
-function readSchemaVersion(database: DatabaseSync): number | undefined {
+function readSchemaVersion(
+  database: DatabaseSync,
+  tableNames: SqliteManagedNamespaceTableNames
+): number | undefined {
   let row: SqliteRow | undefined;
   try {
     row = database
-      .prepare('SELECT version FROM ta_agent_base_managed_namespace_schema WHERE component = ?')
+      .prepare(
+        `SELECT version FROM ${quoteSqliteIdentifier(tableNames.schema)} WHERE component = ?`
+      )
       .get(SCHEMA_COMPONENT) as SqliteRow | undefined;
   } catch (cause: unknown) {
     throw storageError('Shared SQLite namespace schema metadata is invalid.', cause);
@@ -108,11 +118,13 @@ function readSchemaVersion(database: DatabaseSync): number | undefined {
 
 function assertTableColumns(
   database: DatabaseSync,
-  tableName: keyof typeof EXPECTED_TABLE_COLUMNS
+  tableName: string,
+  expected: readonly string[]
 ): void {
-  const rows = database.prepare(`PRAGMA table_info(${tableName})`).all() as SqliteRow[];
+  const rows = database
+    .prepare(`PRAGMA table_info(${quoteSqliteIdentifier(tableName)})`)
+    .all() as SqliteRow[];
   const actual = rows.map((row) => row.name);
-  const expected = EXPECTED_TABLE_COLUMNS[tableName];
   if (
     actual.length !== expected.length ||
     actual.some((column, index) => column !== expected[index])
@@ -121,8 +133,8 @@ function assertTableColumns(
   }
 }
 
-function assertSchema(database: DatabaseSync): void {
-  const version = readSchemaVersion(database);
+function assertSchema(database: DatabaseSync, tableNames: SqliteManagedNamespaceTableNames): void {
+  const version = readSchemaVersion(database, tableNames);
   if (version === undefined) {
     throw storageError('Shared SQLite namespace schema metadata is missing.');
   }
@@ -132,33 +144,36 @@ function assertSchema(database: DatabaseSync): void {
   if (version !== CURRENT_SCHEMA_VERSION) {
     throw storageError('Shared SQLite namespace schema version has no migration path.');
   }
-  assertTableColumns(database, 'ta_agent_base_managed_namespace_schema');
-  assertTableColumns(database, 'ta_agent_base_managed_namespaces');
+  assertTableColumns(database, tableNames.schema, SCHEMA_COLUMNS);
+  assertTableColumns(database, tableNames.namespaces, NAMESPACE_COLUMNS);
 }
 
-function initializeSchema(database: DatabaseSync): void {
+function initializeSchema(
+  database: DatabaseSync,
+  tableNames: SqliteManagedNamespaceTableNames
+): void {
   database.exec(`
-    CREATE TABLE IF NOT EXISTS ta_agent_base_managed_namespace_schema (
+    CREATE TABLE IF NOT EXISTS ${quoteSqliteIdentifier(tableNames.schema)} (
       component TEXT PRIMARY KEY,
       version INTEGER NOT NULL CHECK (version >= 1)
     ) STRICT;
   `);
-  if (readSchemaVersion(database) === undefined) {
+  if (readSchemaVersion(database, tableNames) === undefined) {
     runTransaction(database, () => {
       database.exec(`
-        CREATE TABLE ta_agent_base_managed_namespaces (
+        CREATE TABLE ${quoteSqliteIdentifier(tableNames.namespaces)} (
           agent_id TEXT PRIMARY KEY,
           state TEXT NOT NULL CHECK (state IN ('pending', 'published'))
         ) STRICT;
       `);
       database
         .prepare(
-          'INSERT INTO ta_agent_base_managed_namespace_schema (component, version) VALUES (?, ?)'
+          `INSERT INTO ${quoteSqliteIdentifier(tableNames.schema)} (component, version) VALUES (?, ?)`
         )
         .run(SCHEMA_COMPONENT, CURRENT_SCHEMA_VERSION);
     });
   }
-  assertSchema(database);
+  assertSchema(database, tableNames);
 }
 
 function useDatabase<T>(
@@ -181,7 +196,7 @@ function useDatabase<T>(
       PRAGMA synchronous = FULL;
       PRAGMA busy_timeout = ${configuration.busyTimeoutMilliseconds};
     `);
-    assertSchema(database);
+    assertSchema(database, configuration.tableNames);
     database.enableDefensive(true);
     outcome = { status: 'success', value: action(database) };
   } catch (cause: unknown) {
@@ -217,9 +232,13 @@ function useDatabase<T>(
   return outcome.value;
 }
 
-function readState(database: DatabaseSync, agentId: AgentId): NamespaceState | undefined {
+function readState(
+  database: DatabaseSync,
+  agentId: AgentId,
+  tableNames: SqliteManagedNamespaceTableNames
+): NamespaceState | undefined {
   const row = database
-    .prepare('SELECT state FROM ta_agent_base_managed_namespaces WHERE agent_id = ?')
+    .prepare(`SELECT state FROM ${quoteSqliteIdentifier(tableNames.namespaces)} WHERE agent_id = ?`)
     .get(agentId) as SqliteRow | undefined;
   if (row === undefined) return undefined;
   if (row.state !== 'pending' && row.state !== 'published') {
@@ -232,11 +251,14 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
   options: Readonly<{
     databasePath: string;
     busyTimeoutMilliseconds?: number;
-  }>
+  }> &
+    SqliteManagedNamespaceTableNamingInput
 ): AgentResourceNamespaceAdapter<SharedSqliteAgentResourceNamespace> {
+  const tableNames = resolveSqliteManagedNamespaceTableNames(options);
   const configuration: SharedSqliteConfiguration = Object.freeze({
     databasePath: normalizeDatabasePath(options.databasePath),
     busyTimeoutMilliseconds: normalizeBusyTimeout(options.busyTimeoutMilliseconds),
+    tableNames,
   });
   let database: DatabaseSync | undefined;
   try {
@@ -245,7 +267,7 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
       enableForeignKeyConstraints: true,
     });
     database.exec(`PRAGMA busy_timeout = ${configuration.busyTimeoutMilliseconds};`);
-    initializeSchema(database);
+    initializeSchema(database, tableNames);
   } catch (cause: unknown) {
     if (cause instanceof AgentBaseStandaloneError) throw cause;
     throw new AgentBaseStandaloneError('Shared SQLite namespace could not be initialized.', {
@@ -262,7 +284,7 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
       const agentId = parseAgentId(agentIdInput);
       const resumed = useDatabase(configuration, 'stage Agent', (connection) =>
         runTransaction(connection, () => {
-          const state = readState(connection, agentId);
+          const state = readState(connection, agentId, tableNames);
           if (state === 'published') {
             throw new AgentBaseStandaloneError('Managed Standalone Agent already exists.', {
               code: 'STANDALONE_AGENT_ALREADY_EXISTS',
@@ -270,7 +292,9 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
           }
           if (state === 'pending') return true;
           connection
-            .prepare('INSERT INTO ta_agent_base_managed_namespaces (agent_id, state) VALUES (?, ?)')
+            .prepare(
+              `INSERT INTO ${quoteSqliteIdentifier(tableNames.namespaces)} (agent_id, state) VALUES (?, ?)`
+            )
             .run(agentId, 'pending');
           return false;
         })
@@ -280,12 +304,12 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
     publish: (staged: StagedAgentResourceNamespace<SharedSqliteAgentResourceNamespace>) => {
       useDatabase(configuration, 'publish Agent', (connection) =>
         runTransaction(connection, () => {
-          if (readState(connection, staged.agentId) !== 'pending') {
+          if (readState(connection, staged.agentId, tableNames) !== 'pending') {
             throw storageError('Shared SQLite Agent namespace is not pending publication.');
           }
           const result = connection
             .prepare(
-              'UPDATE ta_agent_base_managed_namespaces SET state = ? WHERE agent_id = ? AND state = ?'
+              `UPDATE ${quoteSqliteIdentifier(tableNames.namespaces)} SET state = ? WHERE agent_id = ? AND state = ?`
             )
             .run('published', staged.agentId, 'pending');
           if (result.changes !== 1) {
@@ -301,7 +325,7 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
       const published = useDatabase(
         configuration,
         'resolve Agent',
-        (connection) => readState(connection, agentId) === 'published'
+        (connection) => readState(connection, agentId, tableNames) === 'published'
       );
       return Promise.resolve(published ? Object.freeze({ agentId, handle }) : undefined);
     },
@@ -309,7 +333,7 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
       const namespaces = useDatabase(configuration, 'list Agents', (connection) => {
         const rows = connection
           .prepare(
-            'SELECT agent_id FROM ta_agent_base_managed_namespaces WHERE state = ? ORDER BY agent_id ASC'
+            `SELECT agent_id FROM ${quoteSqliteIdentifier(tableNames.namespaces)} WHERE state = ? ORDER BY agent_id ASC`
           )
           .all('published') as SqliteRow[];
         return rows.map((row) => {

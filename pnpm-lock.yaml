@@ -108,6 +108,9 @@ importers:
       '@ta-agent/base-identity':
         specifier: workspace:*
         version: link:../identity
+      '@ta-agent/base-local-adapters':
+        specifier: workspace:*
+        version: link:../local-adapters
       '@ta-agent/base-model':
         specifier: workspace:*
         version: link:../model
@@ -164,6 +167,49 @@ importers:
 
   modules/agent-base/packages/identity:
     devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
+  modules/agent-base/packages/local-adapters:
+    dependencies:
+      '@ta-agent/base-config':
+        specifier: workspace:*
+        version: link:../config
+      '@ta-agent/base-identity':
+        specifier: workspace:*
+        version: link:../identity
+      '@ta-agent/base-model':
+        specifier: workspace:*
+        version: link:../model
+      '@ta-agent/base-observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@ta-agent/base-request':
+        specifier: workspace:*
+        version: link:../request
+      '@ta-agent/base-session':
+        specifier: workspace:*
+        version: link:../session
+    devDependencies:
+      '@ta-agent/base-actor':
+        specifier: workspace:*
+        version: link:../actor
+      '@ta-agent/base-tool':
+        specifier: workspace:*
+        version: link:../tool
+      '@ta-agent/base-workflow':
+        specifier: workspace:*
+        version: link:../workflow
       '@types/node':
         specifier: 'catalog:'
         version: 24.12.4
@@ -324,6 +370,9 @@ importers:
       '@ta-agent/base-identity':
         specifier: workspace:*
         version: link:../identity
+      '@ta-agent/base-local-adapters':
+        specifier: workspace:*
+        version: link:../local-adapters
       '@ta-agent/base-model':
         specifier: workspace:*
         version: link:../model
@@ -398,6 +447,9 @@ importers:
       '@ta-agent/base-identity':
         specifier: workspace:*
         version: link:../../packages/identity
+      '@ta-agent/base-local-adapters':
+        specifier: workspace:*
+        version: link:../../packages/local-adapters
       '@ta-agent/base-model':
         specifier: workspace:*
         version: link:../../packages/model

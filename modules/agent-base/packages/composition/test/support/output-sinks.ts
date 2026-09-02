@@ -1,9 +1,5 @@
-import {
-  MemoryOutputSink,
-  type AgentResponse,
-  type OutputFailure,
-  type OutputTextDeltaEvent,
-} from '@ta-agent/base-request';
+import { MemoryOutputSink } from '@ta-agent/base-local-adapters';
+import type { AgentResponse, OutputFailure, OutputTextDeltaEvent } from '@ta-agent/base-request';
 
 export class CancellingOutputSink extends MemoryOutputSink {
   readonly #controller: AbortController;

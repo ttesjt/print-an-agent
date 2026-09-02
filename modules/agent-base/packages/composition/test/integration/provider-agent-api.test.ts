@@ -1,7 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { MemoryAgentTraceAdapter, MemoryOutputSink } from '@ta-agent/base-local-adapters';
 import { AgentModelError, type ProviderCredentialResolutionRequest } from '@ta-agent/base-model';
-import { MemoryAgentTraceAdapter } from '@ta-agent/base-observability';
-import { MemoryOutputSink } from '@ta-agent/base-request';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createProviderAgentAPI } from '../../src/index.js';
 

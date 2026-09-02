@@ -5,6 +5,11 @@ import type {
   AgentIdentityInput,
   AgentIdentitySnapshot,
 } from '@ta-agent/base-identity';
+import type {
+  StandaloneManagedSqliteTableNamingInput,
+  StandaloneRuntimeSqliteTableNamingInput,
+  StandaloneSharedSqliteTableNamingInput,
+} from './resources/sqlite-table-naming.js';
 
 export interface StandaloneCredentialBindingInput {
   readonly reference: string;
@@ -47,8 +52,12 @@ export interface StandaloneAgentConfig {
   readonly mainActor?: StandaloneMainActorConfig;
 }
 
-export interface CreateStandaloneAgentOptions {
+export interface StandaloneCredentialRuntimeOptions {
   readonly readEnvironmentVariable: (name: string) => string | undefined;
+}
+
+export interface CreateStandaloneAgentOptions extends StandaloneCredentialRuntimeOptions {
+  readonly sqlite?: StandaloneRuntimeSqliteTableNamingInput;
 }
 
 export type StandaloneAgent = ProviderAgentAPI;
@@ -115,14 +124,16 @@ export interface ManagedStandaloneAgentRegistry {
 
 export type StandaloneAgentDirectory = ManagedStandaloneAgentRegistry;
 
-export interface CreateStandaloneAgentDirectoryOptions extends CreateStandaloneAgentOptions {
+export interface CreateStandaloneAgentDirectoryOptions extends StandaloneCredentialRuntimeOptions {
   readonly rootDirectory: string;
   readonly clock?: () => number;
   readonly createTemporaryId?: () => string;
+  readonly sqlite?: StandaloneManagedSqliteTableNamingInput;
 }
 
-export interface CreateSharedSqliteStandaloneAgentRegistryOptions extends CreateStandaloneAgentOptions {
+export interface CreateSharedSqliteStandaloneAgentRegistryOptions extends StandaloneCredentialRuntimeOptions {
   readonly databasePath: string;
   readonly clock?: () => number;
   readonly busyTimeoutMilliseconds?: number;
+  readonly sqlite?: StandaloneSharedSqliteTableNamingInput;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
-import { MemoryAgentTraceAdapter } from '@ta-agent/base-observability';
+import type { AgentTraceEvent, AgentTraceEventSink } from '@ta-agent/base-observability';
 import type {
   AgentDefinitionError,
   AgentRunContextFactoryInput,
@@ -21,6 +21,15 @@ interface TextRunContext extends BaseAgentRunContext<string, string> {
 }
 
 type TextWorkflowContext = BaseWorkflowContext<StepName, TextRunContext, string>;
+
+class RecordingTraceSink implements AgentTraceEventSink {
+  readonly events: AgentTraceEvent[] = [];
+
+  record(event: AgentTraceEvent): Promise<void> {
+    this.events.push(event);
+    return Promise.resolve();
+  }
+}
 
 function textWorkflow(
   name: string,
@@ -224,7 +233,7 @@ describe('Agent Operations', () => {
   });
 
   it('provides only explicitly callable Operations and creates a correlated child Run', async () => {
-    const trace = new MemoryAgentTraceAdapter({ maxEvents: 32 });
+    const trace = new RecordingTraceSink();
     const signal = new AbortController().signal;
     let childContext: NumberRunContext | undefined;
     const childWorkflow = numberWorkflow('child-workflow');
@@ -300,7 +309,7 @@ describe('Agent Operations', () => {
       parentRunId: 'parent-run',
       signal,
     });
-    const started = trace.inspect().events.filter((event) => event.type === 'agent-run-started');
+    const started = trace.events.filter((event) => event.type === 'agent-run-started');
     expect(started).toEqual([
       expect.objectContaining({ agentRunId: 'parent-run', operationName: 'parent' }),
       expect.objectContaining({

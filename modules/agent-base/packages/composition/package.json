@@ -32,6 +32,7 @@
   "dependencies": {
     "@ta-agent/base-actor": "workspace:*",
     "@ta-agent/base-identity": "workspace:*",
+    "@ta-agent/base-local-adapters": "workspace:*",
     "@ta-agent/base-model": "workspace:*",
     "@ta-agent/base-observability": "workspace:*",
     "@ta-agent/base-pi": "workspace:*",

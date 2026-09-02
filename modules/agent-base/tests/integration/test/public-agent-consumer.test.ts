@@ -6,9 +6,9 @@ import {
   type ActorEngineInteractionRequest,
 } from '@ta-agent/base-actor';
 import { composeAgent, createAgentAPI } from '@ta-agent/base-composition';
+import { MemoryAgentTraceAdapter, MemoryOutputSink } from '@ta-agent/base-local-adapters';
 import { AgentModelError, defineProviderModelReference } from '@ta-agent/base-model';
-import { MemoryAgentTraceAdapter } from '@ta-agent/base-observability';
-import { MemoryOutputSink, type DefaultRequestWorkflowContext } from '@ta-agent/base-request';
+import type { DefaultRequestWorkflowContext } from '@ta-agent/base-request';
 import { createToolRegistry, defineTool } from '@ta-agent/base-tool';
 import { describe, expect, it, vi } from 'vitest';
 

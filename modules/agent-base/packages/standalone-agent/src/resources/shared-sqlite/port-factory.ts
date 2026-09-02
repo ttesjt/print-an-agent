@@ -1,17 +1,21 @@
-import { SqliteAgentConfigAdapter } from '@ta-agent/base-config';
-import { SqliteAgentIdentityCatalogAdapter } from '@ta-agent/base-identity';
-import { SqliteRequestJournalAdapter } from '@ta-agent/base-request';
-import { SqliteSessionAdapter } from '@ta-agent/base-session';
+import {
+  SqliteAgentConfigAdapter,
+  SqliteAgentIdentityCatalogAdapter,
+  SqliteRequestJournalAdapter,
+  SqliteSessionAdapter,
+} from '@ta-agent/base-local-adapters';
 import type {
   AgentResourceNamespace,
   ManagedAgentResourcePortFactory,
 } from '../../managed-agent/contracts.js';
 import type { SharedSqliteAgentResourceNamespace } from './types.js';
+import type { ResolvedStandaloneManagedSqliteTableNames } from '../sqlite-table-naming.js';
 
 export function createSharedSqliteManagedAgentPortFactory(
   options: Readonly<{
     clock?: () => number;
     busyTimeoutMilliseconds?: number;
+    tableNames: ResolvedStandaloneManagedSqliteTableNames;
   }>
 ): ManagedAgentResourcePortFactory<SharedSqliteAgentResourceNamespace> {
   return Object.freeze({
@@ -23,12 +27,14 @@ export function createSharedSqliteManagedAgentPortFactory(
           ...(options.busyTimeoutMilliseconds === undefined
             ? {}
             : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
+          tableNames: options.tableNames.identity,
         }),
         config: new SqliteAgentConfigAdapter({
           databasePath: namespace.handle.databasePath,
           ...(options.busyTimeoutMilliseconds === undefined
             ? {}
             : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
+          tableNames: options.tableNames.config,
         }),
       }),
     createRuntimePorts: (namespace: AgentResourceNamespace<SharedSqliteAgentResourceNamespace>) =>
@@ -39,6 +45,7 @@ export function createSharedSqliteManagedAgentPortFactory(
           ...(options.busyTimeoutMilliseconds === undefined
             ? {}
             : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
+          tableNames: options.tableNames.session,
         }),
         requestJournal: new SqliteRequestJournalAdapter({
           databasePath: namespace.handle.databasePath,
@@ -46,6 +53,7 @@ export function createSharedSqliteManagedAgentPortFactory(
           ...(options.busyTimeoutMilliseconds === undefined
             ? {}
             : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
+          tableNames: options.tableNames.requestJournal,
         }),
       }),
   });

@@ -1,8 +1,9 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+import { MemoryOutputSink } from '@ta-agent/base-local-adapters';
 import { AgentModelError } from '@ta-agent/base-model';
-import { MemoryOutputSink } from '@ta-agent/base-request';
 import { createStandaloneAgent } from '@ta-agent/base-standalone-agent';
 import { afterEach, describe, expect, it } from 'vitest';
 import { startLoopbackProvider, type LoopbackProvider } from './support/loopback-provider.js';
@@ -42,10 +43,26 @@ describe('public standalone provider consumer', () => {
       },
       persistence: { kind: 'sqlite' as const, databasePath: join(directory, 'agent.sqlite') },
     };
-    const firstSink = new MemoryOutputSink();
-    const firstAgent = createStandaloneAgent(config, {
+    const runtimeOptions = {
       readEnvironmentVariable: () => undefined,
-    });
+      sqlite: {
+        tableNames: {
+          session: {
+            schema: 'consumer_session_meta',
+            sessions: 'consumer_sessions',
+            turns: 'consumer_turns',
+            branches: 'consumer_branches',
+            compactions: 'consumer_compactions',
+          },
+          requestJournal: {
+            schema: 'consumer_request_meta',
+            entries: 'consumer_requests',
+          },
+        },
+      },
+    } as const;
+    const firstSink = new MemoryOutputSink();
+    const firstAgent = createStandaloneAgent(config, runtimeOptions);
     const request = {
       message: 'persist this request',
       sessionId: 'durable-session',
@@ -54,9 +71,7 @@ describe('public standalone provider consumer', () => {
 
     const first = await firstAgent.run({ ...request, outputSink: firstSink });
     const replaySink = new MemoryOutputSink();
-    const reconstructedAgent = createStandaloneAgent(config, {
-      readEnvironmentVariable: () => undefined,
-    });
+    const reconstructedAgent = createStandaloneAgent(config, runtimeOptions);
     const replay = await reconstructedAgent.run({ ...request, outputSink: replaySink });
 
     expect(first.message.text).toBe('ordinary response');
@@ -76,6 +91,22 @@ describe('public standalone provider consumer', () => {
     expect(JSON.stringify(reconstructedAgent.inspectProvider())).not.toContain(
       'persist this request'
     );
+
+    const database = new DatabaseSync(config.persistence.databasePath);
+    const tables = database
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
+      .all()
+      .map((row) => (row as { name: string }).name);
+    database.close();
+    expect(tables).toEqual([
+      'consumer_branches',
+      'consumer_compactions',
+      'consumer_request_meta',
+      'consumer_requests',
+      'consumer_session_meta',
+      'consumer_sessions',
+      'consumer_turns',
+    ]);
   });
 
   it('normalizes an ordinary provider failure and fails the OutputSink', async () => {

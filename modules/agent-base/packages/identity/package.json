@@ -1,7 +1,7 @@
 {
   "name": "@ta-agent/base-identity",
   "version": "0.1.0",
-  "description": "Stable Agent identity primitives for Agent Base.",
+  "description": "Stable Agent identity primitives and lifecycle catalog contracts for Agent Base.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

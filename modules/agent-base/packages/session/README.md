@@ -3,23 +3,18 @@
 Generic Session, append-only lineage, navigation, context-projection, and compaction ports for Agent
 Base.
 
-The package provides two adapters behind the same `SessionPort`:
-
-- `MemorySessionAdapter` is the process-local development default;
-- `SqliteSessionAdapter` is an opt-in durable local profile using Node 24's built-in SQLite runtime.
-
-The SQLite adapter requires an explicit database path and owns namespaced, versioned Agent Base
-tables. It atomically begins and terminates turns, keeps history isolated by Agent/session/branch
-identity, migrates earlier linear Session schemas onto the default branch, and can be reopened by a
-new adapter or assembled Agent instance. It does not derive storage paths, persist Pi internals, or
-automatically guess which active turns were interrupted.
+The package defines Session ports and domain behavior without selecting a concrete persistence
+implementation. Official process-local Memory and durable SQLite implementations live in
+`@ta-agent/base-local-adapters`.
 
 ```ts
 import { createDeterministicAgentAPI } from '@ta-agent/base-composition';
-import { SqliteSessionAdapter } from '@ta-agent/base-session';
+import { SqliteSessionAdapter } from '@ta-agent/base-local-adapters';
 
 const session = new SqliteSessionAdapter({
   databasePath: '/explicit/application/data/agent-session.sqlite',
+  tablePrefix: 'product_',
+  tableNames: { sessions: 'conversations' },
 });
 const agent = createDeterministicAgentAPI({
   identity: { id: 'assistant' },
@@ -28,7 +23,7 @@ const agent = createDeterministicAgentAPI({
 });
 ```
 
-Both adapters implement `NavigableCompactableSessionPort`. Every Session starts on the stable `main`
+Both official local adapters implement `NavigableCompactableSessionPort`. Every Session starts on the stable `main`
 branch. Turns record immutable branch and parent-turn authority, and successful completion alone
 advances a branch head. `resolve()` captures the selected branch plus a navigation revision;
 `beginTurn()` verifies that authority atomically, so a stale request cannot silently attach to a new

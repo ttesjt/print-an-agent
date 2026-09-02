@@ -1,13 +1,46 @@
+import { defineProviderModelReference } from '@ta-agent/base-model';
+import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
   AgentRequestError,
   createRequestFingerprint,
-  MemoryRequestJournalAdapter,
+  decodeAgentResponse,
+  encodeAgentResponse,
   parseRequestFingerprint,
   parseRequestIdempotencyKey,
+  type AgentResponse,
 } from '../../src/index.js';
-import { decodeAgentResponse, encodeAgentResponse } from '../../src/replay/response-codec.js';
-import { journalReference, journalResponse } from '../support/request-journal-contract.js';
+
+const model = defineProviderModelReference({ provider: 'faux', model: 'faux-model' });
+
+function response(requestId: string): AgentResponse {
+  return Object.freeze({
+    requestId,
+    sessionId: parseSessionId('conversation'),
+    branchId: DEFAULT_SESSION_BRANCH_ID,
+    message: Object.freeze({
+      role: 'assistant',
+      text: 'completed',
+      provider: model.provider,
+      model: model.model,
+      stopReason: 'stop',
+      usage: Object.freeze({
+        inputTokens: 1,
+        outputTokens: 1,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 2,
+      }),
+      timestamp: 2,
+    }),
+    toolRun: Object.freeze({
+      status: 'closed',
+      effectiveTools: Object.freeze([]),
+      records: Object.freeze([]),
+      totalResultCharacters: 0,
+    }),
+  });
+}
 
 function expectRequestError(action: () => unknown, code: AgentRequestError['code']): void {
   let received: unknown;
@@ -64,53 +97,8 @@ describe('Request replay domain', () => {
     }
   });
 
-  it('validates request ownership, failure views, and clocks at adapter boundaries', async () => {
-    const reference = journalReference();
-    const journal = new MemoryRequestJournalAdapter(() => -1);
-    await expect(
-      journal.claim({
-        ...reference,
-        fingerprint: createRequestFingerprint({ message: 'hello' }),
-        requestId: 'request-1',
-      })
-    ).rejects.toEqual(
-      expect.objectContaining<Partial<AgentRequestError>>({
-        code: 'REQUEST_REPLAY_CONFIGURATION_INVALID',
-      })
-    );
-
-    const validJournal = new MemoryRequestJournalAdapter(() => 1);
-    await expect(
-      validJournal.claim({
-        ...reference,
-        fingerprint: createRequestFingerprint({ message: 'hello' }),
-        requestId: 'invalid request id',
-      })
-    ).rejects.toEqual(
-      expect.objectContaining<Partial<AgentRequestError>>({
-        code: 'REQUEST_REPLAY_REQUEST_ID_INVALID',
-      })
-    );
-    await validJournal.claim({
-      ...reference,
-      fingerprint: createRequestFingerprint({ message: 'hello' }),
-      requestId: 'request-1',
-    });
-    await expect(
-      validJournal.fail({
-        ...reference,
-        requestId: 'request-1',
-        failure: { code: 'INVALID CODE', message: '' },
-      })
-    ).rejects.toEqual(
-      expect.objectContaining<Partial<AgentRequestError>>({
-        code: 'REQUEST_REPLAY_FAILURE_INVALID',
-      })
-    );
-  });
-
   it('round-trips an immutable versioned response wire value', () => {
-    const original = journalResponse('request-1');
+    const original = response('request-1');
     const decoded = decodeAgentResponse(encodeAgentResponse(original));
 
     expect(decoded).toEqual(original);
@@ -120,7 +108,7 @@ describe('Request replay domain', () => {
   });
 
   it('decodes a legacy linear response onto the default Session branch', () => {
-    const original = journalResponse('legacy-request');
+    const original = response('legacy-request');
     const legacyResponse = {
       requestId: original.requestId,
       sessionId: original.sessionId,

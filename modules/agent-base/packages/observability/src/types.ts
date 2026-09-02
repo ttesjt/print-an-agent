@@ -198,16 +198,3 @@ export interface AgentTraceRuntimeOptions {
   readonly clock?: () => number;
   readonly onSinkFailure?: AgentTraceSinkFailureReporter;
 }
-
-export interface MemoryAgentTraceAdapterOptions {
-  readonly maxEvents: number;
-}
-
-export interface AgentTraceInspectionOptions {
-  readonly agentRunId?: string;
-}
-
-export interface AgentTraceSnapshot {
-  readonly events: readonly AgentTraceEvent[];
-  readonly droppedEvents: number;
-}

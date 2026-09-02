@@ -1,11 +1,10 @@
-import { MemoryAgentConfigAdapter } from '@ta-agent/base-config';
 import {
+  MemoryAgentConfigAdapter,
   MemoryAgentIdentityCatalogAdapter,
-  parseAgentId,
-  type AgentId,
-} from '@ta-agent/base-identity';
-import { MemoryRequestJournalAdapter } from '@ta-agent/base-request';
-import { MemorySessionAdapter } from '@ta-agent/base-session';
+  MemoryRequestJournalAdapter,
+  MemorySessionAdapter,
+} from '@ta-agent/base-local-adapters';
+import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
 import { describe, expect, it } from 'vitest';
 import {
   AgentBaseStandaloneError,

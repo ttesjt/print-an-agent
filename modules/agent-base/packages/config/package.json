@@ -1,7 +1,7 @@
 {
   "name": "@ta-agent/base-config",
   "version": "0.1.0",
-  "description": "Storage-agnostic Agent configuration codecs and adapters.",
+  "description": "Storage-agnostic Agent configuration lifecycle and adapter contracts.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

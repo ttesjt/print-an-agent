@@ -12,6 +12,13 @@ belong in configuration.
 This package depends on `@ta-agent/base-composition` and official concrete adapters. It does not
 import or expose the internal Pi adapter.
 
+All three TypeScript SQLite construction paths accept an optional host-level `tablePrefix` and
+per-domain `tableNames` overrides. The profile resolves Identity, Config, Session, Request Journal,
+and managed namespace names before opening storage and rejects cross-domain collisions. This is
+deployment wiring only: the closed standalone JSON config, managed creation manifest, `agent.json`,
+CLI schema, Agent, Workflow, and Steps never contain table names. Direct adapter users can configure
+the same options without this package.
+
 `createManagedStandaloneAgentRegistry()` provides the storage-neutral managed lifecycle. It accepts a
 typed resource namespace adapter, an explicit factory for the independently shaped Identity, Config,
 Session, and Request Journal ports, and an optional manifest projection. The lifecycle contains no

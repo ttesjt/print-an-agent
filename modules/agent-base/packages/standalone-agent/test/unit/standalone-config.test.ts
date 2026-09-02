@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import {
   AgentBaseStandaloneError,
@@ -33,6 +34,17 @@ function validConfig(): Record<string, unknown> {
       invocationConfig: { temperature: 0, maxOutputTokens: 256 },
     },
   };
+}
+
+function expectStandaloneConfigInvalid(action: () => unknown): void {
+  try {
+    action();
+    throw new Error('Expected Standalone SQLite configuration to fail.');
+  } catch (error: unknown) {
+    expect(error).toBeInstanceOf(AgentBaseStandaloneError);
+    if (!(error instanceof AgentBaseStandaloneError)) return;
+    expect(error.code).toBe('STANDALONE_CONFIG_INVALID');
+  }
 }
 
 describe('standalone Agent Base configuration', () => {
@@ -88,6 +100,17 @@ describe('standalone Agent Base configuration', () => {
       { ...validConfig(), persistence: { kind: 'sqlite', databasePath: 'relative.sqlite' } },
       'absolute path',
     ],
+    [
+      {
+        ...validConfig(),
+        persistence: {
+          kind: 'sqlite',
+          databasePath: '/tmp/agent.sqlite',
+          tablePrefix: 'product_',
+        },
+      },
+      'unsupported field',
+    ],
   ])('rejects invalid standalone input without widening the schema', (input, message) => {
     try {
       defineStandaloneAgentConfig(input);
@@ -115,7 +138,16 @@ describe('standalone Agent Base configuration', () => {
             databasePath: join(directory, 'agent.sqlite'),
           },
         },
-        { readEnvironmentVariable: () => undefined }
+        {
+          readEnvironmentVariable: () => undefined,
+          sqlite: {
+            tablePrefix: 'runtime_',
+            tableNames: {
+              session: { sessions: 'conversations' },
+              requestJournal: { entries: 'request_receipts' },
+            },
+          },
+        }
       );
 
       await expect(memoryAgent.checkProviderReadiness()).resolves.toMatchObject({
@@ -126,8 +158,51 @@ describe('standalone Agent Base configuration', () => {
       });
       expect(memoryAgent.identity.id).toBe('standalone-agent');
       expect(sqliteAgent.identity.id).toBe('standalone-agent');
+
+      const database = new DatabaseSync(join(directory, 'agent.sqlite'));
+      const tables = database
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
+        .all()
+        .map((row) => (row as { name: string }).name);
+      database.close();
+      expect(tables).toEqual([
+        'conversations',
+        'request_receipts',
+        'runtime_request_journal_schema',
+        'runtime_session_branches',
+        'runtime_session_compactions',
+        'runtime_session_schema',
+        'runtime_session_turns',
+      ]);
     } finally {
       await rm(directory, { recursive: true });
     }
+  });
+
+  it('rejects SQLite naming options for Memory persistence and cross-domain collisions', () => {
+    expectStandaloneConfigInvalid(() =>
+      createStandaloneAgent(validConfig(), {
+        readEnvironmentVariable: () => undefined,
+        sqlite: { tablePrefix: 'unused_' },
+      })
+    );
+
+    expectStandaloneConfigInvalid(() =>
+      createStandaloneAgent(
+        {
+          ...validConfig(),
+          persistence: { kind: 'sqlite', databasePath: '/tmp/collision-agent.sqlite' },
+        },
+        {
+          readEnvironmentVariable: () => undefined,
+          sqlite: {
+            tableNames: {
+              session: { sessions: 'shared_records' },
+              requestJournal: { entries: 'SHARED_RECORDS' },
+            },
+          },
+        }
+      )
+    );
   });
 });

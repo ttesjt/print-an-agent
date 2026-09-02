@@ -149,7 +149,8 @@ and resource adapters. It is not a filesystem path, provider name, model ID, or 
 
 The reusable Agent holds one immutable identity value, and every Agent Run receives that exact value
 in its Context. Identity Catalog ports own active/disabled lifecycle snapshots, independent CAS
-revisions, and ordered discovery. Memory and SQLite adapters implement the same contract. Agent IDs
+revisions, and ordered discovery. Memory and SQLite adapters from
+`@ta-agent/base-local-adapters` implement the same contract. Agent IDs
 cannot change, and no hard-delete contract exists. Import, clone, migration, and product identity
 semantics remain outside this generic lifecycle.
 
@@ -176,11 +177,24 @@ compare-and-swap: `expectedRevision: null` creates an absent document, while a n
 that exact revision. Defaults are validated through the same codec as stored data, but resolving a
 default does not silently persist it. Persistence is always an explicit write.
 
-`MemoryAgentConfigAdapter` is the deterministic reference implementation.
-`SqliteAgentConfigAdapter` supplies opt-in versioned durability, defensive decoding, size limits,
-restart isolation, and CAS. Config values are validated as closed JSON trees before reaching either
-adapter. Session state still uses its own port; a composition may place both packages' independent
-tables in one SQLite database without merging their authority.
+`@ta-agent/base-local-adapters` supplies the deterministic Memory implementation and the opt-in
+SQLite implementation with versioned durability, defensive decoding, size limits, restart
+isolation, and CAS. Config values are validated as closed JSON trees before reaching either adapter.
+Session state still uses its own port; a composition may place both adapters' independent tables in
+one SQLite database without merging their authority.
+
+Generic port-owning packages do not also own the official local implementations.
+`@ta-agent/base-local-adapters` contains reusable Memory, SQLite, local OutputSink, and bounded trace
+implementations and depends on the domain packages whose ports it implements. Domain packages never
+depend back on it. Standalone-owned namespace publication and manifest projection remain in the
+Standalone package, while Pi-backed Engine implementations remain in `@ta-agent/base-pi`.
+
+SQLite physical names belong to concrete adapter construction. Each adapter independently owns its
+typed prefix/override input, identifier validation and quoting, table keys, migrations, SQL,
+lifecycle, and error mapping; no generic SQLite naming contract sits below them. Neutral defaults use
+`agent_`. Standalone TypeScript profiles may forward one host policy and validate cross-domain
+collisions, but Agent configuration, managed manifests, Workflow Context, and runtime requests never
+carry table names.
 
 ## Workflow and Workflow Context
 
@@ -407,13 +421,13 @@ They own any integration with Model Workbench.
 The current foundation contains:
 
 - `@ta-agent/base-identity`: stable identity values, active/disabled catalog lifecycle, CAS, and
-  Memory/SQLite adapters;
+  adapter contracts;
 - `@ta-agent/base-config`: generic codecs, closed JSON values, snapshots, CAS revisions, storage
-  ports, and Memory/SQLite adapters;
+  ports, and lifecycle behavior;
 - `@ta-agent/base-model`: Provider Model and credential references, an invocation-time credential
   resolver port, normalized text messages and usage, bounded Agent Loop events, execution targets,
   runtime ports, and structured failures;
-- `@ta-agent/base-session`: generic session/turn authority plus the process-local memory adapter;
+- `@ta-agent/base-session`: generic session/turn authority, navigation, and compaction behavior;
 - `@ta-agent/base-workflow`: single-owner Agent, typed Agent Operation and Run contracts, one
   heterogeneous Workflow Catalog, minimum Run Context contracts, explicit Workflow Plans, two
   run-scoped Context lifetimes, Step/override registries, Step Executor, and registry-based
@@ -422,6 +436,8 @@ The current foundation contains:
   `request Workflow -> runRequest -> prepareRequest/executeRequest` composition, stable Request Step
   names, fail-fast generic placeholders, concrete text-request Step overrides over injected ports, and
   the OutputSink lifecycle;
+- `@ta-agent/base-local-adapters`: official process-local Memory and durable SQLite implementations
+  for Identity, Config, Session, Request Journal, OutputSink, and trace ports;
 - `@ta-agent/base-pi`: the isolated low-level Pi `0.82.1` loop adapter with one shared Actor runtime,
   a deterministic faux profile, exact builtin provider/model binding, and explicit text-only
   OpenAI-compatible endpoints;

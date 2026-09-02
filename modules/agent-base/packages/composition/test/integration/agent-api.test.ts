@@ -15,26 +15,28 @@ import {
   defineProviderModelReference,
   type AssistantModelMessage,
 } from '@ta-agent/base-model';
-import { MemoryAgentTraceAdapter } from '@ta-agent/base-observability';
+import {
+  MemoryAgentTraceAdapter,
+  MemoryOutputSink,
+  MemoryRequestJournalAdapter,
+  MemorySessionAdapter,
+  SqliteRequestJournalAdapter,
+  SqliteSessionAdapter,
+} from '@ta-agent/base-local-adapters';
 import {
   AgentRequestError,
   createRequestFingerprint,
-  MemoryOutputSink,
-  MemoryRequestJournalAdapter,
   parseRequestIdempotencyKey,
   REQUEST_WORKFLOW_NAME,
   RequestReplayFailedError,
-  SqliteRequestJournalAdapter,
 } from '@ta-agent/base-request';
 import {
   AgentSessionError,
   DEFAULT_SESSION_BRANCH_ID,
-  MemorySessionAdapter,
   parseSessionBranchId,
   parseSessionId,
   SESSION_COMPACTION_WORKFLOW_NAME,
   SESSION_NAVIGATION_WORKFLOW_NAME,
-  SqliteSessionAdapter,
 } from '@ta-agent/base-session';
 import {
   AgentToolError,

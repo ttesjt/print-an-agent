@@ -33,6 +33,7 @@
     "@ta-agent/base-composition": "workspace:*",
     "@ta-agent/base-config": "workspace:*",
     "@ta-agent/base-identity": "workspace:*",
+    "@ta-agent/base-local-adapters": "workspace:*",
     "@ta-agent/base-model": "workspace:*",
     "@ta-agent/base-request": "workspace:*",
     "@ta-agent/base-session": "workspace:*"

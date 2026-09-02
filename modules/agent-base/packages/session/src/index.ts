@@ -11,10 +11,6 @@ export {
   parseSessionId,
   parseTurnId,
 } from './identifiers.js';
-export { MemorySessionAdapter } from './adapters/memory/memory-session-adapter.js';
-export type { MemorySessionAdapterOptions } from './adapters/memory/memory-session-adapter.js';
-export { SqliteSessionAdapter } from './adapters/sqlite/sqlite-session-adapter.js';
-export type { SqliteSessionAdapterOptions } from './adapters/sqlite/sqlite-session-adapter.js';
 export type * from './types.js';
 export type * from './navigation/contracts.js';
 export {

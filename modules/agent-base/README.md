@@ -17,7 +17,9 @@ registered reason such as foreground interaction or Session compaction.
 
 The module is intentionally split between:
 
-- utility and adapter packages, which are libraries and never services;
+- domain/utility packages, which own contracts and behavior without selecting local persistence;
+- `@ta-agent/base-local-adapters`, which owns the official reusable in-process and SQLite
+  implementations of those ports;
 - `@ta-agent/base-composition`, which returns the canonical composed Agent and optionally projects an
   `AgentAPI` convenience layer;
 - `@ta-agent/base-standalone-agent`, which selects the current concrete reference-application
@@ -32,24 +34,22 @@ Read [the Agent Base design](./docs/design.md) before adding packages.
 
 Current foundation packages:
 
-- `@ta-agent/base-identity`: stable Agent identity values, lifecycle catalogs, and Memory/SQLite
-  adapters;
-- `@ta-agent/base-config`: storage-agnostic typed configuration lifecycle with Memory/SQLite
-  adapters;
+- `@ta-agent/base-identity`: stable Agent identity values and lifecycle catalog contracts;
+- `@ta-agent/base-config`: storage-agnostic typed configuration lifecycle and adapter contracts;
 - `@ta-agent/base-actor`: immutable Actor/Engine contracts, technical capabilities, catalogs, and
   Responsibility routing;
 - `@ta-agent/base-model`: provider-independent model, message, streaming, and loop contracts;
-- `@ta-agent/base-observability`: privacy-safe correlated trace contracts, no-op sink, and bounded
-  Memory adapter;
+- `@ta-agent/base-observability`: privacy-safe correlated trace contracts and no-op sink;
 - `@ta-agent/base-session`: generic Session, append-only navigation, and branch-scoped compaction
-  ports, replaceable Workflows/Steps, the process-local memory adapter, and an opt-in versioned
-  SQLite durable adapter;
+  ports plus replaceable Workflows/Steps;
 - `@ta-agent/base-tool`: provider-independent schemas, registries, permission policy, and bounded
   run-scoped Tool Broker;
 - `@ta-agent/base-workflow`: single-owner Agent, typed Operation/Run, Workflow Catalog, minimum
   Context, Step, and lifecycle runtime;
 - `@ta-agent/base-request`: canonical foreground Request Workflow, OutputSink, Request Journal, and
   concrete request Steps over injected ports;
+- `@ta-agent/base-local-adapters`: official Memory, SQLite, local OutputSink, and bounded trace
+  implementations for generic Agent Base ports;
 - `@ta-agent/base-pi`: the isolated Pi `0.82.1` adapter with deterministic faux, builtin, and
   explicit OpenAI-compatible provider profiles;
 - `@ta-agent/base-composition`: the official raw Agent composition root and optional API template;
@@ -58,11 +58,16 @@ Current foundation packages:
 
 The composition package offers a deterministic provider profile and a formal ordinary-provider
 composition. Pi remains the pinned internal adapter rather than part of the high-level public API.
-Both profiles run the same bounded request/tool and direct-completion paths. Memory remains
-their zero-configuration development default, while callers can inject
-the Agent Base SQLite adapter to retain committed conversation history across new Agent instances.
+Both profiles run the same bounded request/tool and direct-completion paths. Memory remains their
+zero-configuration development default, selected from `@ta-agent/base-local-adapters`, while callers
+can inject that package's SQLite adapter to retain committed conversation history across new Agent
+instances.
 An independent SQLite Request Journal adapter provides opt-in restart-safe replay for explicit
 idempotency keys; memory remains the zero-configuration journal default.
+Each shipped local SQLite adapter independently owns its table-name input, validation, and quoting. All use
+neutral `agent_` defaults and accept construction-time prefix or exact-name overrides. Standalone
+TypeScript profiles forward one host policy and reject cross-domain collisions, while Agent config,
+managed manifests, and CLI JSON remain unaware of physical table names.
 Registered tools are denied by default and execute only through the Agent Base Tool Broker when the
 Responsibility, Actor, product, and runtime layers all allow them. The profile publishes only the final assistant turn and returns
 privacy-safe tool-run metadata. Its composition and replacement boundaries are formal; generic

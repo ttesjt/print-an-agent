@@ -11,6 +11,34 @@ import {
   type StandaloneAgentManifestInput,
 } from '../../src/index.js';
 
+const CUSTOM_SQLITE_TABLES = Object.freeze({
+  tablePrefix: 'unused_',
+  tableNames: Object.freeze({
+    identity: Object.freeze({ schema: 'sl_identity_meta', identities: 'sl_identities' }),
+    config: Object.freeze({ schema: 'sl_config_meta', configs: 'sl_configs' }),
+    session: Object.freeze({
+      schema: 'sl_session_meta',
+      sessions: 'sl_sessions',
+      turns: 'sl_turns',
+      branches: 'sl_branches',
+      compactions: 'sl_compactions',
+    }),
+    requestJournal: Object.freeze({ schema: 'sl_request_meta', entries: 'sl_requests' }),
+    managedNamespace: Object.freeze({ schema: 'sl_namespace_meta', namespaces: 'sl_namespaces' }),
+  }),
+});
+
+function expectStandaloneConfigInvalid(action: () => unknown): void {
+  try {
+    action();
+    throw new Error('Expected Standalone SQLite configuration to fail.');
+  } catch (error: unknown) {
+    expect(error).toBeInstanceOf(AgentBaseStandaloneError);
+    if (!(error instanceof AgentBaseStandaloneError)) return;
+    expect(error.code).toBe('STANDALONE_CONFIG_INVALID');
+  }
+}
+
 function definition(instructions: string): StandaloneAgentDefinitionInput {
   return {
     provider: {
@@ -51,11 +79,35 @@ async function withSharedDatabase(
 }
 
 describe('shared SQLite managed Agent registry', () => {
+  it('rejects cross-domain table collisions before creating the database', async () => {
+    await withSharedDatabase(async (databasePath, directory) => {
+      expectStandaloneConfigInvalid(() =>
+        createSharedSqliteStandaloneAgentRegistry({
+          databasePath,
+          readEnvironmentVariable: () => undefined,
+          sqlite: {
+            tableNames: {
+              identity: { schema: 'shared_metadata' },
+              config: { schema: 'SHARED_METADATA' },
+            },
+          },
+        })
+      );
+      await expect(readdir(directory)).resolves.toEqual([]);
+    });
+  });
+
   it('reopens multiple Agents from one database with isolated resources and no Agent directories', async () => {
     await withSharedDatabase(async (databasePath, directory) => {
+      const productDatabase = new DatabaseSync(databasePath);
+      productDatabase.exec('CREATE TABLE product_artifacts (artifact_id TEXT PRIMARY KEY) STRICT;');
+      productDatabase.prepare('INSERT INTO product_artifacts (artifact_id) VALUES (?)').run('a1');
+      productDatabase.close();
+
       const registry = createSharedSqliteStandaloneAgentRegistry({
         databasePath,
         readEnvironmentVariable: () => undefined,
+        sqlite: CUSTOM_SQLITE_TABLES,
       });
       const bro = await registry.create(manifest('bro', 'Bro'));
       await registry.create(manifest('mochi', 'Mochi', 'Be precise.'));
@@ -89,6 +141,7 @@ describe('shared SQLite managed Agent registry', () => {
       const reopened = createSharedSqliteStandaloneAgentRegistry({
         databasePath,
         readEnvironmentVariable: () => undefined,
+        sqlite: CUSTOM_SQLITE_TABLES,
       });
       expect((await reopened.list()).map((entry) => entry.identity.identity.id)).toEqual([
         'bro',
@@ -138,6 +191,33 @@ describe('shared SQLite managed Agent registry', () => {
       const entries = await readdir(directory, { withFileTypes: true });
       expect(entries.some((entry) => entry.isDirectory())).toBe(false);
       expect(entries.some((entry) => entry.name === 'bro' || entry.name === 'mochi')).toBe(false);
+
+      const inspectedDatabase = new DatabaseSync(databasePath);
+      const tables = inspectedDatabase
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
+        .all()
+        .map((row) => (row as { name: string }).name);
+      const productArtifact = inspectedDatabase
+        .prepare('SELECT artifact_id FROM product_artifacts')
+        .get() as { artifact_id: string };
+      inspectedDatabase.close();
+      expect(productArtifact.artifact_id).toBe('a1');
+      expect(tables).toEqual([
+        'product_artifacts',
+        'sl_branches',
+        'sl_compactions',
+        'sl_config_meta',
+        'sl_configs',
+        'sl_identities',
+        'sl_identity_meta',
+        'sl_namespace_meta',
+        'sl_namespaces',
+        'sl_request_meta',
+        'sl_requests',
+        'sl_session_meta',
+        'sl_sessions',
+        'sl_turns',
+      ]);
     });
   });
 
@@ -150,20 +230,20 @@ describe('shared SQLite managed Agent registry', () => {
 
       const initialize = new DatabaseSync(databasePath);
       initialize.exec(`
-        CREATE TABLE IF NOT EXISTS ta_agent_base_config_schema (
+        CREATE TABLE IF NOT EXISTS agent_config_schema (
           component TEXT PRIMARY KEY,
           version INTEGER NOT NULL CHECK (version >= 1)
         ) STRICT;
-        CREATE TABLE IF NOT EXISTS ta_agent_base_configs (
+        CREATE TABLE IF NOT EXISTS agent_configs (
           agent_id TEXT PRIMARY KEY,
           schema_version INTEGER NOT NULL CHECK (schema_version >= 1),
           revision INTEGER NOT NULL CHECK (revision >= 1),
           value_json TEXT NOT NULL
         ) STRICT;
-        INSERT OR IGNORE INTO ta_agent_base_config_schema (component, version)
-          VALUES ('@ta-agent/base-config', 1);
+        INSERT OR IGNORE INTO agent_config_schema (component, version)
+          VALUES ('config', 1);
         CREATE TRIGGER reject_initial_config
-        BEFORE INSERT ON ta_agent_base_configs
+        BEFORE INSERT ON agent_configs
         BEGIN
           SELECT RAISE(ABORT, 'injected config failure');
         END;
@@ -196,10 +276,8 @@ describe('shared SQLite managed Agent registry', () => {
       });
       const database = new DatabaseSync(databasePath);
       database
-        .prepare(
-          'UPDATE ta_agent_base_managed_namespace_schema SET version = ? WHERE component = ?'
-        )
-        .run(2, '@ta-agent/base-standalone-agent:managed-namespace');
+        .prepare('UPDATE agent_managed_namespace_schema SET version = ? WHERE component = ?')
+        .run(2, 'managed_namespace');
       database.close();
 
       expect(() =>

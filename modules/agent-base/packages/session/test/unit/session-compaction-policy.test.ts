@@ -1,4 +1,9 @@
 import { defineAgentIdentity } from '@ta-agent/base-identity';
+import {
+  defineProviderModelReference,
+  type AssistantModelMessage,
+  type UserModelMessage,
+} from '@ta-agent/base-model';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_SESSION_COMPACTION_POLICY,
@@ -10,7 +15,30 @@ import {
   type CompletedSessionTurn,
   type SessionSnapshot,
 } from '../../src/index.js';
-import { assistantMessage, userMessage } from '../support/session-port-contract.js';
+
+const model = defineProviderModelReference({ provider: 'faux', model: 'faux-model' });
+
+function userMessage(text: string, timestamp: number): UserModelMessage {
+  return Object.freeze({ role: 'user', text, timestamp });
+}
+
+function assistantMessage(text: string, timestamp: number): AssistantModelMessage {
+  return Object.freeze({
+    role: 'assistant',
+    text,
+    provider: model.provider,
+    model: model.model,
+    stopReason: 'stop',
+    usage: Object.freeze({
+      inputTokens: 1,
+      outputTokens: 2,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 3,
+    }),
+    timestamp,
+  });
+}
 
 function completedTurn(index: number, text = String(index)): CompletedSessionTurn {
   return Object.freeze({

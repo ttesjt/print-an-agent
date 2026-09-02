@@ -3,13 +3,16 @@ import { defineAgentIdentity } from '@ta-agent/base-identity';
 import { AgentModelError } from '@ta-agent/base-model';
 import { NOOP_AGENT_TRACE_SINK } from '@ta-agent/base-observability';
 import {
+  MemoryOutputSink,
+  MemoryRequestJournalAdapter,
+  MemorySessionAdapter,
+} from '@ta-agent/base-local-adapters';
+import {
   AgentRequestError,
   createDefaultRequestStepOverrides,
   createRequestWorkflow,
   DEFAULT_REQUEST_POLICY,
   failRequest,
-  MemoryRequestJournalAdapter,
-  MemoryOutputSink,
   validateRequestPolicy,
   type AgentResponse,
   type DefaultRequestWorkflowContext,
@@ -25,7 +28,6 @@ import {
   createSessionNavigationWorkflow,
   createShouldCompactSessionCondition,
   DEFAULT_SESSION_COMPACTION_POLICY,
-  MemorySessionAdapter,
   parseSessionBranchId,
   parseSessionId,
   validateSessionCompactionPolicy,

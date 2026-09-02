@@ -1,8 +1,9 @@
 import { createProviderAgentAPI } from '@ta-agent/base-composition';
-import { SqliteRequestJournalAdapter } from '@ta-agent/base-request';
-import { SqliteSessionAdapter } from '@ta-agent/base-session';
+import { SqliteRequestJournalAdapter, SqliteSessionAdapter } from '@ta-agent/base-local-adapters';
 import { defineStandaloneAgentConfig } from './config.js';
 import { createStandaloneCredentialResolver } from './credential-resolver.js';
+import { AgentBaseStandaloneError } from './errors.js';
+import { resolveStandaloneRuntimeSqliteTableNames } from './resources/sqlite-table-naming.js';
 import type { CreateStandaloneAgentOptions, StandaloneAgent } from './types.js';
 
 export function createStandaloneAgent(
@@ -10,16 +11,26 @@ export function createStandaloneAgent(
   runtimeOptions: CreateStandaloneAgentOptions
 ): StandaloneAgent {
   const config = defineStandaloneAgentConfig(input);
+  if (config.persistence.kind === 'memory' && runtimeOptions.sqlite !== undefined) {
+    throw new AgentBaseStandaloneError(
+      'Standalone SQLite table naming cannot be configured for Memory persistence.'
+    );
+  }
   const sqliteOptions =
     config.persistence.kind === 'sqlite'
-      ? {
-          session: new SqliteSessionAdapter({
-            databasePath: config.persistence.databasePath,
-          }),
-          requestJournal: new SqliteRequestJournalAdapter({
-            databasePath: config.persistence.databasePath,
-          }),
-        }
+      ? (() => {
+          const tableNames = resolveStandaloneRuntimeSqliteTableNames(runtimeOptions.sqlite);
+          return {
+            session: new SqliteSessionAdapter({
+              databasePath: config.persistence.databasePath,
+              tableNames: tableNames.session,
+            }),
+            requestJournal: new SqliteRequestJournalAdapter({
+              databasePath: config.persistence.databasePath,
+              tableNames: tableNames.requestJournal,
+            }),
+          };
+        })()
       : {};
   const credentialResolver =
     config.credential === undefined

@@ -4,11 +4,13 @@ import { createFilesystemStandaloneManifestProjection } from '../resources/files
 import { createFilesystemAgentResourceNamespaceAdapter } from '../resources/filesystem/namespace-adapter.js';
 import { createFilesystemManagedAgentPortFactory } from '../resources/filesystem/port-factory.js';
 import type { CreateStandaloneAgentDirectoryOptions, StandaloneAgentDirectory } from '../types.js';
+import { resolveStandaloneManagedSqliteTableNames } from '../resources/sqlite-table-naming.js';
 
 export function createStandaloneAgentDirectory(
   options: CreateStandaloneAgentDirectoryOptions
 ): StandaloneAgentDirectory {
   const createTemporaryId = options.createTemporaryId ?? randomUUID;
+  const tableNames = resolveStandaloneManagedSqliteTableNames(options.sqlite);
   return createManagedStandaloneAgentRegistry({
     namespaces: createFilesystemAgentResourceNamespaceAdapter({
       rootDirectory: options.rootDirectory,
@@ -16,6 +18,7 @@ export function createStandaloneAgentDirectory(
     }),
     ports: createFilesystemManagedAgentPortFactory({
       ...(options.clock === undefined ? {} : { clock: options.clock }),
+      tableNames,
     }),
     manifestProjection: createFilesystemStandaloneManifestProjection({ createTemporaryId }),
     readEnvironmentVariable: options.readEnvironmentVariable,

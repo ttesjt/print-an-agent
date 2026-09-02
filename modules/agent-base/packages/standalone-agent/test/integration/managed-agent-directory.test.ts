@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, readdir, rm, symlink, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { defineProviderModelReference } from '@ta-agent/base-model';
 import { parseTurnId } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
@@ -66,6 +67,7 @@ describe('managed Standalone Agent directory', () => {
       const directory = createStandaloneAgentDirectory({
         rootDirectory,
         readEnvironmentVariable: () => 'PRIVATE_RUNTIME_KEY',
+        sqlite: { tablePrefix: 'directory_' },
       });
       await directory.create(manifest('mochi', 'Mochi'));
       await directory.create(manifest('bro', 'Bro'));
@@ -73,6 +75,7 @@ describe('managed Standalone Agent directory', () => {
       const listed = await directory.list();
       expect(listed.map((entry) => entry.identity.identity.id)).toEqual(['bro', 'mochi']);
       for (const agentId of ['bro', 'mochi']) {
+        await directory.open(agentId);
         expect((await readdir(join(rootDirectory, agentId))).sort()).toEqual([
           'agent.json',
           'agent.sqlite',
@@ -80,6 +83,27 @@ describe('managed Standalone Agent directory', () => {
         const text = await readFile(join(rootDirectory, agentId, 'agent.json'), 'utf8');
         expect(text).toContain(`"id": "${agentId}"`);
         expect(text).not.toContain('PRIVATE_RUNTIME_KEY');
+        expect(text).not.toContain('directory_');
+
+        const database = new DatabaseSync(join(rootDirectory, agentId, 'agent.sqlite'));
+        const tables = database
+          .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
+          .all()
+          .map((row) => (row as { name: string }).name);
+        database.close();
+        expect(tables).toEqual([
+          'directory_config_schema',
+          'directory_configs',
+          'directory_identities',
+          'directory_identity_schema',
+          'directory_request_journal_entries',
+          'directory_request_journal_schema',
+          'directory_session_branches',
+          'directory_session_compactions',
+          'directory_session_schema',
+          'directory_session_turns',
+          'directory_sessions',
+        ]);
       }
     });
   });

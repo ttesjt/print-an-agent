@@ -8,6 +8,15 @@ exactly one Agent owner with one Workflow Catalog and three public Operations: `
 `compactSession`, and `navigateSession`. The returned value is the actual `Agent`, not another
 runtime facade, and requires a resolvable `main` Actor.
 
+Products that need the same standard behavior plus product-owned resources and Operations use
+`composeAgentWithExtensions()`. Its extension factory receives the exact immutable standard
+definition, including standard Operation references, before the one Agent is constructed. The
+factory may add typed resources and Operations but cannot replace a standard name. Name conflicts
+fail before Agent construction, and the resulting Agent retains the ordinary immutable catalog and
+deny-by-default cross-Operation rules. `createStandardAgentDefinition()` exposes the same frozen
+definition for inspection and advanced definition-level composition; the guarded extension factory
+is the preferred product integration boundary.
+
 `createAgentAPI(agent)` is an optional transparent convenience projection. It exposes the wrapped
 `agent` plus named `run()`, `compactSession()`, and `navigateSession()` methods. Correctness does not
 depend on this layer: timeout mapping, input preparation, Session authority, and every other official

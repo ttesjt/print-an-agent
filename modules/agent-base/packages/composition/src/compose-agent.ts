@@ -49,9 +49,11 @@ import {
 import {
   createAgent,
   defineAgentOperation,
+  type AgentOperationDefinitionMap,
   type StepOverride,
   type StepOverrides,
 } from '@ta-agent/base-workflow';
+import { AgentCompositionError } from './composition-error.js';
 import type { ComposeAgentOptions } from './types.js';
 
 const DEFAULT_INSTRUCTIONS = 'Respond helpfully and concisely.';
@@ -161,7 +163,7 @@ function parseToolAllowList(values: readonly string[] | undefined): readonly Too
   return Object.freeze(parsed);
 }
 
-export function composeAgent(options: ComposeAgentOptions) {
+export function createStandardAgentDefinition(options: ComposeAgentOptions) {
   const identity = defineAgentIdentity(options.identity);
   const session = options.session ?? new MemorySessionAdapter();
   const requestJournal = options.requestJournal ?? new MemoryRequestJournalAdapter(options.clock);
@@ -358,16 +360,94 @@ export function composeAgent(options: ComposeAgentOptions) {
     responsibilities: responsibilityRouter,
     toolRegistry,
   });
-  return createAgent({
+  return Object.freeze({
     identity,
     resources: agentResources,
-    operations: {
+    operations: Object.freeze({
       [FOREGROUND_AGENT_OPERATION_NAME]: foregroundOperation,
       [SESSION_COMPACTION_AGENT_OPERATION_NAME]: compactionOperation,
       [SESSION_NAVIGATION_AGENT_OPERATION_NAME]: navigationOperation,
-    },
+    }),
     observability: Object.freeze({ ...options.observability, sink: traceSink }),
   });
+}
+
+export type StandardAgentDefinition = ReturnType<typeof createStandardAgentDefinition>;
+export type StandardAgentResources = StandardAgentDefinition['resources'];
+export type StandardAgentOperations = StandardAgentDefinition['operations'];
+
+type WithoutStandardKeys<TCandidate, TStandard> = TCandidate &
+  Readonly<Record<Extract<keyof TCandidate, keyof TStandard>, never>>;
+
+export type AgentCompositionExtension<
+  TResources extends object,
+  TOperations extends AgentOperationDefinitionMap,
+> = Readonly<{
+  resources: WithoutStandardKeys<TResources, StandardAgentResources>;
+  operations: WithoutStandardKeys<TOperations, StandardAgentOperations>;
+}>;
+
+export type AgentCompositionExtensionFactory<
+  TResources extends object,
+  TOperations extends AgentOperationDefinitionMap,
+> = (standard: StandardAgentDefinition) => AgentCompositionExtension<TResources, TOperations>;
+
+function assertExtensionRecord(value: unknown, subjectName: string): asserts value is object {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new AgentCompositionError(
+      'AGENT_COMPOSITION_EXTENSION_INVALID',
+      `Agent composition extension ${subjectName} must be a record.`,
+      subjectName
+    );
+  }
+}
+
+function mergeDistinctRecords<TStandard extends object, TExtension extends object>(
+  subjectName: 'operations' | 'resources',
+  standard: TStandard,
+  extension: TExtension
+) {
+  for (const name of Object.keys(extension)) {
+    if (Object.hasOwn(standard, name)) {
+      const code =
+        subjectName === 'operations'
+          ? 'AGENT_COMPOSITION_OPERATION_NAME_CONFLICT'
+          : 'AGENT_COMPOSITION_RESOURCE_NAME_CONFLICT';
+      throw new AgentCompositionError(
+        code,
+        `Agent composition extension cannot replace standard ${subjectName.slice(0, -1)} "${name}".`,
+        name
+      );
+    }
+  }
+  return Object.freeze({ ...standard, ...extension });
+}
+
+export function composeAgentWithExtensions<
+  const TResources extends object,
+  const TOperations extends AgentOperationDefinitionMap,
+>(
+  options: ComposeAgentOptions,
+  createExtension: AgentCompositionExtensionFactory<TResources, TOperations>
+) {
+  const standard = createStandardAgentDefinition(options);
+  const extension = createExtension(standard);
+  assertExtensionRecord(extension, 'definition');
+  assertExtensionRecord(extension.resources, 'resources');
+  assertExtensionRecord(extension.operations, 'operations');
+  const extensionResources: TResources = extension.resources;
+  const extensionOperations: TOperations = extension.operations;
+
+  return createAgent({
+    identity: standard.identity,
+    resources: mergeDistinctRecords('resources', standard.resources, extensionResources),
+    operations: mergeDistinctRecords('operations', standard.operations, extensionOperations),
+    observability: standard.observability,
+  });
+}
+
+export function composeAgent(options: ComposeAgentOptions) {
+  return createAgent(createStandardAgentDefinition(options));
 }
 
 export type ComposedAgent = ReturnType<typeof composeAgent>;

@@ -110,6 +110,9 @@ export function profileEvidence(profile: ResolvedModelProfile): JsonValue {
     trainers: profile.trainers.map(trainerSlotEvidence),
     exporters: profile.exporters.map(exporterSlotEvidence),
     outputInvokers: profile.outputInvokers.map(outputInvokerSlotEvidence),
+    ...(profile.canonicalOutputInvoker === undefined
+      ? {}
+      : { canonicalOutputInvokerId: profile.canonicalOutputInvoker.outputInvokerId }),
     evidenceDigest: profile.evidenceDigest,
   });
 }

@@ -149,6 +149,10 @@ async function execute(
       if (invocation.kind === OutputInvocationKind.Completed) {
         return writeJson(dependencies, invocation);
       }
+      await writeJson(dependencies, {
+        kind: OutputInvocationKind.Streaming,
+        evidence: invocation.evidence,
+      });
       for await (const result of invocation.stream) {
         await writeJson(dependencies, { kind: 'chunk', result });
       }

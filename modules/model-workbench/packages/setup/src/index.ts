@@ -5,6 +5,7 @@ export {
   findProfileArtifactHandoffSupport,
   findResolvedInitializer,
   findResolvedExporter,
+  findResolvedCanonicalOutputInvoker,
   findResolvedOutputInvoker,
   findResolvedProfile,
   findResolvedTrainer,

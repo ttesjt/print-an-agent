@@ -25,6 +25,7 @@ import {
   RuntimeBindingKind,
   WorkbenchSetupError,
   findProfileArtifactHandoffSupport,
+  findResolvedCanonicalOutputInvoker,
   findResolvedExporter,
   findResolvedOutputInvoker,
   findResolvedTrainer,
@@ -123,6 +124,42 @@ describe('resolveWorkbenchSetup', () => {
       'artifacts.local'
     );
     expect(outputInvoker?.runtime.supports.execution).toBeUndefined();
+    expect(findResolvedCanonicalOutputInvoker(resolvedProfile)).toBe(outputInvoker);
+  });
+
+  it('resolves an explicitly configured canonical Output Invoker', () => {
+    const setup = resolveOutputInvokerSetup(['fast', 'quality'], 'quality');
+
+    const resolvedProfile = setup.profiles[0];
+    if (resolvedProfile === undefined) throw new Error('Expected one resolved Profile.');
+    expect(findResolvedCanonicalOutputInvoker(resolvedProfile)?.outputInvokerId).toBe('quality');
+  });
+
+  it('keeps a Profile with ambiguous Output Invokers valid without selecting one', () => {
+    const setup = resolveOutputInvokerSetup(['first', 'second']);
+
+    const resolvedProfile = setup.profiles[0];
+    if (resolvedProfile === undefined) throw new Error('Expected one resolved Profile.');
+    expect(resolvedProfile.outputInvokers).toHaveLength(2);
+    expect(findResolvedCanonicalOutputInvoker(resolvedProfile)).toBeUndefined();
+  });
+
+  it('rejects a canonical Output Invoker ID that is not declared by its Profile', () => {
+    expect(() => resolveOutputInvokerSetup(['generate'], 'missing')).toThrow(
+      'setup.profiles[0].canonicalOutputInvokerId references unknown Output Invoker'
+    );
+  });
+
+  it('derives Profile evidence from the effective canonical Output Invoker selection', () => {
+    const first = resolveOutputInvokerSetup(['first', 'second'], 'first');
+    const second = resolveOutputInvokerSetup(['first', 'second'], 'second');
+    const implicitSoleInvoker = resolveOutputInvokerSetup(['only']);
+    const explicitSoleInvoker = resolveOutputInvokerSetup(['only'], 'only');
+
+    expect(second.profiles[0]?.evidenceDigest).not.toBe(first.profiles[0]?.evidenceDigest);
+    expect(explicitSoleInvoker.profiles[0]?.evidenceDigest).toBe(
+      implicitSoleInvoker.profiles[0]?.evidenceDigest
+    );
   });
 
   it('uses Draft 2020-12 contracts to validate input and result data', async () => {
@@ -504,9 +541,9 @@ function exporterCapability() {
   });
 }
 
-function outputInvokerCapability() {
+function outputInvokerCapability(capabilityId = 'output-invoker.llama-cpp') {
   return defineOutputInvokerCapability({
-    capabilityId: 'output-invoker.llama-cpp',
+    capabilityId,
     input: jsonObjectContract(),
     output: jsonObjectContract(),
     invoke: vi.fn(),
@@ -580,4 +617,36 @@ function validSetup() {
     runtimeBindings: [runtimeBinding('runtime.local')],
     profiles: [profile('research-model', 'import', 'initializer.import', 'runtime.local')],
   };
+}
+
+function resolveOutputInvokerSetup(
+  outputInvokerIds: readonly string[],
+  canonicalOutputInvokerId?: string
+) {
+  const baseInput = validSetup();
+  return resolveWorkbenchSetup(
+    {
+      ...baseInput,
+      profiles: [
+        {
+          ...baseInput.profiles[0]!,
+          ...(canonicalOutputInvokerId === undefined ? {} : { canonicalOutputInvokerId }),
+          outputInvokers: outputInvokerIds.map((outputInvokerId) => ({
+            outputInvokerId,
+            capabilityId: `output-invoker.${outputInvokerId}`,
+            runtimeBindingId: 'runtime.local',
+          })),
+        },
+      ],
+    },
+    {
+      modelCapabilities: [
+        initializerCapability(vi.fn()),
+        ...outputInvokerIds.map((outputInvokerId) =>
+          outputInvokerCapability(`output-invoker.${outputInvokerId}`)
+        ),
+      ],
+      runtimeSupports: runtimeSupports(),
+    }
+  );
 }

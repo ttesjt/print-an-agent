@@ -26,6 +26,7 @@ import type {
   ResolvedTrainerSlot,
 } from './contracts.js';
 import { parseModelProfile } from './parse-model-profile.js';
+import { resolveCanonicalOutputInvoker } from './resolve-canonical-output-invoker.js';
 
 export function resolveModelProfile(
   input: unknown,
@@ -72,6 +73,11 @@ export function resolveModelProfile(
     )
   );
   const sortedOutputInvokers = sortBy(outputInvokers, ({ outputInvokerId }) => outputInvokerId);
+  const canonicalOutputInvoker = resolveCanonicalOutputInvoker(
+    sortedOutputInvokers,
+    source.canonicalOutputInvokerId,
+    `${profilePath}.canonicalOutputInvokerId`
+  );
   const artifactHandoffSupports = collectArtifactHandoffSupports([
     ...sortedInitializers,
     ...sortedTrainers,
@@ -84,6 +90,9 @@ export function resolveModelProfile(
     trainers: sortedTrainers.map(trainerSlotEvidence),
     exporters: sortedExporters.map(exporterSlotEvidence),
     outputInvokers: sortedOutputInvokers.map(outputInvokerSlotEvidence),
+    ...(canonicalOutputInvoker === undefined
+      ? {}
+      : { canonicalOutputInvokerId: canonicalOutputInvoker.outputInvokerId }),
   });
   return Object.freeze({
     profileId: source.profileId,
@@ -93,6 +102,7 @@ export function resolveModelProfile(
     trainers: sortedTrainers,
     exporters: sortedExporters,
     outputInvokers: sortedOutputInvokers,
+    canonicalOutputInvoker,
     artifactHandoffSupports,
     evidenceDigest: deriveEvidenceDigest(evidence),
   });

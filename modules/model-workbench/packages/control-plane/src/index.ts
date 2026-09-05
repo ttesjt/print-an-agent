@@ -22,10 +22,14 @@ export {
   ExporterSlotNotFoundError,
 } from './operations/export/errors.js';
 export {
+  CanonicalOutputInvokerAmbiguousError,
+  CanonicalOutputInvokerUnavailableError,
   ModelOutputNotFoundError,
   ModelOutputMismatchError,
   ModelOutputProfileMismatchError,
   OutputInvocationArtifactMaterializationError,
+  OutputInvocationArtifactSupportNotFoundError,
+  OutputInvocationArtifactVerificationError,
   OutputInvocationCapabilityError,
   OutputInvokerSlotNotFoundError,
 } from './operations/output-invocation/errors.js';
@@ -54,15 +58,16 @@ export type {
   StartExportResult,
 } from './operations/export/contracts.js';
 export type {
+  CompletedOutputInvocation,
   InvokeOutputInput,
+  OutputInvocation,
+  OutputInvocationTargetEvidence,
   OutputInvocationOperations,
+  ResolveOutputInvocationInput,
+  StreamingOutputInvocation,
 } from './operations/output-invocation/contracts.js';
-export {
-  OutputInvocationKind,
-  type CompletedOutputInvocation,
-  type OutputInvocation,
-  type StreamingOutputInvocation,
-} from '@ta-agent/workbench-extension';
+export { OutputInvocationTargetEvidenceKind } from './operations/output-invocation/contracts.js';
+export { OutputInvocationKind } from '@ta-agent/workbench-extension';
 export type {
   InitializationOperations,
   StartInitializationInput,

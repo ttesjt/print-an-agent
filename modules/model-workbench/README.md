@@ -53,12 +53,27 @@ results. Workbench assigns Output and Artifact identities, verifies every Artifa
 Exporter slot's bound Support, and atomically commits the terminal Export Run with one immutable
 Output. `outputs.get()` returns the accepted Output and its exact source-state lineage.
 
-`outputInvocations.invoke()` starts from an explicit Profile and Output identity. Workbench verifies
-and materializes every named Artifact through the Support recorded in its durable reference, then
-calls that Profile's selected Invoker with those transient bindings. The Invoker returns either a
-completed value or a lazily consumed stream; the same output Contract validates the completed value
-or every stream chunk. Invocation creates no Run, model asset, managed Session, or serving
-lifecycle.
+`outputInvocations.invoke()` starts from an explicit Profile and Output identity. The high-level
+route selects that Profile's canonical Invoker; advanced callers may still provide an explicit
+`outputInvokerId`. Workbench reuses canonical target resolution, materializes every named Artifact
+through the Support recorded in its durable reference, then calls the selected Invoker with those
+transient bindings. Both completed and streaming results carry the exact target evidence before any
+stream is consumed. The same output Contract validates the completed value or every stream chunk.
+Invocation creates no Run, model asset, managed Session, or serving lifecycle.
+
+`outputInvocations.resolve()` is the read-only readiness boundary for a Profile's canonical Output
+Invoker. It loads the exact Output, validates Profile ownership and canonical selection, locates and
+verifies every Artifact through its recorded Support, and returns a stable target evidence digest
+that binds both the selected Invoker and the Artifact Handoff Supports used for verification. It
+does not materialize Artifacts, invoke the model, create a Run, or mutate persistence. A sole
+Output Invoker is canonical automatically; Profiles with several Invokers must identify one before
+they can use this canonical route.
+
+`classifyModelWorkbenchError()` gives application bridges one stable policy boundary without hiding
+the original error. It distinguishes invalid request/configuration, target-not-callable, governed
+operation, Output Invocation, cancellation, persistence/integrity, and unexpected failures.
+Concrete Workbench error codes remain available for diagnostics; consumers do not need to enumerate
+them to choose their high-level error handling path.
 
 Profile-scoped discovery is available through `runs.list()`, `models.listBases()`,
 `models.listModifications()`, and `outputs.list()`. Each query is bounded and cursor-paginated. Run

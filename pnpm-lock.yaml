@@ -508,6 +508,12 @@ importers:
       '@ta-agent/workbench-control-plane':
         specifier: workspace:*
         version: link:../control-plane
+      '@ta-agent/workbench-domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@ta-agent/workbench-extension':
+        specifier: workspace:*
+        version: link:../extension
       '@ta-agent/workbench-persistence':
         specifier: workspace:*
         version: link:../persistence
@@ -515,9 +521,6 @@ importers:
         specifier: workspace:*
         version: link:../setup
     devDependencies:
-      '@ta-agent/workbench-extension':
-        specifier: workspace:*
-        version: link:../extension
       '@types/node':
         specifier: 'catalog:'
         version: 24.12.4

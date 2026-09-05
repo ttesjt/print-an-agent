@@ -1,39 +1,25 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { JsonValue } from '@ta-agent/workbench-domain';
 import {
-  defineModelOutput,
-  parseOutputId,
-  parseProfileId,
-  type JsonValue,
-} from '@ta-agent/workbench-domain';
-import {
-  CapabilityDispatchKind,
-  ExecutionStatus,
-  JsonValueContract,
   OutputInvocationKind,
-  defineArtifactHandoffSupport,
-  defineExecutionSupport,
-  defineExporterCapability,
-  defineInitializerCapability,
-  defineOutputInvokerCapability,
   type TypedOutputInvokerCapability,
 } from '@ta-agent/workbench-extension';
-import {
-  createMemoryPersistence,
-  createSharedProfilePersistenceAdapter,
-} from '@ta-agent/workbench-persistence';
-import { RuntimeBindingKind, resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
 
 import {
+  CanonicalOutputInvokerAmbiguousError,
   ModelOutputMismatchError,
   ModelOutputNotFoundError,
   ModelOutputProfileMismatchError,
   OutputInvocationArtifactMaterializationError,
   OutputInvocationCapabilityError,
-  createWorkbenchControlPlane,
-  type ModelWorkbenchControlPlane,
-  type WorkbenchGeneratedIdKind,
 } from '../../src/index.js';
+import {
+  InvocationFixtureProfileId as ProfileId,
+  createInvocationFixture,
+  invokeOutput,
+  prepareOutput,
+} from '../support/output-invocation-fixture.js';
 
 describe('Model Workbench Output invocation', () => {
   it('materializes an immutable Output and returns a completed result without recording a Run', async () => {
@@ -56,9 +42,15 @@ describe('Model Workbench Output invocation', () => {
     );
     const fixture = createInvocationFixture({ invoke });
     await prepareOutput(fixture.workbench);
+    const resolvedTarget = await fixture.workbench.outputInvocations.resolve({
+      profileId: ProfileId,
+      outputId: 'output:1',
+    });
+    fixture.verify.mockClear();
 
     await expect(invokeOutput(fixture.workbench)).resolves.toMatchObject({
       kind: OutputInvocationKind.Completed,
+      evidence: resolvedTarget,
       result: {
         input: { prompt: 'hello' },
         model: { binding: { location: 'fixture://output' } },
@@ -74,6 +66,7 @@ describe('Model Workbench Output invocation', () => {
     });
     expect(invoke.mock.calls[0]?.[0]).not.toHaveProperty('runId');
     expect(invoke.mock.calls[0]?.[1]).toBeUndefined();
+    expect(fixture.verify).toHaveBeenCalledOnce();
     await expect(
       fixture.workbench.runs.get({ profileId: ProfileId, runId: 'run:3' })
     ).resolves.toBeUndefined();
@@ -90,11 +83,38 @@ describe('Model Workbench Output invocation', () => {
 
     const invocation = await invokeOutput(fixture.workbench);
     if (invocation.kind !== OutputInvocationKind.Streaming) throw new Error('Expected a stream.');
+    expect(invocation.evidence).toMatchObject({
+      profileId: ProfileId,
+      outputId: 'output:1',
+      outputInvokerId: 'generate',
+    });
     await expect(collect(invocation.stream)).resolves.toEqual([
       { token: 'hello' },
       { token: ' world' },
     ]);
     expect(fixture.observe).not.toHaveBeenCalled();
+  });
+
+  it('preserves explicit Invoker selection when the canonical route is ambiguous', async () => {
+    const invoke: TypedOutputInvokerCapability<JsonValue, JsonValue> = () =>
+      Promise.resolve({
+        kind: OutputInvocationKind.Completed,
+        result: { text: 'explicit' },
+      });
+    const fixture = createInvocationFixture({
+      invoke,
+      outputInvokerIds: ['first', 'second'],
+    });
+    await prepareOutput(fixture.workbench);
+
+    await expect(invokeOutput(fixture.workbench)).rejects.toBeInstanceOf(
+      CanonicalOutputInvokerAmbiguousError
+    );
+    await expect(invokeOutput(fixture.workbench, 'second')).resolves.toMatchObject({
+      kind: OutputInvocationKind.Completed,
+      evidence: { outputInvokerId: 'second' },
+      result: { text: 'explicit' },
+    });
   });
 
   it('wraps a malformed streaming chunk when the consumer reaches it', async () => {
@@ -196,192 +216,6 @@ describe('Model Workbench Output invocation', () => {
     ).resolves.toBeUndefined();
   });
 });
-
-const ProfileId = 'research-model';
-const OutputInvokerId = 'generate';
-
-interface InvocationFixtureInput {
-  readonly invoke: TypedOutputInvokerCapability<JsonValue, JsonValue>;
-  readonly rejectMaterialization?: string;
-  readonly returnMismatchedOutput?: boolean;
-  readonly returnMismatchedProfile?: boolean;
-}
-
-function createInvocationFixture(input: InvocationFixtureInput) {
-  const persistence = createMemoryPersistence();
-  const configuredPersistence =
-    input.returnMismatchedOutput === true || input.returnMismatchedProfile === true
-      ? Object.freeze({
-          ...persistence,
-          outputs: Object.freeze({
-            ...persistence.outputs,
-            findOutput: async (outputId: Parameters<typeof persistence.outputs.findOutput>[0]) => {
-              const output = await persistence.outputs.findOutput(outputId);
-              return output === undefined
-                ? undefined
-                : defineModelOutput({
-                    outputId:
-                      input.returnMismatchedOutput === true
-                        ? parseOutputId('output:mismatched')
-                        : output.outputId,
-                    profileId:
-                      input.returnMismatchedProfile === true
-                        ? parseProfileId('profile:other')
-                        : output.profileId,
-                    artifacts: output.artifacts,
-                    lineage: output.lineage,
-                  });
-            },
-          }),
-        })
-      : persistence;
-  const observe = vi.fn();
-  const setup = resolveWorkbenchSetup(
-    {
-      runtimeBindings: [
-        {
-          kind: RuntimeBindingKind.Binding,
-          runtimeBindingId: 'runtime.local',
-          supports: {
-            artifactHandoffId: 'artifacts.local',
-            executionSupportId: 'execution.local',
-          },
-        },
-      ],
-      profiles: [
-        {
-          profileId: ProfileId,
-          initializers: [
-            {
-              initializerId: 'import',
-              capabilityId: 'initializer.import',
-              runtimeBindingId: 'runtime.local',
-            },
-          ],
-          exporters: [
-            {
-              exporterId: 'fixture',
-              capabilityId: 'exporter.fixture',
-              runtimeBindingId: 'runtime.local',
-            },
-          ],
-          outputInvokers: [
-            {
-              outputInvokerId: OutputInvokerId,
-              capabilityId: 'output-invoker.fixture',
-              runtimeBindingId: 'runtime.local',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      modelCapabilities: [
-        defineInitializerCapability({
-          capabilityId: 'initializer.import',
-          input: JsonValueContract,
-          initialize: () =>
-            Promise.resolve({
-              kind: CapabilityDispatchKind.Completed,
-              terminal: {
-                status: ExecutionStatus.Succeeded,
-                result: { artifact: artifactResult('fixture://source', 'a') },
-              },
-            }),
-        }),
-        defineExporterCapability({
-          capabilityId: 'exporter.fixture',
-          input: JsonValueContract,
-          export: () =>
-            Promise.resolve({
-              kind: CapabilityDispatchKind.Completed,
-              terminal: {
-                status: ExecutionStatus.Succeeded,
-                result: {
-                  artifacts: [{ name: 'model', artifact: artifactResult('fixture://output', 'b') }],
-                },
-              },
-            }),
-        }),
-        defineOutputInvokerCapability({
-          capabilityId: 'output-invoker.fixture',
-          input: JsonValueContract,
-          output: JsonValueContract,
-          invoke: input.invoke,
-        }),
-      ],
-      runtimeSupports: [
-        defineArtifactHandoffSupport({
-          runtimeSupportId: 'artifacts.local',
-          verify: () => Promise.resolve(),
-          materialize: ({ artifact }) => {
-            if (artifact.handoff.receipt === input.rejectMaterialization) {
-              return Promise.reject(new Error('Fixture Artifact cannot be materialized.'));
-            }
-            return Promise.resolve({ location: artifact.handoff.receipt });
-          },
-        }),
-        defineExecutionSupport({
-          runtimeSupportId: 'execution.local',
-          observe,
-          cancel: vi.fn(),
-        }),
-      ],
-    }
-  );
-  return {
-    observe,
-    workbench: createWorkbenchControlPlane({
-      setup,
-      persistence: createSharedProfilePersistenceAdapter(configuredPersistence),
-      idSource: sequentialIdSource(),
-      clock: { now: () => '2026-08-24T10:00:00.000Z' },
-    }),
-  };
-}
-
-async function prepareOutput(workbench: ModelWorkbenchControlPlane): Promise<void> {
-  await workbench.initialization.start({
-    profileId: ProfileId,
-    initializerId: 'import',
-    input: null,
-  });
-  await workbench.exports.start({
-    profileId: ProfileId,
-    exporterId: 'fixture',
-    source: { baseId: 'base:1' },
-    input: null,
-  });
-}
-
-function invokeOutput(workbench: ModelWorkbenchControlPlane) {
-  return workbench.outputInvocations.invoke({
-    profileId: ProfileId,
-    outputId: 'output:1',
-    outputInvokerId: OutputInvokerId,
-    input: { prompt: 'hello' },
-  });
-}
-
-function artifactResult(receipt: string, digestSeed: string) {
-  return { digest: `sha256:${digestSeed.repeat(64)}`, receipt } as const;
-}
-
-function sequentialIdSource() {
-  const counts: Record<WorkbenchGeneratedIdKind, number> = {
-    run: 0,
-    base: 0,
-    modification: 0,
-    output: 0,
-    artifact: 0,
-  };
-  return Object.freeze({
-    nextId(kind: WorkbenchGeneratedIdKind): string {
-      counts[kind] += 1;
-      return `${kind}:${String(counts[kind])}`;
-    },
-  });
-}
 
 async function* streamOf(...chunks: JsonValue[]): AsyncIterable<JsonValue> {
   await Promise.resolve();

@@ -33,12 +33,19 @@ export function parseModelProfile(input: unknown, index: number): ParsedModelPro
     input,
     path,
     ['profileId', 'initializers'],
-    ['trainers', 'exporters', 'outputInvokers', 'infrastructure']
+    ['canonicalOutputInvokerId', 'trainers', 'exporters', 'outputInvokers', 'infrastructure']
   );
   const profileId = parseDomainValue(
     () => parseProfileId(record.profileId, `${path}.profileId`),
     `${path}.profileId`
   );
+  const canonicalOutputInvokerId = Object.hasOwn(record, 'canonicalOutputInvokerId')
+    ? parseDomainValue(
+        () =>
+          parseOutputInvokerId(record.canonicalOutputInvokerId, `${path}.canonicalOutputInvokerId`),
+        `${path}.canonicalOutputInvokerId`
+      )
+    : undefined;
   const initializers = parseArray(record.initializers, `${path}.initializers`).map(
     (initializer, initializerIndex) => {
       const initializerPath = `${path}.initializers[${String(initializerIndex)}]`;
@@ -166,6 +173,7 @@ export function parseModelProfile(input: unknown, index: number): ParsedModelPro
   return Object.freeze({
     source: defineModelProfile({
       profileId,
+      ...(canonicalOutputInvokerId === undefined ? {} : { canonicalOutputInvokerId }),
       initializers,
       trainers,
       exporters,

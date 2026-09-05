@@ -59,6 +59,7 @@ const setupInput = {
           runtimeBindingId: 'research.local',
         },
       ],
+      canonicalOutputInvokerId: 'llama-cpp',
     },
   ],
 };
@@ -171,6 +172,12 @@ another setup, then create another Workbench instance. Each resolved Profile ret
 Handoff Supports reachable through its slots. A persisted `ArtifactReference` names its owning
 Support directly, but Control Plane lookup remains inside the requested Profile scope.
 
+A Profile may name one `canonicalOutputInvokerId`. Resolution rejects an explicit canonical ID that
+does not reference an Output Invoker slot in that Profile. When the field is absent, a sole Output
+Invoker is canonical automatically. A Profile with no Output Invoker or several non-canonical
+Output Invokers remains valid, and its resolved canonical selection is unavailable; callers may
+still use an explicit Output Invoker ID.
+
 The official `createModelWorkbench()` application entry point performs these two calls and supplies
 its documented defaults. Advanced hosts can keep both stages explicit when they need custom
 persistence or ID generation.
@@ -220,14 +227,24 @@ atomically commits the terminal Export Run with the immutable Output. The Output
 source Model State and frozen Exporter slot selection as lineage; exporting does not invoke or
 publish it.
 
-Output Invocation starts from an explicit Profile and Output identity, then selects an Output
-Invoker from that Profile. Workbench asks each Artifact's owning Handoff Support to verify and
-materialize a transient binding while preserving the exact Output identity in the Capability
-request. The Invoker returns either one completed result or an AsyncIterable stream. Its output
-Contract validates the completed result or each stream chunk lazily. Invocation is intentionally
-outside the durable execution lifecycle: it creates no Run, model asset, or managed Session.
-Workbench forwards the caller's `AbortSignal`, while the Output Invoker remains responsible for
-cooperative cancellation throughout the lifetime of any returned stream.
+Output Invocation starts from an explicit Profile and Output identity. Workbench selects the
+Profile's canonical Invoker unless an advanced caller supplies an explicit `outputInvokerId`, then
+uses the same target resolver as the readiness operation. Each Artifact's owning Handoff Support
+verifies it once and materializes a transient binding while preserving the exact Output identity in
+the Capability request. The Invoker returns either one completed result or an AsyncIterable stream;
+both forms carry the selected target evidence before stream consumption begins. Its output Contract
+validates the completed result or each stream chunk lazily. Invocation is intentionally outside the
+durable execution lifecycle: it creates no Run, model asset, or managed Session. Workbench forwards
+the caller's `AbortSignal`, while the Output Invoker remains responsible for cooperative cancellation
+throughout the lifetime of any returned stream.
+
+The separate `outputInvocations.resolve({ profileId, outputId })` readiness operation selects the
+canonical Invoker and performs only exact Output identity, Profile ownership, Support availability,
+and Artifact verification checks. Its evidence digest covers the immutable Output, the selected
+Invoker slot, and the exact Artifact Handoff Support evidence used to verify every Artifact. It does
+not cover the whole Workbench setup. Resolution never materializes an Artifact or calls the Invoker,
+so success means that Workbench's declared target is currently resolvable—not that future inference
+I/O is guaranteed to succeed.
 
 The executable version of this example lives in
 `tests/integration/test/extension-runtime-resolution.test.ts`.

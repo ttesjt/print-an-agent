@@ -77,7 +77,14 @@ model-workbench run wait \
 
 The CLI exposes initialization, training, export, Output Invocation, Run control and discovery,
 asset discovery, and dynamic Model State composition. A completed invocation prints one JSON line;
-a streaming invocation prints one `chunk` JSON line per result.
+a streaming invocation first prints its target-evidence envelope, then one `chunk` JSON line per
+result.
+
+Application integrations should use `classifyModelWorkbenchError(error)` when they need a stable
+policy decision. The classifier distinguishes invalid input, unavailable targets, governed
+operation failures, Output Invocation failures, caller cancellation, persistence/integrity
+failures, and unexpected failures. It preserves a concrete Workbench code when available; it does
+not wrap, replace, persist, or infer retry behavior for the original error.
 
 ## Deliberate boundaries
 

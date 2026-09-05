@@ -4,7 +4,7 @@ import type { ResolvedModelProfile } from '@ta-agent/workbench-setup';
 
 import type { WorkbenchControlPlaneConfiguration } from './contracts.js';
 import { createExecutionLifecycle } from '../execution/create-execution-lifecycle.js';
-import type { ExecutionLifecycle } from '../execution/contracts.js';
+import type { ExecutionLifecycle, ModelWorkbenchOperationOptions } from '../execution/contracts.js';
 import { createModelStateMaterializer } from '../model-states/materialize-model-state.js';
 import { createExportExecutionHandler } from '../operations/export/export-execution-handler.js';
 import { createStartExport } from '../operations/export/start-export.js';
@@ -12,6 +12,8 @@ import { createInitializationExecutionHandler } from '../operations/initializati
 import { createStartInitialization } from '../operations/initialization/start-initialization.js';
 import { createInvokeOutput } from '../operations/output-invocation/invoke-output.js';
 import { createOutputMaterializer } from '../operations/output-invocation/materialize-output.js';
+import { createOutputInvocationTargetResolver } from '../operations/output-invocation/resolve-output-invocation-target.js';
+import type { ResolveOutputInvocationInput } from '../operations/output-invocation/contracts.js';
 import { createTrainingExecutionHandler } from '../operations/training/training-execution-handler.js';
 import { createStartTraining } from '../operations/training/start-training.js';
 
@@ -22,6 +24,9 @@ export interface ProfileControlPlaneRuntime {
   readonly startInitialization: ReturnType<typeof createStartInitialization>;
   readonly startTraining: ReturnType<typeof createStartTraining>;
   readonly startExport: ReturnType<typeof createStartExport>;
+  readonly resolveOutputInvocation: ReturnType<
+    typeof createOutputInvocationTargetResolver
+  >['resolve'];
   readonly invokeOutput: ReturnType<typeof createInvokeOutput>;
 }
 
@@ -66,6 +71,10 @@ export function createProfileControlPlaneRuntime(
       [ModelOperationKind.Export]: exportHandler,
     },
   });
+  const outputInvocationTargetResolver = createOutputInvocationTargetResolver(
+    profile,
+    persistence.outputs
+  );
   return Object.freeze({
     profile,
     persistence,
@@ -91,9 +100,16 @@ export function createProfileControlPlaneRuntime(
       idSource: configuration.idSource,
       clock: configuration.clock,
     }),
+    resolveOutputInvocation: (
+      input: ResolveOutputInvocationInput,
+      options?: ModelWorkbenchOperationOptions
+    ) =>
+      outputInvocationTargetResolver.resolve(
+        Object.freeze({ profileId: input.profileId, outputId: input.outputId }),
+        options
+      ),
     invokeOutput: createInvokeOutput({
-      profile,
-      outputs: persistence.outputs,
+      targetResolver: outputInvocationTargetResolver,
       materializeOutput: createOutputMaterializer(profile),
     }),
   });

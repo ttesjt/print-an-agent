@@ -86,6 +86,12 @@ export function findResolvedOutputInvoker(
   );
 }
 
+export function findResolvedCanonicalOutputInvoker(
+  profile: ResolvedModelProfile
+): ResolvedOutputInvokerSlot | undefined {
+  return profile.canonicalOutputInvoker;
+}
+
 /** Finds an Artifact Handoff Support reachable through one Profile's bound slots. */
 export function findProfileArtifactHandoffSupport(
   profile: ResolvedModelProfile,

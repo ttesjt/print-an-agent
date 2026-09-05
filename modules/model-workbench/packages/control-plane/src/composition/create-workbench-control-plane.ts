@@ -25,7 +25,10 @@ import { WorkbenchControlPlaneError } from '../foundation/errors.js';
 import type { StartExportInput } from '../operations/export/contracts.js';
 import { ModelProfileNotFoundError } from '../operations/errors.js';
 import type { StartInitializationInput } from '../operations/initialization/contracts.js';
-import type { InvokeOutputInput } from '../operations/output-invocation/contracts.js';
+import type {
+  InvokeOutputInput,
+  ResolveOutputInvocationInput,
+} from '../operations/output-invocation/contracts.js';
 import type { StartTrainingInput } from '../operations/training/contracts.js';
 import type {
   BaseReferenceInput,
@@ -92,6 +95,14 @@ export function createWorkbenchControlPlane(
         (await forProfile(input.profileId, 'export.profileId')).startExport(input, options),
     }),
     outputInvocations: Object.freeze({
+      resolve: async (
+        input: ResolveOutputInvocationInput,
+        options?: ModelWorkbenchOperationOptions
+      ) => {
+        const runtime = await forProfile(input.profileId, 'outputInvocation.profileId');
+        const target = await runtime.resolveOutputInvocation(input, options);
+        return target.evidence;
+      },
       invoke: async (input: InvokeOutputInput, options?: ModelWorkbenchOperationOptions) =>
         (await forProfile(input.profileId, 'outputInvocation.profileId')).invokeOutput(
           input,

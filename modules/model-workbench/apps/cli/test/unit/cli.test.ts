@@ -37,6 +37,13 @@ describe('Model Workbench CLI', () => {
     const invoke = vi.fn(() =>
       Promise.resolve({
         kind: OutputInvocationKind.Streaming,
+        evidence: {
+          kind: 'output-invocation-target',
+          profileId: 'profile:test',
+          outputId: 'output:test',
+          outputInvokerId: 'generate',
+          evidenceDigest: `sha256:${'a'.repeat(64)}`,
+        },
         stream: stream(['one', { text: 'two' }]),
       })
     );
@@ -61,6 +68,7 @@ describe('Model Workbench CLI', () => {
 
     expect(exitCode).toBe(0);
     expect(output).toEqual([
+      `{"kind":"streaming","evidence":{"kind":"output-invocation-target","profileId":"profile:test","outputId":"output:test","outputInvokerId":"generate","evidenceDigest":"sha256:${'a'.repeat(64)}"}}\n`,
       '{"kind":"chunk","result":"one"}\n',
       '{"kind":"chunk","result":{"text":"two"}}\n',
     ]);

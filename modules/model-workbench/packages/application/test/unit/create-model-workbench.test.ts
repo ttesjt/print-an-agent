@@ -284,14 +284,29 @@ describe('createModelWorkbench', () => {
     });
 
     await expect(
+      workbench.outputInvocations.resolve({
+        profileId: 'fixture-profile',
+        outputId: 'output:exported',
+      })
+    ).resolves.toMatchObject({
+      profileId: 'fixture-profile',
+      outputId: 'output:exported',
+      outputInvokerId: 'default',
+    });
+
+    await expect(
       workbench.outputInvocations.invoke({
         profileId: 'fixture-profile',
         outputId: 'output:exported',
-        outputInvokerId: 'default',
         input: { prompt: 'fixture prompt' },
       })
     ).resolves.toMatchObject({
       kind: OutputInvocationKind.Completed,
+      evidence: {
+        profileId: 'fixture-profile',
+        outputId: 'output:exported',
+        outputInvokerId: 'default',
+      },
       result: {
         input: { prompt: 'fixture prompt' },
         outputId: 'output:exported',

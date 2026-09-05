@@ -34,6 +34,7 @@ export interface ProfileOutputInvokerSlot {
 
 export interface ModelProfile {
   readonly profileId: ProfileId;
+  readonly canonicalOutputInvokerId: OutputInvokerId | undefined;
   readonly initializers: readonly ProfileInitializerSlot[];
   readonly trainers: readonly ProfileTrainerSlot[];
   readonly exporters: readonly ProfileExporterSlot[];
@@ -42,6 +43,7 @@ export interface ModelProfile {
 
 export interface ModelProfileInput {
   readonly profileId: ProfileId;
+  readonly canonicalOutputInvokerId?: OutputInvokerId;
   readonly initializers: readonly ProfileInitializerSlot[];
   readonly trainers?: readonly ProfileTrainerSlot[];
   readonly exporters?: readonly ProfileExporterSlot[];
@@ -51,6 +53,7 @@ export interface ModelProfileInput {
 export function defineModelProfile(input: ModelProfileInput): ModelProfile {
   return Object.freeze({
     profileId: input.profileId,
+    canonicalOutputInvokerId: input.canonicalOutputInvokerId,
     initializers: Object.freeze(
       input.initializers.map((initializer) => Object.freeze(initializer))
     ),

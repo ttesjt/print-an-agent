@@ -42,7 +42,6 @@ export function createOutputMaterializer(profile: ResolvedModelProfile): Materia
             );
           }
           try {
-            await support.verify(Object.freeze({ profileId: input.profileId, artifact }), options);
             return Object.freeze({
               name,
               artifact: await support.materialize(

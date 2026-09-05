@@ -26,11 +26,12 @@
   },
   "dependencies": {
     "@ta-agent/workbench-control-plane": "workspace:*",
+    "@ta-agent/workbench-domain": "workspace:*",
+    "@ta-agent/workbench-extension": "workspace:*",
     "@ta-agent/workbench-persistence": "workspace:*",
     "@ta-agent/workbench-setup": "workspace:*"
   },
   "devDependencies": {
-    "@ta-agent/workbench-extension": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",

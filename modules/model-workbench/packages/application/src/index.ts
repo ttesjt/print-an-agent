@@ -1,8 +1,15 @@
 export { createModelWorkbench } from './composition/create-model-workbench.js';
 export type { ModelWorkbenchApplicationConfiguration } from './composition/contracts.js';
+export {
+  ModelWorkbenchErrorCategory,
+  classifyModelWorkbenchError,
+  type ModelWorkbenchErrorClassification,
+} from './errors/model-workbench-error-classification.js';
 
 export {
   ArtifactHandoffSupportNotFoundError,
+  CanonicalOutputInvokerAmbiguousError,
+  CanonicalOutputInvokerUnavailableError,
   ExportArtifactVerificationError,
   ExportCapabilityError,
   ExporterSlotNotFoundError,
@@ -20,6 +27,8 @@ export {
   ModelStateAssetNotFoundError,
   ModelStateAssetProfileMismatchError,
   OutputInvocationArtifactMaterializationError,
+  OutputInvocationArtifactSupportNotFoundError,
+  OutputInvocationArtifactVerificationError,
   OutputInvocationCapabilityError,
   OutputInvokerSlotNotFoundError,
   RunCancellationError,
@@ -46,7 +55,9 @@ export type {
   OutputReferenceInput,
   OutputQueries,
   InvokeOutputInput,
+  OutputInvocationTargetEvidence,
   OutputInvocationOperations,
+  ResolveOutputInvocationInput,
   RunControls,
   RecordPage,
   RunReferenceInput,
@@ -61,6 +72,7 @@ export type {
   WorkbenchIdSource,
 } from '@ta-agent/workbench-control-plane';
 export {
+  OutputInvocationTargetEvidenceKind,
   OutputInvocationKind,
   type CompletedOutputInvocation,
   type OutputInvocation,

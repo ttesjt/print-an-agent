@@ -1,28 +1,14 @@
-import {
-  parseJsonValue,
-  parseOutputId,
-  parseOutputInvokerId,
-  parseProfileId,
-  type JsonValue,
-} from '@ta-agent/workbench-domain';
-import { OutputInvocationKind, type OutputInvocation } from '@ta-agent/workbench-extension';
-import type { OutputRepository } from '@ta-agent/workbench-persistence';
-import { findResolvedOutputInvoker, type ResolvedModelProfile } from '@ta-agent/workbench-setup';
+import { parseJsonValue, type JsonValue } from '@ta-agent/workbench-domain';
+import { OutputInvocationKind } from '@ta-agent/workbench-extension';
 
-import type { InvokeOutputInput } from './contracts.js';
-import {
-  ModelOutputMismatchError,
-  ModelOutputNotFoundError,
-  ModelOutputProfileMismatchError,
-  OutputInvocationCapabilityError,
-  OutputInvokerSlotNotFoundError,
-} from './errors.js';
+import type { InvokeOutputInput, OutputInvocation } from './contracts.js';
+import { OutputInvocationCapabilityError } from './errors.js';
 import type { MaterializeOutput } from './materialize-output.js';
+import type { OutputInvocationTargetResolver } from './resolve-output-invocation-target.js';
 import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';
 
 export interface InvokeOutputDependencies {
-  readonly profile: ResolvedModelProfile;
-  readonly outputs: OutputRepository;
+  readonly targetResolver: OutputInvocationTargetResolver;
   readonly materializeOutput: MaterializeOutput;
 }
 
@@ -30,53 +16,56 @@ export function createInvokeOutput(dependencies: InvokeOutputDependencies) {
   return async function invokeOutput(
     input: InvokeOutputInput,
     options?: ModelWorkbenchOperationOptions
-  ): Promise<OutputInvocation<JsonValue>> {
+  ): Promise<OutputInvocation> {
     assertNotAborted(options?.signal);
-    const profileId = parseProfileId(input.profileId, 'outputInvocation.profileId');
-    const outputId = parseOutputId(input.outputId, 'outputInvocation.outputId');
-    const outputInvokerId = parseOutputInvokerId(
-      input.outputInvokerId,
-      'outputInvocation.outputInvokerId'
-    );
     const invocationInput = parseJsonValue(input.input, 'outputInvocation.input');
-    const output = await dependencies.outputs.findOutput(outputId);
-    if (output === undefined) throw new ModelOutputNotFoundError(outputId);
-    if (output.outputId !== outputId) {
-      throw new ModelOutputMismatchError(outputId, output.outputId);
-    }
-    if (output.profileId !== profileId) {
-      throw new ModelOutputProfileMismatchError(outputId, profileId, output.profileId);
-    }
-    if (dependencies.profile.profileId !== profileId) {
-      throw new ModelOutputProfileMismatchError(
-        outputId,
-        dependencies.profile.profileId,
-        profileId
-      );
-    }
-    const outputInvoker = findResolvedOutputInvoker(dependencies.profile, outputInvokerId);
-    if (outputInvoker === undefined) {
-      throw new OutputInvokerSlotNotFoundError(profileId, outputInvokerId);
-    }
+    const resolvedTarget = await dependencies.targetResolver.resolve(
+      Object.freeze({
+        profileId: input.profileId,
+        outputId: input.outputId,
+        ...(input.outputInvokerId === undefined ? {} : { outputInvokerId: input.outputInvokerId }),
+      }),
+      options
+    );
 
     const target = await dependencies.materializeOutput(
-      Object.freeze({ profileId, output }),
+      Object.freeze({
+        profileId: resolvedTarget.evidence.profileId,
+        output: resolvedTarget.output,
+      }),
       options
     );
     try {
-      const invocation = await outputInvoker.capability.invoke(
-        Object.freeze({ profileId, target, input: invocationInput }),
+      const invocation = await resolvedTarget.outputInvoker.capability.invoke(
+        Object.freeze({
+          profileId: resolvedTarget.evidence.profileId,
+          target,
+          input: invocationInput,
+        }),
         options
       );
       return invocation.kind === OutputInvocationKind.Streaming
         ? Object.freeze({
             kind: OutputInvocationKind.Streaming,
-            stream: wrapInvocationStream(invocation.stream, profileId, outputId),
+            evidence: resolvedTarget.evidence,
+            stream: wrapInvocationStream(
+              invocation.stream,
+              resolvedTarget.evidence.profileId,
+              resolvedTarget.evidence.outputId
+            ),
           })
-        : invocation;
+        : Object.freeze({
+            kind: OutputInvocationKind.Completed,
+            evidence: resolvedTarget.evidence,
+            result: invocation.result,
+          });
     } catch (cause: unknown) {
       if (isAbortError(cause)) throw cause;
-      throw new OutputInvocationCapabilityError(profileId, outputId, { cause });
+      throw new OutputInvocationCapabilityError(
+        resolvedTarget.evidence.profileId,
+        resolvedTarget.evidence.outputId,
+        { cause }
+      );
     }
   };
 }

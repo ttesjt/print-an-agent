@@ -1,4 +1,10 @@
-import type { OutputId, OutputInvokerId, ProfileId } from '@ta-agent/workbench-domain';
+import type {
+  ArtifactId,
+  OutputId,
+  OutputInvokerId,
+  ProfileId,
+  RuntimeSupportId,
+} from '@ta-agent/workbench-domain';
 
 import { WorkbenchControlPlaneError } from '../../foundation/errors.js';
 
@@ -44,6 +50,51 @@ export class OutputInvokerSlotNotFoundError extends WorkbenchControlPlaneError {
       `Profile "${profileId}" does not define Output Invoker "${outputInvokerId}".`
     );
     this.name = 'OutputInvokerSlotNotFoundError';
+  }
+}
+
+export class CanonicalOutputInvokerUnavailableError extends WorkbenchControlPlaneError {
+  static readonly code = 'CANONICAL_OUTPUT_INVOKER_UNAVAILABLE';
+
+  constructor(profileId: ProfileId) {
+    super(
+      CanonicalOutputInvokerUnavailableError.code,
+      `Profile "${profileId}" does not define an Output Invoker that can be selected canonically.`
+    );
+  }
+}
+
+export class CanonicalOutputInvokerAmbiguousError extends WorkbenchControlPlaneError {
+  static readonly code = 'CANONICAL_OUTPUT_INVOKER_AMBIGUOUS';
+
+  constructor(profileId: ProfileId) {
+    super(
+      CanonicalOutputInvokerAmbiguousError.code,
+      `Profile "${profileId}" defines multiple Output Invokers without a canonical selection.`
+    );
+  }
+}
+
+export class OutputInvocationArtifactSupportNotFoundError extends WorkbenchControlPlaneError {
+  static readonly code = 'OUTPUT_INVOCATION_ARTIFACT_SUPPORT_NOT_FOUND';
+
+  constructor(outputId: OutputId, artifactId: ArtifactId, runtimeSupportId: RuntimeSupportId) {
+    super(
+      OutputInvocationArtifactSupportNotFoundError.code,
+      `Artifact "${artifactId}" for Output "${outputId}" references unavailable Artifact Handoff Support "${runtimeSupportId}".`
+    );
+  }
+}
+
+export class OutputInvocationArtifactVerificationError extends WorkbenchControlPlaneError {
+  static readonly code = 'OUTPUT_INVOCATION_ARTIFACT_VERIFICATION_FAILED';
+
+  constructor(outputId: OutputId, artifactId: ArtifactId, options?: ErrorOptions) {
+    super(
+      OutputInvocationArtifactVerificationError.code,
+      `Artifact "${artifactId}" for Output "${outputId}" could not be verified for invocation.`,
+      options
+    );
   }
 }
 

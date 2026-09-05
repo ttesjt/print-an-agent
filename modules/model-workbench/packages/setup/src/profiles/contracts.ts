@@ -47,6 +47,7 @@ export interface ProfileOutputInvokerSlotInput {
 
 export interface ModelProfileInput {
   readonly profileId: string;
+  readonly canonicalOutputInvokerId?: string;
   readonly infrastructure?: ProfileInfrastructureInput;
   readonly initializers: readonly ProfileInitializerSlotInput[];
   readonly trainers?: readonly ProfileTrainerSlotInput[];
@@ -102,6 +103,7 @@ export interface ResolvedModelProfile {
   readonly trainers: readonly ResolvedTrainerSlot[];
   readonly exporters: readonly ResolvedExporterSlot[];
   readonly outputInvokers: readonly ResolvedOutputInvokerSlot[];
+  readonly canonicalOutputInvoker: ResolvedOutputInvokerSlot | undefined;
   readonly artifactHandoffSupports: readonly ArtifactHandoffSupportRuntime[];
   readonly evidenceDigest: Sha256Digest;
 }

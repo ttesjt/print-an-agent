@@ -3,12 +3,28 @@ import type { ToolRuntime } from '@ta-agent/base-tool';
 declare const providerIdBrand: unique symbol;
 declare const providerModelIdBrand: unique symbol;
 declare const providerCredentialReferenceBrand: unique symbol;
+declare const modelExecutionProvenanceTypeBrand: unique symbol;
 
 export type ProviderId = string & { readonly [providerIdBrand]: 'ProviderId' };
 export type ProviderModelId = string & { readonly [providerModelIdBrand]: 'ProviderModelId' };
 export type ProviderCredentialReference = string & {
   readonly [providerCredentialReferenceBrand]: 'ProviderCredentialReference';
 };
+export type ModelExecutionProvenanceType = string & {
+  readonly [modelExecutionProvenanceTypeBrand]: 'ModelExecutionProvenanceType';
+};
+
+export type ModelExecutionEvidenceValue =
+  | null
+  | string
+  | number
+  | boolean
+  | readonly ModelExecutionEvidenceValue[]
+  | Readonly<{ [key: string]: ModelExecutionEvidenceValue }>;
+
+export type ModelExecutionEvidence = Readonly<{
+  [key: string]: ModelExecutionEvidenceValue;
+}>;
 
 export interface ProviderModelReferenceInput {
   readonly provider: string;
@@ -55,11 +71,26 @@ export interface UserModelMessage {
   readonly timestamp: number;
 }
 
+export interface ProviderModelExecutionProvenance {
+  readonly kind: 'provider-model';
+  readonly provider: ProviderId;
+  readonly model: ProviderModelId;
+}
+
+export interface EngineDefinedModelExecutionProvenance {
+  readonly kind: 'engine-defined';
+  readonly type: ModelExecutionProvenanceType;
+  readonly evidence: ModelExecutionEvidence;
+}
+
+export type ModelExecutionProvenance =
+  | ProviderModelExecutionProvenance
+  | EngineDefinedModelExecutionProvenance;
+
 export interface AssistantModelMessage {
   readonly role: 'assistant';
   readonly text: string;
-  readonly provider: ProviderId;
-  readonly model: ProviderModelId;
+  readonly provenance: ModelExecutionProvenance;
   readonly stopReason: 'stop' | 'length';
   readonly usage: ModelUsage;
   readonly timestamp: number;
@@ -107,7 +138,7 @@ export interface AgentLoopRequest {
   readonly history: readonly ModelMessage[];
   readonly prompt: UserModelMessage;
   readonly tools: ToolRuntime;
-  readonly maxProviderTurns: number;
+  readonly maxModelTurns: number;
   readonly maxOutputCharacters: number;
   readonly signal: AbortSignal;
   readonly emit: AgentLoopEventSink;

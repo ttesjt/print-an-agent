@@ -60,7 +60,7 @@ export interface DefaultRequestWorkflowContext extends BaseWorkflowContext<
   userMessage?: UserModelMessage;
   modelRequest?: ActorInteractionRequest;
   response?: AgentResponse;
-  providerTurnCount?: number;
+  modelTurnCount?: number;
   outputCharacterCount?: number;
   replayedOutput?: boolean;
 }

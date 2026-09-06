@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AgentObservabilityError,
   createAgentTraceEmitter,
+  validateAgentTraceEvent,
   type AgentTraceEvent,
   type AgentTraceEventSink,
   type AgentTraceSinkFailure,
@@ -29,7 +30,7 @@ describe('Agent trace emitter', () => {
 
     expect(events).toEqual([
       {
-        schemaVersion: 1,
+        schemaVersion: 2,
         agentId: 'assistant',
         agentRunId: 'request-1',
         sequence: 1,
@@ -38,7 +39,7 @@ describe('Agent trace emitter', () => {
         operationName: 'test',
       },
       {
-        schemaVersion: 1,
+        schemaVersion: 2,
         agentId: 'assistant',
         agentRunId: 'request-1',
         sequence: 2,
@@ -139,5 +140,134 @@ describe('Agent trace emitter', () => {
       ])
     ).rejects.toMatchObject({ code: 'TRACE_EVENT_INVALID' });
     expect(events).toEqual([]);
+  });
+
+  it('accepts closed provenance summaries and rejects opaque evidence or contradictory fields', async () => {
+    const events: AgentTraceEvent[] = [];
+    const trace = createAgentTraceEmitter({
+      agentId: 'assistant',
+      agentRunId: 'request-1',
+      sink: {
+        record: (event) => {
+          events.push(event);
+          return Promise.resolve();
+        },
+      },
+      clock: () => 1,
+    });
+    const common = {
+      type: 'model-response-completed',
+      workflowName: 'request',
+      workflowRunId: 'workflow-1',
+      modelTurnIndex: 1,
+      engineId: 'custom-engine',
+      stopReason: 'stop',
+      inputTokens: 1,
+      outputTokens: 2,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 3,
+      outputCharacters: 10,
+    } as const;
+
+    await trace.record({
+      ...common,
+      provenanceKind: 'engine-defined',
+      provenanceType: 'example.runtime-target',
+    });
+    expect(events[0]).toMatchObject({
+      engineId: 'custom-engine',
+      provenanceKind: 'engine-defined',
+      provenanceType: 'example.runtime-target',
+    });
+
+    const record = trace.record.bind(trace);
+    await expect(
+      Reflect.apply(record, undefined, [
+        {
+          ...common,
+          provenanceKind: 'engine-defined',
+          provenanceType: 'example.runtime-target',
+          evidence: { private: 'must-not-enter-traces' },
+        },
+      ])
+    ).rejects.toMatchObject({ code: 'TRACE_EVENT_INVALID' });
+    await expect(
+      Reflect.apply(record, undefined, [
+        {
+          ...common,
+          provenanceKind: 'provider-model',
+          provider: 'provider',
+          model: 'model',
+          provenanceType: 'contradictory',
+        },
+      ])
+    ).rejects.toMatchObject({ code: 'TRACE_EVENT_INVALID' });
+    for (const provenanceType of ['contains space', 'x'.repeat(129)]) {
+      await expect(
+        Reflect.apply(record, undefined, [
+          {
+            ...common,
+            provenanceKind: 'engine-defined',
+            provenanceType,
+          },
+        ])
+      ).rejects.toMatchObject({ code: 'TRACE_EVENT_INVALID' });
+    }
+    expect(events).toHaveLength(1);
+  });
+
+  it('accepts only trace schema 2 and model-turn vocabulary', () => {
+    const baseEnvelope = {
+      agentId: 'assistant',
+      agentRunId: 'request-1',
+      sequence: 1,
+      timestamp: 1,
+    } as const;
+    const currentEvent = {
+      ...baseEnvelope,
+      schemaVersion: 2,
+      type: 'model-turn-started',
+      workflowName: 'request',
+      workflowRunId: 'workflow-1',
+      modelTurnIndex: 1,
+    } as const;
+
+    expect(() => validateAgentTraceEvent(currentEvent)).not.toThrow();
+
+    const obsoleteEvents: readonly unknown[] = [
+      { ...currentEvent, schemaVersion: 1 },
+      {
+        ...baseEnvelope,
+        schemaVersion: 2,
+        type: 'provider-turn-started',
+        workflowName: 'request',
+        workflowRunId: 'workflow-1',
+        turnIndex: 1,
+      },
+      {
+        ...baseEnvelope,
+        schemaVersion: 2,
+        type: 'agent-loop-started',
+        workflowName: 'request',
+        workflowRunId: 'workflow-1',
+        sessionId: 'session-1',
+        maxProviderTurns: 4,
+        maxOutputCharacters: 100,
+      },
+      {
+        ...baseEnvelope,
+        schemaVersion: 2,
+        type: 'agent-loop-completed',
+        workflowName: 'request',
+        workflowRunId: 'workflow-1',
+        providerTurns: 1,
+        toolCalls: 0,
+        totalToolResultCharacters: 0,
+      },
+    ];
+    for (const event of obsoleteEvents) {
+      expect(() => validateAgentTraceEvent(event)).toThrowError(AgentObservabilityError);
+    }
   });
 });

@@ -29,7 +29,7 @@ function interactionRequest(instructions = 'Step instructions') {
     history: Object.freeze([]),
     prompt: Object.freeze({ role: 'user' as const, text: 'hello', timestamp: 1 }),
     tools: EMPTY_TOOL_RUNTIME,
-    maxProviderTurns: 2,
+    maxModelTurns: 2,
     maxOutputCharacters: 100,
     signal: new AbortController().signal,
     emit: () => Promise.resolve(),

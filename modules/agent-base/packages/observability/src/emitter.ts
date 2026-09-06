@@ -75,7 +75,7 @@ class RunScopedAgentTraceEmitter implements AgentTraceEmitter {
     this.#initialTimestamp = undefined;
     const event = Object.freeze({
       ...details,
-      schemaVersion: 1 as const,
+      schemaVersion: 2 as const,
       agentId: this.agentId,
       agentRunId: this.agentRunId,
       sequence: (this.#sequence += 1),

@@ -1,5 +1,8 @@
 import {
   AgentModelError,
+  defineAssistantModelMessage,
+  defineEngineDefinedModelExecutionProvenance,
+  defineProviderModelExecutionProvenance,
   defineProviderModelReference,
   type AgentLoopEvent,
 } from '@ta-agent/base-model';
@@ -89,7 +92,7 @@ describe('Pi faux Agent Loop runtime', () => {
       history: [],
       prompt: prompt('hi'),
       tools: emptyTools(signal),
-      maxProviderTurns: 4,
+      maxModelTurns: 4,
       maxOutputCharacters: 100,
       signal,
       emit: (event) => {
@@ -114,7 +117,7 @@ describe('Pi faux Agent Loop runtime', () => {
     });
   });
 
-  it('passes completed history and the new prompt through Pi', async () => {
+  it('projects engine-defined assistant history into the current Pi wire target', async () => {
     const profile = createPiFauxRuntime({
       responses: [
         (request) => ({
@@ -124,19 +127,21 @@ describe('Pi faux Agent Loop runtime', () => {
       ],
     });
     const target = await profile.runtime.resolveTarget(profile.modelReference);
-    const priorAssistant = Object.freeze({
-      role: 'assistant' as const,
+    const priorAssistant = defineAssistantModelMessage({
+      role: 'assistant',
       text: 'first answer',
-      provider: profile.modelReference.provider,
-      model: profile.modelReference.model,
-      stopReason: 'stop' as const,
-      usage: Object.freeze({
+      provenance: defineEngineDefinedModelExecutionProvenance({
+        type: 'test.embedded-target',
+        evidence: { artifactId: 'artifact-1' },
+      }),
+      stopReason: 'stop',
+      usage: {
         inputTokens: 1,
         outputTokens: 1,
         cacheReadTokens: 0,
         cacheWriteTokens: 0,
         totalTokens: 2,
-      }),
+      },
       timestamp: 2,
     });
 
@@ -147,13 +152,74 @@ describe('Pi faux Agent Loop runtime', () => {
       history: [prompt('first'), priorAssistant],
       prompt: Object.freeze({ role: 'user', text: 'second', timestamp: 3 }),
       tools: emptyTools(signal),
-      maxProviderTurns: 4,
+      maxModelTurns: 4,
       maxOutputCharacters: 1_000,
       signal,
       emit: () => Promise.resolve(),
     });
 
     expect(result.message.text).toBe('user:first|assistant:first answer|user:second');
+    expect(result.message.provenance).toEqual({
+      kind: 'provider-model',
+      provider: profile.modelReference.provider,
+      model: profile.modelReference.model,
+    });
+    expect(profile.inspect().requests[0]?.messages[1]).toMatchObject({
+      role: 'assistant',
+      provenance: {
+        kind: 'provider-model',
+        provider: profile.modelReference.provider,
+        model: profile.modelReference.model,
+      },
+    });
+  });
+
+  it('preserves provider provenance when history crosses into another Pi target', async () => {
+    const profile = createPiFauxRuntime({
+      providerId: 'current-provider',
+      modelId: 'current-model',
+      responses: [{ status: 'success', text: 'second answer' }],
+    });
+    const target = await profile.runtime.resolveTarget(profile.modelReference);
+    const priorAssistant = defineAssistantModelMessage({
+      role: 'assistant',
+      text: 'first answer',
+      provenance: defineProviderModelExecutionProvenance({
+        provider: 'source-provider',
+        model: 'source-model',
+      }),
+      stopReason: 'stop',
+      usage: {
+        inputTokens: 1,
+        outputTokens: 1,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 2,
+      },
+      timestamp: 2,
+    });
+
+    const signal = new AbortController().signal;
+    await profile.runtime.run({
+      target,
+      instructions: '',
+      history: [prompt('first'), priorAssistant],
+      prompt: Object.freeze({ role: 'user', text: 'second', timestamp: 3 }),
+      tools: emptyTools(signal),
+      maxModelTurns: 4,
+      maxOutputCharacters: 1_000,
+      signal,
+      emit: () => Promise.resolve(),
+    });
+
+    expect(profile.inspect().requests[0]?.messages[1]).toMatchObject({
+      role: 'assistant',
+      provenance: {
+        kind: 'provider-model',
+        provider: 'source-provider',
+        model: 'source-model',
+      },
+    });
   });
 
   it('maps a provider terminal error after partial output', async () => {
@@ -172,7 +238,7 @@ describe('Pi faux Agent Loop runtime', () => {
         history: [],
         prompt: prompt('hi'),
         tools: emptyTools(signal),
-        maxProviderTurns: 4,
+        maxModelTurns: 4,
         maxOutputCharacters: 100,
         signal,
         emit: (event) => {
@@ -202,7 +268,7 @@ describe('Pi faux Agent Loop runtime', () => {
         history: [],
         prompt: prompt('hi'),
         tools: emptyTools(controller.signal),
-        maxProviderTurns: 4,
+        maxModelTurns: 4,
         maxOutputCharacters: 100,
         signal: controller.signal,
         emit: (event) => {
@@ -232,7 +298,7 @@ describe('Pi faux Agent Loop runtime', () => {
         history: [],
         prompt: prompt('hi'),
         tools: emptyTools(signal),
-        maxProviderTurns: 4,
+        maxModelTurns: 4,
         maxOutputCharacters: 3,
         signal,
         emit: () => Promise.resolve(),
@@ -272,7 +338,7 @@ describe('Pi faux Agent Loop runtime', () => {
         history: [],
         prompt: prompt('hi'),
         tools: emptyTools(signal),
-        maxProviderTurns: 4,
+        maxModelTurns: 4,
         maxOutputCharacters: 100,
         signal,
         emit: () => Promise.resolve(),
@@ -312,7 +378,7 @@ describe('Pi faux Agent Loop runtime', () => {
       history: [],
       prompt: prompt('add'),
       tools: tools.runtime,
-      maxProviderTurns: 3,
+      maxModelTurns: 3,
       maxOutputCharacters: 1_000,
       signal,
       emit: (event) => {
@@ -358,7 +424,7 @@ describe('Pi faux Agent Loop runtime', () => {
         history: [],
         prompt: prompt('add'),
         tools: tools.runtime,
-        maxProviderTurns: 3,
+        maxModelTurns: 3,
         maxOutputCharacters: 1_000,
         signal,
         emit: () => Promise.resolve(),
@@ -389,7 +455,7 @@ describe('Pi faux Agent Loop runtime', () => {
       history: [],
       prompt: prompt('add'),
       tools: tools.runtime,
-      maxProviderTurns: 3,
+      maxModelTurns: 3,
       maxOutputCharacters: 1_000,
       signal,
       emit: () => Promise.resolve(),
@@ -404,7 +470,7 @@ describe('Pi faux Agent Loop runtime', () => {
     });
   });
 
-  it('enforces duplicate call identity and provider-turn budget across Pi turns', async () => {
+  it('enforces duplicate call identity and model-turn budget across Pi turns', async () => {
     const duplicateProfile = createPiFauxRuntime({
       responses: [
         { status: 'tool-call', callId: 'same', name: 'add', arguments: { left: 1, right: 1 } },
@@ -423,7 +489,7 @@ describe('Pi faux Agent Loop runtime', () => {
         history: [],
         prompt: prompt('add'),
         tools: duplicateTools.runtime,
-        maxProviderTurns: 3,
+        maxModelTurns: 3,
         maxOutputCharacters: 1_000,
         signal: duplicateSignal,
         emit: () => Promise.resolve(),
@@ -448,14 +514,14 @@ describe('Pi faux Agent Loop runtime', () => {
         history: [],
         prompt: prompt('add'),
         tools: budgetTools.runtime,
-        maxProviderTurns: 1,
+        maxModelTurns: 1,
         maxOutputCharacters: 1_000,
         signal: budgetSignal,
         emit: () => Promise.resolve(),
       })
     ).rejects.toEqual(
       expect.objectContaining<Partial<AgentModelError>>({
-        code: 'MODEL_PROVIDER_TURN_LIMIT_EXCEEDED',
+        code: 'MODEL_TURN_LIMIT_EXCEEDED',
       })
     );
     expect(budgetProfile.inspect().callCount).toBe(1);
@@ -479,13 +545,12 @@ describe('Pi faux direct Actor Engine', () => {
     return Object.freeze([
       Object.freeze({ role: 'context' as const, text: 'prior context', timestamp: 1 }),
       prompt('user-one'),
-      Object.freeze({
-        role: 'assistant' as const,
+      defineAssistantModelMessage({
+        role: 'assistant',
         text: 'assistant-one',
-        provider: directModel.provider,
-        model: directModel.model,
-        stopReason: 'stop' as const,
-        usage,
+        provenance: defineProviderModelExecutionProvenance(directModel),
+        stopReason: 'stop',
+        usage: { ...usage },
         timestamp: 2,
       }),
       prompt('Produce the compacted session context.'),

@@ -48,7 +48,7 @@ describe('MemoryAgentTraceAdapter', () => {
   it('stores a detached immutable event value', async () => {
     const adapter = new MemoryAgentTraceAdapter({ maxEvents: 2 });
     const event = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       agentId: 'assistant',
       agentRunId: 'request-1',
       sequence: 1,
@@ -79,7 +79,7 @@ describe('MemoryAgentTraceAdapter', () => {
     await expect(
       Reflect.apply(record, undefined, [
         {
-          schemaVersion: 1,
+          schemaVersion: 2,
           agentId: 'assistant',
           agentRunId: 'request-1',
           sequence: 1,

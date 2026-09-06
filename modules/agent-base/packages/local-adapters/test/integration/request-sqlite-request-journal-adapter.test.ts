@@ -11,6 +11,7 @@ import {
 import { SqliteRequestJournalAdapter, SqliteSessionAdapter } from '../../src/index.js';
 import {
   defineRequestJournalContract,
+  engineDefinedJournalResponse,
   journalReference,
   journalResponse,
 } from '../support/request-journal-contract.js';
@@ -101,7 +102,7 @@ describe('SqliteRequestJournalAdapter durability', () => {
       const completed = await first.complete({
         ...reference,
         requestId: 'request-1',
-        response: journalResponse('request-1'),
+        response: engineDefinedJournalResponse('request-1'),
       });
 
       const reopened = new SqliteRequestJournalAdapter({

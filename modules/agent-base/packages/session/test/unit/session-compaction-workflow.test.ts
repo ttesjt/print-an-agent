@@ -8,7 +8,11 @@ import {
   type ActorDirectHandler,
 } from '@ta-agent/base-actor';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
-import { defineProviderModelReference } from '@ta-agent/base-model';
+import {
+  defineAssistantModelMessage,
+  defineProviderModelExecutionProvenance,
+  defineProviderModelReference,
+} from '@ta-agent/base-model';
 import { RUN_WORKFLOW } from '@ta-agent/base-workflow';
 import { describe, expect, it } from 'vitest';
 import {
@@ -41,19 +45,18 @@ function createTestResponsibilities(complete?: ActorDirectHandler) {
       (() =>
         Promise.resolve(
           Object.freeze({
-            message: Object.freeze({
+            message: defineAssistantModelMessage({
               role: 'assistant',
               text: 'unused',
-              provider: model.provider,
-              model: model.model,
+              provenance: defineProviderModelExecutionProvenance(model),
               stopReason: 'stop',
-              usage: Object.freeze({
+              usage: {
                 inputTokens: 1,
                 outputTokens: 1,
                 cacheReadTokens: 0,
                 cacheWriteTokens: 0,
                 totalTokens: 2,
-              }),
+              },
               timestamp: 1,
             }),
           })
@@ -82,19 +85,18 @@ function createTwoTurnSnapshot(agentId: SessionSnapshot['agentId']): SessionSnap
         text: `user-${name}`,
         timestamp: index * 2 + 1,
       }),
-      assistantMessage: Object.freeze({
+      assistantMessage: defineAssistantModelMessage({
         role: 'assistant' as const,
         text: `assistant-${name}`,
-        provider: model.provider,
-        model: model.model,
+        provenance: defineProviderModelExecutionProvenance(model),
         stopReason: 'stop' as const,
-        usage: Object.freeze({
+        usage: {
           inputTokens: 1,
           outputTokens: 1,
           cacheReadTokens: 0,
           cacheWriteTokens: 0,
           totalTokens: 2,
-        }),
+        },
         timestamp: index * 2 + 2,
       }),
     })

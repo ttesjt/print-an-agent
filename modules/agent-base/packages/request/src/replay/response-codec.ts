@@ -1,9 +1,5 @@
-import { defineProviderModelReference, type AssistantModelMessage } from '@ta-agent/base-model';
-import {
-  DEFAULT_SESSION_BRANCH_ID,
-  parseSessionBranchId,
-  parseSessionId,
-} from '@ta-agent/base-session';
+import { defineAssistantModelMessage, type AssistantModelMessage } from '@ta-agent/base-model';
+import { parseSessionBranchId, parseSessionId } from '@ta-agent/base-session';
 import {
   parseToolName,
   type ToolCallId,
@@ -17,7 +13,7 @@ import type { AgentResponse } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
 import { parseRequestJournalRequestId } from './identifiers.js';
 
-const RESPONSE_SCHEMA_VERSION = 2;
+const RESPONSE_SCHEMA_VERSION = 1;
 const TOOL_SCHEMA_MAX_DEPTH = 8;
 const TOOL_SCHEMA_MAX_PROPERTIES = 64;
 const TOOL_DESCRIPTION_MAX_LENGTH = 1_024;
@@ -304,59 +300,18 @@ function decodeToolRun(value: unknown): ToolRunInspection {
 }
 
 function decodeAssistantMessage(value: unknown): AssistantModelMessage {
-  const record = requireRecord(value, 'Assistant message');
-  assertKeys(
-    record,
-    ['model', 'provider', 'role', 'stopReason', 'text', 'timestamp', 'usage'],
-    [],
-    'Assistant message'
-  );
-  if (
-    record.role !== 'assistant' ||
-    (record.stopReason !== 'stop' && record.stopReason !== 'length')
-  ) {
-    throw invalidRecord('Assistant message role or stop reason is invalid.');
-  }
-  const usage = requireRecord(record.usage, 'Assistant usage');
-  assertKeys(
-    usage,
-    ['cacheReadTokens', 'cacheWriteTokens', 'inputTokens', 'outputTokens', 'totalTokens'],
-    [],
-    'Assistant usage'
-  );
-  let reference;
   try {
-    reference = defineProviderModelReference({
-      provider: requireString(record.provider, 'Assistant provider'),
-      model: requireString(record.model, 'Assistant model'),
-    });
+    return defineAssistantModelMessage(value);
   } catch (cause: unknown) {
-    throw invalidRecord('Assistant model reference is invalid.', cause);
+    throw invalidRecord('Assistant message is invalid.', cause);
   }
-  return Object.freeze({
-    role: 'assistant',
-    text: requireString(record.text, 'Assistant text'),
-    provider: reference.provider,
-    model: reference.model,
-    stopReason: record.stopReason,
-    usage: Object.freeze({
-      inputTokens: requireNonNegativeInteger(usage.inputTokens, 'Usage inputTokens'),
-      outputTokens: requireNonNegativeInteger(usage.outputTokens, 'Usage outputTokens'),
-      cacheReadTokens: requireNonNegativeInteger(usage.cacheReadTokens, 'Usage cacheReadTokens'),
-      cacheWriteTokens: requireNonNegativeInteger(usage.cacheWriteTokens, 'Usage cacheWriteTokens'),
-      totalTokens: requireNonNegativeInteger(usage.totalTokens, 'Usage totalTokens'),
-    }),
-    timestamp: requireNonNegativeInteger(record.timestamp, 'Assistant timestamp'),
-  });
 }
 
-function decodeResponseValue(value: unknown, schemaVersion: 1 | 2): AgentResponse {
+function decodeResponseValue(value: unknown): AgentResponse {
   const record = requireRecord(value, 'Agent response');
   assertKeys(
     record,
-    schemaVersion === 1
-      ? ['message', 'requestId', 'sessionId', 'toolRun']
-      : ['branchId', 'message', 'requestId', 'sessionId', 'toolRun'],
+    ['branchId', 'message', 'requestId', 'sessionId', 'toolRun'],
     [],
     'Agent response'
   );
@@ -365,8 +320,7 @@ function decodeResponseValue(value: unknown, schemaVersion: 1 | 2): AgentRespons
   let requestId;
   try {
     sessionId = parseSessionId(record.sessionId);
-    branchId =
-      schemaVersion === 1 ? DEFAULT_SESSION_BRANCH_ID : parseSessionBranchId(record.branchId);
+    branchId = parseSessionBranchId(record.branchId);
     requestId = parseRequestJournalRequestId(record.requestId);
   } catch (cause: unknown) {
     throw invalidRecord('Agent response request or Session ID is invalid.', cause);
@@ -400,8 +354,8 @@ export function decodeAgentResponse(value: string): AgentResponse {
   }
   const envelope = requireRecord(parsed, 'Agent response envelope');
   assertKeys(envelope, ['response', 'schemaVersion'], [], 'Agent response envelope');
-  if (envelope.schemaVersion !== 1 && envelope.schemaVersion !== RESPONSE_SCHEMA_VERSION) {
+  if (envelope.schemaVersion !== RESPONSE_SCHEMA_VERSION) {
     throw invalidRecord('Agent response envelope version is unsupported.');
   }
-  return decodeResponseValue(envelope.response, envelope.schemaVersion);
+  return decodeResponseValue(envelope.response);
 }

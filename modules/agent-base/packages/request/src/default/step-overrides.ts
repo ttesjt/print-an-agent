@@ -264,7 +264,7 @@ function buildModelContext(context: DefaultRequestWorkflowContext): Promise<void
     history: requireValue(context.history, 'history'),
     prompt: requireValue(context.userMessage, 'userMessage'),
     tools: requireValue(context.tools, 'tools'),
-    maxProviderTurns: context.policy.maxProviderTurns,
+    maxModelTurns: context.policy.maxModelTurns,
     maxOutputCharacters: context.policy.maxOutputCharacters,
     signal: context.signal,
     emit: (event: AgentLoopEvent) => handleAgentLoopEvent(context, event),

@@ -1,4 +1,4 @@
-import type { AgentLoopResult } from '@ta-agent/base-model';
+import { type AgentLoopResult } from '@ta-agent/base-model';
 import { parseToolName, type ToolName } from '@ta-agent/base-tool';
 import {
   defineActorCapabilityLimits,
@@ -22,6 +22,7 @@ import {
   type ActorId,
 } from './identifiers.js';
 import { composeActorInstructions, parseActorInstructions } from './instructions.js';
+import { createActorInteractionProtocol, normalizeActorDirectResult } from './engine-protocol.js';
 
 export interface ActorDefinitionInput {
   readonly id: string;
@@ -141,11 +142,20 @@ export function resolveActor(
           `Actor "${definition.id}" does not support Tool calls.`
         );
       }
-      return engine.interact({
-        ...request,
-        instructions: composeActorInstructions(definition.instructions, request.instructions),
-        invocationConfig: definition.invocationConfig,
-      });
+      const protocol = createActorInteractionProtocol(request.emit, request.maxModelTurns);
+      let result: unknown;
+      try {
+        result = await engine.interact({
+          ...request,
+          instructions: composeActorInstructions(definition.instructions, request.instructions),
+          invocationConfig: definition.invocationConfig,
+          emit: protocol.emit,
+        });
+      } catch (cause: unknown) {
+        protocol.assertValid();
+        throw cause;
+      }
+      return protocol.complete(result);
     },
     async complete(request: ActorDirectRequest): Promise<ActorDirectResult> {
       if (!capabilities.invocationModes.includes('direct') || engine.complete === undefined) {
@@ -154,11 +164,12 @@ export function resolveActor(
           `Actor "${definition.id}" does not support direct invocation.`
         );
       }
-      return engine.complete({
+      const result = await engine.complete({
         ...request,
         instructions: composeActorInstructions(definition.instructions, request.instructions),
         invocationConfig: definition.invocationConfig,
       });
+      return normalizeActorDirectResult(result);
     },
   });
 }

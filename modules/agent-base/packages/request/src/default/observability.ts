@@ -118,12 +118,12 @@ export async function traceOutputFailed(
 
 export async function traceAgentLoopStarted(context: DefaultRequestWorkflowContext): Promise<void> {
   if (context.session === undefined || context.responsibility === undefined) return;
-  context.providerTurnCount = 0;
+  context.modelTurnCount = 0;
   await context.agentRunContext.traceEmitter?.record({
     type: 'agent-loop-started',
     ...workflowReference(context),
     sessionId: context.session.sessionId,
-    maxProviderTurns: context.policy.maxProviderTurns,
+    maxModelTurns: context.policy.maxModelTurns,
     maxOutputCharacters: context.policy.maxOutputCharacters,
   });
 }
@@ -132,12 +132,27 @@ async function traceModelResponse(
   context: DefaultRequestWorkflowContext,
   message: AssistantModelMessage
 ): Promise<void> {
+  const responsibility = context.responsibility;
+  if (responsibility === undefined) return;
+  const modelTurnIndex = Math.max(context.modelTurnCount ?? 0, 1);
+  context.modelTurnCount = modelTurnIndex;
+  const provenance =
+    message.provenance.kind === 'provider-model'
+      ? {
+          provenanceKind: message.provenance.kind,
+          provider: message.provenance.provider,
+          model: message.provenance.model,
+        }
+      : {
+          provenanceKind: message.provenance.kind,
+          provenanceType: message.provenance.type,
+        };
   await context.agentRunContext.traceEmitter?.record({
     type: 'model-response-completed',
     ...workflowReference(context),
-    turnIndex: context.providerTurnCount ?? 0,
-    provider: message.provider,
-    model: message.model,
+    modelTurnIndex,
+    engineId: responsibility.actor.engineId,
+    ...provenance,
     stopReason: message.stopReason,
     inputTokens: message.usage.inputTokens,
     outputTokens: message.usage.outputTokens,
@@ -153,19 +168,19 @@ export async function traceAgentLoopEvent(
   event: AgentLoopEvent
 ): Promise<void> {
   if (event.type === 'turn-start') {
-    context.providerTurnCount = (context.providerTurnCount ?? 0) + 1;
+    context.modelTurnCount = (context.modelTurnCount ?? 0) + 1;
     await context.agentRunContext.traceEmitter?.record({
-      type: 'provider-turn-started',
+      type: 'model-turn-started',
       ...workflowReference(context),
-      turnIndex: context.providerTurnCount,
+      modelTurnIndex: context.modelTurnCount,
     });
     return;
   }
   if (event.type === 'turn-end') {
     await context.agentRunContext.traceEmitter?.record({
-      type: 'provider-turn-completed',
+      type: 'model-turn-completed',
       ...workflowReference(context),
-      turnIndex: context.providerTurnCount ?? 0,
+      modelTurnIndex: context.modelTurnCount ?? 0,
     });
     return;
   }
@@ -195,7 +210,7 @@ export async function traceAgentLoopEvent(
 function toolSummary(context: DefaultRequestWorkflowContext) {
   const inspection = context.tools?.inspect();
   return {
-    providerTurns: context.providerTurnCount ?? 0,
+    modelTurns: context.modelTurnCount ?? 0,
     toolCalls: inspection?.records.length ?? 0,
     totalToolResultCharacters: inspection?.totalResultCharacters ?? 0,
   } as const;

@@ -6,6 +6,7 @@ import {
   type OutputSink,
   type OutputTextDeltaEvent,
 } from '@ta-agent/base-request';
+import { defineAssistantModelMessage } from '@ta-agent/base-model';
 
 export type MemoryOutputSnapshot =
   | Readonly<{ status: 'pending'; events: readonly OutputTextDeltaEvent[] }>
@@ -79,10 +80,7 @@ export class MemoryOutputSink implements OutputSink {
       }
       this.#response = Object.freeze({
         ...response,
-        message: Object.freeze({
-          ...response.message,
-          usage: Object.freeze({ ...response.message.usage }),
-        }),
+        message: defineAssistantModelMessage(response.message),
       });
     });
   }

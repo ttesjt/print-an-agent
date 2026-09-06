@@ -1,5 +1,11 @@
 import { defineAgentIdentity } from '@ta-agent/base-identity';
-import { defineProviderModelReference } from '@ta-agent/base-model';
+import {
+  defineAssistantModelMessage,
+  defineEngineDefinedModelExecutionProvenance,
+  defineProviderModelExecutionProvenance,
+  defineProviderModelReference,
+  type ModelExecutionProvenance,
+} from '@ta-agent/base-model';
 import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
@@ -33,25 +39,25 @@ export function journalReference(
 export function journalResponse(
   requestId: string,
   sessionId = 'conversation',
-  text = 'completed'
+  text = 'completed',
+  provenance: ModelExecutionProvenance = defineProviderModelExecutionProvenance(model)
 ): AgentResponse {
   return Object.freeze({
     requestId,
     sessionId: parseSessionId(sessionId),
     branchId: DEFAULT_SESSION_BRANCH_ID,
-    message: Object.freeze({
+    message: defineAssistantModelMessage({
       role: 'assistant',
       text,
-      provider: model.provider,
-      model: model.model,
+      provenance,
       stopReason: 'stop',
-      usage: Object.freeze({
+      usage: {
         inputTokens: 1,
         outputTokens: 1,
         cacheReadTokens: 0,
         cacheWriteTokens: 0,
         totalTokens: 2,
-      }),
+      },
       timestamp: 2,
     }),
     toolRun: Object.freeze({
@@ -61,6 +67,21 @@ export function journalResponse(
       totalResultCharacters: 0,
     }),
   });
+}
+
+export function engineDefinedJournalResponse(requestId: string): AgentResponse {
+  return journalResponse(
+    requestId,
+    'conversation',
+    'engine completed',
+    defineEngineDefinedModelExecutionProvenance({
+      type: 'test.runtime-target',
+      evidence: {
+        artifact: { id: 'artifact-1', revision: 3 },
+        route: ['embedded', 'generation-7'],
+      },
+    })
+  );
 }
 
 async function withHarness<T>(
@@ -134,6 +155,33 @@ export function defineRequestJournalContract(
             code: 'REQUEST_REPLAY_STATE_INVALID',
           })
         );
+      }));
+
+    it('round-trips deeply immutable engine-defined provenance through replay authority', () =>
+      withHarness(createHarness, async (journal) => {
+        const reference = journalReference(
+          'engine-evidence-agent',
+          'conversation',
+          'engine-evidence-key'
+        );
+        await journal.claim({
+          ...reference,
+          fingerprint: createRequestFingerprint({ message: 'invoke custom engine' }),
+          requestId: 'engine-request',
+        });
+        const expected = engineDefinedJournalResponse('engine-request');
+        await journal.complete({ ...reference, requestId: 'engine-request', response: expected });
+
+        const inspected = await journal.inspect(reference);
+        expect(inspected).toMatchObject({ status: 'completed', response: expected });
+        const provenance =
+          inspected?.status === 'completed' ? inspected.response.message.provenance : undefined;
+        expect(provenance?.kind).toBe('engine-defined');
+        if (provenance?.kind === 'engine-defined') {
+          expect(Object.isFrozen(provenance.evidence)).toBe(true);
+          expect(Object.isFrozen(provenance.evidence.artifact)).toBe(true);
+          expect(Object.isFrozen(provenance.evidence.route)).toBe(true);
+        }
       }));
 
     it('fails once and rejects a later completion', () =>

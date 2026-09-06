@@ -12,7 +12,8 @@ import {
 } from '@ta-agent/base-actor';
 import {
   AgentModelError,
-  defineProviderModelReference,
+  defineAssistantModelMessage,
+  defineEngineDefinedModelExecutionProvenance,
   type AssistantModelMessage,
 } from '@ta-agent/base-model';
 import {
@@ -70,25 +71,22 @@ function responsibilitiesAllowingTools(
   );
 }
 
-const CUSTOM_MODEL = defineProviderModelReference({
-  provider: 'custom-engine',
-  model: 'deterministic',
-});
-
 function customAssistantMessage(text: string): AssistantModelMessage {
-  return Object.freeze({
+  return defineAssistantModelMessage({
     role: 'assistant',
     text,
-    provider: CUSTOM_MODEL.provider,
-    model: CUSTOM_MODEL.model,
+    provenance: defineEngineDefinedModelExecutionProvenance({
+      type: 'test.custom-target',
+      evidence: { artifactId: 'PRIVATE_ARTIFACT_ID' },
+    }),
     stopReason: 'stop',
-    usage: Object.freeze({
+    usage: {
       inputTokens: 1,
       outputTokens: 1,
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
       totalTokens: 2,
-    }),
+    },
     timestamp: 1,
   });
 }
@@ -200,8 +198,8 @@ describe('assembled Agent Base request path', () => {
         'actor-resolved',
         'tools-resolved',
         'agent-loop-started',
-        'provider-turn-started',
-        'provider-turn-completed',
+        'model-turn-started',
+        'model-turn-completed',
         'tool-call-started',
         'tool-call-completed',
         'model-response-completed',
@@ -211,7 +209,15 @@ describe('assembled Agent Base request path', () => {
         'agent-run-completed',
       ])
     );
-    expect(events.filter((event) => event.type === 'provider-turn-started')).toHaveLength(2);
+    expect(events.every((event) => event.schemaVersion === 2)).toBe(true);
+    expect(
+      events
+        .filter((event) => event.type === 'model-turn-started')
+        .map((event) => event.modelTurnIndex)
+    ).toEqual([1, 2]);
+    expect(events.find((event) => event.type === 'agent-loop-started')).toMatchObject({
+      maxModelTurns: 4,
+    });
     expect(events.find((event) => event.type === 'actor-resolved')).toMatchObject({
       responsibilityId: FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
       responsibilityRevision: 1,
@@ -220,6 +226,16 @@ describe('assembled Agent Base request path', () => {
       engineId: 'deterministic-provider',
       candidateIndex: 0,
       invocationMode: 'interaction',
+    });
+    expect(events.find((event) => event.type === 'model-response-completed')).toMatchObject({
+      modelTurnIndex: 2,
+      engineId: 'deterministic-provider',
+      provenanceKind: 'provider-model',
+      provider: 'faux',
+      model: 'faux-model',
+    });
+    expect(events.find((event) => event.type === 'agent-loop-completed')).toMatchObject({
+      modelTurns: 2,
     });
     expect(events.at(-1)?.type).toBe('agent-run-completed');
     const serializedTrace = JSON.stringify(events);
@@ -525,7 +541,7 @@ describe('assembled Agent Base request path', () => {
       });
       expect(replayEventTypes).toContain('output-publication-completed');
       expect(replayEventTypes).not.toContain('agent-loop-started');
-      expect(replayEventTypes).not.toContain('provider-turn-started');
+      expect(replayEventTypes).not.toContain('model-turn-started');
       expect(replayEventTypes).not.toContain('tool-call-started');
     } finally {
       rmSync(directory, { recursive: true, force: true });
@@ -1115,6 +1131,16 @@ describe('assembled Agent Base request path', () => {
       engineId: 'compaction-engine',
       invocationMode: 'direct',
     });
+    const modelResponse = trace
+      .inspect()
+      .events.find((event) => event.type === 'model-response-completed');
+    expect(modelResponse).toMatchObject({
+      engineId: 'foreground-engine',
+      provenanceKind: 'engine-defined',
+      provenanceType: 'test.custom-target',
+    });
+    expect(JSON.stringify(modelResponse)).not.toContain('PRIVATE_ARTIFACT_ID');
+    expect(JSON.stringify(modelResponse)).not.toContain('foreground-1');
   });
 
   it('navigates durable branches with branch-scoped context, replay, and tracing', async () => {
@@ -1456,7 +1482,7 @@ describe('assembled Agent Base request path', () => {
         maxMessageCharacters: 100,
         maxInstructionsCharacters: 100,
         maxOutputCharacters: 100,
-        maxProviderTurns: 4,
+        maxModelTurns: 4,
         timeoutMilliseconds: 5,
       },
     });

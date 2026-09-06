@@ -1,8 +1,7 @@
 import {
-  defineProviderModelReference,
+  defineAssistantModelMessage,
   type AssistantModelMessage,
   type ContextModelMessage,
-  type ModelUsage,
   type UserModelMessage,
 } from '@ta-agent/base-model';
 import { AgentSessionError, MAX_SESSION_COMPACTION_CHARACTERS } from '@ta-agent/base-session';
@@ -10,8 +9,7 @@ import { AgentSessionError, MAX_SESSION_COMPACTION_CHARACTERS } from '@ta-agent/
 const MESSAGE_SCHEMA_VERSION = 1;
 const USER_MESSAGE_KEYS = Object.freeze(['role', 'schemaVersion', 'text', 'timestamp']);
 const ASSISTANT_MESSAGE_KEYS = Object.freeze([
-  'model',
-  'provider',
+  'provenance',
   'role',
   'schemaVersion',
   'stopReason',
@@ -20,13 +18,6 @@ const ASSISTANT_MESSAGE_KEYS = Object.freeze([
   'usage',
 ]);
 const CONTEXT_MESSAGE_KEYS = USER_MESSAGE_KEYS;
-const USAGE_KEYS = Object.freeze([
-  'cacheReadTokens',
-  'cacheWriteTokens',
-  'inputTokens',
-  'outputTokens',
-  'totalTokens',
-]);
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -72,21 +63,6 @@ function requireNonNegativeSafeInteger(value: unknown, label: string): number {
   return value;
 }
 
-function decodeUsage(value: unknown): ModelUsage {
-  const record = requireRecord(value, 'Persisted assistant usage');
-  assertExactKeys(record, USAGE_KEYS, 'Persisted assistant usage');
-  return Object.freeze({
-    inputTokens: requireNonNegativeSafeInteger(record.inputTokens, 'Usage inputTokens'),
-    outputTokens: requireNonNegativeSafeInteger(record.outputTokens, 'Usage outputTokens'),
-    cacheReadTokens: requireNonNegativeSafeInteger(record.cacheReadTokens, 'Usage cacheReadTokens'),
-    cacheWriteTokens: requireNonNegativeSafeInteger(
-      record.cacheWriteTokens,
-      'Usage cacheWriteTokens'
-    ),
-    totalTokens: requireNonNegativeSafeInteger(record.totalTokens, 'Usage totalTokens'),
-  });
-}
-
 function decodeUserMessageValue(value: unknown): UserModelMessage {
   const record = requireRecord(value, 'Persisted user message');
   assertExactKeys(record, USER_MESSAGE_KEYS, 'Persisted user message');
@@ -106,30 +82,18 @@ function decodeAssistantMessageValue(value: unknown): AssistantModelMessage {
   if (record.schemaVersion !== MESSAGE_SCHEMA_VERSION || record.role !== 'assistant') {
     throw invalidRecord('Persisted assistant message has an unsupported schema version or role.');
   }
-  if (record.stopReason !== 'stop' && record.stopReason !== 'length') {
-    throw invalidRecord('Persisted assistant stop reason is invalid.');
-  }
-
-  let reference;
   try {
-    reference = defineProviderModelReference({
-      provider: requireString(record.provider, 'Assistant provider'),
-      model: requireString(record.model, 'Assistant model'),
+    return defineAssistantModelMessage({
+      role: record.role,
+      text: record.text,
+      provenance: record.provenance,
+      stopReason: record.stopReason,
+      usage: record.usage,
+      timestamp: record.timestamp,
     });
   } catch (cause: unknown) {
-    if (cause instanceof AgentSessionError) throw cause;
-    throw invalidRecord('Persisted assistant model reference is invalid.', cause);
+    throw invalidRecord('Persisted assistant message is invalid.', cause);
   }
-
-  return Object.freeze({
-    role: 'assistant',
-    text: requireString(record.text, 'Assistant message text'),
-    provider: reference.provider,
-    model: reference.model,
-    stopReason: record.stopReason,
-    usage: decodeUsage(record.usage),
-    timestamp: requireNonNegativeSafeInteger(record.timestamp, 'Assistant message timestamp'),
-  });
 }
 
 function decodeContextMessageValue(value: unknown): ContextModelMessage {
@@ -166,22 +130,12 @@ export function decodeUserMessage(value: string): UserModelMessage {
 }
 
 export function encodeAssistantMessage(message: AssistantModelMessage): string {
-  const normalized = decodeAssistantMessageValue({
-    schemaVersion: MESSAGE_SCHEMA_VERSION,
-    role: message.role,
-    text: message.text,
-    provider: message.provider,
-    model: message.model,
-    stopReason: message.stopReason,
-    usage: {
-      inputTokens: message.usage.inputTokens,
-      outputTokens: message.usage.outputTokens,
-      cacheReadTokens: message.usage.cacheReadTokens,
-      cacheWriteTokens: message.usage.cacheWriteTokens,
-      totalTokens: message.usage.totalTokens,
-    },
-    timestamp: message.timestamp,
-  });
+  let normalized: AssistantModelMessage;
+  try {
+    normalized = defineAssistantModelMessage(message);
+  } catch (cause: unknown) {
+    throw invalidRecord('Assistant message is invalid.', cause);
+  }
   return JSON.stringify({ schemaVersion: MESSAGE_SCHEMA_VERSION, ...normalized });
 }
 

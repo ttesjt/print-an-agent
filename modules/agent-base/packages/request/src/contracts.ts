@@ -60,6 +60,6 @@ export interface RequestPolicy {
   readonly maxMessageCharacters: number;
   readonly maxInstructionsCharacters: number;
   readonly maxOutputCharacters: number;
-  readonly maxProviderTurns: number;
+  readonly maxModelTurns: number;
   readonly timeoutMilliseconds: number;
 }

@@ -2,7 +2,11 @@ import { mkdtemp, readFile, readdir, rm, symlink, unlink, writeFile } from 'node
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { defineProviderModelReference } from '@ta-agent/base-model';
+import {
+  defineAssistantModelMessage,
+  defineProviderModelExecutionProvenance,
+  defineProviderModelReference,
+} from '@ta-agent/base-model';
 import { parseTurnId } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
@@ -169,15 +173,14 @@ describe('managed Standalone Agent directory', () => {
       await agent.agent.resources.session.completeTurn({
         ...session,
         turnId,
-        assistantMessage: {
+        assistantMessage: defineAssistantModelMessage({
           role: 'assistant',
           text: 'hi',
-          provider: TEST_MODEL.provider,
-          model: TEST_MODEL.model,
+          provenance: defineProviderModelExecutionProvenance(TEST_MODEL),
           stopReason: 'stop',
           usage: TEST_USAGE,
           timestamp: 2,
-        },
+        }),
       });
 
       const disabled = await directory.disable({

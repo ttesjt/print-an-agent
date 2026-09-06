@@ -53,7 +53,7 @@ describe.skipIf(!smokeEnabled)('ordinary provider smoke', () => {
       identity: { id: 'provider-smoke' },
       requestPolicy: {
         ...DEFAULT_REQUEST_POLICY,
-        maxProviderTurns: 1,
+        maxModelTurns: 1,
         timeoutMilliseconds: 30_000,
       },
       mainActor: { invocationConfig: { temperature: 0, maxOutputTokens: 64 } },

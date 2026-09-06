@@ -1,5 +1,9 @@
 import type { AgentId } from '@ta-agent/base-identity';
-import type { ContextModelMessage, ModelMessage } from '@ta-agent/base-model';
+import {
+  defineAssistantModelMessage,
+  type ContextModelMessage,
+  type ModelMessage,
+} from '@ta-agent/base-model';
 import {
   AgentSessionError,
   MAX_SESSION_COMPACTION_CHARACTERS,
@@ -46,10 +50,7 @@ export function cloneMemoryTurn(turn: SessionTurn): SessionTurn {
     return Object.freeze({
       ...turn,
       userMessage: Object.freeze({ ...turn.userMessage }),
-      assistantMessage: Object.freeze({
-        ...turn.assistantMessage,
-        usage: Object.freeze({ ...turn.assistantMessage.usage }),
-      }),
+      assistantMessage: defineAssistantModelMessage(turn.assistantMessage),
     });
   }
   return Object.freeze({ ...turn, userMessage: Object.freeze({ ...turn.userMessage }) });

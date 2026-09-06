@@ -15,6 +15,15 @@ execution planner. An Actor is a named callable participant; an Engine supplies 
 invocation implementation; a Responsibility selects an ordered compatible Actor candidate for a
 registered reason such as foreground interaction or Session compaction.
 
+Resolved Actors enforce their Engine boundary: every event is normalized against the closed Agent
+Loop event contract, every interaction must emit one valid terminal assistant message, and the Engine
+must return the same normalized message. A terminal message may be followed only by the expected
+closing lifecycle events, so a custom Engine cannot commit one Session response while returning
+another or continue producing content after completion. Direct results are normalized through the
+same stable protocol-failure boundary. The Actor boundary also enforces the model-turn budget for
+every Engine from normalized lifecycle events; provider adapters may stop earlier when they can avoid
+starting an over-budget model invocation.
+
 The module is intentionally split between:
 
 - domain/utility packages, which own contracts and behavior without selecting local persistence;
@@ -38,7 +47,8 @@ Current foundation packages:
 - `@ta-agent/base-config`: storage-agnostic typed configuration lifecycle and adapter contracts;
 - `@ta-agent/base-actor`: immutable Actor/Engine contracts, technical capabilities, catalogs, and
   Responsibility routing;
-- `@ta-agent/base-model`: provider-independent model, message, streaming, and loop contracts;
+- `@ta-agent/base-model`: provider-independent model, message, bounded execution-provenance,
+  streaming, and loop contracts;
 - `@ta-agent/base-observability`: privacy-safe correlated trace contracts and no-op sink;
 - `@ta-agent/base-session`: generic Session, append-only navigation, and branch-scoped compaction
   ports plus replaceable Workflows/Steps;
@@ -62,6 +72,10 @@ Both profiles run the same bounded request/tool and direct-completion paths. Mem
 zero-configuration development default, selected from `@ta-agent/base-local-adapters`, while callers
 can inject that package's SQLite adapter to retain committed conversation history across new Agent
 instances.
+Completed assistant messages always carry one truthful execution-provenance envelope. Ordinary
+provider Engines record provider/model identity; custom Engines can carry bounded, immutable opaque
+JSON evidence without Agent Base knowing its domain. Session and replay preserve that value, while
+generic traces expose only the safe outer provenance type and never copy opaque evidence.
 An independent SQLite Request Journal adapter provides opt-in restart-safe replay for explicit
 idempotency keys; memory remains the zero-configuration journal default.
 Each shipped local SQLite adapter independently owns its table-name input, validation, and quoting. All use

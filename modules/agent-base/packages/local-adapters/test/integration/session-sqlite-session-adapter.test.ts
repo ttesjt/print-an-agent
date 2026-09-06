@@ -15,6 +15,7 @@ import { SqliteSessionAdapter } from '../../src/index.js';
 import {
   assistantMessage,
   defineSessionPortContract,
+  engineAssistantMessage,
   userMessage,
 } from '../support/session-port-contract.js';
 
@@ -218,7 +219,7 @@ describe('SqliteSessionAdapter durability', () => {
       await firstAdapter.completeTurn({
         ...session,
         turnId: firstTurnId,
-        assistantMessage: assistantMessage('first', 2),
+        assistantMessage: engineAssistantMessage('first', 2),
       });
 
       const reopened = new SqliteSessionAdapter({
@@ -238,11 +239,66 @@ describe('SqliteSessionAdapter durability', () => {
 
       expect(
         await reopened.loadHistory({ ...reopenedSession, beforeTurnId: secondTurnId })
-      ).toEqual([userMessage('one', 1), assistantMessage('first', 2)]);
+      ).toEqual([userMessage('one', 1), engineAssistantMessage('first', 2)]);
       expect((await reopened.inspect(reopenedSession))?.turns.map((turn) => turn.status)).toEqual([
         'completed',
         'active',
       ]);
+    } finally {
+      temporary.dispose();
+    }
+  });
+
+  it('rejects the former provider/model assistant-message shape under schema version 1', async () => {
+    const temporary = createTemporaryDatabase();
+    try {
+      const identity = defineAgentIdentity({ id: 'legacy-message-agent' });
+      const adapter = new SqliteSessionAdapter({
+        databasePath: temporary.databasePath,
+        clock: createClock(),
+      });
+      const session = await adapter.resolve({
+        agentId: identity.id,
+        requestedSessionId: 'conversation',
+      });
+      const turnId = parseTurnId('turn');
+      await adapter.beginTurn({
+        ...session,
+        turnId,
+        userMessage: userMessage('hello', 1),
+      });
+      await adapter.completeTurn({
+        ...session,
+        turnId,
+        assistantMessage: assistantMessage('current', 2),
+      });
+      const database = new DatabaseSync(temporary.databasePath);
+      database
+        .prepare('UPDATE agent_session_turns SET assistant_message = ? WHERE turn_id = ?')
+        .run(
+          JSON.stringify({
+            schemaVersion: 1,
+            role: 'assistant',
+            text: 'legacy',
+            provider: 'faux',
+            model: 'faux-model',
+            stopReason: 'stop',
+            usage: {
+              inputTokens: 1,
+              outputTokens: 1,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+              totalTokens: 2,
+            },
+            timestamp: 2,
+          }),
+          turnId
+        );
+      database.close();
+
+      await expect(adapter.inspect(session)).rejects.toMatchObject({
+        code: 'SESSION_RECORD_INVALID',
+      });
     } finally {
       temporary.dispose();
     }

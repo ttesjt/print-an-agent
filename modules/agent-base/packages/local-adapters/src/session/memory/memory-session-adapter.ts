@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { ModelMessage } from '@ta-agent/base-model';
+import { defineAssistantModelMessage, type ModelMessage } from '@ta-agent/base-model';
 import {
   AgentSessionError,
   DEFAULT_SESSION_BRANCH_ID,
@@ -194,10 +194,7 @@ export class MemorySessionAdapter
         branchId: current.branchId,
         ...(current.parentTurnId === undefined ? {} : { parentTurnId: current.parentTurnId }),
         userMessage: current.userMessage,
-        assistantMessage: Object.freeze({
-          ...request.assistantMessage,
-          usage: Object.freeze({ ...request.assistantMessage.usage }),
-        }),
+        assistantMessage: defineAssistantModelMessage(request.assistantMessage),
       });
       session.turns[index] = completed;
       branch.headTurnId = completed.turnId;

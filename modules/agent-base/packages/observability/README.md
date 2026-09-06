@@ -4,7 +4,9 @@ Privacy-safe correlated execution tracing for Agent Base.
 
 The Agent Run ID is the trace root. Agent Run lifecycle events identify the selected Operation, and
 nested Operation calls may include only their parent Run ID for correlation. Events use a closed
-metadata-only schema and a strictly increasing per-run sequence. Prompts, instructions, history,
+metadata-only schema version 2 and a strictly increasing per-run sequence. Model-turn start/end
+events, model-turn budgets and terminal summaries apply equally to provider-backed and custom Actor
+Engines. Prompts, instructions, history,
 model output, tool arguments/results,
 exception messages, credentials, endpoints, and Pi values are never trace fields.
 

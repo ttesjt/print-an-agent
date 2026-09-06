@@ -14,13 +14,13 @@ export type PiToolEventObserver = (event: PiObservedToolEvent) => void;
 
 export interface PiRunState {
   outputCharacters: number;
-  providerTurns: number;
+  modelTurns: number;
   turnTextDeltas: string[];
   readonly toolAdapter: PiToolAdapterState;
   completedMessage?: AssistantModelMessage;
   terminalFailure?: AssistantMessage;
   limitFailure?: AgentModelError;
-  providerTurnFailure?: AgentModelError;
+  modelTurnFailure?: AgentModelError;
   eventSinkFailure?: Error;
 }
 
@@ -64,7 +64,7 @@ async function handleMessageEnd(
   state: PiRunState
 ): Promise<void> {
   if (event.message.role !== 'assistant') return;
-  state.providerTurns += 1;
+  state.modelTurns += 1;
   if (event.message.stopReason === 'error' || event.message.stopReason === 'aborted') {
     state.terminalFailure = event.message;
     state.turnTextDeltas = [];

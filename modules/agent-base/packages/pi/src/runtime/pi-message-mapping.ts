@@ -1,5 +1,9 @@
 import type { Api, AssistantMessage, Message, Model } from '@earendil-works/pi-ai';
-import { defineProviderModelReference, type ModelMessage } from '@ta-agent/base-model';
+import {
+  defineAssistantModelMessage,
+  defineProviderModelExecutionProvenance,
+  type ModelMessage,
+} from '@ta-agent/base-model';
 
 function textFromAssistant(message: AssistantMessage): string {
   return message.content
@@ -22,12 +26,16 @@ export function toPiMessage(message: ModelMessage, model: Model<Api>): Message {
       timestamp: message.timestamp,
     };
   }
+  const source =
+    message.provenance.kind === 'provider-model'
+      ? message.provenance
+      : { provider: model.provider, model: model.id };
   return {
     role: 'assistant',
     content: [{ type: 'text', text: message.text }],
     api: model.api,
-    provider: message.provider,
-    model: message.model,
+    provider: source.provider,
+    model: source.model,
     usage: {
       input: message.usage.inputTokens,
       output: message.usage.outputTokens,
@@ -60,23 +68,21 @@ export function toModelMessage(message: Message): ModelMessage | undefined {
   ) {
     return undefined;
   }
-  const reference = defineProviderModelReference({
-    provider: message.provider,
-    model: message.model,
-  });
-  return Object.freeze({
+  return defineAssistantModelMessage({
     role: 'assistant',
     text: textFromAssistant(message),
-    provider: reference.provider,
-    model: reference.model,
+    provenance: defineProviderModelExecutionProvenance({
+      provider: message.provider,
+      model: message.model,
+    }),
     stopReason: message.stopReason,
-    usage: Object.freeze({
+    usage: {
       inputTokens: message.usage.input,
       outputTokens: message.usage.output,
       cacheReadTokens: message.usage.cacheRead,
       cacheWriteTokens: message.usage.cacheWrite,
       totalTokens: message.usage.totalTokens,
-    }),
+    },
     timestamp: message.timestamp,
   });
 }

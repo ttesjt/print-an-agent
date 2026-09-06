@@ -16,6 +16,12 @@ Interaction-capable Engines declare `interaction.streamable`; direct-only Engine
 streamability field. The declaration is a routing promise that the interaction handler can emit
 incremental events, not a call-time switch. Direct completion is currently buffered.
 
+The resolved Actor boundary enforces `maxModelTurns` for every Engine by counting normalized
+`turn-start` events. A terminal-only Engine consumes the provable minimum of one model turn. Custom
+Engines are trusted executable infrastructure and must emit `turn-start` before each real model
+invocation; hidden calls cannot be discovered by a generic framework boundary. Provider adapters may
+also stop proactively before another invocation to avoid unnecessary cost.
+
 The built-in Responsibilities are `foreground-interaction` and `session-compaction`. A registered
 Responsibility with no candidate list resolves to the required `main` Actor. An explicit list is
 authoritative: disabled candidates are filtered and the first enabled compatible Actor is selected.

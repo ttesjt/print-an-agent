@@ -1,5 +1,5 @@
 export interface AgentTraceEnvelope {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly agentId: string;
   readonly agentRunId: string;
   readonly sequence: number;
@@ -14,6 +14,34 @@ interface WorkflowReference {
 interface StepReference extends WorkflowReference {
   readonly stepName: string;
 }
+
+interface ModelResponseCompletedTraceBase extends WorkflowReference {
+  readonly type: 'model-response-completed';
+  readonly modelTurnIndex: number;
+  readonly engineId: string;
+  readonly stopReason: 'stop' | 'length';
+  readonly inputTokens: number;
+  readonly outputTokens: number;
+  readonly cacheReadTokens: number;
+  readonly cacheWriteTokens: number;
+  readonly totalTokens: number;
+  readonly outputCharacters: number;
+}
+
+type ModelResponseCompletedTrace =
+  | Readonly<
+      ModelResponseCompletedTraceBase & {
+        readonly provenanceKind: 'provider-model';
+        readonly provider: string;
+        readonly model: string;
+      }
+    >
+  | Readonly<
+      ModelResponseCompletedTraceBase & {
+        readonly provenanceKind: 'engine-defined';
+        readonly provenanceType: string;
+      }
+    >;
 
 export type RequestReplayTraceStatus = 'claimed' | 'completed' | 'active' | 'failed' | 'conflict';
 
@@ -107,12 +135,12 @@ export type AgentTraceEventDetails =
       {
         type: 'agent-loop-started';
         sessionId: string;
-        maxProviderTurns: number;
+        maxModelTurns: number;
         maxOutputCharacters: number;
       } & WorkflowReference
     >
-  | Readonly<{ type: 'provider-turn-started'; turnIndex: number } & WorkflowReference>
-  | Readonly<{ type: 'provider-turn-completed'; turnIndex: number } & WorkflowReference>
+  | Readonly<{ type: 'model-turn-started'; modelTurnIndex: number } & WorkflowReference>
+  | Readonly<{ type: 'model-turn-completed'; modelTurnIndex: number } & WorkflowReference>
   | Readonly<
       {
         type: 'tool-call-started';
@@ -129,25 +157,11 @@ export type AgentTraceEventDetails =
         resultCharacters: number;
       } & WorkflowReference
     >
-  | Readonly<
-      {
-        type: 'model-response-completed';
-        turnIndex: number;
-        provider: string;
-        model: string;
-        stopReason: 'stop' | 'length';
-        inputTokens: number;
-        outputTokens: number;
-        cacheReadTokens: number;
-        cacheWriteTokens: number;
-        totalTokens: number;
-        outputCharacters: number;
-      } & WorkflowReference
-    >
+  | ModelResponseCompletedTrace
   | Readonly<
       {
         type: 'agent-loop-completed';
-        providerTurns: number;
+        modelTurns: number;
         toolCalls: number;
         totalToolResultCharacters: number;
       } & WorkflowReference
@@ -155,7 +169,7 @@ export type AgentTraceEventDetails =
   | Readonly<
       {
         type: 'agent-loop-failed';
-        providerTurns: number;
+        modelTurns: number;
         toolCalls: number;
         totalToolResultCharacters: number;
         errorCode: string;

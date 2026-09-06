@@ -7,30 +7,31 @@ import {
 } from '@ta-agent/base-actor';
 import { composeAgent, createAgentAPI } from '@ta-agent/base-composition';
 import { MemoryAgentTraceAdapter, MemoryOutputSink } from '@ta-agent/base-local-adapters';
-import { AgentModelError, defineProviderModelReference } from '@ta-agent/base-model';
+import {
+  AgentModelError,
+  defineAssistantModelMessage,
+  defineEngineDefinedModelExecutionProvenance,
+} from '@ta-agent/base-model';
 import type { DefaultRequestWorkflowContext } from '@ta-agent/base-request';
 import { createToolRegistry, defineTool } from '@ta-agent/base-tool';
 import { describe, expect, it, vi } from 'vitest';
 
-const modelReference = defineProviderModelReference({
-  provider: 'consumer-engine',
-  model: 'consumer-model',
-});
-
 function createAssistantMessage(text: string) {
-  return Object.freeze({
-    role: 'assistant' as const,
+  return defineAssistantModelMessage({
+    role: 'assistant',
     text,
-    provider: modelReference.provider,
-    model: modelReference.model,
-    stopReason: 'stop' as const,
-    usage: Object.freeze({
+    provenance: defineEngineDefinedModelExecutionProvenance({
+      type: 'consumer.runtime-target',
+      evidence: { targetId: 'consumer-target-1' },
+    }),
+    stopReason: 'stop',
+    usage: {
       inputTokens: 1,
       outputTokens: 1,
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
       totalTokens: 2,
-    }),
+    },
     timestamp: 1,
   });
 }
@@ -149,7 +150,14 @@ describe('public Agent integration', () => {
     const api = createAgentAPI(agent);
 
     expect(response).toMatchObject({
-      message: { text: 'resolved:label:blue' },
+      message: {
+        text: 'resolved:label:blue',
+        provenance: {
+          kind: 'engine-defined',
+          type: 'consumer.runtime-target',
+          evidence: { targetId: 'consumer-target-1' },
+        },
+      },
       toolRun: { records: [{ toolName: 'lookup-label', status: 'success' }] },
     });
     expect(sink.inspect()).toMatchObject({
@@ -164,6 +172,7 @@ describe('public Agent integration', () => {
     const serializedTrace = JSON.stringify(trace.inspect());
     expect(serializedTrace).not.toContain('blue');
     expect(serializedTrace).not.toContain('label:blue');
+    expect(serializedTrace).not.toContain('consumer-target-1');
     expect(serializedTrace).not.toContain('Respond helpfully and concisely.');
   });
 

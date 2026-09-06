@@ -10,6 +10,8 @@ const ENVELOPE_KEYS = Object.freeze([
 ]);
 const IDENTIFIER_MAX_LENGTH = 256;
 const ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,127}$/;
+const PROVENANCE_TYPE_MAX_LENGTH = 128;
+const PROVENANCE_TYPE_PATTERN = /^[a-z0-9](?:[a-z0-9._:/-]*[a-z0-9])?$/i;
 
 function isUnknownRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -28,6 +30,18 @@ function requireString(value: unknown, name: string): void {
 function requireErrorCode(value: unknown): void {
   if (typeof value !== 'string' || !ERROR_CODE_PATTERN.test(value)) {
     invalidEvent('Trace errorCode must be a bounded uppercase structured code.');
+  }
+}
+
+function requireProvenanceType(value: unknown): void {
+  if (
+    typeof value !== 'string' ||
+    value.length > PROVENANCE_TYPE_MAX_LENGTH ||
+    !PROVENANCE_TYPE_PATTERN.test(value)
+  ) {
+    invalidEvent(
+      `Trace provenanceType must contain 1-${PROVENANCE_TYPE_MAX_LENGTH} letters, digits, dots, underscores, colons, slashes, or hyphens.`
+    );
   }
 }
 
@@ -250,20 +264,20 @@ function validateDetailsRecord(
       'workflowName',
       'workflowRunId',
       'sessionId',
-      'maxProviderTurns',
+      'maxModelTurns',
       'maxOutputCharacters',
     ];
     assertExactKeys(record, keys, includeEnvelope);
     requireWorkflowReference(record);
     requireString(record.sessionId, 'Trace sessionId');
-    requireCount(record.maxProviderTurns, 'Trace maxProviderTurns', 1);
+    requireCount(record.maxModelTurns, 'Trace maxModelTurns', 1);
     requireCount(record.maxOutputCharacters, 'Trace maxOutputCharacters', 1);
     return;
   }
-  if (type === 'provider-turn-started' || type === 'provider-turn-completed') {
-    assertExactKeys(record, ['workflowName', 'workflowRunId', 'turnIndex'], includeEnvelope);
+  if (type === 'model-turn-started' || type === 'model-turn-completed') {
+    assertExactKeys(record, ['workflowName', 'workflowRunId', 'modelTurnIndex'], includeEnvelope);
     requireWorkflowReference(record);
-    requireCount(record.turnIndex, 'Trace turnIndex', 1);
+    requireCount(record.modelTurnIndex, 'Trace modelTurnIndex', 1);
     return;
   }
   if (type === 'tool-call-started' || type === 'tool-call-completed') {
@@ -283,9 +297,9 @@ function validateDetailsRecord(
     const keys = [
       'workflowName',
       'workflowRunId',
-      'turnIndex',
-      'provider',
-      'model',
+      'modelTurnIndex',
+      'engineId',
+      'provenanceKind',
       'stopReason',
       'inputTokens',
       'outputTokens',
@@ -294,27 +308,48 @@ function validateDetailsRecord(
       'totalTokens',
       'outputCharacters',
     ];
+    if (record.provenanceKind === 'provider-model') keys.push('provider', 'model');
+    if (record.provenanceKind === 'engine-defined') keys.push('provenanceType');
     assertExactKeys(record, keys, includeEnvelope);
     requireWorkflowReference(record);
-    requireCount(record.turnIndex, 'Trace turnIndex', 1);
-    requireString(record.provider, 'Trace provider');
-    requireString(record.model, 'Trace model');
+    requireCount(record.modelTurnIndex, 'Trace modelTurnIndex', 1);
+    requireString(record.engineId, 'Trace engineId');
+    requireOneOf(
+      record.provenanceKind,
+      ['provider-model', 'engine-defined'],
+      'Trace provenanceKind'
+    );
+    if (record.provenanceKind === 'provider-model') {
+      requireString(record.provider, 'Trace provider');
+      requireString(record.model, 'Trace model');
+    } else {
+      requireProvenanceType(record.provenanceType);
+    }
     requireOneOf(record.stopReason, ['stop', 'length'], 'Model stop reason');
-    for (const key of keys.slice(6)) requireCount(record[key], `Trace ${key}`);
+    for (const key of [
+      'inputTokens',
+      'outputTokens',
+      'cacheReadTokens',
+      'cacheWriteTokens',
+      'totalTokens',
+      'outputCharacters',
+    ]) {
+      requireCount(record[key], `Trace ${key}`);
+    }
     return;
   }
   if (type === 'agent-loop-completed' || type === 'agent-loop-failed') {
     const keys = [
       'workflowName',
       'workflowRunId',
-      'providerTurns',
+      'modelTurns',
       'toolCalls',
       'totalToolResultCharacters',
     ];
     if (type === 'agent-loop-failed') keys.push('errorCode');
     assertExactKeys(record, keys, includeEnvelope);
     requireWorkflowReference(record);
-    requireCount(record.providerTurns, 'Trace providerTurns');
+    requireCount(record.modelTurns, 'Trace modelTurns');
     requireCount(record.toolCalls, 'Trace toolCalls');
     requireCount(record.totalToolResultCharacters, 'Trace totalToolResultCharacters');
     if (type === 'agent-loop-failed') requireErrorCode(record.errorCode);
@@ -332,7 +367,7 @@ export function validateAgentTraceEventDetails(
 
 export function validateAgentTraceEvent(value: unknown): asserts value is AgentTraceEvent {
   if (!isUnknownRecord(value)) invalidEvent('Trace event must be an object.');
-  if (value.schemaVersion !== 1) invalidEvent('Trace event schemaVersion is not supported.');
+  if (value.schemaVersion !== 2) invalidEvent('Trace event schemaVersion is not supported.');
   requireString(value.agentId, 'Trace agentId');
   requireString(value.agentRunId, 'Trace agentRunId');
   requireCount(value.sequence, 'Trace sequence', 1);

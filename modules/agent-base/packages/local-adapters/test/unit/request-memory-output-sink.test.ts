@@ -1,4 +1,8 @@
-import { defineProviderModelReference } from '@ta-agent/base-model';
+import {
+  defineAssistantModelMessage,
+  defineProviderModelExecutionProvenance,
+  defineProviderModelReference,
+} from '@ta-agent/base-model';
 import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@ta-agent/base-session';
 import {
   createBoundedToolRuntime,
@@ -22,19 +26,18 @@ const response = Object.freeze({
   requestId: 'request-1',
   sessionId: parseSessionId('session-1'),
   branchId: DEFAULT_SESSION_BRANCH_ID,
-  message: Object.freeze({
-    role: 'assistant' as const,
+  message: defineAssistantModelMessage({
+    role: 'assistant',
     text: 'hello',
-    provider: model.provider,
-    model: model.model,
-    stopReason: 'stop' as const,
-    usage: Object.freeze({
+    provenance: defineProviderModelExecutionProvenance(model),
+    stopReason: 'stop',
+    usage: {
       inputTokens: 1,
       outputTokens: 1,
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
       totalTokens: 2,
-    }),
+    },
     timestamp: 2,
   }),
   toolRun: emptyToolRuntime.inspect(),

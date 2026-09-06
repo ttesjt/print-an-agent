@@ -205,10 +205,10 @@ export class PiActorRuntime implements AgentLoopRuntime {
         'Execution target was not resolved by this provider runtime.'
       );
     }
-    if (!Number.isSafeInteger(request.maxProviderTurns) || request.maxProviderTurns < 1) {
+    if (!Number.isSafeInteger(request.maxModelTurns) || request.maxModelTurns < 1) {
       throw new AgentModelError(
         'MODEL_RUNTIME_PROTOCOL_INVALID',
-        'maxProviderTurns must be a positive safe integer.'
+        'maxModelTurns must be a positive safe integer.'
       );
     }
     const apiKey = await this.#resolveApiKey(request.signal);
@@ -217,7 +217,7 @@ export class PiActorRuntime implements AgentLoopRuntime {
     const toolAdapter: PiToolAdapterState = { attemptedCallIds: new Set() };
     const state: PiRunState = {
       outputCharacters: 0,
-      providerTurns: 0,
+      modelTurns: 0,
       turnTextDeltas: [],
       toolAdapter,
     };
@@ -250,13 +250,10 @@ export class PiActorRuntime implements AgentLoopRuntime {
           toolExecution: 'sequential',
           shouldStopAfterTurn: ({ message }) => {
             if (state.toolAdapter.terminalFailure !== undefined) return true;
-            if (
-              message.stopReason === 'toolUse' &&
-              state.providerTurns >= request.maxProviderTurns
-            ) {
-              state.providerTurnFailure = new AgentModelError(
-                'MODEL_PROVIDER_TURN_LIMIT_EXCEEDED',
-                `Provider turn budget ${request.maxProviderTurns} was exhausted before a final response.`
+            if (message.stopReason === 'toolUse' && state.modelTurns >= request.maxModelTurns) {
+              state.modelTurnFailure = new AgentModelError(
+                'MODEL_TURN_LIMIT_EXCEEDED',
+                `Model turn budget ${request.maxModelTurns} was exhausted before a final response.`
               );
               return true;
             }
@@ -277,7 +274,7 @@ export class PiActorRuntime implements AgentLoopRuntime {
     }
 
     if (state.toolAdapter.terminalFailure !== undefined) throw state.toolAdapter.terminalFailure;
-    if (state.providerTurnFailure !== undefined) throw state.providerTurnFailure;
+    if (state.modelTurnFailure !== undefined) throw state.modelTurnFailure;
     if (state.terminalFailure !== undefined) {
       throwTerminalFailure(request.signal, state.terminalFailure);
     }

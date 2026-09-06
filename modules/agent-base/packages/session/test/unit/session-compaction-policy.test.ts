@@ -1,5 +1,7 @@
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import {
+  defineAssistantModelMessage,
+  defineProviderModelExecutionProvenance,
   defineProviderModelReference,
   type AssistantModelMessage,
   type UserModelMessage,
@@ -23,19 +25,18 @@ function userMessage(text: string, timestamp: number): UserModelMessage {
 }
 
 function assistantMessage(text: string, timestamp: number): AssistantModelMessage {
-  return Object.freeze({
+  return defineAssistantModelMessage({
     role: 'assistant',
     text,
-    provider: model.provider,
-    model: model.model,
+    provenance: defineProviderModelExecutionProvenance(model),
     stopReason: 'stop',
-    usage: Object.freeze({
+    usage: {
       inputTokens: 1,
       outputTokens: 2,
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
       totalTokens: 3,
-    }),
+    },
     timestamp,
   });
 }

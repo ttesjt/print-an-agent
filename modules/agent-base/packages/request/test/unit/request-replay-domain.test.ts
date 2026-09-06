@@ -1,4 +1,7 @@
-import { defineProviderModelReference } from '@ta-agent/base-model';
+import {
+  defineAssistantModelMessage,
+  defineEngineDefinedModelExecutionProvenance,
+} from '@ta-agent/base-model';
 import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
@@ -11,26 +14,29 @@ import {
   type AgentResponse,
 } from '../../src/index.js';
 
-const model = defineProviderModelReference({ provider: 'faux', model: 'faux-model' });
-
 function response(requestId: string): AgentResponse {
   return Object.freeze({
     requestId,
     sessionId: parseSessionId('conversation'),
     branchId: DEFAULT_SESSION_BRANCH_ID,
-    message: Object.freeze({
+    message: defineAssistantModelMessage({
       role: 'assistant',
       text: 'completed',
-      provider: model.provider,
-      model: model.model,
+      provenance: defineEngineDefinedModelExecutionProvenance({
+        type: 'example.execution',
+        evidence: {
+          artifact: { id: 'artifact-1', revision: 3 },
+          digest: 'sha256:abc',
+        },
+      }),
       stopReason: 'stop',
-      usage: Object.freeze({
+      usage: {
         inputTokens: 1,
         outputTokens: 1,
         cacheReadTokens: 0,
         cacheWriteTokens: 0,
         totalTokens: 2,
-      }),
+      },
       timestamp: 2,
     }),
     toolRun: Object.freeze({
@@ -103,12 +109,17 @@ describe('Request replay domain', () => {
 
     expect(decoded).toEqual(original);
     expect(Object.isFrozen(decoded)).toBe(true);
+    expect(Object.isFrozen(decoded.message.provenance)).toBe(true);
+    if (decoded.message.provenance.kind === 'engine-defined') {
+      expect(Object.isFrozen(decoded.message.provenance.evidence)).toBe(true);
+      expect(Object.isFrozen(decoded.message.provenance.evidence.artifact)).toBe(true);
+    }
     expect(Object.isFrozen(decoded.message.usage)).toBe(true);
     expect(Object.isFrozen(decoded.toolRun.records)).toBe(true);
   });
 
-  it('decodes a legacy linear response onto the default Session branch', () => {
-    const original = response('legacy-request');
+  it('rejects legacy envelopes and assistant records instead of carrying compatibility paths', () => {
+    const original = response('request');
     const legacyResponse = {
       requestId: original.requestId,
       sessionId: original.sessionId,
@@ -116,9 +127,27 @@ describe('Request replay domain', () => {
       toolRun: original.toolRun,
     };
 
-    expect(
-      decodeAgentResponse(JSON.stringify({ schemaVersion: 1, response: legacyResponse }))
-    ).toEqual(original);
+    expectRequestError(
+      () => decodeAgentResponse(JSON.stringify({ schemaVersion: 1, response: legacyResponse })),
+      'REQUEST_REPLAY_RECORD_INVALID'
+    );
+
+    const legacyAssistant = {
+      ...original.message,
+      provenance: undefined,
+      provider: 'faux',
+      model: 'faux-model',
+    };
+    expectRequestError(
+      () =>
+        decodeAgentResponse(
+          JSON.stringify({
+            schemaVersion: 1,
+            response: { ...original, message: legacyAssistant },
+          })
+        ),
+      'REQUEST_REPLAY_RECORD_INVALID'
+    );
   });
 
   it('rejects unknown versions and incomplete response records', () => {

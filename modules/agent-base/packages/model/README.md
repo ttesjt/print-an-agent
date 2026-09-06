@@ -3,7 +3,7 @@
 Provider-independent model invocation and bounded Agent Loop contracts.
 
 The package owns low-level Provider Model References, normalized text messages, usage, provider
-execution targets, provider-turn bounds, streaming and metadata-only tool lifecycle events, runtime
+execution targets, model-turn bounds, streaming and metadata-only tool lifecycle events, runtime
 ports, and structured failures. These contracts support infrastructure adapters such as Pi. The
 assembled Agent routes calls through `@ta-agent/base-actor`; it does not expose a raw model runtime as
 its composition contract. Provider SDK, Pi, and TypeBox types remain adapter details.

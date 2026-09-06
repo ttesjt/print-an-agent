@@ -24,7 +24,7 @@ export interface ActorInteractionRequest {
   readonly history: readonly ModelMessage[];
   readonly prompt: UserModelMessage;
   readonly tools: ToolRuntime;
-  readonly maxProviderTurns: number;
+  readonly maxModelTurns: number;
   readonly maxOutputCharacters: number;
   readonly signal: AbortSignal;
   readonly emit: AgentLoopEventSink;

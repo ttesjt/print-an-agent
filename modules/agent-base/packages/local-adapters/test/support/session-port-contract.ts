@@ -1,5 +1,8 @@
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import {
+  defineAssistantModelMessage,
+  defineEngineDefinedModelExecutionProvenance,
+  defineProviderModelExecutionProvenance,
   defineProviderModelReference,
   type AssistantModelMessage,
   type UserModelMessage,
@@ -32,13 +35,29 @@ export function userMessage(text: string, timestamp: number): UserModelMessage {
 }
 
 export function assistantMessage(text: string, timestamp: number): AssistantModelMessage {
-  return Object.freeze({
+  return defineAssistantModelMessage({
     role: 'assistant',
     text,
-    provider: model.provider,
-    model: model.model,
+    provenance: defineProviderModelExecutionProvenance(model),
     stopReason: 'stop',
-    usage,
+    usage: { ...usage },
+    timestamp,
+  });
+}
+
+export function engineAssistantMessage(text: string, timestamp: number): AssistantModelMessage {
+  return defineAssistantModelMessage({
+    role: 'assistant',
+    text,
+    provenance: defineEngineDefinedModelExecutionProvenance({
+      type: 'test.runtime-target',
+      evidence: {
+        artifact: { id: 'artifact-1', revision: 3 },
+        route: ['embedded', 'generation-7'],
+      },
+    }),
+    stopReason: 'stop',
+    usage: { ...usage },
     timestamp,
   });
 }
@@ -108,6 +127,47 @@ export function defineSessionPortContract(
         expect(Object.isFrozen(history)).toBe(true);
         expect(Object.isFrozen(history[0])).toBe(true);
         expect(Object.isFrozen(history[1])).toBe(true);
+      }));
+
+    it('round-trips deeply immutable engine-defined provenance through Session history', () =>
+      withHarness(createHarness, async (adapter) => {
+        const agentId = defineAgentIdentity({ id: 'engine-evidence-agent' }).id;
+        let session = await adapter.resolve({
+          agentId,
+          requestedSessionId: 'engine-evidence',
+        });
+        const completedTurnId = parseTurnId('completed');
+        await adapter.beginTurn({
+          ...session,
+          turnId: completedTurnId,
+          userMessage: userMessage('invoke custom engine', 1),
+        });
+        const expected = engineAssistantMessage('custom result', 2);
+        await adapter.completeTurn({
+          ...session,
+          turnId: completedTurnId,
+          assistantMessage: expected,
+        });
+        session = await adapter.resolve({
+          agentId,
+          requestedSessionId: 'engine-evidence',
+        });
+        const boundaryTurnId = parseTurnId('boundary');
+        await adapter.beginTurn({
+          ...session,
+          turnId: boundaryTurnId,
+          userMessage: userMessage('continue', 3),
+        });
+
+        const history = await adapter.loadHistory({ ...session, beforeTurnId: boundaryTurnId });
+        expect(history).toEqual([userMessage('invoke custom engine', 1), expected]);
+        const provenance = history[1]?.role === 'assistant' ? history[1].provenance : undefined;
+        expect(provenance?.kind).toBe('engine-defined');
+        if (provenance?.kind === 'engine-defined') {
+          expect(Object.isFrozen(provenance.evidence)).toBe(true);
+          expect(Object.isFrozen(provenance.evidence.artifact)).toBe(true);
+          expect(Object.isFrozen(provenance.evidence.route)).toBe(true);
+        }
       }));
 
     it('isolates the same session ID by Agent identity', () =>

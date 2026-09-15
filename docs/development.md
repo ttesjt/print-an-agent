@@ -22,7 +22,8 @@ integration tests should prefer the package public entry point.
 
 ## Python package
 
-Model Workbench owns an independent uv workspace at `modules/model-workbench/python`. Copy its
+The maintained Python model backend template owns an independent uv workspace at
+`modules/model-workbench/templates/python-model-backend/python`. Copy its
 `template` directory into `packages/<name>`, then rename the distribution and import package.
 Add the new package paths to the workspace Mypy targets and extend `python:build` to build the
 workspace packages once the first real Python package exists.

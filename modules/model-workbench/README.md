@@ -129,5 +129,12 @@ Artifact and detached-execution receipt protocols.
 See [Using Model Workbench](./docs/using-model-workbench.md) for the public composition boundary,
 CLI module contract, and the deterministic local acceptance path.
 
+The optional Python model backend template contains a runnable reference backend and its private
+Workbench-side definition. It exercises the same public Capability and Runtime Support boundaries
+available to external model projects; it does not make Python or its reference model part of the
+Workbench control plane.
+The reference backend uses a tiny Transformer to qualify real training on CPU, while remaining
+device-aware for explicitly configured CUDA or MPS deployments.
+
 This module must not import Agent Base or application runtimes. Its TypeScript APIs must remain usable
 without either module, a database, Python, a model framework, or a process runner.

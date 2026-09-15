@@ -21,7 +21,7 @@ dev = [
 
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]
-pythonpath = ["template/src"]
+pythonpath = ["packages/model-backend/src", "packages/model-backend/tests", "template/src"]
 testpaths = ["template/tests", "packages"]
 
 [tool.ruff]
@@ -34,6 +34,14 @@ select = ["B", "E", "F", "I", "UP"]
 
 [tool.mypy]
 python_version = "3.11"
-files = ["template/src", "template/tests"]
+files = ["packages", "template/src", "template/tests"]
 strict = true
 warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["torch", "torch.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["ta_agent_model_backend.model.transformer"]
+disallow_subclassing_any = false

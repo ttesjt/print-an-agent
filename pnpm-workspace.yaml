@@ -1,7 +1,7 @@
 packages:
   - 'modules/*/apps/*'
-  - 'modules/*/clients/*'
   - 'modules/*/packages/*'
+  - 'modules/*/templates/*/*'
   - 'modules/*/tests/*'
   - 'tooling/templates/*'
 

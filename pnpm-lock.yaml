@@ -662,6 +662,31 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
 
+  modules/model-workbench/templates/python-model-backend/workbench-adapter:
+    dependencies:
+      '@ta-agent/workbench-extension':
+        specifier: workspace:*
+        version: link:../../../packages/extension
+      '@ta-agent/workbench-local-runtime':
+        specifier: workspace:*
+        version: link:../../../packages/local-runtime
+      '@ta-agent/workbench-setup':
+        specifier: workspace:*
+        version: link:../../../packages/setup
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(yaml@2.9.0))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(yaml@2.9.0)
+
   modules/model-workbench/tests/integration:
     devDependencies:
       '@ta-agent/workbench-application':
@@ -682,6 +707,9 @@ importers:
       '@ta-agent/workbench-persistence':
         specifier: workspace:*
         version: link:../../packages/persistence
+      '@ta-agent/workbench-python-model-backend-template-adapter':
+        specifier: workspace:*
+        version: link:../../templates/python-model-backend/workbench-adapter
       '@ta-agent/workbench-setup':
         specifier: workspace:*
         version: link:../../packages/setup

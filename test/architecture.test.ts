@@ -26,20 +26,41 @@ interface PackageManifest {
   readonly peerDependencies?: Readonly<Record<string, string>>;
 }
 
+const ignoredTraversalDirectories = new Set([
+  '.mypy_cache',
+  '.pytest_cache',
+  '.ruff_cache',
+  '.venv',
+  '__pycache__',
+  'dist',
+  'node_modules',
+]);
+
+function isIgnoredTraversalDirectory(name: string): boolean {
+  return ignoredTraversalDirectories.has(name);
+}
+
 function packageManifests(moduleName: ModuleName): readonly PackageManifest[] {
   const manifests: PackageManifest[] = [];
-  for (const collection of ['apps', 'clients', 'packages', 'tests']) {
+  for (const collection of ['apps', 'packages', 'templates', 'tests']) {
     const collectionPath = join(repositoryRoot, 'modules', moduleName, collection);
     if (!existsSync(collectionPath)) continue;
-
-    for (const entry of readdirSync(collectionPath, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const manifestPath = join(collectionPath, entry.name, 'package.json');
-      if (!existsSync(manifestPath)) continue;
-      manifests.push(JSON.parse(readFileSync(manifestPath, 'utf8')) as PackageManifest);
-    }
+    collectPackageManifests(collectionPath, manifests);
   }
   return manifests;
+}
+
+function collectPackageManifests(directory: string, manifests: PackageManifest[]): void {
+  const manifestPath = join(directory, 'package.json');
+  if (existsSync(manifestPath)) {
+    manifests.push(JSON.parse(readFileSync(manifestPath, 'utf8')) as PackageManifest);
+    return;
+  }
+
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    if (!entry.isDirectory() || isIgnoredTraversalDirectory(entry.name)) continue;
+    collectPackageManifests(join(directory, entry.name), manifests);
+  }
 }
 
 function declaredDependencies(manifest: PackageManifest): readonly string[] {
@@ -58,6 +79,22 @@ function containsTestFile(directory: string): boolean {
     const entryPath = join(directory, entry.name);
     if (entry.isDirectory() && containsTestFile(entryPath)) return true;
     if (entry.isFile() && /\.(?:test|spec)\.[cm]?[jt]sx?$/.test(entry.name)) return true;
+  }
+
+  return false;
+}
+
+function containsTestFileInProductionSources(directory: string): boolean {
+  if (!existsSync(directory)) return false;
+
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    if (!entry.isDirectory() || isIgnoredTraversalDirectory(entry.name)) continue;
+    const entryPath = join(directory, entry.name);
+    if (entry.name === 'src') {
+      if (containsTestFile(entryPath)) return true;
+      continue;
+    }
+    if (containsTestFileInProductionSources(entryPath)) return true;
   }
 
   return false;
@@ -135,7 +172,7 @@ describe('module architecture', () => {
     it(`${moduleName} is an explicit repository capsule`, () => {
       const moduleRoot = join(repositoryRoot, 'modules', moduleName);
       expect(existsSync(join(moduleRoot, 'README.md'))).toBe(true);
-      for (const requiredDirectory of ['apps', 'clients', 'configs', 'docs', 'packages', 'tests']) {
+      for (const requiredDirectory of ['apps', 'configs', 'docs', 'packages', 'tests']) {
         expect(existsSync(join(moduleRoot, requiredDirectory))).toBe(true);
       }
     });
@@ -159,14 +196,10 @@ describe('module architecture', () => {
     });
 
     it(`${moduleName} production source does not contain test files`, () => {
-      for (const collection of ['apps', 'clients', 'packages']) {
+      for (const collection of ['apps', 'packages', 'templates']) {
         const collectionPath = join(repositoryRoot, 'modules', moduleName, collection);
         if (!existsSync(collectionPath)) continue;
-
-        for (const entry of readdirSync(collectionPath, { withFileTypes: true })) {
-          if (!entry.isDirectory()) continue;
-          expect(containsTestFile(join(collectionPath, entry.name, 'src'))).toBe(false);
-        }
+        expect(containsTestFileInProductionSources(collectionPath)).toBe(false);
       }
     });
   }

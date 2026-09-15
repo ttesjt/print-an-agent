@@ -1,0 +1,53 @@
+[project]
+name = "ta-agent-model-backend"
+version = "0.1.0"
+description = "Runnable Python reference backend for Modular Agent Model Workbench."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = []
+
+[project.optional-dependencies]
+transformer = [
+  "torch>=2.7,<3",
+]
+
+[project.scripts]
+ta-agent-model-backend = "ta_agent_model_backend.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.18,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.15,<2",
+  "pytest>=8,<10",
+  "ruff>=0.11,<1",
+]
+
+[tool.pytest.ini_options]
+addopts = ["--strict-config", "--strict-markers"]
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src", "tests"]
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["torch", "torch.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["ta_agent_model_backend.model.transformer"]
+disallow_subclassing_any = false

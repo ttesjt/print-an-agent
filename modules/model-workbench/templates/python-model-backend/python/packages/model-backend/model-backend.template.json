@@ -1,0 +1,47 @@
+{
+  "kind": "ta-agent.python-model-backend-template",
+  "formatVersion": 1,
+  "identity": {
+    "defaultProjectName": "ta-agent-model-backend",
+    "defaultPackageName": "ta_agent_model_backend",
+    "projectNameToken": "ta-agent-model-backend",
+    "packageNameToken": "ta_agent_model_backend"
+  },
+  "copy": {
+    "include": [
+      "README.md",
+      "docs",
+      "model-backend.template.json",
+      "pyproject.toml",
+      "src",
+      "tests"
+    ],
+    "exclude": [
+      "**/__pycache__/**",
+      "**/*.egg-info/**",
+      "**/*.pyc",
+      "**/.DS_Store",
+      ".mypy_cache/**",
+      ".pytest_cache/**",
+      ".ruff_cache/**",
+      ".venv/**",
+      "artifacts/**",
+      "build/**",
+      "dist/**"
+    ]
+  },
+  "verification": {
+    "fast": [
+      "uv sync",
+      "uv run ruff format --check .",
+      "uv run ruff check .",
+      "uv run mypy",
+      "uv run pytest tests/architecture tests/unit tests/protocol",
+      "uv build"
+    ],
+    "model": [
+      "uv sync --extra transformer",
+      "uv run --extra transformer pytest tests/model tests/integration"
+    ]
+  }
+}

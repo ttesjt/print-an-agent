@@ -14,6 +14,7 @@ import {
   parseSessionBranchId,
   parseTurnId,
   type NavigableCompactableSessionPort,
+  type SessionQueryPort,
 } from '@ta-agent/base-session';
 
 const model = defineProviderModelReference({ provider: 'faux', model: 'faux-model' });
@@ -26,7 +27,7 @@ const usage = Object.freeze({
 });
 
 export interface SessionPortContractHarness {
-  readonly adapter: NavigableCompactableSessionPort;
+  readonly adapter: NavigableCompactableSessionPort & SessionQueryPort;
   readonly dispose?: () => void;
 }
 
@@ -64,7 +65,7 @@ export function engineAssistantMessage(text: string, timestamp: number): Assista
 
 async function withHarness<T>(
   createHarness: () => SessionPortContractHarness,
-  action: (adapter: NavigableCompactableSessionPort) => Promise<T>
+  action: (adapter: NavigableCompactableSessionPort & SessionQueryPort) => Promise<T>
 ): Promise<T> {
   const harness = createHarness();
   try {
@@ -79,6 +80,206 @@ export function defineSessionPortContract(
   createHarness: () => SessionPortContractHarness
 ): void {
   describe(`${adapterName} SessionPort contract`, () => {
+    it('lists recently active Sessions with stable keyset pagination', () =>
+      withHarness(createHarness, async (adapter) => {
+        const agentId = defineAgentIdentity({ id: 'query-agent' }).id;
+        const older = await adapter.resolve({ agentId, requestedSessionId: 'older' });
+        await adapter.resolve({ agentId, requestedSessionId: 'newer' });
+        const turnId = parseTurnId('older-activity');
+        await adapter.beginTurn({
+          ...older,
+          turnId,
+          userMessage: userMessage('touch older', 1),
+        });
+
+        const first = await adapter.listSessions({ agentId, limit: 1 });
+        expect(first.records).toHaveLength(1);
+        expect(first.records[0]).toMatchObject({
+          agentId,
+          sessionId: 'older',
+          branchCount: 1,
+          turnCount: 1,
+        });
+        expect(first.nextCursor).toEqual({
+          updatedAt: first.records[0]?.updatedAt,
+          sessionId: 'older',
+        });
+        const second = await adapter.listSessions({
+          agentId,
+          limit: 1,
+          ...(first.nextCursor === undefined ? {} : { cursor: first.nextCursor }),
+        });
+        expect(second.records.map((session) => session.sessionId)).toEqual(['newer']);
+        expect(second.nextCursor).toBeUndefined();
+        expect(Object.isFrozen(first)).toBe(true);
+        expect(Object.isFrozen(first.records)).toBe(true);
+        expect(Object.isFrozen(first.records[0])).toBe(true);
+        expect(Object.isFrozen(first.nextCursor)).toBe(true);
+
+        await expect(adapter.listSessions({ agentId, limit: 0 })).rejects.toMatchObject({
+          code: 'SESSION_QUERY_INVALID',
+        });
+        await expect(
+          adapter.listSessions({
+            agentId,
+            cursor: { updatedAt: -1, sessionId: 'older' },
+          })
+        ).rejects.toMatchObject({ code: 'SESSION_QUERY_INVALID' });
+        await expect(
+          adapter.listSessions({ agentId: defineAgentIdentity({ id: 'other-agent' }).id })
+        ).resolves.toEqual({ records: [] });
+      }));
+
+    it('inspects bounded Session metadata without embedding branch or turn ledgers', () =>
+      withHarness(createHarness, async (adapter) => {
+        const agentId = defineAgentIdentity({ id: 'inspect-query-agent' }).id;
+        const session = await adapter.resolve({ agentId, requestedSessionId: 'conversation' });
+        const inspected = await adapter.inspectSession(session);
+        expect(inspected).toMatchObject({
+          agentId,
+          sessionId: 'conversation',
+          selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
+          navigationRevision: 0,
+          branchCount: 1,
+          turnCount: 0,
+        });
+        expect(inspected).not.toHaveProperty('branches');
+        expect(inspected).not.toHaveProperty('turns');
+        expect(Object.isFrozen(inspected)).toBe(true);
+        await expect(
+          adapter.inspectSession({ agentId, sessionId: 'missing' as never })
+        ).resolves.toBeUndefined();
+      }));
+
+    it('advances recent activity for every Session mutation path', () =>
+      withHarness(createHarness, async (adapter) => {
+        const agentId = defineAgentIdentity({ id: 'activity-agent' }).id;
+        let session = await adapter.resolve({ agentId, requestedSessionId: 'conversation' });
+        const readActivity = async (): Promise<number> => {
+          const inspection = await adapter.inspectSession(session);
+          if (inspection === undefined) throw new Error('Expected the Session to exist.');
+          return inspection.updatedAt;
+        };
+        let previousActivity = await readActivity();
+        const expectActivityAdvance = async (): Promise<void> => {
+          const currentActivity = await readActivity();
+          expect(currentActivity).toBeGreaterThan(previousActivity);
+          previousActivity = currentActivity;
+        };
+
+        const completedId = parseTurnId('completed-activity');
+        await adapter.beginTurn({
+          ...session,
+          turnId: completedId,
+          userMessage: userMessage('complete me', 1),
+        });
+        await expectActivityAdvance();
+        await adapter.completeTurn({
+          ...session,
+          turnId: completedId,
+          assistantMessage: assistantMessage('completed', 2),
+        });
+        await expectActivityAdvance();
+
+        session = await adapter.resolve({ agentId, requestedSessionId: 'conversation' });
+        await adapter.applyNavigation({
+          ...session,
+          command: {
+            operation: 'select',
+            branchId: DEFAULT_SESSION_BRANCH_ID,
+            expectedRevision: session.navigationRevision,
+          },
+        });
+        await expectActivityAdvance();
+        await adapter.commitCompaction({
+          ...session,
+          expectedRevision: 0,
+          throughTurnId: completedId,
+          context: { role: 'context', text: 'summary', timestamp: 3 },
+        });
+        await expectActivityAdvance();
+
+        session = await adapter.resolve({ agentId, requestedSessionId: 'conversation' });
+        const failedId = parseTurnId('failed-activity');
+        await adapter.beginTurn({
+          ...session,
+          turnId: failedId,
+          userMessage: userMessage('fail me', 4),
+        });
+        await expectActivityAdvance();
+        await adapter.failTurn({ ...session, turnId: failedId, failureCode: 'EXPECTED_FAILURE' });
+        await expectActivityAdvance();
+      }));
+
+    it('pages the lossless newest-first turn ledger across branches and statuses', () =>
+      withHarness(createHarness, async (adapter) => {
+        const agentId = defineAgentIdentity({ id: 'ledger-agent' }).id;
+        let session = await adapter.resolve({ agentId, requestedSessionId: 'conversation' });
+        const completedId = parseTurnId('completed');
+        await adapter.beginTurn({
+          ...session,
+          turnId: completedId,
+          userMessage: userMessage('completed user', 1),
+        });
+        await adapter.completeTurn({
+          ...session,
+          turnId: completedId,
+          assistantMessage: assistantMessage('completed assistant', 2),
+        });
+        session = await adapter.resolve({ agentId, requestedSessionId: 'conversation' });
+        const childBranchId = parseSessionBranchId('child');
+        await adapter.applyNavigation({
+          ...session,
+          command: {
+            operation: 'rewind',
+            throughTurnId: completedId,
+            newBranchId: childBranchId,
+            expectedRevision: session.navigationRevision,
+          },
+        });
+        session = await adapter.resolve({ agentId, requestedSessionId: 'conversation' });
+        const failedId = parseTurnId('failed');
+        await adapter.beginTurn({
+          ...session,
+          turnId: failedId,
+          userMessage: userMessage('failed user', 3),
+        });
+        await adapter.failTurn({ ...session, turnId: failedId, failureCode: 'MODEL_FAILED' });
+        session = await adapter.resolve({ agentId, requestedSessionId: 'conversation' });
+        const activeId = parseTurnId('active');
+        await adapter.beginTurn({
+          ...session,
+          turnId: activeId,
+          userMessage: userMessage('active user', 4),
+        });
+
+        const first = await adapter.listSessionTurns({ ...session, limit: 2 });
+        expect(first?.records.map((turn) => [turn.turnId, turn.branchId, turn.status])).toEqual([
+          [activeId, childBranchId, 'active'],
+          [failedId, childBranchId, 'failed'],
+        ]);
+        expect(first?.nextCursor).toBe(failedId);
+        const second = await adapter.listSessionTurns({
+          ...session,
+          ...(first?.nextCursor === undefined ? {} : { beforeTurnId: first.nextCursor }),
+          limit: 2,
+        });
+        expect(second?.records.map((turn) => [turn.turnId, turn.branchId, turn.status])).toEqual([
+          [completedId, DEFAULT_SESSION_BRANCH_ID, 'completed'],
+        ]);
+        expect(second?.nextCursor).toBeUndefined();
+        expect(Object.isFrozen(first)).toBe(true);
+        expect(Object.isFrozen(first?.records)).toBe(true);
+        expect(Object.isFrozen(first?.records[0]?.userMessage)).toBe(true);
+
+        await expect(
+          adapter.listSessionTurns({ ...session, beforeTurnId: 'missing' })
+        ).rejects.toMatchObject({ code: 'TURN_NOT_FOUND' });
+        await expect(
+          adapter.listSessionTurns({ ...session, sessionId: 'missing' as never })
+        ).resolves.toBeUndefined();
+      }));
+
     it('loads only completed turns before the boundary in stable order', () =>
       withHarness(createHarness, async (adapter) => {
         const identity = defineAgentIdentity({ id: 'agent-a' });

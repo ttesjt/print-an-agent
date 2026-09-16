@@ -1,4 +1,4 @@
-import { quoteSqliteIdentifier } from '../table-names.js';
+import { quoteSqliteIdentifier, sessionActivityIndexName } from '../table-names.js';
 import {
   sessionCompactionMigrationTableName,
   type SqliteSessionTableNames,
@@ -105,5 +105,32 @@ export function addSessionNavigationMigration(tableNames: SqliteSessionTableName
   DROP TABLE ${quoteSqliteIdentifier(tableNames.compactions)};
   ALTER TABLE ${quoteSqliteIdentifier(compactionStagingTable)}
     RENAME TO ${quoteSqliteIdentifier(tableNames.compactions)};
+
+  ALTER TABLE ${quoteSqliteIdentifier(tableNames.sessions)}
+    ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0 CHECK (updated_at >= 0);
+
+  UPDATE ${quoteSqliteIdentifier(tableNames.sessions)} AS session
+  SET updated_at = MAX(
+    session.created_at,
+    COALESCE((
+      SELECT MAX(COALESCE(turn.finished_at, turn.started_at))
+      FROM ${quoteSqliteIdentifier(tableNames.turns)} AS turn
+      WHERE turn.agent_id = session.agent_id AND turn.session_id = session.session_id
+    ), session.created_at),
+    COALESCE((
+      SELECT MAX(branch.created_at)
+      FROM ${quoteSqliteIdentifier(tableNames.branches)} AS branch
+      WHERE branch.agent_id = session.agent_id AND branch.session_id = session.session_id
+    ), session.created_at),
+    COALESCE((
+      SELECT MAX(compaction.created_at)
+      FROM ${quoteSqliteIdentifier(tableNames.compactions)} AS compaction
+      WHERE compaction.agent_id = session.agent_id AND compaction.session_id = session.session_id
+    ), session.created_at)
+  );
+
+  CREATE INDEX ${quoteSqliteIdentifier(sessionActivityIndexName(tableNames))}
+    ON ${quoteSqliteIdentifier(tableNames.sessions)}
+      (agent_id, updated_at DESC, session_id ASC);
 `;
 }

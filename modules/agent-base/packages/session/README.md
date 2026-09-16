@@ -23,9 +23,16 @@ const agent = createDeterministicAgentAPI({
 });
 ```
 
-Both official local adapters implement `NavigableCompactableSessionPort`. Every Session starts on the stable `main`
-branch. Turns record immutable branch and parent-turn authority, and successful completion alone
-advances a branch head. `resolve()` captures the selected branch plus a navigation revision;
+Both official local adapters implement `NavigableCompactableSessionPort` and `SessionQueryPort`.
+The query port lists recently active Sessions with keyset pagination, inspects bounded summary
+metadata, and pages the newest-first durable Turn ledger across all branches and terminal states.
+It deliberately omits unbounded Turn and Branch collections from Session inspection. Branch listing
+requires a separately bounded query contract when a real consumer needs it. The query ledger is
+separate from `loadHistory()`: the latter selects completed model context, whereas the ledger is a
+lossless product read primitive.
+
+Every Session starts on the stable `main` branch. Turns record immutable branch and parent-turn
+authority, and successful completion alone advances a branch head. `resolve()` captures the selected branch plus a navigation revision;
 `beginTurn()` verifies that authority atomically, so a stale request cannot silently attach to a new
 selection. One active turn is allowed per branch.
 

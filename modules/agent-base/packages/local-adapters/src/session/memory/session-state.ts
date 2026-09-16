@@ -31,9 +31,11 @@ export interface StoredMemoryBranch {
 export interface StoredMemorySession {
   readonly agentId: AgentId;
   readonly sessionId: SessionId;
+  readonly createdAt: number;
   readonly branches: Map<SessionBranchId, StoredMemoryBranch>;
   readonly turns: SessionTurn[];
   readonly compactions: Map<SessionBranchId, SessionCompaction>;
+  updatedAt: number;
   selectedBranchId: SessionBranchId;
   navigationRevision: number;
 }
@@ -90,6 +92,10 @@ export function readMemoryClock(clock: () => number): number {
     );
   }
   return timestamp;
+}
+
+export function touchMemorySession(session: StoredMemorySession, timestamp: number): void {
+  session.updatedAt = Math.max(session.updatedAt, timestamp);
 }
 
 function cloneMemoryBranch(branch: StoredMemoryBranch): SessionBranchSnapshot {

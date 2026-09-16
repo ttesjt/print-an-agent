@@ -25,6 +25,12 @@ import {
   type SessionContextSnapshot,
   type SessionReference,
   type SessionSnapshot,
+  type SessionInspection,
+  type SessionListPage,
+  type SessionQueryPort,
+  type SessionTurnPage,
+  type ListSessionsInput,
+  type ListSessionTurnsInput,
   type SessionTurn,
 } from '@ta-agent/base-session';
 import {
@@ -49,6 +55,11 @@ import {
   failSqliteSessionTurn,
   loadSqliteSessionHistory,
 } from './session-turn-storage.js';
+import {
+  inspectSqliteSession,
+  listSqliteSessions,
+  listSqliteSessionTurns,
+} from './session-query-storage.js';
 import { assertSessionSchema, configureDefensiveMode, initializeSessionSchema } from './schema.js';
 import {
   quoteSqliteIdentifier,
@@ -123,7 +134,7 @@ function normalizeNavigationRequest(
 }
 
 export class SqliteSessionAdapter
-  implements InspectableSessionPort, CompactableSessionPort, NavigableSessionPort
+  implements InspectableSessionPort, CompactableSessionPort, NavigableSessionPort, SessionQueryPort
 {
   readonly #configuration: SqliteDatabaseConfiguration;
   readonly #createSessionId: () => string;
@@ -237,6 +248,30 @@ export class SqliteSessionAdapter
     });
   }
 
+  listSessions(input: ListSessionsInput): Promise<SessionListPage> {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('list sessions', (database) =>
+        listSqliteSessions(database, input, this.#tableNames)
+      )
+    );
+  }
+
+  inspectSession(reference: SessionReference): Promise<SessionInspection | undefined> {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('inspect session', (database) =>
+        inspectSqliteSession(database, reference, this.#tableNames)
+      )
+    );
+  }
+
+  listSessionTurns(input: ListSessionTurnsInput): Promise<SessionTurnPage | undefined> {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('list session turns', (database) =>
+        listSqliteSessionTurns(database, input, this.#tableNames)
+      )
+    );
+  }
+
   applyNavigation(request: ApplySessionNavigationRequest): Promise<AppliedSessionNavigation> {
     return Promise.resolve().then(() =>
       this.#useDatabase('apply navigation', (database) =>
@@ -269,7 +304,7 @@ export class SqliteSessionAdapter
         context: request.context,
       };
       return this.#useDatabase('commit compaction', (database) =>
-        commitSqliteSessionCompaction(database, normalized, this.#tableNames)
+        commitSqliteSessionCompaction(database, normalized, this.#clock, this.#tableNames)
       );
     });
   }

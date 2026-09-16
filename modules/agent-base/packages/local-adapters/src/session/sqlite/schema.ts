@@ -1,5 +1,5 @@
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
-import { quoteSqliteIdentifier } from './table-names.js';
+import { quoteSqliteIdentifier, sessionActivityIndexName } from './table-names.js';
 import { AgentSessionError } from '@ta-agent/base-session';
 import { runImmediateTransaction } from './database.js';
 import { createSessionStoreMigration } from './migrations/0001_create_session_store.js';
@@ -18,6 +18,7 @@ const SESSION_COLUMNS = Object.freeze([
   'created_at',
   'selected_branch_id',
   'navigation_revision',
+  'updated_at',
 ]);
 const TURN_COLUMNS = Object.freeze([
   'agent_id',
@@ -110,15 +111,17 @@ function migrateSchema(
   tableNames: SqliteSessionTableNames
 ): void {
   runImmediateTransaction(database, () => {
-    if (version === 1) {
+    let currentVersion = version;
+    if (currentVersion === 1) {
       database.exec(addSessionCompactionMigration(tableNames));
       database
         .prepare(
           `UPDATE ${quoteSqliteIdentifier(tableNames.schema)} SET version = ? WHERE component = ?`
         )
         .run(2, SESSION_SCHEMA_COMPONENT);
+      currentVersion = 2;
     }
-    if (version <= 2) {
+    if (currentVersion === 2) {
       database.exec(addSessionNavigationMigration(tableNames));
       database
         .prepare(
@@ -145,6 +148,47 @@ function assertTableColumns(
     throw new AgentSessionError(
       'SESSION_SCHEMA_INVALID',
       `SQLite Session table "${tableName}" does not match the expected schema.`
+    );
+  }
+}
+
+function assertSessionActivityIndex(
+  database: DatabaseSync,
+  tableNames: SqliteSessionTableNames
+): void {
+  const indexName = sessionActivityIndexName(tableNames);
+  const indexes = database
+    .prepare(`PRAGMA index_list(${quoteSqliteIdentifier(tableNames.sessions)})`)
+    .all() as SqliteRow[];
+  const index = indexes.find((candidate) => candidate.name === indexName);
+  if (index === undefined || index.unique !== 0 || index.origin !== 'c' || index.partial !== 0) {
+    throw new AgentSessionError(
+      'SESSION_SCHEMA_INVALID',
+      `SQLite Session activity index "${indexName}" is missing or invalid.`
+    );
+  }
+  const columns = database
+    .prepare(`PRAGMA index_xinfo(${quoteSqliteIdentifier(indexName)})`)
+    .all() as SqliteRow[];
+  const expected = [
+    { sequence: 0, name: 'agent_id', descending: 0 },
+    { sequence: 1, name: 'updated_at', descending: 1 },
+    { sequence: 2, name: 'session_id', descending: 0 },
+  ] as const;
+  const keyColumns = columns.filter((column) => column.key === 1);
+  if (
+    keyColumns.length !== expected.length ||
+    expected.some(
+      ({ sequence, name, descending }) =>
+        !keyColumns.some(
+          (column) =>
+            column.seqno === sequence && column.name === name && column.desc === descending
+        )
+    )
+  ) {
+    throw new AgentSessionError(
+      'SESSION_SCHEMA_INVALID',
+      `SQLite Session activity index "${indexName}" does not match the expected ordering.`
     );
   }
 }
@@ -190,6 +234,7 @@ export function assertSessionSchema(
   assertTableColumns(database, tableNames.turns, TURN_COLUMNS);
   assertTableColumns(database, tableNames.branches, BRANCH_COLUMNS);
   assertTableColumns(database, tableNames.compactions, COMPACTION_COLUMNS);
+  assertSessionActivityIndex(database, tableNames);
 }
 
 export function configureDefensiveMode(database: DatabaseSync): void {

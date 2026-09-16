@@ -159,7 +159,7 @@ export function requireSession(
 ): SqliteRow {
   const row = database
     .prepare(
-      `SELECT selected_branch_id, navigation_revision, next_turn_sequence
+      `SELECT selected_branch_id, navigation_revision, next_turn_sequence, created_at, updated_at
        FROM ${quoteSqliteIdentifier(tableNames.sessions)}
        WHERE agent_id = ? AND session_id = ?`
     )

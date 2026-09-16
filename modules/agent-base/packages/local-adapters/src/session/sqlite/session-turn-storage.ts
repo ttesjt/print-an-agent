@@ -85,6 +85,7 @@ export function beginSqliteSessionTurn(
     }
     const session = requireSession(database, request, tableNames);
     const sequence = requireNonNegativeInteger(session, 'next_turn_sequence');
+    const startedAt = readClock(clock);
     database
       .prepare(
         `INSERT INTO ${quoteSqliteIdentifier(tableNames.turns)}
@@ -98,17 +99,17 @@ export function beginSqliteSessionTurn(
         request.turnId,
         sequence,
         userMessageJson,
-        readClock(clock),
+        startedAt,
         request.branchId,
         branch.headTurnId ?? null
       );
     database
       .prepare(
         `UPDATE ${quoteSqliteIdentifier(tableNames.sessions)}
-         SET next_turn_sequence = ?
+         SET next_turn_sequence = ?, updated_at = MAX(updated_at, ?)
          WHERE agent_id = ? AND session_id = ?`
       )
-      .run(sequence + 1, request.agentId, request.sessionId);
+      .run(sequence + 1, startedAt, request.agentId, request.sessionId);
     return Object.freeze({
       status: 'active',
       turnId: request.turnId,
@@ -162,19 +163,14 @@ export function completeSqliteSessionTurn(
         'Session branch head changed before the active turn completed.'
       );
     }
+    const finishedAt = readClock(clock);
     const result = database
       .prepare(
         `UPDATE ${quoteSqliteIdentifier(tableNames.turns)}
          SET status = 'completed', assistant_message = ?, finished_at = ?
          WHERE agent_id = ? AND session_id = ? AND turn_id = ? AND status = 'active'`
       )
-      .run(
-        assistantMessageJson,
-        readClock(clock),
-        request.agentId,
-        request.sessionId,
-        request.turnId
-      );
+      .run(assistantMessageJson, finishedAt, request.agentId, request.sessionId, request.turnId);
     if (result.changes !== 1) {
       throw new AgentSessionError(
         'TURN_STATE_INVALID',
@@ -191,10 +187,11 @@ export function completeSqliteSessionTurn(
     database
       .prepare(
         `UPDATE ${quoteSqliteIdentifier(tableNames.sessions)}
-         SET navigation_revision = navigation_revision + 1
+         SET navigation_revision = navigation_revision + 1,
+             updated_at = MAX(updated_at, ?)
          WHERE agent_id = ? AND session_id = ?`
       )
-      .run(request.agentId, request.sessionId);
+      .run(finishedAt, request.agentId, request.sessionId);
     return Object.freeze({
       status: 'completed',
       turnId: request.turnId,
@@ -216,13 +213,14 @@ export function failSqliteSessionTurn(
   return runImmediateTransaction(database, () => {
     const current = decodeTurn(requireTurnRow(database, request, request.turnId, tableNames));
     if (current.status !== 'active') return current;
+    const finishedAt = readClock(clock);
     const result = database
       .prepare(
         `UPDATE ${quoteSqliteIdentifier(tableNames.turns)}
          SET status = 'failed', failure_code = ?, finished_at = ?
          WHERE agent_id = ? AND session_id = ? AND turn_id = ? AND status = 'active'`
       )
-      .run(failureCode, readClock(clock), request.agentId, request.sessionId, request.turnId);
+      .run(failureCode, finishedAt, request.agentId, request.sessionId, request.turnId);
     if (result.changes !== 1) {
       throw new AgentSessionError(
         'TURN_STATE_INVALID',
@@ -237,6 +235,13 @@ export function failSqliteSessionTurn(
       userMessage: current.userMessage,
       failureCode,
     });
+    database
+      .prepare(
+        `UPDATE ${quoteSqliteIdentifier(tableNames.sessions)}
+         SET updated_at = MAX(updated_at, ?)
+         WHERE agent_id = ? AND session_id = ?`
+      )
+      .run(finishedAt, request.agentId, request.sessionId);
     return failed;
   });
 }

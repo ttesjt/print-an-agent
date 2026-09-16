@@ -10,7 +10,7 @@ Shipped implementations are grouped by the port they implement:
 
 - Identity: Memory and versioned SQLite catalog adapters;
 - Config: Memory and versioned SQLite document adapters;
-- Session: Memory and versioned SQLite navigation/compaction adapters;
+- Session: Memory and versioned SQLite navigation/compaction/query adapters with durable recent-activity ordering;
 - Request: Memory OutputSink plus Memory and SQLite Request Journals;
 - Observability: bounded Memory trace storage.
 

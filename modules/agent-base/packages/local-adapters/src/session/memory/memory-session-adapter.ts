@@ -27,6 +27,12 @@ import {
   type SessionContextSnapshot,
   type SessionReference,
   type SessionSnapshot,
+  type SessionInspection,
+  type SessionListPage,
+  type SessionQueryPort,
+  type SessionTurnPage,
+  type ListSessionsInput,
+  type ListSessionTurnsInput,
   type SessionTurn,
   type TurnId,
 } from '@ta-agent/base-session';
@@ -39,11 +45,17 @@ import {
   memorySessionKey,
   readMemoryClock,
   resolveMemorySessionReference,
+  touchMemorySession,
   validateMemoryContext,
   type StoredMemoryBranch,
   type StoredMemorySession,
 } from './session-state.js';
 import { applyMemorySessionNavigation } from './session-navigation.js';
+import {
+  inspectMemorySession,
+  listMemorySessions,
+  listMemorySessionTurns,
+} from './session-query.js';
 
 export interface MemorySessionAdapterOptions {
   readonly createSessionId?: () => string;
@@ -52,7 +64,7 @@ export interface MemorySessionAdapterOptions {
 }
 
 export class MemorySessionAdapter
-  implements InspectableSessionPort, CompactableSessionPort, NavigableSessionPort
+  implements InspectableSessionPort, CompactableSessionPort, NavigableSessionPort, SessionQueryPort
 {
   readonly #sessions = new Map<string, StoredMemorySession>();
   readonly #createSessionId: () => string;
@@ -72,20 +84,23 @@ export class MemorySessionAdapter
       const key = memorySessionKey(request.agentId, sessionId);
       let session = this.#sessions.get(key);
       if (session === undefined) {
+        const timestamp = readMemoryClock(this.#clock);
         session = {
           agentId: request.agentId,
           sessionId,
+          createdAt: timestamp,
           branches: new Map([
             [
               DEFAULT_SESSION_BRANCH_ID,
               {
                 branchId: DEFAULT_SESSION_BRANCH_ID,
-                createdAt: readMemoryClock(this.#clock),
+                createdAt: timestamp,
               },
             ],
           ]),
           turns: [],
           compactions: new Map(),
+          updatedAt: timestamp,
           selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
           navigationRevision: 0,
         };
@@ -129,7 +144,9 @@ export class MemorySessionAdapter
         ...(branch.headTurnId === undefined ? {} : { parentTurnId: branch.headTurnId }),
         userMessage: Object.freeze({ ...request.userMessage }),
       });
+      const updatedAt = readMemoryClock(this.#clock);
       session.turns.push(turn);
+      touchMemorySession(session, updatedAt);
       return cloneMemoryTurn(turn);
     });
   }
@@ -196,9 +213,11 @@ export class MemorySessionAdapter
         userMessage: current.userMessage,
         assistantMessage: defineAssistantModelMessage(request.assistantMessage),
       });
+      const updatedAt = readMemoryClock(this.#clock);
       session.turns[index] = completed;
       branch.headTurnId = completed.turnId;
       session.navigationRevision += 1;
+      touchMemorySession(session, updatedAt);
       return cloneMemoryTurn(completed);
     });
   }
@@ -213,6 +232,7 @@ export class MemorySessionAdapter
         throw new AgentSessionError('TURN_NOT_FOUND', `Turn "${request.turnId}" does not exist.`);
       }
       if (current.status !== 'active') return cloneMemoryTurn(current);
+      const updatedAt = readMemoryClock(this.#clock);
       const failed: SessionTurn = Object.freeze({
         status: 'failed',
         turnId: current.turnId,
@@ -222,6 +242,7 @@ export class MemorySessionAdapter
         failureCode,
       });
       session.turns[index] = failed;
+      touchMemorySession(session, updatedAt);
       return cloneMemoryTurn(failed);
     });
   }
@@ -233,10 +254,27 @@ export class MemorySessionAdapter
     });
   }
 
+  listSessions(input: ListSessionsInput): Promise<SessionListPage> {
+    return Promise.resolve().then(() => listMemorySessions(this.#sessions, input));
+  }
+
+  inspectSession(reference: SessionReference): Promise<SessionInspection | undefined> {
+    return Promise.resolve().then(() => inspectMemorySession(this.#sessions, reference));
+  }
+
+  listSessionTurns(input: ListSessionTurnsInput): Promise<SessionTurnPage | undefined> {
+    return Promise.resolve().then(() => listMemorySessionTurns(this.#sessions, input));
+  }
+
   applyNavigation(request: ApplySessionNavigationRequest): Promise<AppliedSessionNavigation> {
     return Promise.resolve().then(() => {
       const session = this.#requireSession(request);
-      return applyMemorySessionNavigation(session, request, this.#createBranchId, this.#clock);
+      return applyMemorySessionNavigation(
+        session,
+        request,
+        this.#createBranchId,
+        readMemoryClock(this.#clock)
+      );
     });
   }
 
@@ -289,7 +327,9 @@ export class MemorySessionAdapter
         throughTurnId: request.throughTurnId,
         context: validateMemoryContext(request.context),
       });
+      const updatedAt = readMemoryClock(this.#clock);
       session.compactions.set(request.branchId, committed);
+      touchMemorySession(session, updatedAt);
       return cloneMemoryCompaction(committed);
     });
   }

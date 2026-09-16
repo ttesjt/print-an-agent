@@ -12,6 +12,14 @@ export {
   parseTurnId,
 } from './identifiers.js';
 export type * from './types.js';
+export type * from './query/contracts.js';
+export { DEFAULT_SESSION_QUERY_LIMIT, MAX_SESSION_QUERY_LIMIT } from './query/contracts.js';
+export {
+  normalizeListSessionsInput,
+  normalizeListSessionTurnsInput,
+  type NormalizedListSessionsInput,
+  type NormalizedListSessionTurnsInput,
+} from './query/normalization.js';
 export type * from './navigation/contracts.js';
 export {
   completedLineageBeforeTurn,

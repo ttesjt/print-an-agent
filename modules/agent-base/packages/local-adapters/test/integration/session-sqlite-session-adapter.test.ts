@@ -177,6 +177,39 @@ describe('SqliteSessionAdapter durability', () => {
         databasePath: temporary.databasePath,
         tablePrefix: 'custom_',
       });
+      const page = await migrated.listSessions({ agentId: identity.id });
+      expect(page.records).toMatchObject([
+        {
+          sessionId: 'conversation',
+          createdAt: 101,
+          updatedAt: 103,
+          turnCount: 1,
+        },
+      ]);
+      const database = new DatabaseSync(temporary.databasePath);
+      const schema = database
+        .prepare(`SELECT version FROM custom_session_schema WHERE component = 'session'`)
+        .get() as { version: number };
+      const indexNames = database
+        .prepare('PRAGMA index_list(custom_sessions)')
+        .all()
+        .map((row) => (row as { name: string }).name);
+      const queryPlan = database
+        .prepare(
+          `EXPLAIN QUERY PLAN
+           SELECT session_id
+           FROM custom_sessions
+           WHERE agent_id = ?
+           ORDER BY updated_at DESC, session_id ASC
+           LIMIT ?`
+        )
+        .all(identity.id, 10)
+        .map((row) => (row as { detail: string }).detail)
+        .join(' ');
+      database.close();
+      expect(schema.version).toBe(3);
+      expect(indexNames).toContain('custom_sessions_activity_idx');
+      expect(queryPlan).toContain('custom_sessions_activity_idx');
       const boundaryId = parseTurnId('boundary');
       await migrated.beginTurn({
         ...session,
@@ -436,6 +469,7 @@ describe('SqliteSessionAdapter durability', () => {
   it('rejects future schemas, schema drift, and corrupt records with structured errors', async () => {
     const future = createTemporaryDatabase();
     const drift = createTemporaryDatabase();
+    const missingIndex = createTemporaryDatabase();
     const corrupt = createTemporaryDatabase();
     try {
       new SqliteSessionAdapter({ databasePath: future.databasePath });
@@ -463,6 +497,15 @@ describe('SqliteSessionAdapter durability', () => {
         'SESSION_SCHEMA_INVALID'
       );
 
+      new SqliteSessionAdapter({ databasePath: missingIndex.databasePath });
+      const missingIndexDatabase = new DatabaseSync(missingIndex.databasePath);
+      missingIndexDatabase.exec('DROP INDEX agent_sessions_activity_idx');
+      missingIndexDatabase.close();
+      expectSessionError(
+        () => new SqliteSessionAdapter({ databasePath: missingIndex.databasePath }),
+        'SESSION_SCHEMA_INVALID'
+      );
+
       const adapter = new SqliteSessionAdapter({
         databasePath: corrupt.databasePath,
         clock: createClock(),
@@ -486,6 +529,7 @@ describe('SqliteSessionAdapter durability', () => {
     } finally {
       future.dispose();
       drift.dispose();
+      missingIndex.dispose();
       corrupt.dispose();
     }
   });

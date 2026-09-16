@@ -10,7 +10,7 @@ import {
 import {
   createMemorySessionSnapshot,
   inheritMemoryCompaction,
-  readMemoryClock,
+  touchMemorySession,
   type StoredMemorySession,
 } from './session-state.js';
 
@@ -27,7 +27,7 @@ export function applyMemorySessionNavigation(
   session: StoredMemorySession,
   request: ApplySessionNavigationRequest,
   createBranchId: () => string,
-  clock: () => number
+  timestamp: number
 ): AppliedSessionNavigation {
   if (request.command.expectedRevision !== session.navigationRevision) {
     throw new AgentSessionError(
@@ -67,7 +67,7 @@ export function applyMemorySessionNavigation(
       parentBranchId: sourceBranchId,
       forkedFromTurnId: request.command.throughTurnId,
       headTurnId: request.command.throughTurnId,
-      createdAt: readMemoryClock(clock),
+      createdAt: timestamp,
     });
     inheritMemoryCompaction(
       session,
@@ -82,6 +82,7 @@ export function applyMemorySessionNavigation(
   }
 
   session.navigationRevision += 1;
+  touchMemorySession(session, timestamp);
   return Object.freeze({
     operation: request.command.operation,
     affectedBranchId,

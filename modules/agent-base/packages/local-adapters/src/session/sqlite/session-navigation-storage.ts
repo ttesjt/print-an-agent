@@ -220,10 +220,10 @@ export function resolveSqliteSession(
       .prepare(
         `INSERT OR IGNORE INTO ${quoteSqliteIdentifier(tableNames.sessions)}
           (agent_id, session_id, next_turn_sequence, created_at, selected_branch_id,
-           navigation_revision)
-         VALUES (?, ?, 0, ?, ?, 0)`
+           navigation_revision, updated_at)
+         VALUES (?, ?, 0, ?, ?, 0, ?)`
       )
-      .run(reference.agentId, reference.sessionId, createdAt, DEFAULT_SESSION_BRANCH_ID);
+      .run(reference.agentId, reference.sessionId, createdAt, DEFAULT_SESSION_BRANCH_ID, createdAt);
     if (inserted.changes === 1) {
       database
         .prepare(
@@ -288,6 +288,7 @@ export function applySqliteSessionNavigation(
   tableNames: SqliteSessionTableNames
 ): AppliedSessionNavigation {
   return runImmediateTransaction(database, () => {
+    const timestamp = readClock(clock);
     const snapshot = loadSqliteSessionSnapshot(database, request, tableNames);
     if (request.command.expectedRevision !== snapshot.navigation.revision) {
       throw new AgentSessionError(
@@ -339,7 +340,7 @@ export function applySqliteSessionNavigation(
           sourceBranchId,
           request.command.throughTurnId,
           request.command.throughTurnId,
-          readClock(clock)
+          timestamp
         );
       inheritCompaction(
         database,
@@ -354,10 +355,17 @@ export function applySqliteSessionNavigation(
     const update = database
       .prepare(
         `UPDATE ${quoteSqliteIdentifier(tableNames.sessions)}
-         SET selected_branch_id = ?, navigation_revision = navigation_revision + 1
+         SET selected_branch_id = ?, navigation_revision = navigation_revision + 1,
+             updated_at = MAX(updated_at, ?)
          WHERE agent_id = ? AND session_id = ? AND navigation_revision = ?`
       )
-      .run(selectedBranchId, request.agentId, request.sessionId, request.command.expectedRevision);
+      .run(
+        selectedBranchId,
+        timestamp,
+        request.agentId,
+        request.sessionId,
+        request.command.expectedRevision
+      );
     if (update.changes !== 1) {
       throw new AgentSessionError(
         'SESSION_NAVIGATION_CONFLICT',

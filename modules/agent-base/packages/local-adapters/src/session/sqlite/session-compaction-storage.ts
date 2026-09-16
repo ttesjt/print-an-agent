@@ -12,7 +12,7 @@ import {
   type SessionContextSnapshot,
   type SessionTurn,
 } from '@ta-agent/base-session';
-import { runImmediateTransaction } from './database.js';
+import { readClock, runImmediateTransaction } from './database.js';
 import { decodeContextMessage, encodeContextMessage } from './message-codec.js';
 import { loadSqliteSessionSnapshot } from './session-navigation-storage.js';
 import {
@@ -125,6 +125,7 @@ function assertExpectedRevision(value: number): void {
 export function commitSqliteSessionCompaction(
   database: DatabaseSync,
   request: CommitSessionCompactionRequest,
+  clock: () => number,
   tableNames: SqliteSessionTableNames
 ): SessionCompaction {
   assertExpectedRevision(request.expectedRevision);
@@ -160,6 +161,7 @@ export function commitSqliteSessionCompaction(
       }
     }
     const revision = currentRevision + 1;
+    const committedAt = readClock(clock);
     if (currentRow === undefined) {
       database
         .prepare(
@@ -200,6 +202,13 @@ export function commitSqliteSessionCompaction(
         );
       }
     }
+    database
+      .prepare(
+        `UPDATE ${quoteSqliteIdentifier(tableNames.sessions)}
+         SET updated_at = MAX(updated_at, ?)
+         WHERE agent_id = ? AND session_id = ?`
+      )
+      .run(committedAt, request.agentId, request.sessionId);
     return Object.freeze({
       agentId: request.agentId,
       sessionId: request.sessionId,

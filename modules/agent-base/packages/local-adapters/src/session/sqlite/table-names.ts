@@ -92,6 +92,19 @@ export function sessionCompactionMigrationTableName(tableNames: SqliteSessionTab
   return stagingName;
 }
 
+export function sessionActivityIndexName(tableNames: SqliteSessionTableNames): string {
+  const indexName = `${tableNames.sessions}_activity_idx`;
+  assertDistinct([
+    tableNames.schema,
+    tableNames.sessions,
+    tableNames.turns,
+    tableNames.branches,
+    tableNames.compactions,
+    indexName,
+  ]);
+  return indexName;
+}
+
 export function resolveSqliteSessionTableNames(
   input?: SqliteSessionTableNamingInput
 ): SqliteSessionTableNames {
@@ -104,6 +117,16 @@ export function resolveSqliteSessionTableNames(
     branches: overrides.get('branches') ?? validateIdentifier(`${prefix}session_branches`),
     compactions: overrides.get('compactions') ?? validateIdentifier(`${prefix}session_compactions`),
   });
-  sessionCompactionMigrationTableName(tableNames);
+  const compactionStagingTable = sessionCompactionMigrationTableName(tableNames);
+  const activityIndex = sessionActivityIndexName(tableNames);
+  assertDistinct([
+    tableNames.schema,
+    tableNames.sessions,
+    tableNames.turns,
+    tableNames.branches,
+    tableNames.compactions,
+    compactionStagingTable,
+    activityIndex,
+  ]);
   return tableNames;
 }

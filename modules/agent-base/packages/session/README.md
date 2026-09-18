@@ -23,9 +23,12 @@ const agent = createDeterministicAgentAPI({
 });
 ```
 
-Both official local adapters implement `NavigableCompactableSessionPort` and `SessionQueryPort`.
+Both official local adapters implement `NavigableCompactableSessionPort`, `SessionQueryPort`, and
+`SessionMetadataPort`.
 The query port lists recently active Sessions with keyset pagination, inspects bounded summary
 metadata, and pages the newest-first durable Turn ledger across all branches and terminal states.
+The metadata port renames a Session through an independent revisioned CAS; its stable Session ID and
+conversation-activity ordering do not change.
 It deliberately omits unbounded Turn and Branch collections from Session inspection. Branch listing
 requires a separately bounded query contract when a real consumer needs it. The query ledger is
 separate from `loadHistory()`: the latter selects completed model context, whereas the ledger is a

@@ -5,10 +5,11 @@ import { runImmediateTransaction } from './database.js';
 import { createSessionStoreMigration } from './migrations/0001_create_session_store.js';
 import { addSessionCompactionMigration } from './migrations/0002_add_session_compaction.js';
 import { addSessionNavigationMigration } from './migrations/0003_add_session_navigation.js';
+import { addSessionMetadataMigration } from './migrations/0004_add_session_metadata.js';
 import type { SqliteSessionTableNames } from './table-names.js';
 
 const SESSION_SCHEMA_COMPONENT = 'session';
-const CURRENT_SESSION_SCHEMA_VERSION = 3;
+const CURRENT_SESSION_SCHEMA_VERSION = 4;
 
 const SCHEMA_COLUMNS = Object.freeze(['component', 'version']);
 const SESSION_COLUMNS = Object.freeze([
@@ -19,6 +20,9 @@ const SESSION_COLUMNS = Object.freeze([
   'selected_branch_id',
   'navigation_revision',
   'updated_at',
+  'title',
+  'metadata_revision',
+  'metadata_updated_at',
 ]);
 const TURN_COLUMNS = Object.freeze([
   'agent_id',
@@ -127,6 +131,15 @@ function migrateSchema(
         .prepare(
           `UPDATE ${quoteSqliteIdentifier(tableNames.schema)} SET version = ? WHERE component = ?`
         )
+        .run(3, SESSION_SCHEMA_COMPONENT);
+      currentVersion = 3;
+    }
+    if (currentVersion === 3) {
+      database.exec(addSessionMetadataMigration(tableNames));
+      database
+        .prepare(
+          `UPDATE ${quoteSqliteIdentifier(tableNames.schema)} SET version = ? WHERE component = ?`
+        )
         .run(CURRENT_SESSION_SCHEMA_VERSION, SESSION_SCHEMA_COMPONENT);
     }
   });
@@ -210,6 +223,7 @@ export function initializeSessionSchema(
       database.exec(createSessionStoreMigration(tableNames));
       database.exec(addSessionCompactionMigration(tableNames));
       database.exec(addSessionNavigationMigration(tableNames));
+      database.exec(addSessionMetadataMigration(tableNames));
       database
         .prepare(
           `INSERT INTO ${quoteSqliteIdentifier(tableNames.schema)} (component, version) VALUES (?, ?)`

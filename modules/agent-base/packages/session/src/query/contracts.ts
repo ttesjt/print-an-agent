@@ -28,6 +28,9 @@ export interface ListSessionTurnsInput extends SessionReference {
 }
 
 export interface SessionSummary extends SessionReference {
+  readonly title?: string;
+  readonly metadataRevision: number;
+  readonly metadataUpdatedAt: number;
   readonly createdAt: number;
   readonly updatedAt: number;
   readonly selectedBranchId: SessionBranchId;
@@ -54,3 +57,14 @@ export interface SessionQueryPort {
   inspectSession(reference: SessionReference): Promise<SessionInspection | undefined>;
   listSessionTurns(input: ListSessionTurnsInput): Promise<SessionTurnPage | undefined>;
 }
+
+export interface RenameSessionInput extends SessionReference {
+  readonly title: string;
+  readonly expectedRevision: number;
+}
+
+export interface SessionMetadataPort {
+  renameSession(input: RenameSessionInput): Promise<SessionInspection>;
+}
+
+export type ManageableSessionQueryPort = SessionQueryPort & SessionMetadataPort;

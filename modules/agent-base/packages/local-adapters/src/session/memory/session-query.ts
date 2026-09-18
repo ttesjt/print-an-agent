@@ -19,6 +19,9 @@ function summarize(session: StoredMemorySession): SessionSummary {
   return Object.freeze({
     agentId: session.agentId,
     sessionId: session.sessionId,
+    ...(session.title === undefined ? {} : { title: session.title }),
+    metadataRevision: session.metadataRevision,
+    metadataUpdatedAt: session.metadataUpdatedAt,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
     selectedBranchId: session.selectedBranchId,

@@ -19,6 +19,7 @@ import {
   normalizePersistedBranchId,
   requireNonNegativeInteger,
   requireString,
+  optionalString,
   type SqliteRow,
 } from './session-record-codec.js';
 import { quoteSqliteIdentifier, type SqliteSessionTableNames } from './table-names.js';
@@ -27,9 +28,13 @@ const TURN_COLUMNS = `turn_id, status, user_message, assistant_message, failure_
   branch_id, parent_turn_id`;
 
 function decodeSummary(row: SqliteRow): SessionSummary {
+  const title = optionalString(row, 'title');
   return Object.freeze({
     agentId: parseAgentId(requireString(row, 'agent_id')),
     sessionId: parseSessionId(requireString(row, 'session_id')),
+    ...(title === undefined ? {} : { title }),
+    metadataRevision: requireNonNegativeInteger(row, 'metadata_revision'),
+    metadataUpdatedAt: requireNonNegativeInteger(row, 'metadata_updated_at'),
     createdAt: requireNonNegativeInteger(row, 'created_at'),
     updatedAt: requireNonNegativeInteger(row, 'updated_at'),
     selectedBranchId: normalizePersistedBranchId(
@@ -61,6 +66,7 @@ export function listSqliteSessions(
   const rows = database
     .prepare(
       `SELECT session.agent_id, session.session_id, session.created_at, session.updated_at,
+              session.title, session.metadata_revision, session.metadata_updated_at,
               session.selected_branch_id, session.navigation_revision,
               (SELECT COUNT(*)
                FROM ${quoteSqliteIdentifier(tableNames.branches)} AS branch
@@ -103,7 +109,8 @@ export function inspectSqliteSession(
   });
   const row = database
     .prepare(
-      `SELECT agent_id, session_id, created_at, updated_at, selected_branch_id,
+      `SELECT agent_id, session_id, created_at, updated_at, title, metadata_revision,
+              metadata_updated_at, selected_branch_id,
               navigation_revision,
               (SELECT COUNT(*)
                FROM ${quoteSqliteIdentifier(tableNames.branches)} AS branch

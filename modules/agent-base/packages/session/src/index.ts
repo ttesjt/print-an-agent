@@ -15,6 +15,11 @@ export type * from './types.js';
 export type * from './query/contracts.js';
 export { DEFAULT_SESSION_QUERY_LIMIT, MAX_SESSION_QUERY_LIMIT } from './query/contracts.js';
 export {
+  MAX_SESSION_TITLE_CHARACTERS,
+  normalizeRenameSessionInput,
+  normalizeSessionTitle,
+} from './query/metadata.js';
+export {
   normalizeListSessionsInput,
   normalizeListSessionTurnsInput,
   type NormalizedListSessionsInput,

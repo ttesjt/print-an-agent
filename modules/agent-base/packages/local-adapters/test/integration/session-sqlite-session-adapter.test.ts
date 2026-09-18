@@ -207,7 +207,7 @@ describe('SqliteSessionAdapter durability', () => {
         .map((row) => (row as { detail: string }).detail)
         .join(' ');
       database.close();
-      expect(schema.version).toBe(3);
+      expect(schema.version).toBe(4);
       expect(indexNames).toContain('custom_sessions_activity_idx');
       expect(queryPlan).toContain('custom_sessions_activity_idx');
       const boundaryId = parseTurnId('boundary');
@@ -477,7 +477,7 @@ describe('SqliteSessionAdapter durability', () => {
       futureDatabase
         .prepare(
           `UPDATE agent_session_schema
-           SET version = 4 WHERE component = 'session'`
+           SET version = 5 WHERE component = 'session'`
         )
         .run();
       futureDatabase.close();

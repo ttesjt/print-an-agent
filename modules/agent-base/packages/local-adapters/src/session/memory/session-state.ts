@@ -35,6 +35,9 @@ export interface StoredMemorySession {
   readonly branches: Map<SessionBranchId, StoredMemoryBranch>;
   readonly turns: SessionTurn[];
   readonly compactions: Map<SessionBranchId, SessionCompaction>;
+  title?: string;
+  metadataRevision: number;
+  metadataUpdatedAt: number;
   updatedAt: number;
   selectedBranchId: SessionBranchId;
   navigationRevision: number;

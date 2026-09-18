@@ -27,11 +27,13 @@ import {
   type SessionSnapshot,
   type SessionInspection,
   type SessionListPage,
+  type SessionMetadataPort,
   type SessionQueryPort,
   type SessionTurnPage,
   type ListSessionsInput,
   type ListSessionTurnsInput,
   type SessionTurn,
+  type RenameSessionInput,
 } from '@ta-agent/base-session';
 import {
   defineSqliteDatabaseConfiguration,
@@ -60,6 +62,7 @@ import {
   listSqliteSessions,
   listSqliteSessionTurns,
 } from './session-query-storage.js';
+import { renameSqliteSession } from './session-metadata-storage.js';
 import { assertSessionSchema, configureDefensiveMode, initializeSessionSchema } from './schema.js';
 import {
   quoteSqliteIdentifier,
@@ -134,7 +137,12 @@ function normalizeNavigationRequest(
 }
 
 export class SqliteSessionAdapter
-  implements InspectableSessionPort, CompactableSessionPort, NavigableSessionPort, SessionQueryPort
+  implements
+    InspectableSessionPort,
+    CompactableSessionPort,
+    NavigableSessionPort,
+    SessionQueryPort,
+    SessionMetadataPort
 {
   readonly #configuration: SqliteDatabaseConfiguration;
   readonly #createSessionId: () => string;
@@ -268,6 +276,14 @@ export class SqliteSessionAdapter
     return Promise.resolve().then(() =>
       this.#useDatabase('list session turns', (database) =>
         listSqliteSessionTurns(database, input, this.#tableNames)
+      )
+    );
+  }
+
+  renameSession(input: RenameSessionInput): Promise<SessionInspection> {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('rename session', (database) =>
+        renameSqliteSession(database, input, this.#clock, this.#tableNames)
       )
     );
   }

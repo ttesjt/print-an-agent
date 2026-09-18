@@ -7,6 +7,7 @@ import {
   completedLineageForBranch,
   parseSessionFailureCode,
   parseSessionId,
+  normalizeRenameSessionInput,
   type ActiveSessionTurn,
   type AppliedSessionNavigation,
   type ApplySessionNavigationRequest,
@@ -29,11 +30,13 @@ import {
   type SessionSnapshot,
   type SessionInspection,
   type SessionListPage,
+  type SessionMetadataPort,
   type SessionQueryPort,
   type SessionTurnPage,
   type ListSessionsInput,
   type ListSessionTurnsInput,
   type SessionTurn,
+  type RenameSessionInput,
   type TurnId,
 } from '@ta-agent/base-session';
 import {
@@ -64,7 +67,12 @@ export interface MemorySessionAdapterOptions {
 }
 
 export class MemorySessionAdapter
-  implements InspectableSessionPort, CompactableSessionPort, NavigableSessionPort, SessionQueryPort
+  implements
+    InspectableSessionPort,
+    CompactableSessionPort,
+    NavigableSessionPort,
+    SessionQueryPort,
+    SessionMetadataPort
 {
   readonly #sessions = new Map<string, StoredMemorySession>();
   readonly #createSessionId: () => string;
@@ -100,6 +108,8 @@ export class MemorySessionAdapter
           ]),
           turns: [],
           compactions: new Map(),
+          metadataRevision: 0,
+          metadataUpdatedAt: timestamp,
           updatedAt: timestamp,
           selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
           navigationRevision: 0,
@@ -264,6 +274,26 @@ export class MemorySessionAdapter
 
   listSessionTurns(input: ListSessionTurnsInput): Promise<SessionTurnPage | undefined> {
     return Promise.resolve().then(() => listMemorySessionTurns(this.#sessions, input));
+  }
+
+  renameSession(input: RenameSessionInput): Promise<SessionInspection> {
+    return Promise.resolve().then(() => {
+      const request = normalizeRenameSessionInput(input);
+      const session = this.#requireSession(request);
+      if (session.metadataRevision !== request.expectedRevision) {
+        throw new AgentSessionError(
+          'SESSION_METADATA_CONFLICT',
+          `Session metadata expected revision ${request.expectedRevision} but found ${session.metadataRevision}.`
+        );
+      }
+      session.title = request.title;
+      session.metadataRevision += 1;
+      session.metadataUpdatedAt = Math.max(session.metadataUpdatedAt, readMemoryClock(this.#clock));
+      const renamed = inspectMemorySession(this.#sessions, request);
+      if (renamed === undefined)
+        throw new AgentSessionError('SESSION_NOT_FOUND', 'Session missing.');
+      return renamed;
+    });
   }
 
   applyNavigation(request: ApplySessionNavigationRequest): Promise<AppliedSessionNavigation> {

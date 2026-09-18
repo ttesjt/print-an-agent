@@ -14,6 +14,7 @@ import {
   parseSessionBranchId,
   parseTurnId,
   type NavigableCompactableSessionPort,
+  type SessionMetadataPort,
   type SessionQueryPort,
 } from '@ta-agent/base-session';
 
@@ -27,7 +28,7 @@ const usage = Object.freeze({
 });
 
 export interface SessionPortContractHarness {
-  readonly adapter: NavigableCompactableSessionPort & SessionQueryPort;
+  readonly adapter: NavigableCompactableSessionPort & SessionQueryPort & SessionMetadataPort;
   readonly dispose?: () => void;
 }
 
@@ -65,7 +66,9 @@ export function engineAssistantMessage(text: string, timestamp: number): Assista
 
 async function withHarness<T>(
   createHarness: () => SessionPortContractHarness,
-  action: (adapter: NavigableCompactableSessionPort & SessionQueryPort) => Promise<T>
+  action: (
+    adapter: NavigableCompactableSessionPort & SessionQueryPort & SessionMetadataPort
+  ) => Promise<T>
 ): Promise<T> {
   const harness = createHarness();
   try {
@@ -149,6 +152,50 @@ export function defineSessionPortContract(
         await expect(
           adapter.inspectSession({ agentId, sessionId: 'missing' as never })
         ).resolves.toBeUndefined();
+      }));
+
+    it('renames Session metadata with CAS without changing activity order', () =>
+      withHarness(createHarness, async (adapter) => {
+        const agentId = defineAgentIdentity({ id: 'metadata-agent' }).id;
+        await adapter.resolve({ agentId, requestedSessionId: 'older' });
+        await adapter.resolve({ agentId, requestedSessionId: 'newer' });
+        const before = await adapter.inspectSession({
+          agentId,
+          sessionId: 'older' as never,
+        });
+        if (before === undefined) throw new Error('Expected Session metadata.');
+
+        const renamed = await adapter.renameSession({
+          agentId,
+          sessionId: before.sessionId,
+          title: '  Research notes  ',
+          expectedRevision: before.metadataRevision,
+        });
+        expect(renamed).toMatchObject({
+          title: 'Research notes',
+          metadataRevision: before.metadataRevision + 1,
+          updatedAt: before.updatedAt,
+        });
+        expect(renamed.metadataUpdatedAt).toBeGreaterThan(before.metadataUpdatedAt);
+        await expect(
+          adapter.renameSession({
+            agentId,
+            sessionId: before.sessionId,
+            title: 'Stale rename',
+            expectedRevision: before.metadataRevision,
+          })
+        ).rejects.toMatchObject({ code: 'SESSION_METADATA_CONFLICT' });
+        await expect(
+          adapter.renameSession({
+            agentId,
+            sessionId: before.sessionId,
+            title: '   ',
+            expectedRevision: renamed.metadataRevision,
+          })
+        ).rejects.toMatchObject({ code: 'SESSION_METADATA_INVALID' });
+        await expect(adapter.listSessions({ agentId })).resolves.toMatchObject({
+          records: [{ sessionId: 'newer' }, { sessionId: 'older', title: 'Research notes' }],
+        });
       }));
 
     it('advances recent activity for every Session mutation path', () =>

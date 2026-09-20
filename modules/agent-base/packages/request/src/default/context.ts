@@ -12,6 +12,7 @@ import type {
 import type { ToolExecutionPolicy, ToolName, ToolRegistry, ToolRuntime } from '@ta-agent/base-tool';
 import type { BaseAgentRunContext, BaseWorkflowContext } from '@ta-agent/base-workflow';
 import type { RequestStepName } from '../workflow/names.js';
+import type { RequestInteractionState } from '../interaction/state.js';
 import type {
   AgentRequestInput,
   AgentResponse,
@@ -59,6 +60,7 @@ export interface DefaultRequestWorkflowContext extends BaseWorkflowContext<
   tools?: ToolRuntime;
   userMessage?: UserModelMessage;
   modelRequest?: ActorInteractionRequest;
+  interaction?: RequestInteractionState;
   response?: AgentResponse;
   modelTurnCount?: number;
   outputCharacterCount?: number;

@@ -1,5 +1,10 @@
-import type { AnyAgentRunContext, Step, StepDefinitions } from '@ta-agent/base-workflow';
-import { RequestStepNotImplementedError } from '../errors.js';
+import {
+  STEP_CARDINALITY,
+  type AnyAgentRunContext,
+  type Step,
+  type StepDefinitions,
+} from '@ta-agent/base-workflow';
+import { AgentRequestError, RequestStepNotImplementedError } from '../errors.js';
 import type { RequestLeafStepName, RequestStepName } from './names.js';
 import type { RequestWorkflowContext } from './types.js';
 
@@ -14,12 +19,23 @@ const PREPARE_REQUEST_STEPS = Object.freeze([
   'gatherExternalContext',
   'buildTools',
   'buildModelContext',
-] as const satisfies readonly RequestLeafStepName[]);
+] as const satisfies readonly RequestStepName[]);
 
 const EXECUTE_REQUEST_STEPS = Object.freeze([
   'runAgentInteraction',
   'completeResponse',
-] as const satisfies readonly RequestLeafStepName[]);
+] as const satisfies readonly RequestStepName[]);
+
+async function dispatchInteractionEvent(context: RequestWorkflowContext): Promise<void> {
+  const event = context.interaction?.currentEvent;
+  if (event === undefined)
+    throw new AgentRequestError(
+      'REQUEST_INTERACTION_EVENT_INVALID',
+      'Event dispatch requires a current interaction event.'
+    );
+  if (event.type === 'text-delta') await context.runStep('deliverTextDelta');
+  else if (event.type === 'assistant-complete') await context.runStep('completeAssistantMessage');
+}
 
 function createCompositeStep<WC extends RequestWorkflowContext>(
   stepNames: readonly RequestStepName[]
@@ -54,62 +70,111 @@ export function createRequestStepDefinitions<
   return Object.freeze({
     runRequest: {
       step: createResultAwareCompositeStep<WC>(['prepareRequest', 'executeRequest']),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     prepareRequest: {
       step: createResultAwareCompositeStep<WC>(PREPARE_REQUEST_STEPS),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     validateRequest: {
       step: createPlaceholderStep<WC>('validateRequest'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     resolveSession: {
       step: createPlaceholderStep<WC>('resolveSession'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     resolveRequestReplay: {
       step: createPlaceholderStep<WC>('resolveRequestReplay'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: true,
     },
     beginRequest: {
       step: createPlaceholderStep<WC>('beginRequest'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     resolveExecutionTarget: {
       step: createPlaceholderStep<WC>('resolveExecutionTarget'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     resolveInstructions: {
       step: createPlaceholderStep<WC>('resolveInstructions'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     loadSessionContext: {
       step: createPlaceholderStep<WC>('loadSessionContext'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     gatherExternalContext: {
       step: createPlaceholderStep<WC>('gatherExternalContext'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: true,
     },
     buildTools: {
       step: createPlaceholderStep<WC>('buildTools'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     buildModelContext: {
       step: createPlaceholderStep<WC>('buildModelContext'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     executeRequest: {
       step: createCompositeStep<WC>(EXECUTE_REQUEST_STEPS),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     runAgentInteraction: {
-      step: createPlaceholderStep<WC>('runAgentInteraction'),
+      step: createCompositeStep<WC>([
+        'openResponseStream',
+        'invokeActorInteraction',
+        'buildAgentResponse',
+      ]),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: false,
+    },
+    openResponseStream: {
+      step: createPlaceholderStep<WC>('openResponseStream'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: false,
+    },
+    invokeActorInteraction: {
+      step: createPlaceholderStep<WC>('invokeActorInteraction'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: false,
+    },
+    dispatchInteractionEvent: {
+      step: dispatchInteractionEvent,
+      cardinality: STEP_CARDINALITY.REPEATABLE,
+      skippable: false,
+    },
+    deliverTextDelta: {
+      step: createPlaceholderStep<WC>('deliverTextDelta'),
+      cardinality: STEP_CARDINALITY.REPEATABLE,
+      skippable: false,
+    },
+    completeAssistantMessage: {
+      step: createPlaceholderStep<WC>('completeAssistantMessage'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: false,
+    },
+    buildAgentResponse: {
+      step: createPlaceholderStep<WC>('buildAgentResponse'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     completeResponse: {
       step: createPlaceholderStep<WC>('completeResponse'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
   });

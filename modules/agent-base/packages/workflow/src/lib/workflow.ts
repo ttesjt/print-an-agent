@@ -11,6 +11,7 @@ import type {
 import { RUN_WORKFLOW } from '../workflow-decision.js';
 import { defaultStepExecutor } from './default-step-executor.js';
 import { resolveStepRegistry } from './step-registry.js';
+import { createStepRunner } from './step-runner.js';
 
 export class Workflow<
   TStepName extends StepName,
@@ -90,59 +91,14 @@ export class Workflow<
     });
     const runState: { context?: WC } = {};
 
-    const runStep = async (stepName: TStepName): Promise<void> => {
-      const context = runState.context;
-      if (context === undefined) {
-        throw new AgentRunError(
-          'WORKFLOW_CONTEXT_NOT_READY',
-          `Step "${stepName}" cannot run before the Workflow Context has been created.`,
-          stepName
-        );
-      }
-
-      const resolved = this.#steps[stepName];
-      if (resolved === undefined) {
-        throw new AgentRunError(
-          'STEP_NOT_REGISTERED',
-          `Step "${stepName}" is not registered for workflow "${this.name}".`,
-          stepName
-        );
-      }
-
-      if (resolved.status === 'skipped') {
-        await agentRunContext.traceEmitter?.record({
-          type: 'step-skipped',
-          workflowName: this.name,
-          workflowRunId,
-          stepName,
-        });
-        return;
-      }
-      await agentRunContext.traceEmitter?.record({
-        type: 'step-started',
-        workflowName: this.name,
-        workflowRunId,
-        stepName,
-      });
-      try {
-        await this.#executeStep({ stepName, step: resolved.step, context });
-        await agentRunContext.traceEmitter?.record({
-          type: 'step-completed',
-          workflowName: this.name,
-          workflowRunId,
-          stepName,
-        });
-      } catch (error: unknown) {
-        await agentRunContext.traceEmitter?.record({
-          type: 'step-failed',
-          workflowName: this.name,
-          workflowRunId,
-          stepName,
-          errorCode: traceErrorCode(error),
-        });
-        throw error;
-      }
-    };
+    const runStep = createStepRunner({
+      workflowName: this.name,
+      workflowRunId,
+      steps: this.#steps,
+      getContext: () => runState.context,
+      executeStep: this.#executeStep,
+      traceEmitter: agentRunContext.traceEmitter,
+    });
 
     let context: WC;
     try {

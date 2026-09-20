@@ -154,6 +154,8 @@ export function resolveActor(
       } catch (cause: unknown) {
         protocol.assertValid();
         throw cause;
+      } finally {
+        protocol.close();
       }
       return protocol.complete(result);
     },

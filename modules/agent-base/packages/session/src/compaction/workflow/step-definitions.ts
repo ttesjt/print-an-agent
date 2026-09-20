@@ -1,4 +1,4 @@
-import type { Step, StepDefinitions } from '@ta-agent/base-workflow';
+import { STEP_CARDINALITY, type Step, type StepDefinitions } from '@ta-agent/base-workflow';
 import { SessionCompactionStepNotImplementedError } from '../../errors.js';
 import type { SessionCompactionLeafStepName, SessionCompactionStepName } from './names.js';
 import type { SessionCompactionWorkflowContext } from './types.js';
@@ -24,21 +24,29 @@ export function createSessionCompactionStepDefinitions(): StepDefinitions<
   SessionCompactionWorkflowContext
 > {
   return Object.freeze({
-    runSessionCompaction: { step: runSessionCompaction, skippable: false },
+    runSessionCompaction: {
+      step: runSessionCompaction,
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: false,
+    },
     inspectSession: {
       step: createPlaceholderStep('inspectSession'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     selectCompactionSource: {
       step: createPlaceholderStep('selectCompactionSource'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     buildCompactedContext: {
       step: createPlaceholderStep('buildCompactedContext'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     persistCompaction: {
       step: createPlaceholderStep('persistCompaction'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
   });

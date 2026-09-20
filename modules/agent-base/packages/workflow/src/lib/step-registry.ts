@@ -1,6 +1,7 @@
 import { AgentDefinitionError } from '../types/errors.js';
 import type { BaseWorkflowContext } from '../types/context.js';
 import { SKIP_STEP } from '../skip-step.js';
+import { normalizeStepOverride, parseStepCardinality, readStepRecord } from './step-policy.js';
 import type {
   ResolvedStep,
   ResolvedStepRegistry,
@@ -32,11 +33,30 @@ export function resolveStepRegistry<
   const resolved = Object.create(null) as Record<TStepName, ResolvedStep<C>>;
 
   for (const stepName of Object.keys(definitions) as TStepName[]) {
-    const definition = definitions[stepName];
-    const override = appliedOverrides[stepName];
+    const definition = readStepRecord(
+      definitions[stepName],
+      ['step', 'skippable', 'cardinality'],
+      'STEP_DEFINITION_INVALID',
+      stepName
+    );
+    const defaultCardinality = parseStepCardinality(definition.cardinality, stepName);
+    if (
+      typeof definition.skippable !== 'boolean' ||
+      (definition.step !== undefined && typeof definition.step !== 'function')
+    ) {
+      throw new AgentDefinitionError(
+        'STEP_DEFINITION_INVALID',
+        stepName,
+        'Step definition requires a boolean skippable policy and an optional function.'
+      );
+    }
+    const override = normalizeStepOverride(appliedOverrides[stepName], stepName);
+    const cardinality = override.cardinality ?? defaultCardinality;
+    const skippable = definition.skippable;
+    const implementation = override.step ?? definition.step;
 
-    if (override === SKIP_STEP) {
-      if (!definition.skippable) {
+    if (implementation === SKIP_STEP) {
+      if (!skippable) {
         throw new AgentDefinitionError(
           'STEP_NOT_SKIPPABLE',
           stepName,
@@ -44,17 +64,11 @@ export function resolveStepRegistry<
         );
       }
 
-      resolved[stepName] = Object.freeze({ status: 'skipped' });
+      resolved[stepName] = Object.freeze({ status: 'skipped', cardinality, skippable });
       continue;
     }
 
-    let step: Step<C> | undefined;
-    if (override === undefined) {
-      step = definition.step;
-    } else {
-      step = override;
-    }
-    if (step === undefined) {
+    if (implementation === undefined) {
       throw new AgentDefinitionError(
         'STEP_IMPLEMENTATION_MISSING',
         stepName,
@@ -62,7 +76,8 @@ export function resolveStepRegistry<
       );
     }
 
-    resolved[stepName] = Object.freeze({ status: 'active', step });
+    const step = implementation as Step<C>;
+    resolved[stepName] = Object.freeze({ status: 'active', step, cardinality, skippable });
   }
 
   return Object.freeze(resolved);

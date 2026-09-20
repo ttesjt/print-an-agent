@@ -270,7 +270,7 @@ A leaf Step handles one explicit replaceable concern. A composite Step calls oth
 entry is the top-level composite Step. These are semantic distinctions, not separate runtime types.
 A Step is an override unit, not a requirement to fragment every internal operation into another Step.
 
-The agreed initial request composition is:
+The canonical request composition is:
 
 ```text
 request Workflow
@@ -288,6 +288,12 @@ request Workflow
     │   └── buildModelContext
     └── executeRequest
         ├── runAgentInteraction
+        │   ├── openResponseStream
+        │   ├── invokeActorInteraction
+        │   │   └── dispatchInteractionEvent (per accepted event)
+        │   │       ├── deliverTextDelta (text-delta)
+        │   │       └── completeAssistantMessage (assistant-complete)
+        │   └── buildAgentResponse
         └── completeResponse
 ```
 
@@ -305,6 +311,21 @@ Composite Steps resolve every child through the current Workflow Context. They n
 default directly. This makes leaf, composite, and complete entry overrides propagate through the
 unchanged surrounding Workflow.
 
+The official interaction composite owns bounded serialized event delivery, trace boundaries, and
+Tool cleanup. All business phases above use the existing `runStep()` mechanism. The dispatcher and
+text delivery are repeatable; Session completion and the other phases are at-most-once. All are
+required in the default catalog. The current event lives only through its awaited dispatch in the
+shared Workflow Context, with a typed accessor; there is no second handler registry or child Context.
+
+`RequestPolicy.maxPendingInteractionEvents` limits active plus queued events (default 64).
+Backpressure is the returned emit Promise. Overflow or the first delivery failure aborts the
+interaction, rejects further work, discards queued events, and drains active delivery before failure
+cleanup. The Actor boundary closes its emitter when the Engine settles, observes unawaited delivery,
+and withholds the terminal message until result parity and pre-terminal delivery succeed. Request
+output accounting and event tracing precede replaceable dispatch. Cancellation remains cooperative;
+started external side effects are not rolled back. Replacing the complete interaction composite is
+an explicit replacement of these orchestration responsibilities, not a way to retain them implicitly.
+
 ## Step Registry and overrides
 
 Every registered Step has a policy-bearing definition:
@@ -313,16 +334,26 @@ Every registered Step has a policy-bearing definition:
 interface StepDefinition<C> {
   readonly step?: Step<C>;
   readonly skippable: boolean;
+  readonly cardinality: StepCardinality;
 }
+
+const STEP_CARDINALITY = Object.freeze({
+  AT_MOST_ONCE: 'at-most-once',
+  REPEATABLE: 'repeatable',
+} as const);
+
+type StepCardinality = (typeof STEP_CARDINALITY)[keyof typeof STEP_CARDINALITY];
 ```
 
-An override has three explicit meanings:
+An override can inherit, replace, skip, or explicitly change invocation policy:
 
 ```ts
 const stepOverrides = {
   getSystemPrompt: undefined, // use the registered default
   gatherContexts: customStep, // replace it
   selfReflection: SKIP_STEP, // deliberately skip it
+  processItem: { cardinality: STEP_CARDINALITY.REPEATABLE }, // inherit its implementation
+  publishProgress: { step: SKIP_STEP, cardinality: STEP_CARDINALITY.REPEATABLE },
 };
 ```
 
@@ -331,8 +362,39 @@ overrides, registered Steps without an implementation, attempts to skip a requir
 skipped or missing entry Step fail during Workflow creation. A dynamic call outside the resolved
 registry fails explicitly at run time.
 
+Structured overrides accept only `step` and `cardinality`; omitted fields inherit the definition.
+Function shorthand replaces behavior while retaining policy. The original definition owns
+`skippable`. `mergeStepOverrides()` composes override layers field by field so changing a policy does
+not discard the installed default implementation. Resolved registry entries are frozen and retain
+the effective cardinality and skip policy even when skipped.
+
 An explicitly skipped Step remains represented in the resolved registry. Calling it through
-`runStep` performs a deliberate no-op. This is different from an absent Step.
+`runStep` performs a deliberate no-op and records one skipped invocation. This is different from an
+absent Step.
+
+### Step invocation policy
+
+A Step is a named, replaceable, composable execution unit. Cardinality belongs to its registration
+and is enforced over `(workflowRunId, stepName)`, not over a function object or its parent Step.
+Every definition explicitly declares its policy. Official preparation, execution, and commit phases
+use `AT_MOST_ONCE`; request event dispatch and text delivery use `REPEATABLE`. Callers can explicitly
+override that policy when defining another execution plan.
+
+`AT_MOST_ONCE` permits zero or one logical invocation. Success, failure, and skip all consume it;
+another call fails with `STEP_CARDINALITY_EXCEEDED`. `REPEATABLE` permits another invocation after
+the preceding one terminates. Both reject same-name overlap or reentrancy with
+`STEP_CONCURRENT_INVOCATION_NOT_ALLOWED`, checked before cardinality. The runtime reserves the name
+before its first await and releases the running state in `finally`, including trace failure paths.
+Rejected calls do not enter the executor or produce started/failed lifecycle events.
+
+State is private to each Workflow Run. Parent invocation does not reset children, and no static rule
+forbids a repeatable parent from conditionally calling an at-most-once child. Different Step names
+are not mutually exclusive: implementations still own safety when sharing mutable Context.
+
+The Step lifecycle surrounds one logical invocation, not each implementation attempt. A custom
+executor may invoke the implementation multiple times inside that invocation; the built-in executor
+does so once. There is no built-in retry, attempt counter, automatic rollback, or idempotency claim.
+A future Workflow retry starts a new Run without undoing the preceding Run's business side effects.
 
 ## Run lifecycle
 

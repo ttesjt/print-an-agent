@@ -2,6 +2,7 @@ export type * from './contracts.js';
 export type * from './default/context.js';
 export { failRequest } from './default/failure-lifecycle.js';
 export { createDefaultRequestStepOverrides } from './default/step-overrides.js';
+export { requireInteractionEvent, type RequestInteractionState } from './interaction/state.js';
 export { AgentRequestError, RequestStepNotImplementedError } from './errors.js';
 export type { AgentRequestErrorCode } from './errors.js';
 export { DEFAULT_REQUEST_POLICY, validateRequestPolicy } from './policy.js';

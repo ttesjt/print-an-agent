@@ -1483,6 +1483,7 @@ describe('assembled Agent Base request path', () => {
         maxInstructionsCharacters: 100,
         maxOutputCharacters: 100,
         maxModelTurns: 4,
+        maxPendingInteractionEvents: 64,
         timeoutMilliseconds: 5,
       },
     });

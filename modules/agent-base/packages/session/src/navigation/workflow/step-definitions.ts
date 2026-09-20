@@ -1,4 +1,4 @@
-import type { Step, StepDefinitions } from '@ta-agent/base-workflow';
+import { STEP_CARDINALITY, type Step, type StepDefinitions } from '@ta-agent/base-workflow';
 import { SessionNavigationStepNotImplementedError } from '../../errors.js';
 import type { SessionNavigationLeafStepName, SessionNavigationStepName } from './names.js';
 import type { SessionNavigationWorkflowContext } from './types.js';
@@ -23,17 +23,24 @@ export function createSessionNavigationStepDefinitions(): StepDefinitions<
   SessionNavigationWorkflowContext
 > {
   return Object.freeze({
-    runSessionNavigation: { step: runSessionNavigation, skippable: false },
+    runSessionNavigation: {
+      step: runSessionNavigation,
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: false,
+    },
     validateSessionNavigation: {
       step: createPlaceholderStep('validateSessionNavigation'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     inspectSessionNavigation: {
       step: createPlaceholderStep('inspectSessionNavigation'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     commitSessionNavigation: {
       step: createPlaceholderStep('commitSessionNavigation'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
   });

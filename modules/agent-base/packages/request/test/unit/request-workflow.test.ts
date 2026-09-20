@@ -1,6 +1,7 @@
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import {
   SKIP_STEP,
+  STEP_CARDINALITY,
   type BaseAgentRunContext,
   type BaseWorkflowContext,
   type Step,
@@ -11,6 +12,7 @@ import {
   createRequestStepDefinitions,
   createRequestWorkflow,
   REQUEST_STEP_NAMES,
+  requireInteractionEvent,
   RequestStepNotImplementedError,
   type RequestLeafStepName,
   type RequestStepName,
@@ -30,7 +32,15 @@ interface TestRequestContext extends BaseWorkflowContext<
 
 const LEAF_STEP_NAMES = REQUEST_STEP_NAMES.filter(
   (stepName): stepName is RequestLeafStepName =>
-    stepName !== 'runRequest' && stepName !== 'prepareRequest' && stepName !== 'executeRequest'
+    stepName !== 'runRequest' &&
+    stepName !== 'prepareRequest' &&
+    stepName !== 'executeRequest' &&
+    stepName !== 'runAgentInteraction' &&
+    stepName !== 'dispatchInteractionEvent'
+);
+
+const SEQUENTIAL_LEAF_STEP_NAMES = LEAF_STEP_NAMES.filter(
+  (name) => name !== 'deliverTextDelta' && name !== 'completeAssistantMessage'
 );
 
 function agentRunContext(): TestAgentContext {
@@ -89,6 +99,12 @@ describe('Request Workflow skeleton', () => {
       'buildModelContext',
       'executeRequest',
       'runAgentInteraction',
+      'openResponseStream',
+      'invokeActorInteraction',
+      'dispatchInteractionEvent',
+      'deliverTextDelta',
+      'completeAssistantMessage',
+      'buildAgentResponse',
       'completeResponse',
     ]);
   });
@@ -120,6 +136,42 @@ describe('Request Workflow skeleton', () => {
     expect(calls).toEqual(['error:validateRequest', 'finally']);
   });
 
+  it('declares repeatable event Steps and accepts a minimum event Context', () => {
+    const definitions = createRequestStepDefinitions<
+      TestAgentContext,
+      string,
+      TestRequestContext
+    >();
+    for (const name of REQUEST_STEP_NAMES) {
+      expect(definitions[name].cardinality).toBe(
+        name === 'dispatchInteractionEvent' || name === 'deliverTextDelta'
+          ? STEP_CARDINALITY.REPEATABLE
+          : STEP_CARDINALITY.AT_MOST_ONCE
+      );
+    }
+    expect(
+      requireInteractionEvent(
+        { interaction: { currentEvent: { type: 'text-delta', delta: 'hello' } } },
+        'text-delta'
+      ).delta
+    ).toBe('hello');
+  });
+
+  it('replaces the whole interaction Composite without running its installed children', async () => {
+    const requestWorkflow = workflow({
+      ...implementedLeafSteps(),
+      prepareRequest: () => Promise.resolve(),
+      runAgentInteraction: (context) => {
+        context.calls.push('customInteraction');
+        return Promise.resolve();
+      },
+    });
+    await expect(requestWorkflow.run(agentRunContext())).resolves.toMatchObject({
+      status: 'completed',
+      result: 'customInteraction|completeResponse',
+    });
+  });
+
   it('executes fully implemented leaf Steps in canonical order', async () => {
     const requestWorkflow = workflow(implementedLeafSteps());
     const context = agentRunContext();
@@ -130,10 +182,10 @@ describe('Request Workflow skeleton', () => {
       status: 'completed',
       workflowName: 'request',
       workflowRunId: 'request-run',
-      result: LEAF_STEP_NAMES.join('|'),
+      result: SEQUENTIAL_LEAF_STEP_NAMES.join('|'),
     });
     if (outcome.status === 'completed') await outcome.applyTo(context);
-    expect(context.applied).toEqual([LEAF_STEP_NAMES.join('|')]);
+    expect(context.applied).toEqual([SEQUENTIAL_LEAF_STEP_NAMES.join('|')]);
   });
 
   it('propagates a composite override without invoking captured defaults', async () => {
@@ -148,7 +200,8 @@ describe('Request Workflow skeleton', () => {
 
     await expect(requestWorkflow.run(agentRunContext())).resolves.toMatchObject({
       status: 'completed',
-      result: 'customPrepare|runAgentInteraction|completeResponse',
+      result:
+        'customPrepare|openResponseStream|invokeActorInteraction|buildAgentResponse|completeResponse',
     });
   });
 

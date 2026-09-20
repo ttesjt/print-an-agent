@@ -14,6 +14,7 @@ describe('Request policy', () => {
       maxInstructionsCharacters: 32_000,
       maxOutputCharacters: 64_000,
       maxModelTurns: 2,
+      maxPendingInteractionEvents: 64,
       timeoutMilliseconds: 30_000,
     });
     expect(Object.isFrozen(policy)).toBe(true);
@@ -24,6 +25,9 @@ describe('Request policy', () => {
     { ...DEFAULT_REQUEST_POLICY, maxModelTurns: 0 },
     { ...DEFAULT_REQUEST_POLICY, maxModelTurns: 1.5 },
     { ...DEFAULT_REQUEST_POLICY, maxModelTurns: undefined },
+    { ...DEFAULT_REQUEST_POLICY, maxPendingInteractionEvents: 0 },
+    { ...DEFAULT_REQUEST_POLICY, maxPendingInteractionEvents: 1.5 },
+    { ...DEFAULT_REQUEST_POLICY, maxPendingInteractionEvents: undefined },
     { ...DEFAULT_REQUEST_POLICY, maxProviderTurns: 4 },
     {
       maxMessageCharacters: 32_000,

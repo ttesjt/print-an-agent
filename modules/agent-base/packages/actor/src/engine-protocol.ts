@@ -15,6 +15,7 @@ type EngineResultKind = 'interaction' | 'direct';
 
 interface ActorInteractionProtocol {
   readonly emit: AgentLoopEventSink;
+  close(): void;
   assertValid(): void;
   complete(result: unknown): Promise<AgentLoopResult>;
 }
@@ -154,18 +155,20 @@ export function createActorInteractionProtocol(
 ): ActorInteractionProtocol {
   const maxModelTurns = validateMaxModelTurns(requestedMaxModelTurns);
   let terminalMessage: AssistantModelMessage | undefined;
-  let boundaryFailure: Error | undefined;
+  let boundaryFailure: { readonly cause: unknown } | undefined;
+  let accepting = true;
+  const pendingEvents = new Set<Promise<void>>();
   let emittedEventCount = 0;
   let modelTurnCount = 0;
   let phase: InteractionProtocolPhase = 'open';
   const deferredEvents: AgentLoopEvent[] = [];
 
-  function lockFailure(failure: Error): Error {
-    boundaryFailure ??= failure;
-    return boundaryFailure;
+  function lockFailure(cause: unknown): unknown {
+    boundaryFailure ??= { cause };
+    return boundaryFailure.cause;
   }
 
-  function fail(message: string, cause?: unknown): Error {
+  function fail(message: string, cause?: unknown): unknown {
     return lockFailure(protocolFailure(message, cause));
   }
 
@@ -177,11 +180,11 @@ export function createActorInteractionProtocol(
   }
 
   function assertValid(): void {
-    if (boundaryFailure !== undefined) throw boundaryFailure;
+    if (boundaryFailure !== undefined) throw boundaryFailure.cause;
   }
 
-  const emit: AgentLoopEventSink = async (event) => {
-    if (boundaryFailure !== undefined) throw boundaryFailure;
+  const acceptEvent: AgentLoopEventSink = async (event) => {
+    assertValid();
     let normalized: AgentLoopEvent;
     try {
       normalized = defineAgentLoopEvent(event);
@@ -232,10 +235,38 @@ export function createActorInteractionProtocol(
     emittedEventCount += 1;
   };
 
+  const emit: AgentLoopEventSink = (event) => {
+    let work: Promise<void>;
+    if (accepting) work = acceptEvent(event);
+    else {
+      const cause = fail('Actor Engine emitted an event after its invocation settled.');
+      work = Promise.resolve().then(() => {
+        throw cause;
+      });
+    }
+    pendingEvents.add(work);
+    // Observe the actual returned Promise, including when a custom Engine does not await it.
+    void work.then(
+      () => {
+        pendingEvents.delete(work);
+      },
+      (cause: unknown) => {
+        pendingEvents.delete(work);
+        lockFailure(cause);
+      }
+    );
+    return work;
+  };
+
   return Object.freeze({
     emit,
+    close: () => {
+      accepting = false;
+    },
     assertValid,
     async complete(result: unknown): Promise<AgentLoopResult> {
+      accepting = false;
+      await Promise.allSettled([...pendingEvents]);
       assertValid();
       const returnedMessage = normalizeResultMessage(result, 'interaction');
       if (terminalMessage === undefined) {
@@ -247,7 +278,11 @@ export function createActorInteractionProtocol(
         );
       }
       await downstream(Object.freeze({ type: 'assistant-complete', message: terminalMessage }));
-      for (const event of deferredEvents) await downstream(event);
+      assertValid();
+      for (const event of deferredEvents) {
+        await downstream(event);
+        assertValid();
+      }
       return Object.freeze({ message: terminalMessage });
     },
   });

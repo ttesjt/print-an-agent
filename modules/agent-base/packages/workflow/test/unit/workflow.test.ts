@@ -13,6 +13,7 @@ import {
   createSequentialStep,
   RUN_WORKFLOW,
   SKIP_STEP,
+  STEP_CARDINALITY,
   skipWorkflow,
   Workflow,
 } from '../../src/index.js';
@@ -48,6 +49,7 @@ function steps(
   return {
     workflow: {
       step: createSequentialStep('leaf', 'optional', 'finish'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     leaf: {
@@ -56,6 +58,7 @@ function steps(
         context.local.push(`leaf:${context.agentRunContext.input}`);
         return Promise.resolve();
       },
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     optional: {
@@ -63,6 +66,7 @@ function steps(
         context.local.push('optional');
         return Promise.resolve();
       },
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: true,
     },
     finish: {
@@ -70,6 +74,7 @@ function steps(
         context.result = context.local.join('|');
         return Promise.resolve();
       },
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
   };

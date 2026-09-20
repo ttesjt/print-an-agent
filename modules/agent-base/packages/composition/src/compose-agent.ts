@@ -18,7 +18,6 @@ import {
   type DefaultRequestWorkflowContext,
   type RequestAgentRunContext,
   type RequestPolicy,
-  type RequestStepName,
 } from '@ta-agent/base-request';
 import {
   AgentSessionError,
@@ -33,11 +32,7 @@ import {
   validateSessionCompactionPolicy,
   type CompactSessionInput,
   type SessionCompactionAgentRunContext,
-  type SessionCompactionStepName,
-  type SessionCompactionWorkflowContext,
   type SessionNavigationAgentRunContext,
-  type SessionNavigationStepName,
-  type SessionNavigationWorkflowContext,
 } from '@ta-agent/base-session';
 import {
   DEFAULT_TOOL_EXECUTION_POLICY,
@@ -49,9 +44,8 @@ import {
 import {
   createAgent,
   defineAgentOperation,
+  mergeStepOverrides,
   type AgentOperationDefinitionMap,
-  type StepOverride,
-  type StepOverrides,
 } from '@ta-agent/base-workflow';
 import { AgentCompositionError } from './composition-error.js';
 import type { ComposeAgentOptions } from './types.js';
@@ -79,51 +73,6 @@ function validateCompactionInstructions(value: unknown): string {
     );
   }
   return value;
-}
-
-function mergeStepOverrides(
-  overrides: StepOverrides<RequestStepName, DefaultRequestWorkflowContext> | undefined
-): StepOverrides<RequestStepName, DefaultRequestWorkflowContext> {
-  const merged = {
-    ...createDefaultRequestStepOverrides(),
-  } as Record<RequestStepName, StepOverride<DefaultRequestWorkflowContext>>;
-  if (overrides !== undefined) {
-    for (const stepName of Object.keys(overrides) as RequestStepName[]) {
-      const override = overrides[stepName];
-      if (override !== undefined) merged[stepName] = override;
-    }
-  }
-  return Object.freeze(merged);
-}
-
-function mergeCompactionStepOverrides(
-  overrides: StepOverrides<SessionCompactionStepName, SessionCompactionWorkflowContext> | undefined
-): StepOverrides<SessionCompactionStepName, SessionCompactionWorkflowContext> {
-  const merged = {
-    ...createDefaultSessionCompactionStepOverrides(),
-  } as Record<SessionCompactionStepName, StepOverride<SessionCompactionWorkflowContext>>;
-  if (overrides !== undefined) {
-    for (const stepName of Object.keys(overrides) as SessionCompactionStepName[]) {
-      const override = overrides[stepName];
-      if (override !== undefined) merged[stepName] = override;
-    }
-  }
-  return Object.freeze(merged);
-}
-
-function mergeNavigationStepOverrides(
-  overrides: StepOverrides<SessionNavigationStepName, SessionNavigationWorkflowContext> | undefined
-): StepOverrides<SessionNavigationStepName, SessionNavigationWorkflowContext> {
-  const merged = {
-    ...createDefaultSessionNavigationStepOverrides(),
-  } as Record<SessionNavigationStepName, StepOverride<SessionNavigationWorkflowContext>>;
-  if (overrides !== undefined) {
-    for (const stepName of Object.keys(overrides) as SessionNavigationStepName[]) {
-      const override = overrides[stepName];
-      if (override !== undefined) merged[stepName] = override;
-    }
-  }
-  return Object.freeze(merged);
 }
 
 function validateCompactionInput(input: CompactSessionInput): void {
@@ -198,7 +147,7 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
   const requestWorkflow =
     options.requestWorkflow ??
     createRequestWorkflow<RequestAgentRunContext, AgentResponse, DefaultRequestWorkflowContext>({
-      stepOverrides: mergeStepOverrides(options.stepOverrides),
+      stepOverrides: mergeStepOverrides(createDefaultRequestStepOverrides(), options.stepOverrides),
       createContext: (base) => ({
         ...base,
         resources,
@@ -257,7 +206,10 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     options.sessionNavigationWorkflow ??
     createSessionNavigationWorkflow({
       resources: navigationResources,
-      stepOverrides: mergeNavigationStepOverrides(options.sessionNavigationStepOverrides),
+      stepOverrides: mergeStepOverrides(
+        createDefaultSessionNavigationStepOverrides(),
+        options.sessionNavigationStepOverrides
+      ),
       ...(options.createNavigationWorkflowRunId === undefined
         ? {}
         : { createRunId: options.createNavigationWorkflowRunId }),
@@ -301,7 +253,10 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     options.sessionCompactionWorkflow ??
     createSessionCompactionWorkflow({
       resources: compactionResources,
-      stepOverrides: mergeCompactionStepOverrides(options.sessionCompactionStepOverrides),
+      stepOverrides: mergeStepOverrides(
+        createDefaultSessionCompactionStepOverrides(),
+        options.sessionCompactionStepOverrides
+      ),
       condition: options.sessionCompactionCondition ?? createShouldCompactSessionCondition(),
       ...(options.createCompactionWorkflowRunId === undefined
         ? {}

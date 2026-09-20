@@ -6,6 +6,7 @@ export const DEFAULT_REQUEST_POLICY: RequestPolicy = Object.freeze({
   maxInstructionsCharacters: 32_000,
   maxOutputCharacters: 64_000,
   maxModelTurns: 4,
+  maxPendingInteractionEvents: 64,
   timeoutMilliseconds: 30_000,
 });
 
@@ -15,6 +16,7 @@ const REQUEST_POLICY_KEYS = Object.freeze([
   'maxInstructionsCharacters',
   'maxOutputCharacters',
   'maxModelTurns',
+  'maxPendingInteractionEvents',
   'timeoutMilliseconds',
 ] as const);
 
@@ -67,6 +69,7 @@ export function validateRequestPolicy(input: unknown): RequestPolicy {
     maxInstructionsCharacters: parsePolicyValue(policy, 'maxInstructionsCharacters'),
     maxOutputCharacters: parsePolicyValue(policy, 'maxOutputCharacters'),
     maxModelTurns: parsePolicyValue(policy, 'maxModelTurns'),
+    maxPendingInteractionEvents: parsePolicyValue(policy, 'maxPendingInteractionEvents'),
     timeoutMilliseconds: parsePolicyValue(policy, 'timeoutMilliseconds'),
   });
 }

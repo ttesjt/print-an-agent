@@ -1,5 +1,5 @@
 import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
-import type { AgentLoopEvent, AgentLoopResult } from '@ta-agent/base-model';
+import type { AgentLoopEvent } from '@ta-agent/base-model';
 import { parseSessionId, parseTurnId } from '@ta-agent/base-session';
 import { createBoundedToolRuntime, defineToolPermissionPolicy } from '@ta-agent/base-tool';
 import { SKIP_STEP, type StepOverrides } from '@ta-agent/base-workflow';
@@ -11,12 +11,11 @@ import { RequestReplayFailedError } from '../replay/replay-error.js';
 import type { RequestJournalClaim } from '../replay/contracts.js';
 import type { RequestStepName } from '../workflow/names.js';
 import type { DefaultRequestWorkflowContext } from './context.js';
+import { requireValue } from './context-value.js';
+import { createInteractionStepOverrides } from '../interaction/steps.js';
+import { requireInteraction } from '../interaction/state.js';
 import {
   countOutputCharacters,
-  traceAgentLoopCompleted,
-  traceAgentLoopEvent,
-  traceAgentLoopFailed,
-  traceAgentLoopStarted,
   traceActorResolved,
   traceOutputCompleted,
   traceOutputFailed,
@@ -25,16 +24,6 @@ import {
   traceSessionResolved,
   traceToolsResolved,
 } from './observability.js';
-
-function requireValue<T>(value: T | undefined, name: string): T {
-  if (value === undefined) {
-    throw new AgentRequestError(
-      'REQUEST_CONTEXT_INCOMPLETE',
-      `Request context is missing required value "${name}".`
-    );
-  }
-  return value;
-}
 
 function isOutputSink(value: unknown): value is OutputSink {
   if (typeof value !== 'object' || value === null) return false;
@@ -267,75 +256,9 @@ function buildModelContext(context: DefaultRequestWorkflowContext): Promise<void
     maxModelTurns: context.policy.maxModelTurns,
     maxOutputCharacters: context.policy.maxOutputCharacters,
     signal: context.signal,
-    emit: (event: AgentLoopEvent) => handleAgentLoopEvent(context, event),
+    emit: (event: AgentLoopEvent) => requireInteraction(context).emit(event),
   });
   return Promise.resolve();
-}
-
-async function handleAgentLoopEvent(
-  context: DefaultRequestWorkflowContext,
-  event: AgentLoopEvent
-): Promise<void> {
-  await traceAgentLoopEvent(context, event);
-  if (event.type === 'text-delta') {
-    const request = requireValue(context.request, 'request');
-    try {
-      countOutputCharacters(context, event.delta.length);
-      await request.outputSink.write(Object.freeze({ type: 'text-delta', delta: event.delta }));
-    } catch (cause: unknown) {
-      await traceOutputFailed(context, 'write');
-      throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to write.', {
-        cause,
-      });
-    }
-    return;
-  }
-  if (event.type === 'assistant-complete') {
-    const session = requireValue(context.session, 'session');
-    const turn = requireValue(context.turn, 'turn');
-    await context.resources.session.completeTurn({
-      ...session,
-      turnId: turn.turnId,
-      assistantMessage: event.message,
-    });
-  }
-}
-
-async function runAgentInteraction(context: DefaultRequestWorkflowContext): Promise<void> {
-  const request = requireValue(context.request, 'request');
-  const session = requireValue(context.session, 'session');
-  await traceOutputStarted(context, false);
-  try {
-    await request.outputSink.open({
-      requestId: context.agentRunContext.runId,
-      sessionId: session.sessionId,
-      branchId: requireValue(context.turn, 'turn').branchId,
-    });
-  } catch (cause: unknown) {
-    await traceOutputFailed(context, 'open');
-    throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to open.', { cause });
-  }
-  const tools = requireValue(context.tools, 'tools');
-  let result: AgentLoopResult;
-  await traceAgentLoopStarted(context);
-  try {
-    result = await requireValue(context.responsibility, 'responsibility').interact(
-      requireValue(context.modelRequest, 'modelRequest')
-    );
-  } catch (error: unknown) {
-    tools.close();
-    await traceAgentLoopFailed(context, error);
-    throw error;
-  }
-  tools.close();
-  await traceAgentLoopCompleted(context);
-  context.response = Object.freeze({
-    requestId: context.agentRunContext.runId,
-    sessionId: session.sessionId,
-    branchId: requireValue(context.turn, 'turn').branchId,
-    message: result.message,
-    toolRun: requireValue(context.tools, 'tools').inspect(),
-  });
 }
 
 async function completeResponse(context: DefaultRequestWorkflowContext): Promise<void> {
@@ -376,7 +299,7 @@ export function createDefaultRequestStepOverrides(): StepOverrides<
     gatherExternalContext: SKIP_STEP,
     buildTools,
     buildModelContext,
-    runAgentInteraction,
+    ...createInteractionStepOverrides(),
     completeResponse,
   });
 }

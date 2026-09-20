@@ -22,6 +22,15 @@ Engines are trusted executable infrastructure and must emit `turn-start` before 
 invocation; hidden calls cannot be discovered by a generic framework boundary. Provider adapters may
 also stop proactively before another invocation to avoid unnecessary cost.
 
+The Engine emitter closes when its invocation settles. The boundary observes each returned emit
+Promise, preserves the first protocol or downstream failure, and drains outstanding pre-terminal
+delivery before validating and publishing the terminal/result pair. Catching a rejected emit cannot
+turn that interaction into success. Late emission fails with `ACTOR_ENGINE_PROTOCOL_INVALID` and
+never reaches downstream. Delivery scheduling and capacity belong to the consuming workflow; the
+Actor boundary does not add a second event queue. Engines should await emit for backpressure and
+must honor cancellation. On Engine failure the boundary closes emission immediately; the consumer
+owns draining already-started delivery before disposing its resources.
+
 The built-in Responsibilities are `foreground-interaction` and `session-compaction`. A registered
 Responsibility with no candidate list resolves to the required `main` Actor. An explicit list is
 authoritative: disabled candidates are filtered and the first enabled compatible Actor is selected.

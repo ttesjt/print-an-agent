@@ -3,6 +3,8 @@ export { defineAgentOperation, defineAgentOperationReference } from './lib/agent
 export { createSequentialStep } from './lib/create-sequential-step.js';
 export { defaultStepExecutor } from './lib/default-step-executor.js';
 export { resolveStepRegistry } from './lib/step-registry.js';
+export { mergeStepOverrides } from './lib/merge-step-overrides.js';
+export { STEP_CARDINALITY, type StepCardinality } from './step-cardinality.js';
 export { resolveWorkflowRegistry } from './lib/workflow-registry.js';
 export { createAgentWorkflowCatalog } from './lib/workflow-catalog.js';
 export { createWorkflow, Workflow } from './lib/workflow.js';

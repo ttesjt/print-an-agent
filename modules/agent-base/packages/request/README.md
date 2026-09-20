@@ -18,10 +18,16 @@ request Workflow
     │   └── buildModelContext
     └── executeRequest
         ├── runAgentInteraction
+        │   ├── openResponseStream
+        │   ├── invokeActorInteraction
+        │   │   └── dispatchInteractionEvent (per accepted event)
+        │   │       ├── deliverTextDelta (text-delta)
+        │   │       └── completeAssistantMessage (assistant-complete)
+        │   └── buildAgentResponse
         └── completeResponse
 ```
 
-The three composite Steps are implemented and always resolve their children through the run-scoped
+The five composite Steps are implemented and always resolve their children through the run-scoped
 Step Registry. The generic catalog retains deliberate fail-fast leaf placeholders so a partial custom
 composition cannot pretend that an unresolved concern was handled.
 
@@ -45,7 +51,7 @@ structured errors rather than being silently re-executed.
 
 Replay authority remains Agent/Session/idempotency-key scoped. A completed replay returns the
 original response and original branch identity even when another branch is currently selected. The
-versioned response decoder accepts legacy linear records and maps them to the stable `main` branch.
+response decoder accepts only the current closed response envelope, including its branch identity.
 
 `resolveRequestReplay` and `gatherExternalContext` remain explicitly skippable in the generic catalog
 because replay and external context are optional capabilities. The official composition implements
@@ -83,12 +89,51 @@ to `OutputSink`; trace events contain counts and structured status only. A compl
 fresh correlated output trace and deliberately emits no Agent Loop, model-turn, or tool-call
 events.
 
+## Interaction Steps and event delivery
+
+The official `runAgentInteraction` implementation owns interaction scope, trace boundaries, event
+delivery, and Tool cleanup. Its business phases resolve through the same Step Registry as the rest of
+the request. `dispatchInteractionEvent` and `deliverTextDelta` declare
+`STEP_CARDINALITY.REPEATABLE`; the other interaction Steps declare `AT_MOST_ONCE`. All are required
+in the default catalog. Overrides may replace a leaf, the event dispatcher, or the whole composite;
+there is no separate handler registry, nested Workflow Context, or hidden direct call to a default
+leaf. Replacing the whole composite also replaces its lifecycle responsibilities.
+
+`RequestInteractionState` lives in `context.interaction`. Use
+`requireInteractionEvent(context, 'text-delta')` to read a narrowed current event inside its awaited
+Step. The current event is cleared after dispatch, including failure. Consumers must not retain that
+mutable slot or launch unawaited Step work. Changing text delivery alone does not rewrite the
+authoritative assistant message or Session record.
+
+Accepted events run serially, with one awaited dispatch at a time. Each `emit()` Promise completes
+only after its event's Steps settle. `RequestPolicy.maxPendingInteractionEvents` defaults to 64 and
+counts both active and queued events. A producer that ignores backpressure can exhaust this bound;
+that fails with `REQUEST_INTERACTION_EVENT_QUEUE_FULL`, aborts the interaction signal, and discards
+queued work. Output-character accounting and normalized-event tracing occur before replaceable
+event Steps. Both streamed characters and terminal text are checked against the existing output
+budget, including for custom Engines.
+
+The Actor boundary owns event normalization, terminal/result parity, and closing the Engine emitter.
+It observes unawaited emit failures and waits for outstanding pre-terminal delivery before publishing
+the validated terminal message. Thus Session completion never precedes that validation. Late Engine
+events fail with `ACTOR_ENGINE_PROTOCOL_INVALID`; a closed Request delivery endpoint rejects with
+`REQUEST_INTERACTION_EVENT_DELIVERY_CLOSED`.
+
+Delivery retains the first failure even if an Engine swallows it. Cancellation and failure stop new
+delivery, discard queued events, and await any in-flight Step before Request failure cleanup can
+fail the OutputSink. Abort reasons retain timeout identity. Cancellation is cooperative: arbitrary
+Engine, Step, or sink code cannot be forcibly interrupted, and an already-started write/commit is not
+rolled back. Such implementations must settle their pending work. Tools close on success and failure,
+and listener cleanup belongs to the interaction scope. No retry, reasoning event, or persistence
+format change is introduced by this decomposition.
+
 ## Source layout
 
 - Root files own stable request contracts, errors, and policy.
 - `workflow/` owns the generic Workflow shape, names, types, and fail-fast Step definitions.
 - `default/` owns the official assembled profile's Context, concrete Step overrides, and failure
   lifecycle.
+- `interaction/` owns interaction scope, bounded event delivery, and its concrete Step implementations.
 - `replay/` owns Request Journal contracts, identity/fingerprint rules, and response wire validation.
 
 Concrete local OutputSink and Request Journal implementations are intentionally owned by

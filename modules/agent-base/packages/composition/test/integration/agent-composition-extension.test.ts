@@ -7,6 +7,7 @@ import {
 import type { AgentOperationDefinitionMap } from '@ta-agent/base-workflow';
 import {
   defineAgentOperation,
+  STEP_CARDINALITY,
   type AgentRunContextFactoryInput,
   type BaseAgentRunContext,
   type BaseWorkflowContext,
@@ -90,6 +91,7 @@ describe('Agent composition extensions', () => {
         entryStep: 'readProductResource',
         stepDefinitions: {
           readProductResource: {
+            cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
             skippable: false,
             step: (context) => {
               context.result = `${context.agentRunContext.service.label}:${context.agentRunContext.input}`;

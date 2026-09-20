@@ -11,6 +11,7 @@ import {
   createAgent,
   defineAgentOperation,
   defineAgentOperationReference,
+  STEP_CARDINALITY,
   Workflow,
 } from '../../src/index.js';
 
@@ -40,6 +41,7 @@ function textWorkflow(
     entryStep: 'execute',
     stepDefinitions: {
       execute: {
+        cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
         skippable: false,
         step: (context) => {
           context.result = `${prefix}:${context.agentRunContext.input}`;
@@ -67,6 +69,7 @@ function numberWorkflow(
     entryStep: 'execute',
     stepDefinitions: {
       execute: {
+        cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
         skippable: false,
         step: (context) => {
           context.result = context.agentRunContext.input * 2;
@@ -149,6 +152,7 @@ describe('Agent Operations', () => {
       entryStep: 'execute',
       stepDefinitions: {
         execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
           skippable: false,
           step: (context) => {
             observedInput = context.agentRunContext.input;
@@ -265,6 +269,7 @@ describe('Agent Operations', () => {
       entryStep: 'execute',
       stepDefinitions: {
         execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
           skippable: false,
           step: async (context) => {
             const childResult = await context.agentRunContext.operations.invoke('child', 6);
@@ -455,6 +460,7 @@ describe('Agent Operations', () => {
       entryStep: 'execute',
       stepDefinitions: {
         execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
           skippable: false,
           step: async (context) => {
             const unsafeInvoker = context.agentRunContext.operations as unknown as UnsafeInvoker;
@@ -514,6 +520,7 @@ describe('Agent Operations', () => {
         entryStep: 'execute',
         stepDefinitions: {
           execute: {
+            cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
             skippable: false,
             step: async (context) => {
               context.result = await invokeTarget(context.agentRunContext);
@@ -651,6 +658,7 @@ describe('Agent Operations', () => {
       entryStep: 'execute',
       stepDefinitions: {
         execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
           skippable: false,
           step: (context) => {
             context.result = context.agentRunContext.input;

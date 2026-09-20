@@ -61,5 +61,7 @@ export interface RequestPolicy {
   readonly maxInstructionsCharacters: number;
   readonly maxOutputCharacters: number;
   readonly maxModelTurns: number;
+  /** Maximum accepted interaction events, including the event currently being delivered. */
+  readonly maxPendingInteractionEvents: number;
   readonly timeoutMilliseconds: number;
 }

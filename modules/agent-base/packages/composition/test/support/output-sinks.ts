@@ -1,5 +1,5 @@
 import { MemoryOutputSink } from '@ta-agent/base-local-adapters';
-import type { AgentResponse, OutputFailure, OutputTextDeltaEvent } from '@ta-agent/base-request';
+import type { AgentResponse, OutputFailure, OutputStreamEvent } from '@ta-agent/base-request';
 
 export class CancellingOutputSink extends MemoryOutputSink {
   readonly #controller: AbortController;
@@ -9,7 +9,7 @@ export class CancellingOutputSink extends MemoryOutputSink {
     this.#controller = controller;
   }
 
-  override async write(event: OutputTextDeltaEvent): Promise<void> {
+  override async write(event: OutputStreamEvent): Promise<void> {
     await super.write(event);
     this.#controller.abort();
   }
@@ -22,7 +22,7 @@ export class FailingCloseOutputSink extends MemoryOutputSink {
 }
 
 export class FailingWriteOutputSink extends MemoryOutputSink {
-  override write(_event: OutputTextDeltaEvent): Promise<void> {
+  override write(_event: OutputStreamEvent): Promise<void> {
     return Promise.reject(new Error('write failed'));
   }
 }

@@ -44,6 +44,9 @@ export function createStandaloneAgent(
       ...(credentialResolver === undefined ? {} : { credentialResolver }),
     },
     ...sqliteOptions,
+    ...(runtimeOptions.stepOverrides === undefined
+      ? {}
+      : { stepOverrides: runtimeOptions.stepOverrides }),
     ...(config.mainActor === undefined ? {} : { mainActor: config.mainActor }),
   });
 }

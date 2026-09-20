@@ -16,6 +16,14 @@ to Pi options, and normalizes output and failure identities before returning. It
 capability is declared streamable and traverses Pi's event-producing Agent Loop; direct completion
 remains buffered.
 
+Readable Pi `thinking_delta` events map to Model-owned `reasoning-delta` events immediately, across
+all model turns. Empty deltas and explicitly redacted blocks are ignored; signatures and opaque
+payloads are never forwarded. `thinking_end` does not republish accumulated content. Reasoning is
+separate from final-turn-only text and does not change the persisted assistant message or future
+Agent Base Session context. The adapter does not add reasoning-effort/generation configuration.
+Both deterministic faux events and a localhost OpenAI-compatible SSE fixture exercise this path
+through Pi's public boundary without credentials or an external model.
+
 `createPiProviderRuntime()` supplies the ordinary profile over the same internal runtime. Its closed
 configuration supports an exact model from Pi `0.82.1`'s builtin catalog or one explicit text-only
 OpenAI-compatible endpoint with bounded context and output tokens. Builtin profiles require an

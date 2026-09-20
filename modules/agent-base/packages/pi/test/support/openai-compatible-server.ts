@@ -42,7 +42,8 @@ function listen(server: Server): Promise<number> {
 }
 
 export async function createOpenAICompatibleTestServer(
-  responseText = 'ordinary response'
+  responseText = 'ordinary response',
+  reasoning?: string
 ): Promise<OpenAICompatibleTestServer> {
   const captured: OpenAICompatibleRequestSnapshot[] = [];
   const server = createServer((request, response) => {
@@ -64,6 +65,23 @@ export async function createOpenAICompatibleTestServer(
       connection: 'keep-alive',
       'cache-control': 'no-cache',
     });
+    if (reasoning !== undefined) {
+      response.write(
+        `data: ${JSON.stringify({
+          id: 'chatcmpl-test',
+          object: 'chat.completion.chunk',
+          created: 1,
+          model: 'test-model',
+          choices: [
+            {
+              index: 0,
+              delta: { role: 'assistant', reasoning_content: reasoning },
+              finish_reason: null,
+            },
+          ],
+        })}\n\n`
+      );
+    }
     response.write(
       `data: ${JSON.stringify({
         id: 'chatcmpl-test',

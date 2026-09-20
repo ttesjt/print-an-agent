@@ -27,5 +27,6 @@ export function createSharedSqliteStandaloneAgentRegistry(
       tableNames,
     }),
     readEnvironmentVariable: options.readEnvironmentVariable,
+    ...(options.stepOverrides === undefined ? {} : { stepOverrides: options.stepOverrides }),
   });
 }

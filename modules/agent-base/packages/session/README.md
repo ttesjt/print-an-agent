@@ -25,6 +25,25 @@ const agent = createDeterministicAgentAPI({
 
 Both official local adapters implement `NavigableCompactableSessionPort`, `SessionQueryPort`, and
 `SessionMetadataPort`.
+Both also implement the optional `SessionPresentationPort`. It supplies an exact bounded
+`readTurnPresentation({ agentId, sessionId, turnId })` lookup and an atomic
+`completeTurnWithPresentation()` operation on the same adapter. A `SessionTurnPresentation` contains
+an ordered `reasoningBlocks` array of named `SessionReasoningBlock` values, each containing
+`modelTurnIndex` and readable `text`. Indices are positive, strictly increasing model invocation
+ordinals within the Session turn; omitted/filtered reasoning can leave gaps. No provider signatures,
+model-input meaning, or arbitrary JSON extension bag is accepted. The record includes its original branch identity and survives branch selection,
+rewind, and compaction without being copied or reparented.
+
+Presentation is absent from ordinary snapshots, turn-ledger queries, history, and context projection.
+Consumers explicitly query the display record; a missing turn or absent presentation returns
+`undefined`. Empty records are invalid. `MAX_SESSION_PRESENTATION_CHARACTERS` bounds one record to
+64,000 UTF-16 code units across all blocks; `MAX_SESSION_PRESENTATION_BLOCKS` limits structural
+overhead to 1,024 nonempty blocks. Validation returns deeply detached frozen values and rejects extra fields and
+accessors. Malformed inputs use `SESSION_PRESENTATION_INVALID`; overflow uses
+`SESSION_PRESENTATION_LIMIT_EXCEEDED`; corrupt stored records use `SESSION_RECORD_INVALID`.
+Domain ports select no default retention policy. The official composition selects capture Steps,
+while a custom Session adapter may omit this entire capability when capture is disabled.
+
 The query port lists recently active Sessions with keyset pagination, inspects bounded summary
 metadata, and pages the newest-first durable Turn ledger across all branches and terminal states.
 The metadata port renames a Session through an independent revisioned CAS; its stable Session ID and

@@ -40,7 +40,12 @@ const LEAF_STEP_NAMES = REQUEST_STEP_NAMES.filter(
 );
 
 const SEQUENTIAL_LEAF_STEP_NAMES = LEAF_STEP_NAMES.filter(
-  (name) => name !== 'deliverTextDelta' && name !== 'completeAssistantMessage'
+  (name) =>
+    name !== 'deliverTextDelta' &&
+    name !== 'deliverReasoningDelta' &&
+    name !== 'captureReasoningPresentation' &&
+    name !== 'buildTurnPresentation' &&
+    name !== 'completeAssistantMessage'
 );
 
 function agentRunContext(): TestAgentContext {
@@ -103,6 +108,9 @@ describe('Request Workflow skeleton', () => {
       'invokeActorInteraction',
       'dispatchInteractionEvent',
       'deliverTextDelta',
+      'deliverReasoningDelta',
+      'captureReasoningPresentation',
+      'buildTurnPresentation',
       'completeAssistantMessage',
       'buildAgentResponse',
       'completeResponse',
@@ -144,7 +152,10 @@ describe('Request Workflow skeleton', () => {
     >();
     for (const name of REQUEST_STEP_NAMES) {
       expect(definitions[name].cardinality).toBe(
-        name === 'dispatchInteractionEvent' || name === 'deliverTextDelta'
+        name === 'dispatchInteractionEvent' ||
+          name === 'deliverTextDelta' ||
+          name === 'deliverReasoningDelta' ||
+          name === 'captureReasoningPresentation'
           ? STEP_CARDINALITY.REPEATABLE
           : STEP_CARDINALITY.AT_MOST_ONCE
       );
@@ -222,7 +233,7 @@ describe('Request Workflow skeleton', () => {
     });
   });
 
-  it('allows only the two explicitly optional leaf Steps to be skipped', async () => {
+  it('allows only explicitly optional leaf Steps to be skipped', async () => {
     const definitions = createRequestStepDefinitions<
       TestAgentContext,
       string,
@@ -231,8 +242,18 @@ describe('Request Workflow skeleton', () => {
 
     expect(definitions.resolveRequestReplay.skippable).toBe(true);
     expect(definitions.gatherExternalContext.skippable).toBe(true);
+    expect(definitions.deliverReasoningDelta.skippable).toBe(true);
+    expect(definitions.captureReasoningPresentation.skippable).toBe(true);
+    expect(definitions.buildTurnPresentation.skippable).toBe(true);
     for (const stepName of REQUEST_STEP_NAMES) {
-      if (stepName === 'resolveRequestReplay' || stepName === 'gatherExternalContext') continue;
+      if (
+        stepName === 'resolveRequestReplay' ||
+        stepName === 'gatherExternalContext' ||
+        stepName === 'deliverReasoningDelta' ||
+        stepName === 'captureReasoningPresentation' ||
+        stepName === 'buildTurnPresentation'
+      )
+        continue;
       expect(definitions[stepName].skippable).toBe(false);
     }
 

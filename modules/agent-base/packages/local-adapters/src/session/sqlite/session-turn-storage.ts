@@ -3,6 +3,8 @@ import type { ModelMessage } from '@ta-agent/base-model';
 import { quoteSqliteIdentifier } from './table-names.js';
 import {
   AgentSessionError,
+  defineSessionTurnPresentation,
+  type SessionTurnPresentation,
   completedLineageBeforeTurn,
   parseSessionFailureCode,
   type ActiveSessionTurn,
@@ -138,8 +140,11 @@ export function completeSqliteSessionTurn(
   database: DatabaseSync,
   request: CompleteSessionTurnRequest,
   clock: () => number,
-  tableNames: SqliteSessionTableNames
+  tableNames: SqliteSessionTableNames,
+  presentation?: SessionTurnPresentation
 ): CompletedSessionTurn {
+  const presentationJson =
+    presentation === undefined ? null : JSON.stringify(defineSessionTurnPresentation(presentation));
   const assistantMessageJson = encodeAssistantMessage(request.assistantMessage);
   const assistantMessage = decodeAssistantMessage(assistantMessageJson);
   return runImmediateTransaction(database, () => {
@@ -167,10 +172,17 @@ export function completeSqliteSessionTurn(
     const result = database
       .prepare(
         `UPDATE ${quoteSqliteIdentifier(tableNames.turns)}
-         SET status = 'completed', assistant_message = ?, finished_at = ?
+         SET status = 'completed', assistant_message = ?, finished_at = ?, presentation = ?
          WHERE agent_id = ? AND session_id = ? AND turn_id = ? AND status = 'active'`
       )
-      .run(assistantMessageJson, finishedAt, request.agentId, request.sessionId, request.turnId);
+      .run(
+        assistantMessageJson,
+        finishedAt,
+        presentationJson,
+        request.agentId,
+        request.sessionId,
+        request.turnId
+      );
     if (result.changes !== 1) {
       throw new AgentSessionError(
         'TURN_STATE_INVALID',

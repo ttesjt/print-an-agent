@@ -17,6 +17,7 @@ import {
   type SessionId,
   type SessionSnapshot,
   type SessionTurn,
+  type SessionTurnPresentation,
   type TurnId,
 } from '@ta-agent/base-session';
 
@@ -34,6 +35,7 @@ export interface StoredMemorySession {
   readonly createdAt: number;
   readonly branches: Map<SessionBranchId, StoredMemoryBranch>;
   readonly turns: SessionTurn[];
+  readonly presentations: Map<TurnId, SessionTurnPresentation>;
   readonly compactions: Map<SessionBranchId, SessionCompaction>;
   title?: string;
   metadataRevision: number;

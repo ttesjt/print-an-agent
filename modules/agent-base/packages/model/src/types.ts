@@ -114,10 +114,22 @@ export interface ResolvedExecutionTarget {
   readonly capabilities: ExecutionTargetCapabilities;
 }
 
+export interface TextDeltaEvent {
+  readonly type: 'text-delta';
+  readonly delta: string;
+}
+
+/** Provider/Engine-exposed readable reasoning, never an opaque signature or encrypted payload. */
+export interface ReasoningDeltaEvent {
+  readonly type: 'reasoning-delta';
+  readonly delta: string;
+}
+
 export type AgentLoopEvent =
   | Readonly<{ type: 'interaction-start' }>
   | Readonly<{ type: 'turn-start' }>
-  | Readonly<{ type: 'text-delta'; delta: string }>
+  | TextDeltaEvent
+  | ReasoningDeltaEvent
   | Readonly<{ type: 'tool-call-start'; callId: string; toolName: string }>
   | Readonly<{
       type: 'tool-call-end';

@@ -22,6 +22,7 @@ export function createSessionStoreMigration(tableNames: SqliteSessionTableNames)
     failure_code TEXT,
     started_at INTEGER NOT NULL CHECK (started_at >= 0),
     finished_at INTEGER CHECK (finished_at >= 0),
+    presentation TEXT CHECK (presentation IS NULL OR status = 'completed'),
     PRIMARY KEY (agent_id, session_id, turn_id),
     UNIQUE (agent_id, session_id, turn_sequence),
     FOREIGN KEY (agent_id, session_id)

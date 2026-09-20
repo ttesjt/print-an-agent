@@ -287,6 +287,11 @@ describe('Actor Engine protocol', () => {
 
   it.each([
     {
+      name: 'malformed reasoning event',
+      emitInvalid: (emit: (event: AgentLoopEvent) => Promise<void>) =>
+        emitUnknown(emit, { type: 'reasoning-delta', delta: null }),
+    },
+    {
       name: 'null event',
       emitInvalid: (emit: (event: AgentLoopEvent) => Promise<void>) => emitUnknown(emit, null),
     },

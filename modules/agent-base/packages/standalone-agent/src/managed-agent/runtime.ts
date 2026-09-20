@@ -4,7 +4,7 @@ import { createStandaloneCredentialResolver } from '../credential-resolver.js';
 import type {
   StandaloneAgent,
   StandaloneAgentDefinition,
-  StandaloneCredentialRuntimeOptions,
+  StandaloneRuntimeOptions,
 } from '../types.js';
 import type { ManagedAgentRuntimePorts } from './contracts.js';
 
@@ -12,7 +12,7 @@ export function createManagedStandaloneAgent(
   identity: AgentIdentity,
   definition: StandaloneAgentDefinition,
   ports: ManagedAgentRuntimePorts,
-  options: StandaloneCredentialRuntimeOptions
+  options: StandaloneRuntimeOptions
 ): StandaloneAgent {
   const credentialResolver =
     definition.credential === undefined
@@ -27,6 +27,7 @@ export function createManagedStandaloneAgent(
     },
     session: ports.session,
     requestJournal: ports.requestJournal,
+    ...(options.stepOverrides === undefined ? {} : { stepOverrides: options.stepOverrides }),
     ...(definition.mainActor === undefined ? {} : { mainActor: definition.mainActor }),
   });
 }

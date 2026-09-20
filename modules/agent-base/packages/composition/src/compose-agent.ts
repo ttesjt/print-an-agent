@@ -9,13 +9,8 @@ import {
 } from '@ta-agent/base-local-adapters';
 import {
   AgentRequestError,
-  createDefaultRequestStepOverrides,
-  createRequestWorkflow,
   DEFAULT_REQUEST_POLICY,
-  failRequest,
   validateRequestPolicy,
-  type AgentResponse,
-  type DefaultRequestWorkflowContext,
   type RequestAgentRunContext,
   type RequestPolicy,
 } from '@ta-agent/base-request';
@@ -47,6 +42,7 @@ import {
   mergeStepOverrides,
   type AgentOperationDefinitionMap,
 } from '@ta-agent/base-workflow';
+import { composeRequestWorkflow } from './request-workflow.js';
 import { AgentCompositionError } from './composition-error.js';
 import type { ComposeAgentOptions } from './types.js';
 
@@ -144,24 +140,7 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     createOutputSink: options.createOutputSink ?? (() => new MemoryOutputSink()),
     clock: options.clock ?? Date.now,
   });
-  const requestWorkflow =
-    options.requestWorkflow ??
-    createRequestWorkflow<RequestAgentRunContext, AgentResponse, DefaultRequestWorkflowContext>({
-      stepOverrides: mergeStepOverrides(createDefaultRequestStepOverrides(), options.stepOverrides),
-      createContext: (base) => ({
-        ...base,
-        resources,
-        policy: requestPolicy,
-      }),
-      lifecycle: { onError: failRequest },
-      applyResult: (agentRunContext, result) => {
-        agentRunContext.output = result;
-        return Promise.resolve();
-      },
-      ...(options.createWorkflowRunId === undefined
-        ? {}
-        : { createRunId: options.createWorkflowRunId }),
-    });
+  const requestWorkflow = composeRequestWorkflow(options, resources, requestPolicy);
   const foregroundOperation = defineAgentOperation<
     typeof FOREGROUND_AGENT_OPERATION_NAME,
     'public',

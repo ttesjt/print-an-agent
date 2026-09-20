@@ -35,6 +35,7 @@ const TURN_COLUMNS = Object.freeze([
   'failure_code',
   'started_at',
   'finished_at',
+  'presentation',
   'branch_id',
   'parent_turn_id',
 ]);
@@ -95,54 +96,12 @@ function assertKnownSchemaVersion(version: number | undefined): asserts version 
       'SQLite Session schema metadata is missing.'
     );
   }
-  if (version > CURRENT_SESSION_SCHEMA_VERSION) {
+  if (version !== CURRENT_SESSION_SCHEMA_VERSION) {
     throw new AgentSessionError(
       'SESSION_SCHEMA_UNSUPPORTED',
-      `SQLite Session schema version ${version} is newer than supported version ${CURRENT_SESSION_SCHEMA_VERSION}.`
+      `SQLite Session schema version ${version} does not match supported version ${CURRENT_SESSION_SCHEMA_VERSION}.`
     );
   }
-  if (version < 1) {
-    throw new AgentSessionError(
-      'SESSION_SCHEMA_INVALID',
-      `SQLite Session schema version ${version} has no available migration path.`
-    );
-  }
-}
-
-function migrateSchema(
-  database: DatabaseSync,
-  version: number,
-  tableNames: SqliteSessionTableNames
-): void {
-  runImmediateTransaction(database, () => {
-    let currentVersion = version;
-    if (currentVersion === 1) {
-      database.exec(addSessionCompactionMigration(tableNames));
-      database
-        .prepare(
-          `UPDATE ${quoteSqliteIdentifier(tableNames.schema)} SET version = ? WHERE component = ?`
-        )
-        .run(2, SESSION_SCHEMA_COMPONENT);
-      currentVersion = 2;
-    }
-    if (currentVersion === 2) {
-      database.exec(addSessionNavigationMigration(tableNames));
-      database
-        .prepare(
-          `UPDATE ${quoteSqliteIdentifier(tableNames.schema)} SET version = ? WHERE component = ?`
-        )
-        .run(3, SESSION_SCHEMA_COMPONENT);
-      currentVersion = 3;
-    }
-    if (currentVersion === 3) {
-      database.exec(addSessionMetadataMigration(tableNames));
-      database
-        .prepare(
-          `UPDATE ${quoteSqliteIdentifier(tableNames.schema)} SET version = ? WHERE component = ?`
-        )
-        .run(CURRENT_SESSION_SCHEMA_VERSION, SESSION_SCHEMA_COMPONENT);
-    }
-  });
 }
 
 function assertTableColumns(
@@ -232,7 +191,6 @@ export function initializeSessionSchema(
     });
   } else {
     assertKnownSchemaVersion(version);
-    migrateSchema(database, version, tableNames);
   }
   assertSessionSchema(database, tableNames);
 }

@@ -6,6 +6,11 @@ import {
   parseSessionBranchId,
   parseSessionId,
   parseTurnId,
+  defineSessionTurnPresentation,
+  type SessionPresentationPort,
+  type CompleteSessionTurnWithPresentationRequest,
+  type SessionTurnPresentationReference,
+  type SessionTurnPresentationRecord,
   type CommitSessionCompactionRequest,
   type CompactableSessionPort,
   type AppliedSessionNavigation,
@@ -63,6 +68,7 @@ import {
   listSqliteSessionTurns,
 } from './session-query-storage.js';
 import { renameSqliteSession } from './session-metadata-storage.js';
+import { readSqliteTurnPresentation } from './session-presentation-storage.js';
 import { assertSessionSchema, configureDefensiveMode, initializeSessionSchema } from './schema.js';
 import {
   quoteSqliteIdentifier,
@@ -142,6 +148,7 @@ export class SqliteSessionAdapter
     CompactableSessionPort,
     NavigableSessionPort,
     SessionQueryPort,
+    SessionPresentationPort,
     SessionMetadataPort
 {
   readonly #configuration: SqliteDatabaseConfiguration;
@@ -236,6 +243,36 @@ export class SqliteSessionAdapter
       };
       return this.#useDatabase('fail turn', (database) =>
         failSqliteSessionTurn(database, normalized, this.#clock, this.#tableNames)
+      );
+    });
+  }
+
+  completeTurnWithPresentation(
+    request: CompleteSessionTurnWithPresentationRequest
+  ): Promise<CompletedSessionTurn> {
+    return Promise.resolve().then(() => {
+      const presentation = defineSessionTurnPresentation(request.presentation);
+      const normalized = {
+        ...normalizeReference(request),
+        turnId: parseTurnId(request.turnId),
+        assistantMessage: request.assistantMessage,
+      };
+      return this.#useDatabase('complete turn with presentation', (database) =>
+        completeSqliteSessionTurn(database, normalized, this.#clock, this.#tableNames, presentation)
+      );
+    });
+  }
+
+  readTurnPresentation(
+    reference: SessionTurnPresentationReference
+  ): Promise<SessionTurnPresentationRecord | undefined> {
+    return Promise.resolve().then(() => {
+      const normalized = {
+        ...normalizeReference(reference),
+        turnId: parseTurnId(reference.turnId),
+      };
+      return this.#useDatabase('read turn presentation', (database) =>
+        readSqliteTurnPresentation(database, normalized, this.#tableNames)
       );
     });
   }

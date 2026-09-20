@@ -27,16 +27,18 @@ export type PiFauxToolEventSnapshot =
       resultCharacters: number;
     }>;
 
-export type PiFauxResponse =
-  | Readonly<{ status: 'success'; text: string; stopReason?: 'stop' | 'length' }>
-  | Readonly<{ status: 'failure'; message: string; partialText?: string }>
-  | Readonly<{
-      status: 'tool-call';
-      name: string;
-      callId?: string;
-      text?: string;
-      arguments?: Readonly<Record<string, unknown>>;
-    }>;
+export type PiFauxResponse = Readonly<{ reasoning?: string }> &
+  (
+    | Readonly<{ status: 'success'; text: string; stopReason?: 'stop' | 'length' }>
+    | Readonly<{ status: 'failure'; message: string; partialText?: string }>
+    | Readonly<{
+        status: 'tool-call';
+        name: string;
+        callId?: string;
+        text?: string;
+        arguments?: Readonly<Record<string, unknown>>;
+      }>
+  );
 
 export type PiFauxResponseFactory = (
   request: PiFauxRequestSnapshot

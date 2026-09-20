@@ -1,5 +1,9 @@
 import type { ActorInvocationConfig } from '@ta-agent/base-actor';
-import type { ProviderAgentAPI, ProviderConfigInput } from '@ta-agent/base-composition';
+import type {
+  ComposeAgentOptions,
+  ProviderAgentAPI,
+  ProviderConfigInput,
+} from '@ta-agent/base-composition';
 import type {
   AgentIdentity,
   AgentIdentityInput,
@@ -56,7 +60,12 @@ export interface StandaloneCredentialRuntimeOptions {
   readonly readEnvironmentVariable: (name: string) => string | undefined;
 }
 
-export interface CreateStandaloneAgentOptions extends StandaloneCredentialRuntimeOptions {
+export interface StandaloneRuntimeOptions extends StandaloneCredentialRuntimeOptions {
+  /** Executable host composition, never part of durable Agent JSON configuration. */
+  readonly stepOverrides?: ComposeAgentOptions['stepOverrides'];
+}
+
+export interface CreateStandaloneAgentOptions extends StandaloneRuntimeOptions {
   readonly sqlite?: StandaloneRuntimeSqliteTableNamingInput;
 }
 
@@ -124,14 +133,14 @@ export interface ManagedStandaloneAgentRegistry {
 
 export type StandaloneAgentDirectory = ManagedStandaloneAgentRegistry;
 
-export interface CreateStandaloneAgentDirectoryOptions extends StandaloneCredentialRuntimeOptions {
+export interface CreateStandaloneAgentDirectoryOptions extends StandaloneRuntimeOptions {
   readonly rootDirectory: string;
   readonly clock?: () => number;
   readonly createTemporaryId?: () => string;
   readonly sqlite?: StandaloneManagedSqliteTableNamingInput;
 }
 
-export interface CreateSharedSqliteStandaloneAgentRegistryOptions extends StandaloneCredentialRuntimeOptions {
+export interface CreateSharedSqliteStandaloneAgentRegistryOptions extends StandaloneRuntimeOptions {
   readonly databasePath: string;
   readonly clock?: () => number;
   readonly busyTimeoutMilliseconds?: number;

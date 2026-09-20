@@ -8,11 +8,13 @@ import type {
   ActiveSessionTurn,
   ResolvedSessionReference,
   SessionPort,
+  SessionTurnPresentation,
 } from '@ta-agent/base-session';
 import type { ToolExecutionPolicy, ToolName, ToolRegistry, ToolRuntime } from '@ta-agent/base-tool';
 import type { BaseAgentRunContext, BaseWorkflowContext } from '@ta-agent/base-workflow';
 import type { RequestStepName } from '../workflow/names.js';
 import type { RequestInteractionState } from '../interaction/state.js';
+import type { CapturedReasoningPresentation } from '../interaction/presentation.js';
 import type {
   AgentRequestInput,
   AgentResponse,
@@ -61,6 +63,9 @@ export interface DefaultRequestWorkflowContext extends BaseWorkflowContext<
   userMessage?: UserModelMessage;
   modelRequest?: ActorInteractionRequest;
   interaction?: RequestInteractionState;
+  /** Run-local display data; never part of modelRequest, response, or trace. */
+  capturedReasoning?: CapturedReasoningPresentation;
+  turnPresentation?: SessionTurnPresentation;
   response?: AgentResponse;
   modelTurnCount?: number;
   outputCharacterCount?: number;

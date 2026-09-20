@@ -71,7 +71,7 @@ function writeChunk(response: ServerResponse, content: string): void {
       choices: [
         {
           index: 0,
-          delta: { role: 'assistant', content },
+          delta: { role: 'assistant', content, reasoning_content: 'PRIVATE_REASONING' },
           finish_reason: null,
         },
       ],

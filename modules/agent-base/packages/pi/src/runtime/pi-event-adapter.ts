@@ -41,6 +41,13 @@ async function handleMessageUpdate(
   state: PiRunState
 ): Promise<void> {
   const update = event.assistantMessageEvent;
+  if (update.type === 'thinking_delta') {
+    const block = update.partial.content[update.contentIndex];
+    if (block?.type !== 'thinking' || block.redacted === true || update.delta.length === 0) return;
+    // Reasoning is live across all model turns; never forward signatures or replay thinking_end.
+    await request.emit(Object.freeze({ type: 'reasoning-delta', delta: update.delta }));
+    return;
+  }
   if (update.type !== 'text_delta') return;
 
   state.outputCharacters += update.delta.length;

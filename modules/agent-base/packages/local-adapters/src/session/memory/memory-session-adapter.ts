@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { defineAssistantModelMessage, type ModelMessage } from '@ta-agent/base-model';
+import { type ModelMessage } from '@ta-agent/base-model';
 import {
   AgentSessionError,
+  defineSessionTurnPresentation,
+  type SessionPresentationPort,
+  type SessionTurnPresentation,
+  type SessionTurnPresentationReference,
+  type SessionTurnPresentationRecord,
+  type CompleteSessionTurnWithPresentationRequest,
   DEFAULT_SESSION_BRANCH_ID,
   completedLineageBeforeTurn,
   completedLineageForBranch,
@@ -53,6 +59,7 @@ import {
   type StoredMemoryBranch,
   type StoredMemorySession,
 } from './session-state.js';
+import { completeMemorySessionTurn } from './session-completion.js';
 import { applyMemorySessionNavigation } from './session-navigation.js';
 import {
   inspectMemorySession,
@@ -72,6 +79,7 @@ export class MemorySessionAdapter
     CompactableSessionPort,
     NavigableSessionPort,
     SessionQueryPort,
+    SessionPresentationPort,
     SessionMetadataPort
 {
   readonly #sessions = new Map<string, StoredMemorySession>();
@@ -107,6 +115,7 @@ export class MemorySessionAdapter
             ],
           ]),
           turns: [],
+          presentations: new Map(),
           compactions: new Map(),
           metadataRevision: 0,
           metadataUpdatedAt: timestamp,
@@ -198,38 +207,42 @@ export class MemorySessionAdapter
   }
 
   completeTurn(request: CompleteSessionTurnRequest): Promise<CompletedSessionTurn> {
+    return this.#completeTurn(request);
+  }
+
+  completeTurnWithPresentation(
+    request: CompleteSessionTurnWithPresentationRequest
+  ): Promise<CompletedSessionTurn> {
+    return Promise.resolve().then(() =>
+      this.#completeTurn(request, defineSessionTurnPresentation(request.presentation))
+    );
+  }
+
+  readTurnPresentation(
+    reference: SessionTurnPresentationReference
+  ): Promise<SessionTurnPresentationRecord | undefined> {
     return Promise.resolve().then(() => {
-      const session = this.#requireSession(request);
-      const index = this.#requireTurnIndex(session, request.turnId);
-      const current = session.turns[index];
-      if (current?.status !== 'active') {
-        throw new AgentSessionError(
-          'TURN_STATE_INVALID',
-          `Turn "${request.turnId}" cannot complete from state "${current?.status ?? 'missing'}".`
-        );
-      }
-      const branch = this.#requireBranch(session, current.branchId);
-      if (branch.headTurnId !== current.parentTurnId) {
-        throw new AgentSessionError(
-          'SESSION_NAVIGATION_CONFLICT',
-          'Session branch head changed before the active turn completed.'
-        );
-      }
-      const completed: CompletedSessionTurn = Object.freeze({
-        status: 'completed',
-        turnId: current.turnId,
-        branchId: current.branchId,
-        ...(current.parentTurnId === undefined ? {} : { parentTurnId: current.parentTurnId }),
-        userMessage: current.userMessage,
-        assistantMessage: defineAssistantModelMessage(request.assistantMessage),
+      const session = this.#sessions.get(memorySessionKey(reference.agentId, reference.sessionId));
+      const presentation = session?.presentations.get(reference.turnId);
+      if (presentation === undefined || session === undefined) return undefined;
+      const turn = this.#requireTurn(session, reference.turnId);
+      return Object.freeze({
+        agentId: session.agentId,
+        sessionId: session.sessionId,
+        turnId: turn.turnId,
+        branchId: turn.branchId,
+        presentation: defineSessionTurnPresentation(presentation),
       });
-      const updatedAt = readMemoryClock(this.#clock);
-      session.turns[index] = completed;
-      branch.headTurnId = completed.turnId;
-      session.navigationRevision += 1;
-      touchMemorySession(session, updatedAt);
-      return cloneMemoryTurn(completed);
     });
+  }
+
+  #completeTurn(
+    request: CompleteSessionTurnRequest,
+    presentation?: SessionTurnPresentation
+  ): Promise<CompletedSessionTurn> {
+    return Promise.resolve().then(() =>
+      completeMemorySessionTurn(this.#requireSession(request), request, this.#clock, presentation)
+    );
   }
 
   failTurn(request: FailSessionTurnRequest): Promise<SessionTurn> {

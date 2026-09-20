@@ -34,7 +34,13 @@ async function dispatchInteractionEvent(context: RequestWorkflowContext): Promis
       'Event dispatch requires a current interaction event.'
     );
   if (event.type === 'text-delta') await context.runStep('deliverTextDelta');
-  else if (event.type === 'assistant-complete') await context.runStep('completeAssistantMessage');
+  else if (event.type === 'reasoning-delta') {
+    await context.runStep('captureReasoningPresentation');
+    await context.runStep('deliverReasoningDelta');
+  } else if (event.type === 'assistant-complete') {
+    await context.runStep('buildTurnPresentation');
+    await context.runStep('completeAssistantMessage');
+  }
 }
 
 function createCompositeStep<WC extends RequestWorkflowContext>(
@@ -162,10 +168,25 @@ export function createRequestStepDefinitions<
       cardinality: STEP_CARDINALITY.REPEATABLE,
       skippable: false,
     },
+    deliverReasoningDelta: {
+      step: createPlaceholderStep<WC>('deliverReasoningDelta'),
+      cardinality: STEP_CARDINALITY.REPEATABLE,
+      skippable: true,
+    },
     completeAssistantMessage: {
       step: createPlaceholderStep<WC>('completeAssistantMessage'),
       cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
+    },
+    captureReasoningPresentation: {
+      step: createPlaceholderStep<WC>('captureReasoningPresentation'),
+      cardinality: STEP_CARDINALITY.REPEATABLE,
+      skippable: true,
+    },
+    buildTurnPresentation: {
+      step: createPlaceholderStep<WC>('buildTurnPresentation'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: true,
     },
     buildAgentResponse: {
       step: createPlaceholderStep<WC>('buildAgentResponse'),

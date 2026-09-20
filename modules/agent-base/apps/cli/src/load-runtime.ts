@@ -43,7 +43,8 @@ function projectRuntime(agent: StandaloneAgent): AgentBaseCliRuntime {
           ...input,
           outputSink: {
             open: () => Promise.resolve(),
-            write: (event) => options.writeTextDelta(event.delta),
+            write: (event) =>
+              event.type === 'text-delta' ? options.writeTextDelta(event.delta) : Promise.resolve(),
             close: () => Promise.resolve(),
             fail: () => Promise.resolve(),
           },

@@ -4,27 +4,27 @@ import {
   type OutputFailure,
   type OutputOpenEvent,
   type OutputSink,
-  type OutputTextDeltaEvent,
+  type OutputStreamEvent,
 } from '@ta-agent/base-request';
 import { defineAssistantModelMessage } from '@ta-agent/base-model';
 
 export type MemoryOutputSnapshot =
-  | Readonly<{ status: 'pending'; events: readonly OutputTextDeltaEvent[] }>
+  | Readonly<{ status: 'pending'; events: readonly OutputStreamEvent[] }>
   | Readonly<{
       status: 'open';
       openEvent: OutputOpenEvent;
-      events: readonly OutputTextDeltaEvent[];
+      events: readonly OutputStreamEvent[];
     }>
   | Readonly<{
       status: 'closed';
       openEvent: OutputOpenEvent;
-      events: readonly OutputTextDeltaEvent[];
+      events: readonly OutputStreamEvent[];
       response: AgentResponse;
     }>
   | Readonly<{
       status: 'failed';
       openEvent?: OutputOpenEvent;
-      events: readonly OutputTextDeltaEvent[];
+      events: readonly OutputStreamEvent[];
       failure: OutputFailure;
     }>;
 
@@ -32,7 +32,7 @@ export class MemoryOutputSink implements OutputSink {
   #openEvent: OutputOpenEvent | undefined;
   #response: AgentResponse | undefined;
   #failure: OutputFailure | undefined;
-  readonly #events: OutputTextDeltaEvent[] = [];
+  readonly #events: OutputStreamEvent[] = [];
 
   open(event: OutputOpenEvent): Promise<void> {
     return Promise.resolve().then(() => {
@@ -50,7 +50,7 @@ export class MemoryOutputSink implements OutputSink {
     });
   }
 
-  write(event: OutputTextDeltaEvent): Promise<void> {
+  write(event: OutputStreamEvent): Promise<void> {
     return Promise.resolve().then(() => {
       if (
         this.#openEvent === undefined ||

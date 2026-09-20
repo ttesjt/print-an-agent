@@ -1,6 +1,7 @@
 import {
   fauxAssistantMessage,
   fauxText,
+  fauxThinking,
   fauxToolCall,
   type AssistantMessage,
   type Message,
@@ -25,9 +26,10 @@ export function cloneRequestSnapshot(snapshot: PiFauxRequestSnapshot): PiFauxReq
 }
 
 export function createResponseMessage(response: PiFauxResponse): AssistantMessage {
+  const reasoning = response.reasoning === undefined ? [] : [fauxThinking(response.reasoning)];
   if (response.status === 'failure') {
     return {
-      ...fauxAssistantMessage(response.partialText ?? ''),
+      ...fauxAssistantMessage([...reasoning, fauxText(response.partialText ?? '')]),
       stopReason: 'error',
       errorMessage: response.message,
     };
@@ -37,10 +39,16 @@ export function createResponseMessage(response: PiFauxResponse): AssistantMessag
       response.callId === undefined
         ? fauxToolCall(response.name, { ...response.arguments })
         : fauxToolCall(response.name, { ...response.arguments }, { id: response.callId });
-    const content = [...(response.text === undefined ? [] : [fauxText(response.text)]), toolCall];
+    const content = [
+      ...reasoning,
+      ...(response.text === undefined ? [] : [fauxText(response.text)]),
+      toolCall,
+    ];
     return fauxAssistantMessage(content, { stopReason: 'toolUse' });
   }
-  return fauxAssistantMessage(response.text, { stopReason: response.stopReason ?? 'stop' });
+  return fauxAssistantMessage([...reasoning, fauxText(response.text)], {
+    stopReason: response.stopReason ?? 'stop',
+  });
 }
 
 export function toToolResultSnapshot(message: Message): PiFauxToolResultSnapshot | undefined {

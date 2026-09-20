@@ -1,4 +1,8 @@
-import type { AssistantModelMessage } from '@ta-agent/base-model';
+import type {
+  AssistantModelMessage,
+  TextDeltaEvent,
+  ReasoningDeltaEvent,
+} from '@ta-agent/base-model';
 import type { SessionBranchId, SessionId } from '@ta-agent/base-session';
 import type { ToolRunInspection } from '@ta-agent/base-tool';
 import type { RequestIdempotencyKey } from './replay/contracts.js';
@@ -31,10 +35,9 @@ export interface OutputOpenEvent {
   readonly branchId: SessionBranchId;
 }
 
-export interface OutputTextDeltaEvent {
-  readonly type: 'text-delta';
-  readonly delta: string;
-}
+export type OutputTextDeltaEvent = TextDeltaEvent;
+export type OutputReasoningDeltaEvent = ReasoningDeltaEvent;
+export type OutputStreamEvent = OutputTextDeltaEvent | OutputReasoningDeltaEvent;
 
 export interface OutputFailure {
   readonly code: string;
@@ -43,7 +46,8 @@ export interface OutputFailure {
 
 export interface OutputSink {
   open(event: OutputOpenEvent): Promise<void>;
-  write(event: OutputTextDeltaEvent): Promise<void>;
+  /** Function-valued contract keeps union acceptance contravariant for typed consumers. */
+  readonly write: (event: OutputStreamEvent) => Promise<void>;
   close(response: AgentResponse): Promise<void>;
   fail(failure: OutputFailure): Promise<void>;
 }
@@ -60,6 +64,8 @@ export interface RequestPolicy {
   readonly maxMessageCharacters: number;
   readonly maxInstructionsCharacters: number;
   readonly maxOutputCharacters: number;
+  /** Readable reasoning characters across all model turns, including skipped delivery. */
+  readonly maxReasoningCharacters: number;
   readonly maxModelTurns: number;
   /** Maximum accepted interaction events, including the event currently being delivered. */
   readonly maxPendingInteractionEvents: number;

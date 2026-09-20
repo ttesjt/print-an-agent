@@ -22,6 +22,9 @@ request Workflow
         │   ├── invokeActorInteraction
         │   │   └── dispatchInteractionEvent (per accepted event)
         │   │       ├── deliverTextDelta (text-delta)
+        │   │       ├── deliverReasoningDelta (reasoning-delta; optional)
+        │   │       ├── captureReasoningPresentation (reasoning-delta; optional)
+        │   │       ├── buildTurnPresentation (assistant-complete; optional)
         │   │       └── completeAssistantMessage (assistant-complete)
         │   └── buildAgentResponse
         └── completeResponse
@@ -36,7 +39,7 @@ Responsibility routing, session, request-journal, and tool ports. It validates i
 session and captures its selected branch and navigation revision, resolves
 `foreground-interaction` to one immutable Actor snapshot, composes
 instructions, loads that branch's context projection plus completed raw tail, creates one bounded
-Tool Runtime, publishes only final-turn model text through an
+Tool Runtime, publishes final-turn model text and separately tagged readable reasoning through an
 `OutputSink`, persists the assistant result and optional replay authority, and closes the response.
 The response includes its branch identity and privacy-safe `toolRun` metadata. A selection change
 between resolve and begin fails with a structured conflict instead of attaching the request to a
@@ -84,8 +87,8 @@ changing the meaning of persisted fingerprints. Large binary content is intentio
 by this text-only manifest.
 
 The assembled profile maps normalized Session, replay, Actor routing, Tool, Agent Loop, model-turn,
-output, and terminal facts into the injected Agent trace emitter. Text deltas remain exclusive
-to `OutputSink`; trace events contain counts and structured status only. A completed replay emits a
+output, and terminal facts into the injected Agent trace emitter. Trace events contain counts and
+structured status only, never text or reasoning content. A completed replay emits a
 fresh correlated output trace and deliberately emits no Agent Loop, model-turn, or tool-call
 events.
 
@@ -93,9 +96,12 @@ events.
 
 The official `runAgentInteraction` implementation owns interaction scope, trace boundaries, event
 delivery, and Tool cleanup. Its business phases resolve through the same Step Registry as the rest of
-the request. `dispatchInteractionEvent` and `deliverTextDelta` declare
-`STEP_CARDINALITY.REPEATABLE`; the other interaction Steps declare `AT_MOST_ONCE`. All are required
-in the default catalog. Overrides may replace a leaf, the event dispatcher, or the whole composite;
+the request. `dispatchInteractionEvent`, `deliverTextDelta`, `deliverReasoningDelta`, and
+`captureReasoningPresentation` declare
+`STEP_CARDINALITY.REPEATABLE`; the other interaction Steps declare `AT_MOST_ONCE`.
+`deliverReasoningDelta`, `captureReasoningPresentation`, and `buildTurnPresentation` are skippable;
+all other interaction Steps are required.
+Overrides may replace a leaf, the event dispatcher, or the whole composite;
 there is no separate handler registry, nested Workflow Context, or hidden direct call to a default
 leaf. Replacing the whole composite also replaces its lifecycle responsibilities.
 
@@ -124,8 +130,79 @@ delivery, discard queued events, and await any in-flight Step before Request fai
 fail the OutputSink. Abort reasons retain timeout identity. Cancellation is cooperative: arbitrary
 Engine, Step, or sink code cannot be forcibly interrupted, and an already-started write/commit is not
 rolled back. Such implementations must settle their pending work. Tools close on success and failure,
-and listener cleanup belongs to the interaction scope. No retry, reasoning event, or persistence
-format change is introduced by this decomposition.
+and listener cleanup belongs to the interaction scope. No retry or persistence format change is
+introduced by this decomposition.
+
+## Reasoning streaming
+
+`OutputStreamEvent` is the explicit union of `OutputTextDeltaEvent` and
+`OutputReasoningDeltaEvent`, aliases of the Model-owned `TextDeltaEvent` and `ReasoningDeltaEvent`.
+`OutputSink.write` accepts the entire union as a function-valued contract; text-only handlers are
+rejected by strict TypeScript checking. Consumers must narrow by `event.type`, never relabel every
+event as assistant text. A text-only sink may explicitly ignore reasoning.
+
+The official profile installs `deliverReasoningDelta` by default. Set
+`stepOverrides: { deliverReasoningDelta: SKIP_STEP }` to suppress delivery, or replace that Step
+using the ordinary Workflow override mechanism. This controls delivery, not model generation.
+Readable reasoning is forwarded from all model turns, including tool-use turns; body text retains
+the final-answer policy. An Engine without readable reasoning simply emits no such events.
+
+`RequestPolicy.maxReasoningCharacters` defaults to 64,000 UTF-16 code units, independently of the
+body-text budget. The official interaction composite counts normalized reasoning deltas across the
+whole request before replaceable event Steps. Exceeding the budget terminates with
+`MODEL_REASONING_LIMIT_EXCEEDED`, including when delivery is skipped or overridden; it never
+silently truncates. An Engine swallowing the failed emit cannot turn this into success.
+Raw Actor consumers own their output policy; this is a Request policy, not a new Engine parameter.
+Replacing the entire interaction composite also transfers budget enforcement responsibility.
+
+Reasoning shares ordered delivery, backpressure, cancellation, and failure drainage with text.
+Its content never enters trace payloads, assistant final text, Session history, or Request replay.
+Memory OutputSink may retain live tagged events for its caller; Session presentation is a separate
+optional capability described below. Direct completion remains buffered. Provider signatures and opaque
+or redacted reasoning are not presentation content. A readable provider summary is not a promise
+to expose the model's complete internal reasoning.
+
+## Reasoning presentation retention
+
+Standard composition installs `captureReasoningPresentation` by default. It accumulates normalized
+readable deltas as per-model-turn chunk arrays in bounded Run-local Context, independently of
+`deliverReasoningDelta`. Chunks are joined once per block during construction, not on every delta.
+Session presentation preserves the ordered `{ modelTurnIndex, text }` blocks. Indices follow
+`turn-start` events (one-based); a single-turn Engine without lifecycle events uses index 1.
+Empty/filtered turns create no block and remaining indices are not renumbered. An Engine must emit
+turn boundaries for a multi-turn interaction; the framework does not infer hidden model calls.
+`buildTurnPresentation` freezes the accumulated value after the Actor has validated terminal/result
+parity. `completeAssistantMessage` atomically commits that value together with the assistant message
+through the same Session adapter's optional `SessionPresentationPort`. Ordinary no-presentation
+completion remains unchanged; no empty record is created.
+
+```ts
+stepOverrides: {
+  captureReasoningPresentation: SKIP_STEP;
+}
+```
+
+This disables retention without disabling live delivery. Override capture to filter or redact saved
+content through `context.capturedReasoning` (`CapturedReasoningPresentation`), whose `blocks`
+contain `modelTurnIndex` and `chunks`, with a cumulative `characterCount`. Final validation recomputes
+the size instead of trusting this counter. Capture does not silently transform live OutputSink events.
+Skipping `buildTurnPresentation` also omits the prepared record. There is no Agent-global retention
+flag, no second handler registry, and no per-delta database write. Standard composition fails early
+with `SESSION_PRESENTATION_NOT_CONFIGURED` if capture is active but its Session adapter lacks the
+atomic capability; custom Workflows own their own dependency validation.
+
+Presentation is limited by both the request reasoning budget and
+`MAX_SESSION_PRESENTATION_CHARACTERS` (64,000 UTF-16 code units across blocks), plus
+`MAX_SESSION_PRESENTATION_BLOCKS` (1,024 nonempty blocks). Storage-bound overflow reports
+`SESSION_PRESENTATION_LIMIT_EXCEEDED`, including transformed output from capture/build overrides.
+There is no silent truncation. Format and adapter failures preserve their stable Session error codes
+through request failure, OutputSink, and Request Journal failure metadata.
+
+Cancelled, invalid, or failed interactions before Session commit discard the partial capture.
+Persistence failure leaves no completed answer or orphaned presentation. After a successful Session
+commit, a later output-close or Journal failure does not roll back that authority. Run-local buffers
+are cleared when the interaction scope ends. Exact display reads use `readTurnPresentation` rather
+than history/context APIs; replay remains answer-only and does not recapture or duplicate records.
 
 ## Source layout
 

@@ -1,5 +1,13 @@
 # `@ta-agent/base-standalone-agent`
 
+Standalone TypeScript constructors accept host-owned `stepOverrides`, forwarded through explicit,
+managed-directory, and shared-SQLite profiles to the standard composition. For example,
+`captureReasoningPresentation: SKIP_STEP` disables saved reasoning without affecting live delivery.
+These executable overrides are not Agent JSON configuration or stored managed manifests. Official
+Session adapters support atomic turn presentation; explicit display queries are available on the
+same wrapped Agent's Session resource through `supportsSessionPresentation()` and
+`readTurnPresentation()`. The CLI remains text-only.
+
 The official standalone reference Agent application boundary.
 
 `defineStandaloneAgentConfig()` decodes one closed `schemaVersion: 1` JSON-compatible value.

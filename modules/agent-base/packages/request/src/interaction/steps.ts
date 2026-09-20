@@ -1,5 +1,11 @@
 import { AgentModelError, type AgentLoopEvent } from '@ta-agent/base-model';
+import {
+  AgentSessionError,
+  defineSessionTurnPresentation,
+  supportsSessionPresentation,
+} from '@ta-agent/base-session';
 import type { StepOverrides } from '@ta-agent/base-workflow';
+import type { OutputStreamEvent } from '../contracts.js';
 import type { DefaultRequestWorkflowContext } from '../default/context.js';
 import { requireValue } from '../default/context-value.js';
 import {
@@ -14,32 +20,48 @@ import {
 import { AgentRequestError } from '../errors.js';
 import type { RequestStepName } from '../workflow/names.js';
 import { InteractionEventDelivery } from './event-delivery.js';
+import { buildTurnPresentation, captureReasoningPresentation } from './presentation.js';
 import {
   requireInteraction,
   requireInteractionEvent,
   type RequestInteractionState,
 } from './state.js';
 
-function accountEvent(context: DefaultRequestWorkflowContext, event: AgentLoopEvent): void {
-  if (event.type === 'text-delta') countOutputCharacters(context, event.delta.length);
-  const characters =
-    event.type === 'assistant-complete'
-      ? event.message.text.length
-      : (context.outputCharacterCount ?? 0);
-  if (characters > context.policy.maxOutputCharacters) {
-    throw new AgentModelError(
-      'MODEL_OUTPUT_LIMIT_EXCEEDED',
-      'Request interaction output exceeded its character budget.'
-    );
-  }
+function createEventAccounting(
+  context: DefaultRequestWorkflowContext
+): (event: AgentLoopEvent) => void {
+  let reasoningCharacters = 0;
+  return (event) => {
+    if (event.type === 'reasoning-delta') {
+      reasoningCharacters += event.delta.length;
+      if (reasoningCharacters > context.policy.maxReasoningCharacters) {
+        throw new AgentModelError(
+          'MODEL_REASONING_LIMIT_EXCEEDED',
+          'Request interaction reasoning exceeded its character budget.'
+        );
+      }
+    }
+    if (event.type === 'text-delta') countOutputCharacters(context, event.delta.length);
+    const characters =
+      event.type === 'assistant-complete'
+        ? event.message.text.length
+        : (context.outputCharacterCount ?? 0);
+    if (characters > context.policy.maxOutputCharacters) {
+      throw new AgentModelError(
+        'MODEL_OUTPUT_LIMIT_EXCEEDED',
+        'Request interaction output exceeded its character budget.'
+      );
+    }
+  };
 }
 
 async function runAgentInteraction(context: DefaultRequestWorkflowContext): Promise<void> {
+  const accountEvent = createEventAccounting(context);
   const delivery = new InteractionEventDelivery({
     signal: context.signal,
     capacity: context.policy.maxPendingInteractionEvents,
     dispatch: async (event) => {
-      accountEvent(context, event);
+      accountEvent(event);
       await traceAgentLoopEvent(context, event);
       delivery.assertHealthy();
       await context.runStep('dispatchInteractionEvent');
@@ -94,6 +116,8 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
     }
   } finally {
     delivery.dispose();
+    delete context.capturedReasoning;
+    delete context.turnPresentation;
   }
   try {
     closeTools();
@@ -146,10 +170,21 @@ async function invokeActorInteraction(context: DefaultRequestWorkflowContext): P
 }
 
 async function deliverTextDelta(context: DefaultRequestWorkflowContext): Promise<void> {
-  const event = requireInteractionEvent(context, 'text-delta');
+  await deliverStreamDelta(context, 'text-delta');
+}
+
+async function deliverReasoningDelta(context: DefaultRequestWorkflowContext): Promise<void> {
+  await deliverStreamDelta(context, 'reasoning-delta');
+}
+
+async function deliverStreamDelta(
+  context: DefaultRequestWorkflowContext,
+  type: OutputStreamEvent['type']
+): Promise<void> {
+  const event = requireInteractionEvent(context, type);
   try {
     await requireValue(context.request, 'request').outputSink.write(
-      Object.freeze({ type: 'text-delta', delta: event.delta })
+      Object.freeze({ type: event.type, delta: event.delta })
     );
   } catch (cause: unknown) {
     await traceOutputFailed(context, 'write');
@@ -159,11 +194,33 @@ async function deliverTextDelta(context: DefaultRequestWorkflowContext): Promise
 
 async function completeAssistantMessage(context: DefaultRequestWorkflowContext): Promise<void> {
   const event = requireInteractionEvent(context, 'assistant-complete');
-  await context.resources.session.completeTurn({
+  const request = {
     ...requireValue(context.session, 'session'),
     turnId: requireValue(context.turn, 'turn').turnId,
     assistantMessage: event.message,
-  });
+  };
+  const session = context.resources.session;
+  if (context.turnPresentation === undefined) {
+    await session.completeTurn(request);
+    return;
+  }
+  if (!supportsSessionPresentation(session)) {
+    throw new AgentSessionError(
+      'SESSION_PRESENTATION_NOT_CONFIGURED',
+      'Session adapter cannot atomically commit turn presentation.'
+    );
+  }
+  const presentation = defineSessionTurnPresentation(context.turnPresentation);
+  if (
+    presentation.reasoningBlocks.reduce((sum, block) => sum + block.text.length, 0) >
+    context.policy.maxReasoningCharacters
+  ) {
+    throw new AgentModelError(
+      'MODEL_REASONING_LIMIT_EXCEEDED',
+      'Reasoning presentation exceeded the request character budget.'
+    );
+  }
+  await session.completeTurnWithPresentation({ ...request, presentation });
 }
 
 function buildAgentResponse(context: DefaultRequestWorkflowContext): Promise<void> {
@@ -187,6 +244,9 @@ export function createInteractionStepOverrides(): StepOverrides<
     openResponseStream,
     invokeActorInteraction,
     deliverTextDelta,
+    deliverReasoningDelta,
+    captureReasoningPresentation,
+    buildTurnPresentation,
     completeAssistantMessage,
     buildAgentResponse,
   });

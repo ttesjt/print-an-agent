@@ -22,5 +22,6 @@ export function createStandaloneAgentDirectory(
     }),
     manifestProjection: createFilesystemStandaloneManifestProjection({ createTemporaryId }),
     readEnvironmentVariable: options.readEnvironmentVariable,
+    ...(options.stepOverrides === undefined ? {} : { stepOverrides: options.stepOverrides }),
   });
 }

@@ -12,6 +12,13 @@ export {
   parseTurnId,
 } from './identifiers.js';
 export type * from './types.js';
+export type * from './presentation/contracts.js';
+export { supportsSessionPresentation } from './presentation/contracts.js';
+export {
+  defineSessionTurnPresentation,
+  MAX_SESSION_PRESENTATION_CHARACTERS,
+  MAX_SESSION_PRESENTATION_BLOCKS,
+} from './presentation/validation.js';
 export type * from './query/contracts.js';
 export { DEFAULT_SESSION_QUERY_LIMIT, MAX_SESSION_QUERY_LIMIT } from './query/contracts.js';
 export {

@@ -39,85 +39,6 @@ function createClock(): () => number {
   return () => ++current;
 }
 
-function downgradeToSchemaVersion2(databasePath: string, tablePrefix = 'agent_'): void {
-  const database = new DatabaseSync(databasePath);
-  database.exec(`
-    PRAGMA foreign_keys = OFF;
-    BEGIN IMMEDIATE;
-
-    CREATE TABLE sessions_v2 (
-      agent_id TEXT NOT NULL,
-      session_id TEXT NOT NULL,
-      next_turn_sequence INTEGER NOT NULL DEFAULT 0 CHECK (next_turn_sequence >= 0),
-      created_at INTEGER NOT NULL CHECK (created_at >= 0),
-      PRIMARY KEY (agent_id, session_id)
-    ) STRICT;
-    INSERT INTO sessions_v2
-      SELECT agent_id, session_id, next_turn_sequence, created_at
-      FROM ${tablePrefix}sessions;
-
-    CREATE TABLE turns_v2 (
-      agent_id TEXT NOT NULL,
-      session_id TEXT NOT NULL,
-      turn_id TEXT NOT NULL,
-      turn_sequence INTEGER NOT NULL CHECK (turn_sequence >= 0),
-      status TEXT NOT NULL CHECK (status IN ('active', 'completed', 'failed')),
-      user_message TEXT NOT NULL,
-      assistant_message TEXT,
-      failure_code TEXT,
-      started_at INTEGER NOT NULL CHECK (started_at >= 0),
-      finished_at INTEGER CHECK (finished_at >= 0),
-      PRIMARY KEY (agent_id, session_id, turn_id),
-      UNIQUE (agent_id, session_id, turn_sequence),
-      FOREIGN KEY (agent_id, session_id)
-        REFERENCES sessions_v2 (agent_id, session_id)
-        ON DELETE CASCADE,
-      CHECK (
-        (status = 'active' AND assistant_message IS NULL AND failure_code IS NULL AND finished_at IS NULL)
-        OR
-        (status = 'completed' AND assistant_message IS NOT NULL AND failure_code IS NULL AND finished_at IS NOT NULL)
-        OR
-        (status = 'failed' AND assistant_message IS NULL AND failure_code IS NOT NULL AND finished_at IS NOT NULL)
-      )
-    ) STRICT;
-    INSERT INTO turns_v2
-      SELECT agent_id, session_id, turn_id, turn_sequence, status, user_message,
-             assistant_message, failure_code, started_at, finished_at
-      FROM ${tablePrefix}session_turns;
-
-    CREATE TABLE compactions_v2 (
-      agent_id TEXT NOT NULL,
-      session_id TEXT NOT NULL,
-      revision INTEGER NOT NULL CHECK (revision > 0),
-      through_turn_id TEXT NOT NULL,
-      context_message TEXT NOT NULL,
-      created_at INTEGER NOT NULL CHECK (created_at >= 0),
-      PRIMARY KEY (agent_id, session_id),
-      FOREIGN KEY (agent_id, session_id)
-        REFERENCES sessions_v2 (agent_id, session_id)
-        ON DELETE CASCADE,
-      FOREIGN KEY (agent_id, session_id, through_turn_id)
-        REFERENCES turns_v2 (agent_id, session_id, turn_id)
-    ) STRICT;
-    INSERT INTO compactions_v2
-      SELECT agent_id, session_id, revision, through_turn_id, context_message, created_at
-      FROM ${tablePrefix}session_compactions;
-
-    DROP TABLE ${tablePrefix}session_compactions;
-    DROP TABLE ${tablePrefix}session_branches;
-    DROP TABLE ${tablePrefix}session_turns;
-    DROP TABLE ${tablePrefix}sessions;
-    ALTER TABLE sessions_v2 RENAME TO ${tablePrefix}sessions;
-    ALTER TABLE turns_v2 RENAME TO ${tablePrefix}session_turns;
-    ALTER TABLE compactions_v2 RENAME TO ${tablePrefix}session_compactions;
-    UPDATE ${tablePrefix}session_schema
-      SET version = 2 WHERE component = 'session';
-    COMMIT;
-    PRAGMA foreign_keys = ON;
-  `);
-  database.close();
-}
-
 function expectSessionError(action: () => unknown, code: AgentSessionErrorCode): void {
   let received: unknown;
   try {
@@ -141,7 +62,7 @@ defineSessionPortContract('SqliteSessionAdapter', () => {
 });
 
 describe('SqliteSessionAdapter durability', () => {
-  it('migrates custom-prefixed schema version 2 without losing turns or compaction', async () => {
+  it('reopens custom-prefixed storage without losing turns or compaction', async () => {
     const temporary = createTemporaryDatabase();
     try {
       const identity = defineAgentIdentity({ id: 'migration-agent' });
@@ -171,7 +92,6 @@ describe('SqliteSessionAdapter durability', () => {
         throughTurnId: completedId,
         context: { role: 'context', text: 'preserved summary', timestamp: 3 },
       });
-      downgradeToSchemaVersion2(temporary.databasePath, 'custom_');
 
       const migrated = new SqliteSessionAdapter({
         databasePath: temporary.databasePath,
@@ -182,7 +102,7 @@ describe('SqliteSessionAdapter durability', () => {
         {
           sessionId: 'conversation',
           createdAt: 101,
-          updatedAt: 103,
+          updatedAt: 104,
           turnCount: 1,
         },
       ]);
@@ -212,7 +132,10 @@ describe('SqliteSessionAdapter durability', () => {
       expect(queryPlan).toContain('custom_sessions_activity_idx');
       const boundaryId = parseTurnId('boundary');
       await migrated.beginTurn({
-        ...session,
+        ...(await migrated.resolve({
+          agentId: identity.id,
+          requestedSessionId: session.sessionId,
+        })),
         turnId: boundaryId,
         userMessage: userMessage('next', 3),
       });
@@ -850,55 +773,25 @@ describe('SqliteSessionAdapter durability', () => {
     }
   });
 
-  it('rolls back a failed version 2 navigation migration atomically', async () => {
+  it('rejects unsupported schemas without modifying their version', () => {
     const temporary = createTemporaryDatabase();
     try {
-      const adapter = new SqliteSessionAdapter({ databasePath: temporary.databasePath });
-      const session = await adapter.resolve({
-        agentId: defineAgentIdentity({ id: 'migration-rollback-agent' }).id,
-        requestedSessionId: 'conversation',
-      });
-      const turnId = parseTurnId('turn');
-      await adapter.beginTurn({
-        ...session,
-        turnId,
-        userMessage: userMessage('hello', 1),
-      });
-      await adapter.completeTurn({
-        ...session,
-        turnId,
-        assistantMessage: assistantMessage('answer', 2),
-      });
-      await adapter.commitCompaction({
-        ...session,
-        expectedRevision: 0,
-        throughTurnId: turnId,
-        context: { role: 'context', text: 'summary', timestamp: 3 },
-      });
-      downgradeToSchemaVersion2(temporary.databasePath);
-      const corrupted = new DatabaseSync(temporary.databasePath);
-      corrupted.exec('PRAGMA foreign_keys = OFF');
-      corrupted.prepare('UPDATE agent_session_compactions SET through_turn_id = ?').run('missing');
-      corrupted.close();
-
-      expectSessionError(
-        () => new SqliteSessionAdapter({ databasePath: temporary.databasePath }),
-        'SESSION_STORAGE_FAILED'
-      );
-      const inspected = new DatabaseSync(temporary.databasePath);
-      const version = inspected
-        .prepare(
-          `SELECT version FROM agent_session_schema
-           WHERE component = 'session'`
-        )
-        .get() as { version: number };
-      const columns = inspected
-        .prepare('PRAGMA table_info(agent_sessions)')
-        .all()
-        .map((row) => (row as { name: string }).name);
-      inspected.close();
-      expect(version.version).toBe(2);
-      expect(columns).not.toContain('selected_branch_id');
+      new SqliteSessionAdapter({ databasePath: temporary.databasePath });
+      const database = new DatabaseSync(temporary.databasePath);
+      try {
+        database.exec("UPDATE agent_session_schema SET version = 2 WHERE component = 'session'");
+        expectSessionError(
+          () => new SqliteSessionAdapter({ databasePath: temporary.databasePath }),
+          'SESSION_SCHEMA_UNSUPPORTED'
+        );
+        expect(
+          database
+            .prepare("SELECT version FROM agent_session_schema WHERE component = 'session'")
+            .get()?.version
+        ).toBe(2);
+      } finally {
+        database.close();
+      }
     } finally {
       temporary.dispose();
     }

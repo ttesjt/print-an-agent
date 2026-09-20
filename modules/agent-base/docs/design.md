@@ -292,6 +292,9 @@ request Workflow
         │   ├── invokeActorInteraction
         │   │   └── dispatchInteractionEvent (per accepted event)
         │   │       ├── deliverTextDelta (text-delta)
+        │   │       ├── deliverReasoningDelta (reasoning-delta; optional)
+        │   │       ├── captureReasoningPresentation (reasoning-delta; optional)
+        │   │       ├── buildTurnPresentation (assistant-complete; optional)
         │   │       └── completeAssistantMessage (assistant-complete)
         │   └── buildAgentResponse
         └── completeResponse
@@ -313,8 +316,10 @@ unchanged surrounding Workflow.
 
 The official interaction composite owns bounded serialized event delivery, trace boundaries, and
 Tool cleanup. All business phases above use the existing `runStep()` mechanism. The dispatcher and
-text delivery are repeatable; Session completion and the other phases are at-most-once. All are
-required in the default catalog. The current event lives only through its awaited dispatch in the
+text/reasoning delivery and reasoning capture are repeatable; Session completion and the other phases
+are at-most-once. Reasoning delivery, capture, and presentation construction are optional and installed
+by default; all other interaction phases are required.
+The current event lives only through its awaited dispatch in the
 shared Workflow Context, with a typed accessor; there is no second handler registry or child Context.
 
 `RequestPolicy.maxPendingInteractionEvents` limits active plus queued events (default 64).
@@ -325,6 +330,30 @@ and withholds the terminal message until result parity and pre-terminal delivery
 output accounting and event tracing precede replaceable dispatch. Cancellation remains cooperative;
 started external side effects are not rolled back. Replacing the complete interaction composite is
 an explicit replacement of these orchestration responsibilities, not a way to retain them implicitly.
+
+`OutputStreamEvent` distinguishes readable `reasoning-delta` from final-answer `text-delta`.
+Reasoning from every model turn passes through the registered `deliverReasoningDelta` Step;
+consumers may override it or use `SKIP_STEP`. Request-wide reasoning accounting precedes these
+replaceable Steps: `maxReasoningCharacters` defaults to 64,000 UTF-16 code units and overflow fails
+with `MODEL_REASONING_LIMIT_EXCEEDED`, even if delivery is skipped. This budget is independent of
+text output. Reasoning uses the same event integrity, ordered backpressure, cancellation, and drain
+boundaries. It is not mixed into final text, replay, or future Session context. No direct-streaming,
+reasoning-generation settings, or opaque signature forwarding is implied.
+
+The standard composition also installs optional `captureReasoningPresentation` and
+`buildTurnPresentation` Steps. Capture accumulates bounded display-only chunks per model turn,
+independently of live delivery. Construction joins chunks within each block, preserving ordered
+`modelTurnIndex`/`text` blocks rather than flattening across Tool iterations. Empty/filtered turns
+create no blocks. After terminal/result validation, the Session adapter atomically commits the assistant
+message, branch head, and prepared presentation through its optional `SessionPresentationPort`.
+No partial delta is durably written. Missing capability with active capture fails at composition;
+`SKIP_STEP` disables capture without a global Agent retention setting. Overrides can filter or redact
+the captured value. The storage contract independently bounds one record to 64,000 UTF-16 code units
+across at most 1,024 nonempty blocks;
+no Step override silently bypasses commit validation. Presentation queries are exact and explicit,
+separate from model context, compaction, and ordinary turn-ledger reads. A later output/Journal failure
+does not roll back an already committed Session turn. Memory/SQLite are implementations, not required
+infrastructure or defaults selected by the Session domain package.
 
 ## Step Registry and overrides
 

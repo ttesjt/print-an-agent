@@ -27,16 +27,18 @@ export type DeterministicProviderToolEventSnapshot =
       resultCharacters: number;
     }>;
 
-export type DeterministicProviderResponse =
-  | Readonly<{ status: 'success'; text: string; stopReason?: 'stop' | 'length' }>
-  | Readonly<{ status: 'failure'; message: string; partialText?: string }>
-  | Readonly<{
-      status: 'tool-call';
-      name: string;
-      callId?: string;
-      text?: string;
-      arguments?: Readonly<Record<string, unknown>>;
-    }>;
+export type DeterministicProviderResponse = Readonly<{ reasoning?: string }> &
+  (
+    | Readonly<{ status: 'success'; text: string; stopReason?: 'stop' | 'length' }>
+    | Readonly<{ status: 'failure'; message: string; partialText?: string }>
+    | Readonly<{
+        status: 'tool-call';
+        name: string;
+        callId?: string;
+        text?: string;
+        arguments?: Readonly<Record<string, unknown>>;
+      }>
+  );
 
 export type DeterministicProviderResponseFactory = (
   request: DeterministicProviderRequestSnapshot

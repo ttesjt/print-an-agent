@@ -1,6 +1,7 @@
 import { AgentActorError } from '@ta-agent/base-actor';
 import { AgentModelError } from '@ta-agent/base-model';
 import { AgentToolError } from '@ta-agent/base-tool';
+import { AgentSessionError } from '@ta-agent/base-session';
 import type { OutputFailure } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
 import { RequestReplayFailedError } from '../replay/replay-error.js';
@@ -12,7 +13,8 @@ function failureFrom(error: unknown): OutputFailure {
     error instanceof AgentActorError ||
     error instanceof AgentModelError ||
     error instanceof AgentRequestError ||
-    error instanceof AgentToolError
+    error instanceof AgentToolError ||
+    error instanceof AgentSessionError
   ) {
     return Object.freeze({ code: error.code, message: error.message });
   }

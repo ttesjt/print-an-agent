@@ -61,7 +61,7 @@ export function defineAgentLoopEvent(input: unknown): AgentLoopEvent {
     assertExactKeys(record, ['type']);
     return Object.freeze({ type });
   }
-  if (type === 'text-delta') {
+  if (type === 'text-delta' || type === 'reasoning-delta') {
     assertExactKeys(record, ['delta', 'type']);
     return Object.freeze({
       type,

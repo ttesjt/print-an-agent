@@ -31,6 +31,7 @@ describe('Agent Loop event definition', () => {
       { type: 'interaction-start' },
       { type: 'turn-start' },
       { type: 'text-delta', delta: 'a' },
+      { type: 'reasoning-delta', delta: 'reason' },
       { type: 'tool-call-start', callId: 'call-1', toolName: 'lookup' },
       {
         type: 'tool-call-end',
@@ -55,6 +56,14 @@ describe('Agent Loop event definition', () => {
     { type: 'unknown-event' },
     { type: 'interaction-start', extra: true },
     { type: 'text-delta', delta: 1 },
+    { type: 'reasoning-delta', delta: 1 },
+    { type: 'reasoning-delta', delta: 'reason', signature: 'opaque' },
+    {
+      type: 'reasoning-delta',
+      get delta() {
+        throw new Error('must not access getter');
+      },
+    },
     {
       type: 'tool-call-end',
       callId: 'call-1',

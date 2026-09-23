@@ -40,6 +40,12 @@ export function renameSqliteSession(
       );
     }
     const timestamp = readClock(clock);
+    if (revision >= Number.MAX_SAFE_INTEGER) {
+      throw new AgentSessionError(
+        'SESSION_METADATA_INVALID',
+        'Session metadata revision exhausted.'
+      );
+    }
     database
       .prepare(
         `UPDATE ${quoteSqliteIdentifier(tableNames.sessions)}

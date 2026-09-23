@@ -47,7 +47,7 @@ describe('mixed Engine history', () => {
         responses: [{ status: 'success', text: 'provider answer' }],
       },
     });
-    await firstProvider.run({ sessionId: 'mixed-session', message: 'first' });
+    const { sessionId } = await firstProvider.run({ message: 'first' });
 
     let customHistory: readonly ModelMessage[] | undefined;
     const customAgent = composeAgent({
@@ -84,7 +84,7 @@ describe('mixed Engine history', () => {
         responsibilities: BUILT_IN_RESPONSIBILITIES,
       }),
     });
-    await customAgent.invoke('foreground', { sessionId: 'mixed-session', message: 'second' });
+    await customAgent.invoke('foreground', { sessionId, message: 'second' });
 
     expect(customHistory).toMatchObject([
       { role: 'user', text: 'first' },
@@ -109,7 +109,7 @@ describe('mixed Engine history', () => {
         responses: [{ status: 'success', text: 'current answer' }],
       },
     });
-    await currentProvider.run({ sessionId: 'mixed-session', message: 'third' });
+    await currentProvider.run({ sessionId, message: 'third' });
 
     expect(currentProvider.inspectDeterministicProvider().requests[0]?.messages).toMatchObject([
       { role: 'user', text: 'first' },
@@ -138,7 +138,7 @@ describe('mixed Engine history', () => {
     expect(
       await session.inspect({
         agentId: currentProvider.identity.id,
-        sessionId: parseSessionId('mixed-session'),
+        sessionId: parseSessionId(sessionId),
       })
     ).toMatchObject({
       turns: [

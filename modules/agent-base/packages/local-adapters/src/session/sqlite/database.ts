@@ -134,7 +134,21 @@ export function useSqliteDatabase<T>(
 }
 
 export function runImmediateTransaction<T>(database: DatabaseSync, action: () => T): T {
-  database.exec('BEGIN IMMEDIATE');
+  return runTransaction(database, 'BEGIN IMMEDIATE', action);
+}
+
+export function runReadTransaction<T>(database: DatabaseSync, action: () => T): T {
+  return runTransaction(database, 'BEGIN', action);
+}
+
+function runTransaction<T>(
+  database: DatabaseSync,
+  begin: 'BEGIN' | 'BEGIN IMMEDIATE',
+  action: () => T
+): T {
+  // Internal storage helpers join the enclosing synchronous adapter transaction.
+  if (database.isTransaction) return action();
+  database.exec(begin);
   try {
     const result = action();
     database.exec('COMMIT');

@@ -1,6 +1,11 @@
 export type * from './contracts.js';
 export type * from './default/context.js';
-export { failRequest } from './default/failure-lifecycle.js';
+export { failRequest, releaseRequestExecution } from './default/failure-lifecycle.js';
+export { REQUEST_EXECUTION_INTERRUPTED } from './replay/maintenance.js';
+export type {
+  RequestJournalCleanupPort,
+  RequestJournalRecoveryPort,
+} from './replay/maintenance.js';
 export { createDefaultRequestStepOverrides } from './default/step-overrides.js';
 export { requireInteractionEvent, type RequestInteractionState } from './interaction/state.js';
 export type {

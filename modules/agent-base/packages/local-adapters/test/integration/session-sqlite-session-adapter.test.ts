@@ -1,3 +1,4 @@
+import { sessionWrite } from '../support/session-write.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -12,6 +13,7 @@ import {
   type AgentSessionErrorCode,
 } from '@ta-agent/base-session';
 import { SqliteSessionAdapter } from '../../src/index.js';
+import { defineSessionIdentityContract } from '../support/session-identity-contract.js';
 import {
   assistantMessage,
   defineSessionPortContract,
@@ -39,6 +41,17 @@ function createClock(): () => number {
   return () => ++current;
 }
 
+defineSessionIdentityContract('SqliteSessionAdapter', (createSessionId) => {
+  const temporary = createTemporaryDatabase();
+  return {
+    adapter: new SqliteSessionAdapter({
+      databasePath: temporary.databasePath,
+      ...(createSessionId === undefined ? {} : { createSessionId }),
+    }),
+    dispose: temporary.dispose,
+  };
+});
+
 function expectSessionError(action: () => unknown, code: AgentSessionErrorCode): void {
   let received: unknown;
   try {
@@ -51,10 +64,11 @@ function expectSessionError(action: () => unknown, code: AgentSessionErrorCode):
 
 defineSessionPortContract('SqliteSessionAdapter', () => {
   const temporary = createTemporaryDatabase();
+  let sequence = 0;
   return {
     adapter: new SqliteSessionAdapter({
       databasePath: temporary.databasePath,
-      createSessionId: () => 'generated-session',
+      createSessionId: () => `generated-session-${++sequence}`,
       clock: createClock(),
     }),
     dispose: temporary.dispose,
@@ -67,33 +81,46 @@ describe('SqliteSessionAdapter durability', () => {
     try {
       const identity = defineAgentIdentity({ id: 'migration-agent' });
       const first = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: temporary.databasePath,
         clock: createClock(),
         tablePrefix: 'custom_',
       });
       const session = await first.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
       });
       const completedId = parseTurnId('completed');
-      await first.beginTurn({
-        ...session,
-        turnId: completedId,
-        userMessage: userMessage('preserved', 1),
-      });
-      await first.completeTurn({
-        ...session,
-        turnId: completedId,
-        assistantMessage: assistantMessage('also preserved', 2),
-      });
-      await first.commitCompaction({
-        ...session,
-        expectedRevision: 0,
-        throughTurnId: completedId,
-        context: { role: 'context', text: 'preserved summary', timestamp: 3 },
-      });
+      await sessionWrite(
+        first,
+        {
+          ...session,
+          turnId: completedId,
+          userMessage: userMessage('preserved', 1),
+        },
+        (input) => first.beginTurn(input)
+      );
+      await sessionWrite(
+        first,
+        {
+          ...session,
+          turnId: completedId,
+          assistantMessage: assistantMessage('also preserved', 2),
+        },
+        (input) => first.completeTurn(input)
+      );
+      await sessionWrite(
+        first,
+        {
+          ...session,
+          expectedRevision: 0,
+          throughTurnId: completedId,
+          context: { role: 'context', text: 'preserved summary', timestamp: 3 },
+        },
+        (input) => first.commitCompaction(input)
+      );
 
       const migrated = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: temporary.databasePath,
         tablePrefix: 'custom_',
       });
@@ -131,14 +158,18 @@ describe('SqliteSessionAdapter durability', () => {
       expect(indexNames).toContain('custom_sessions_activity_idx');
       expect(queryPlan).toContain('custom_sessions_activity_idx');
       const boundaryId = parseTurnId('boundary');
-      await migrated.beginTurn({
-        ...(await migrated.resolve({
-          agentId: identity.id,
-          requestedSessionId: session.sessionId,
-        })),
-        turnId: boundaryId,
-        userMessage: userMessage('next', 3),
-      });
+      await sessionWrite(
+        migrated,
+        {
+          ...(await migrated.resolve({
+            agentId: identity.id,
+            sessionId: session.sessionId,
+          })),
+          turnId: boundaryId,
+          userMessage: userMessage('next', 3),
+        },
+        (input) => migrated.beginTurn(input)
+      );
       expect(await migrated.loadHistory({ ...session, beforeTurnId: boundaryId })).toEqual([
         userMessage('preserved', 1),
         assistantMessage('also preserved', 2),
@@ -159,39 +190,52 @@ describe('SqliteSessionAdapter durability', () => {
     try {
       const identity = defineAgentIdentity({ id: 'durable-agent' });
       const firstAdapter = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: temporary.databasePath,
         clock: createClock(),
       });
       const session = await firstAdapter.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
       });
       const firstTurnId = parseTurnId('turn-1');
-      await firstAdapter.beginTurn({
-        ...session,
-        turnId: firstTurnId,
-        userMessage: userMessage('one', 1),
-      });
-      await firstAdapter.completeTurn({
-        ...session,
-        turnId: firstTurnId,
-        assistantMessage: engineAssistantMessage('first', 2),
-      });
+      await sessionWrite(
+        firstAdapter,
+        {
+          ...session,
+          turnId: firstTurnId,
+          userMessage: userMessage('one', 1),
+        },
+        (input) => firstAdapter.beginTurn(input)
+      );
+      await sessionWrite(
+        firstAdapter,
+        {
+          ...session,
+          turnId: firstTurnId,
+          assistantMessage: engineAssistantMessage('first', 2),
+        },
+        (input) => firstAdapter.completeTurn(input)
+      );
 
       const reopened = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: temporary.databasePath,
         clock: createClock(),
       });
       const reopenedSession = await reopened.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
+        sessionId: 'conversation',
       });
       const secondTurnId = parseTurnId('turn-2');
-      await reopened.beginTurn({
-        ...reopenedSession,
-        turnId: secondTurnId,
-        userMessage: userMessage('two', 3),
-      });
+      await sessionWrite(
+        reopened,
+        {
+          ...reopenedSession,
+          turnId: secondTurnId,
+          userMessage: userMessage('two', 3),
+        },
+        (input) => reopened.beginTurn(input)
+      );
 
       expect(
         await reopened.loadHistory({ ...reopenedSession, beforeTurnId: secondTurnId })
@@ -210,24 +254,32 @@ describe('SqliteSessionAdapter durability', () => {
     try {
       const identity = defineAgentIdentity({ id: 'legacy-message-agent' });
       const adapter = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: temporary.databasePath,
         clock: createClock(),
       });
       const session = await adapter.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
       });
       const turnId = parseTurnId('turn');
-      await adapter.beginTurn({
-        ...session,
-        turnId,
-        userMessage: userMessage('hello', 1),
-      });
-      await adapter.completeTurn({
-        ...session,
-        turnId,
-        assistantMessage: assistantMessage('current', 2),
-      });
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          turnId,
+          userMessage: userMessage('hello', 1),
+        },
+        (input) => adapter.beginTurn(input)
+      );
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          turnId,
+          assistantMessage: assistantMessage('current', 2),
+        },
+        (input) => adapter.completeTurn(input)
+      );
       const database = new DatabaseSync(temporary.databasePath);
       database
         .prepare('UPDATE agent_session_turns SET assistant_message = ? WHERE turn_id = ?')
@@ -265,77 +317,106 @@ describe('SqliteSessionAdapter durability', () => {
     try {
       const identity = defineAgentIdentity({ id: 'recovery-agent' });
       const firstAdapter = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: temporary.databasePath,
         clock: createClock(),
       });
       let session = await firstAdapter.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
       });
       const interruptedId = parseTurnId('interrupted');
       const untouchedId = parseTurnId('untouched');
       const baseId = parseTurnId('base');
-      await firstAdapter.beginTurn({
-        ...session,
-        turnId: baseId,
-        userMessage: userMessage('base', 1),
-      });
-      await firstAdapter.completeTurn({
-        ...session,
-        turnId: baseId,
-        assistantMessage: assistantMessage('base answer', 2),
-      });
+      await sessionWrite(
+        firstAdapter,
+        {
+          ...session,
+          turnId: baseId,
+          userMessage: userMessage('base', 1),
+        },
+        (input) => firstAdapter.beginTurn(input)
+      );
+      await sessionWrite(
+        firstAdapter,
+        {
+          ...session,
+          turnId: baseId,
+          assistantMessage: assistantMessage('base answer', 2),
+        },
+        (input) => firstAdapter.completeTurn(input)
+      );
       session = await firstAdapter.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
+        sessionId: 'conversation',
       });
       const childBranchId = parseSessionBranchId('recovery-child');
-      await firstAdapter.applyNavigation({
-        ...session,
-        command: {
-          operation: 'fork',
-          sourceBranchId: DEFAULT_SESSION_BRANCH_ID,
-          throughTurnId: baseId,
-          newBranchId: childBranchId,
-          expectedRevision: session.navigationRevision,
+      await sessionWrite(
+        firstAdapter,
+        {
+          ...session,
+          command: {
+            operation: 'fork',
+            sourceBranchId: DEFAULT_SESSION_BRANCH_ID,
+            throughTurnId: baseId,
+            newBranchId: childBranchId,
+            expectedRevision: session.navigationRevision,
+          },
         },
-      });
+        (input) => firstAdapter.applyNavigation(input)
+      );
       session = await firstAdapter.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
+        sessionId: 'conversation',
       });
-      await firstAdapter.beginTurn({
-        ...session,
-        turnId: interruptedId,
-        userMessage: userMessage('recover me', 1),
-      });
-      await firstAdapter.applyNavigation({
-        ...session,
-        command: {
-          operation: 'select',
-          branchId: childBranchId,
-          expectedRevision: session.navigationRevision,
+      await sessionWrite(
+        firstAdapter,
+        {
+          ...session,
+          turnId: interruptedId,
+          userMessage: userMessage('recover me', 1),
         },
-      });
+        (input) => firstAdapter.beginTurn(input)
+      );
+      await sessionWrite(
+        firstAdapter,
+        {
+          ...session,
+          command: {
+            operation: 'select',
+            branchId: childBranchId,
+            expectedRevision: session.navigationRevision,
+          },
+        },
+        (input) => firstAdapter.applyNavigation(input)
+      );
       session = await firstAdapter.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
+        sessionId: 'conversation',
       });
-      await firstAdapter.beginTurn({
-        ...session,
-        turnId: untouchedId,
-        userMessage: userMessage('leave me', 2),
-      });
+      await sessionWrite(
+        firstAdapter,
+        {
+          ...session,
+          turnId: untouchedId,
+          userMessage: userMessage('leave me', 2),
+        },
+        (input) => firstAdapter.beginTurn(input)
+      );
 
       const reopened = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: temporary.databasePath,
         clock: createClock(),
       });
-      await reopened.failTurn({
-        ...session,
-        turnId: interruptedId,
-        failureCode: 'PROCESS_INTERRUPTED',
-      });
+      await sessionWrite(
+        reopened,
+        {
+          ...session,
+          turnId: interruptedId,
+          failureCode: 'PROCESS_INTERRUPTED',
+        },
+        (input) => reopened.failTurn(input)
+      );
 
       expect((await reopened.inspect(session))?.turns).toMatchObject([
         { turnId: baseId, status: 'completed' },
@@ -352,31 +433,42 @@ describe('SqliteSessionAdapter durability', () => {
     try {
       const identity = defineAgentIdentity({ id: 'terminal-agent' });
       const first = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: temporary.databasePath,
         clock: createClock(),
       });
       const second = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: temporary.databasePath,
         clock: createClock(),
       });
       const session = await first.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
       });
       const turnId = parseTurnId('turn');
-      await first.beginTurn({
-        ...session,
-        turnId,
-        userMessage: userMessage('hello', 1),
-      });
-      await second.failTurn({ ...session, turnId, failureCode: 'FIRST_FAILURE' });
-
-      await expect(
-        first.completeTurn({
+      await sessionWrite(
+        first,
+        {
           ...session,
           turnId,
-          assistantMessage: assistantMessage('late', 2),
-        })
+          userMessage: userMessage('hello', 1),
+        },
+        (input) => first.beginTurn(input)
+      );
+      await sessionWrite(second, { ...session, turnId, failureCode: 'FIRST_FAILURE' }, (input) =>
+        second.failTurn(input)
+      );
+
+      await expect(
+        sessionWrite(
+          first,
+          {
+            ...session,
+            turnId,
+            assistantMessage: assistantMessage('late', 2),
+          },
+          (input) => first.completeTurn(input)
+        )
       ).rejects.toEqual(
         expect.objectContaining<Partial<AgentSessionError>>({ code: 'TURN_STATE_INVALID' })
       );
@@ -395,7 +487,10 @@ describe('SqliteSessionAdapter durability', () => {
     const missingIndex = createTemporaryDatabase();
     const corrupt = createTemporaryDatabase();
     try {
-      new SqliteSessionAdapter({ databasePath: future.databasePath });
+      new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
+        databasePath: future.databasePath,
+      });
       const futureDatabase = new DatabaseSync(future.databasePath);
       futureDatabase
         .prepare(
@@ -405,43 +500,65 @@ describe('SqliteSessionAdapter durability', () => {
         .run();
       futureDatabase.close();
       expectSessionError(
-        () => new SqliteSessionAdapter({ databasePath: future.databasePath }),
+        () =>
+          new SqliteSessionAdapter({
+            createSessionId: () => 'conversation',
+            databasePath: future.databasePath,
+          }),
         'SESSION_SCHEMA_UNSUPPORTED'
       );
 
-      new SqliteSessionAdapter({ databasePath: drift.databasePath });
+      new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
+        databasePath: drift.databasePath,
+      });
       const driftDatabase = new DatabaseSync(drift.databasePath);
       driftDatabase.exec(
         'ALTER TABLE agent_session_turns RENAME COLUMN failure_code TO unexpected_code'
       );
       driftDatabase.close();
       expectSessionError(
-        () => new SqliteSessionAdapter({ databasePath: drift.databasePath }),
+        () =>
+          new SqliteSessionAdapter({
+            createSessionId: () => 'conversation',
+            databasePath: drift.databasePath,
+          }),
         'SESSION_SCHEMA_INVALID'
       );
 
-      new SqliteSessionAdapter({ databasePath: missingIndex.databasePath });
+      new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
+        databasePath: missingIndex.databasePath,
+      });
       const missingIndexDatabase = new DatabaseSync(missingIndex.databasePath);
       missingIndexDatabase.exec('DROP INDEX agent_sessions_activity_idx');
       missingIndexDatabase.close();
       expectSessionError(
-        () => new SqliteSessionAdapter({ databasePath: missingIndex.databasePath }),
+        () =>
+          new SqliteSessionAdapter({
+            createSessionId: () => 'conversation',
+            databasePath: missingIndex.databasePath,
+          }),
         'SESSION_SCHEMA_INVALID'
       );
 
       const adapter = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: corrupt.databasePath,
         clock: createClock(),
       });
       const session = await adapter.resolve({
         agentId: defineAgentIdentity({ id: 'corrupt-agent' }).id,
-        requestedSessionId: 'conversation',
       });
-      await adapter.beginTurn({
-        ...session,
-        turnId: parseTurnId('turn'),
-        userMessage: userMessage('hello', 1),
-      });
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          turnId: parseTurnId('turn'),
+          userMessage: userMessage('hello', 1),
+        },
+        (input) => adapter.beginTurn(input)
+      );
       const corruptDatabase = new DatabaseSync(corrupt.databasePath);
       corruptDatabase.prepare('UPDATE agent_session_turns SET user_message = ?').run('{bad json');
       corruptDatabase.close();
@@ -461,30 +578,42 @@ describe('SqliteSessionAdapter durability', () => {
     const temporary = createTemporaryDatabase();
     try {
       const adapter = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: temporary.databasePath,
         clock: createClock(),
       });
       const session = await adapter.resolve({
         agentId: defineAgentIdentity({ id: 'corrupt-compaction-agent' }).id,
-        requestedSessionId: 'conversation',
       });
       const turnId = parseTurnId('turn');
-      await adapter.beginTurn({
-        ...session,
-        turnId,
-        userMessage: userMessage('hello', 1),
-      });
-      await adapter.completeTurn({
-        ...session,
-        turnId,
-        assistantMessage: assistantMessage('answer', 2),
-      });
-      await adapter.commitCompaction({
-        ...session,
-        expectedRevision: 0,
-        throughTurnId: turnId,
-        context: { role: 'context', text: 'summary', timestamp: 3 },
-      });
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          turnId,
+          userMessage: userMessage('hello', 1),
+        },
+        (input) => adapter.beginTurn(input)
+      );
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          turnId,
+          assistantMessage: assistantMessage('answer', 2),
+        },
+        (input) => adapter.completeTurn(input)
+      );
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          expectedRevision: 0,
+          throughTurnId: turnId,
+          context: { role: 'context', text: 'summary', timestamp: 3 },
+        },
+        (input) => adapter.commitCompaction(input)
+      );
 
       const database = new DatabaseSync(temporary.databasePath);
       database.prepare('UPDATE agent_session_compactions SET context_message = ?').run('{bad json');
@@ -504,10 +633,12 @@ describe('SqliteSessionAdapter durability', () => {
     const invalidHead = createTemporaryDatabase();
     const invalidCompaction = createTemporaryDatabase();
     try {
-      const missingAdapter = new SqliteSessionAdapter({ databasePath: missingBranch.databasePath });
+      const missingAdapter = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
+        databasePath: missingBranch.databasePath,
+      });
       const missingSession = await missingAdapter.resolve({
         agentId: defineAgentIdentity({ id: 'missing-branch-agent' }).id,
-        requestedSessionId: 'conversation',
       });
       const missingDatabase = new DatabaseSync(missingBranch.databasePath);
       missingDatabase.exec('PRAGMA foreign_keys = OFF');
@@ -517,38 +648,56 @@ describe('SqliteSessionAdapter durability', () => {
         code: 'SESSION_RECORD_INVALID',
       });
 
-      const cycleAdapter = new SqliteSessionAdapter({ databasePath: turnCycle.databasePath });
+      const cycleAdapter = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
+        databasePath: turnCycle.databasePath,
+      });
       const cycleIdentity = defineAgentIdentity({ id: 'turn-cycle-agent' });
       let cycleSession = await cycleAdapter.resolve({
         agentId: cycleIdentity.id,
-        requestedSessionId: 'conversation',
       });
       const firstId = parseTurnId('first');
       const secondId = parseTurnId('second');
-      await cycleAdapter.beginTurn({
-        ...cycleSession,
-        turnId: firstId,
-        userMessage: userMessage('first', 1),
-      });
-      await cycleAdapter.completeTurn({
-        ...cycleSession,
-        turnId: firstId,
-        assistantMessage: assistantMessage('first answer', 2),
-      });
+      await sessionWrite(
+        cycleAdapter,
+        {
+          ...cycleSession,
+          turnId: firstId,
+          userMessage: userMessage('first', 1),
+        },
+        (input) => cycleAdapter.beginTurn(input)
+      );
+      await sessionWrite(
+        cycleAdapter,
+        {
+          ...cycleSession,
+          turnId: firstId,
+          assistantMessage: assistantMessage('first answer', 2),
+        },
+        (input) => cycleAdapter.completeTurn(input)
+      );
       cycleSession = await cycleAdapter.resolve({
         agentId: cycleIdentity.id,
-        requestedSessionId: 'conversation',
+        sessionId: 'conversation',
       });
-      await cycleAdapter.beginTurn({
-        ...cycleSession,
-        turnId: secondId,
-        userMessage: userMessage('second', 3),
-      });
-      await cycleAdapter.completeTurn({
-        ...cycleSession,
-        turnId: secondId,
-        assistantMessage: assistantMessage('second answer', 4),
-      });
+      await sessionWrite(
+        cycleAdapter,
+        {
+          ...cycleSession,
+          turnId: secondId,
+          userMessage: userMessage('second', 3),
+        },
+        (input) => cycleAdapter.beginTurn(input)
+      );
+      await sessionWrite(
+        cycleAdapter,
+        {
+          ...cycleSession,
+          turnId: secondId,
+          assistantMessage: assistantMessage('second answer', 4),
+        },
+        (input) => cycleAdapter.completeTurn(input)
+      );
       const cycleDatabase = new DatabaseSync(turnCycle.databasePath);
       cycleDatabase
         .prepare(
@@ -561,33 +710,47 @@ describe('SqliteSessionAdapter durability', () => {
         code: 'SESSION_RECORD_INVALID',
       });
 
-      const headAdapter = new SqliteSessionAdapter({ databasePath: invalidHead.databasePath });
+      const headAdapter = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
+        databasePath: invalidHead.databasePath,
+      });
       const headIdentity = defineAgentIdentity({ id: 'invalid-head-agent' });
       let headSession = await headAdapter.resolve({
         agentId: headIdentity.id,
-        requestedSessionId: 'conversation',
       });
       const completedId = parseTurnId('completed');
-      await headAdapter.beginTurn({
-        ...headSession,
-        turnId: completedId,
-        userMessage: userMessage('completed', 1),
-      });
-      await headAdapter.completeTurn({
-        ...headSession,
-        turnId: completedId,
-        assistantMessage: assistantMessage('answer', 2),
-      });
+      await sessionWrite(
+        headAdapter,
+        {
+          ...headSession,
+          turnId: completedId,
+          userMessage: userMessage('completed', 1),
+        },
+        (input) => headAdapter.beginTurn(input)
+      );
+      await sessionWrite(
+        headAdapter,
+        {
+          ...headSession,
+          turnId: completedId,
+          assistantMessage: assistantMessage('answer', 2),
+        },
+        (input) => headAdapter.completeTurn(input)
+      );
       headSession = await headAdapter.resolve({
         agentId: headIdentity.id,
-        requestedSessionId: 'conversation',
+        sessionId: 'conversation',
       });
       const activeId = parseTurnId('active');
-      await headAdapter.beginTurn({
-        ...headSession,
-        turnId: activeId,
-        userMessage: userMessage('active', 3),
-      });
+      await sessionWrite(
+        headAdapter,
+        {
+          ...headSession,
+          turnId: activeId,
+          userMessage: userMessage('active', 3),
+        },
+        (input) => headAdapter.beginTurn(input)
+      );
       const headDatabase = new DatabaseSync(invalidHead.databasePath);
       headDatabase.prepare('UPDATE agent_session_branches SET head_turn_id = ?').run(activeId);
       headDatabase.close();
@@ -596,51 +759,67 @@ describe('SqliteSessionAdapter durability', () => {
       });
 
       const compactionAdapter = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
         databasePath: invalidCompaction.databasePath,
       });
       const compactionIdentity = defineAgentIdentity({ id: 'invalid-lineage-agent' });
       let compactionSession = await compactionAdapter.resolve({
         agentId: compactionIdentity.id,
-        requestedSessionId: 'conversation',
       });
       const compactionTurns = [parseTurnId('one'), parseTurnId('two')];
       for (const [index, turnId] of compactionTurns.entries()) {
         compactionSession = await compactionAdapter.resolve({
           agentId: compactionIdentity.id,
-          requestedSessionId: 'conversation',
+          sessionId: 'conversation',
         });
-        await compactionAdapter.beginTurn({
-          ...compactionSession,
-          turnId,
-          userMessage: userMessage(`u${index}`, index * 2 + 1),
-        });
-        await compactionAdapter.completeTurn({
-          ...compactionSession,
-          turnId,
-          assistantMessage: assistantMessage(`a${index}`, index * 2 + 2),
-        });
+        await sessionWrite(
+          compactionAdapter,
+          {
+            ...compactionSession,
+            turnId,
+            userMessage: userMessage(`u${index}`, index * 2 + 1),
+          },
+          (input) => compactionAdapter.beginTurn(input)
+        );
+        await sessionWrite(
+          compactionAdapter,
+          {
+            ...compactionSession,
+            turnId,
+            assistantMessage: assistantMessage(`a${index}`, index * 2 + 2),
+          },
+          (input) => compactionAdapter.completeTurn(input)
+        );
       }
       compactionSession = await compactionAdapter.resolve({
         agentId: compactionIdentity.id,
-        requestedSessionId: 'conversation',
+        sessionId: 'conversation',
       });
-      await compactionAdapter.commitCompaction({
-        ...compactionSession,
-        expectedRevision: 0,
-        throughTurnId: compactionTurns[1]!,
-        context: { role: 'context', text: 'summary', timestamp: 5 },
-      });
-      const childBranchId = parseSessionBranchId('early-child');
-      await compactionAdapter.applyNavigation({
-        ...compactionSession,
-        command: {
-          operation: 'fork',
-          sourceBranchId: DEFAULT_SESSION_BRANCH_ID,
-          throughTurnId: compactionTurns[0]!,
-          newBranchId: childBranchId,
-          expectedRevision: compactionSession.navigationRevision,
+      await sessionWrite(
+        compactionAdapter,
+        {
+          ...compactionSession,
+          expectedRevision: 0,
+          throughTurnId: compactionTurns[1]!,
+          context: { role: 'context', text: 'summary', timestamp: 5 },
         },
-      });
+        (input) => compactionAdapter.commitCompaction(input)
+      );
+      const childBranchId = parseSessionBranchId('early-child');
+      await sessionWrite(
+        compactionAdapter,
+        {
+          ...compactionSession,
+          command: {
+            operation: 'fork',
+            sourceBranchId: DEFAULT_SESSION_BRANCH_ID,
+            throughTurnId: compactionTurns[0]!,
+            newBranchId: childBranchId,
+            expectedRevision: compactionSession.navigationRevision,
+          },
+        },
+        (input) => compactionAdapter.applyNavigation(input)
+      );
       const compactionDatabase = new DatabaseSync(invalidCompaction.databasePath);
       compactionDatabase
         .prepare(
@@ -665,96 +844,134 @@ describe('SqliteSessionAdapter durability', () => {
   it('rejects a turn parent forged across sibling branches', async () => {
     const temporary = createTemporaryDatabase();
     try {
-      const adapter = new SqliteSessionAdapter({ databasePath: temporary.databasePath });
+      const adapter = new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
+        databasePath: temporary.databasePath,
+      });
       const identity = defineAgentIdentity({ id: 'cross-branch-parent-agent' });
       let session = await adapter.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
       });
       const rootTurnId = parseTurnId('root');
-      await adapter.beginTurn({
-        ...session,
-        turnId: rootTurnId,
-        userMessage: userMessage('root', 1),
-      });
-      await adapter.completeTurn({
-        ...session,
-        turnId: rootTurnId,
-        assistantMessage: assistantMessage('root answer', 2),
-      });
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          turnId: rootTurnId,
+          userMessage: userMessage('root', 1),
+        },
+        (input) => adapter.beginTurn(input)
+      );
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          turnId: rootTurnId,
+          assistantMessage: assistantMessage('root answer', 2),
+        },
+        (input) => adapter.completeTurn(input)
+      );
 
       session = await adapter.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
+        sessionId: 'conversation',
       });
       const firstBranchId = parseSessionBranchId('first-child');
       const secondBranchId = parseSessionBranchId('second-child');
-      let navigation = await adapter.applyNavigation({
-        ...session,
-        command: {
-          operation: 'fork',
-          sourceBranchId: DEFAULT_SESSION_BRANCH_ID,
-          throughTurnId: rootTurnId,
-          newBranchId: firstBranchId,
-          expectedRevision: session.navigationRevision,
+      let navigation = await sessionWrite(
+        adapter,
+        {
+          ...session,
+          command: {
+            operation: 'fork',
+            sourceBranchId: DEFAULT_SESSION_BRANCH_ID,
+            throughTurnId: rootTurnId,
+            newBranchId: firstBranchId,
+            expectedRevision: session.navigationRevision,
+          },
         },
-      });
-      navigation = await adapter.applyNavigation({
-        ...session,
-        command: {
-          operation: 'fork',
-          sourceBranchId: DEFAULT_SESSION_BRANCH_ID,
-          throughTurnId: rootTurnId,
-          newBranchId: secondBranchId,
-          expectedRevision: navigation.navigation.revision,
+        (input) => adapter.applyNavigation(input)
+      );
+      navigation = await sessionWrite(
+        adapter,
+        {
+          ...session,
+          command: {
+            operation: 'fork',
+            sourceBranchId: DEFAULT_SESSION_BRANCH_ID,
+            throughTurnId: rootTurnId,
+            newBranchId: secondBranchId,
+            expectedRevision: navigation.navigation.revision,
+          },
         },
-      });
-      await adapter.applyNavigation({
-        ...session,
-        command: {
-          operation: 'select',
-          branchId: firstBranchId,
-          expectedRevision: navigation.navigation.revision,
+        (input) => adapter.applyNavigation(input)
+      );
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          command: {
+            operation: 'select',
+            branchId: firstBranchId,
+            expectedRevision: navigation.navigation.revision,
+          },
         },
-      });
+        (input) => adapter.applyNavigation(input)
+      );
 
       session = await adapter.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
+        sessionId: 'conversation',
       });
       const firstChildTurnId = parseTurnId('first-child-turn');
-      await adapter.beginTurn({
-        ...session,
-        turnId: firstChildTurnId,
-        userMessage: userMessage('first child', 3),
-      });
-      await adapter.completeTurn({
-        ...session,
-        turnId: firstChildTurnId,
-        assistantMessage: assistantMessage('first child answer', 4),
-      });
-      session = await adapter.resolve({
-        agentId: identity.id,
-        requestedSessionId: 'conversation',
-      });
-      await adapter.applyNavigation({
-        ...session,
-        command: {
-          operation: 'select',
-          branchId: secondBranchId,
-          expectedRevision: session.navigationRevision,
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          turnId: firstChildTurnId,
+          userMessage: userMessage('first child', 3),
         },
-      });
+        (input) => adapter.beginTurn(input)
+      );
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          turnId: firstChildTurnId,
+          assistantMessage: assistantMessage('first child answer', 4),
+        },
+        (input) => adapter.completeTurn(input)
+      );
       session = await adapter.resolve({
         agentId: identity.id,
-        requestedSessionId: 'conversation',
+        sessionId: 'conversation',
+      });
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          command: {
+            operation: 'select',
+            branchId: secondBranchId,
+            expectedRevision: session.navigationRevision,
+          },
+        },
+        (input) => adapter.applyNavigation(input)
+      );
+      session = await adapter.resolve({
+        agentId: identity.id,
+        sessionId: 'conversation',
       });
       const secondChildTurnId = parseTurnId('second-child-turn');
-      await adapter.beginTurn({
-        ...session,
-        turnId: secondChildTurnId,
-        userMessage: userMessage('second child', 5),
-      });
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          turnId: secondChildTurnId,
+          userMessage: userMessage('second child', 5),
+        },
+        (input) => adapter.beginTurn(input)
+      );
 
       const database = new DatabaseSync(temporary.databasePath);
       database
@@ -776,12 +993,19 @@ describe('SqliteSessionAdapter durability', () => {
   it('rejects unsupported schemas without modifying their version', () => {
     const temporary = createTemporaryDatabase();
     try {
-      new SqliteSessionAdapter({ databasePath: temporary.databasePath });
+      new SqliteSessionAdapter({
+        createSessionId: () => 'conversation',
+        databasePath: temporary.databasePath,
+      });
       const database = new DatabaseSync(temporary.databasePath);
       try {
         database.exec("UPDATE agent_session_schema SET version = 2 WHERE component = 'session'");
         expectSessionError(
-          () => new SqliteSessionAdapter({ databasePath: temporary.databasePath }),
+          () =>
+            new SqliteSessionAdapter({
+              createSessionId: () => 'conversation',
+              databasePath: temporary.databasePath,
+            }),
           'SESSION_SCHEMA_UNSUPPORTED'
         );
         expect(
@@ -799,12 +1023,17 @@ describe('SqliteSessionAdapter durability', () => {
 
   it('fails fast for invalid durable storage configuration', () => {
     expectSessionError(
-      () => new SqliteSessionAdapter({ databasePath: ':memory:' }),
+      () =>
+        new SqliteSessionAdapter({
+          createSessionId: () => 'conversation',
+          databasePath: ':memory:',
+        }),
       'SESSION_PATH_INVALID'
     );
     expectSessionError(
       () =>
         new SqliteSessionAdapter({
+          createSessionId: () => 'conversation',
           databasePath: join(tmpdir(), 'unused.sqlite'),
           busyTimeoutMilliseconds: 0,
         }),

@@ -1,4 +1,4 @@
-import type { SessionReference } from '@ta-agent/base-session';
+import type { SessionReference, SessionWriteAuthority } from '@ta-agent/base-session';
 import type { AgentResponse } from '../contracts.js';
 
 declare const requestIdempotencyKeyBrand: unique symbol;
@@ -52,17 +52,18 @@ export type RequestJournalClaim =
   | Readonly<{ status: 'claimed'; entry: ActiveRequestJournalEntry }>
   | Readonly<{ status: 'existing'; entry: RequestJournalEntry }>;
 
-export interface ClaimRequestJournalRequest extends RequestJournalReference {
+export interface ClaimRequestJournalRequest extends RequestJournalReference, SessionWriteAuthority {
   readonly fingerprint: RequestFingerprint;
   readonly requestId: string;
 }
 
-export interface CompleteRequestJournalRequest extends RequestJournalReference {
+export interface CompleteRequestJournalRequest
+  extends RequestJournalReference, SessionWriteAuthority {
   readonly requestId: string;
   readonly response: AgentResponse;
 }
 
-export interface FailRequestJournalRequest extends RequestJournalReference {
+export interface FailRequestJournalRequest extends RequestJournalReference, SessionWriteAuthority {
   readonly requestId: string;
   readonly failure: RequestJournalFailure;
 }

@@ -7,7 +7,7 @@ import {
   defineProviderModelExecutionProvenance,
   defineProviderModelReference,
 } from '@ta-agent/base-model';
-import { parseTurnId } from '@ta-agent/base-session';
+import { parseTurnId, supportsSessionExecution } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
   createStandaloneAgentDirectory,
@@ -164,16 +164,20 @@ describe('managed Standalone Agent directory', () => {
       const agent = await directory.open(created.identity.identity.id);
       const session = await agent.agent.resources.session.resolve({
         agentId: created.identity.identity.id,
-        requestedSessionId: 'conversation',
       });
       const turnId = parseTurnId('turn-1');
+      const sessionPort = agent.agent.resources.session;
+      if (!supportsSessionExecution(sessionPort)) throw new Error('Expected execution capability');
+      const execution = await sessionPort.acquireSessionExecution(session);
       await agent.agent.resources.session.beginTurn({
         ...session,
+        execution,
         turnId,
         userMessage: { role: 'user', text: 'hello', timestamp: 1 },
       });
       await agent.agent.resources.session.completeTurn({
         ...session,
+        execution,
         turnId,
         assistantMessage: defineAssistantModelMessage({
           role: 'assistant',
@@ -185,6 +189,7 @@ describe('managed Standalone Agent directory', () => {
         }),
       });
 
+      await sessionPort.releaseSessionExecution(execution);
       const disabled = await directory.disable({
         agentId: created.identity.identity.id,
         expectedRevision: created.identity.revision,

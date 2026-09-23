@@ -9,6 +9,7 @@ import type { RequestIdempotencyKey } from './replay/contracts.js';
 
 export interface AgentRequestInput {
   readonly message: string;
+  /** Existing Session identity. Omit to create; never a requested name for a new Session. */
   readonly sessionId?: string;
   readonly idempotencyKey?: string;
   readonly outputSink?: OutputSink;

@@ -3,6 +3,7 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequestFingerprint, parseRequestIdempotencyKey } from '@ta-agent/base-request';
+import { supportsSessionExecution } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
   AgentBaseStandaloneError,
@@ -123,17 +124,29 @@ describe('shared SQLite managed Agent registry', () => {
       const mochiAgent = await registry.open('mochi');
       const broSession = await broAgent.agent.resources.session.resolve({
         agentId: broAgent.agent.identity.id,
-        requestedSessionId: 'same-session',
       });
       const mochiSession = await mochiAgent.agent.resources.session.resolve({
         agentId: mochiAgent.agent.identity.id,
-        requestedSessionId: 'same-session',
       });
       const journalReference = {
         sessionId: broSession.sessionId,
         idempotencyKey: parseRequestIdempotencyKey('same-request'),
       };
+      const broPort = broAgent.agent.resources.session;
+      const mochiPort = mochiAgent.agent.resources.session;
+      if (!supportsSessionExecution(broPort) || !supportsSessionExecution(mochiPort)) {
+        throw new Error('Managed SQLite profile must expose execution fencing.');
+      }
+      const broExecution = await broPort.acquireSessionExecution({
+        agentId: broSession.agentId,
+        sessionId: broSession.sessionId,
+      });
+      const mochiExecution = await mochiPort.acquireSessionExecution({
+        agentId: mochiSession.agentId,
+        sessionId: mochiSession.sessionId,
+      });
       await broAgent.agent.resources.requestJournal.claim({
+        execution: broExecution,
         agentId: broAgent.agent.identity.id,
         ...journalReference,
         fingerprint: createRequestFingerprint({ message: 'hello' }),
@@ -166,15 +179,16 @@ describe('shared SQLite managed Agent registry', () => {
           agentId: reopenedBro.agent.identity.id,
           sessionId: broSession.sessionId,
         })
-      ).resolves.toMatchObject({ agentId: 'bro', sessionId: 'same-session' });
+      ).resolves.toMatchObject({ agentId: 'bro', sessionId: broSession.sessionId });
       await expect(
         reopenedMochi.agent.resources.session.inspect({
           agentId: reopenedMochi.agent.identity.id,
           sessionId: mochiSession.sessionId,
         })
-      ).resolves.toMatchObject({ agentId: 'mochi', sessionId: 'same-session' });
+      ).resolves.toMatchObject({ agentId: 'mochi', sessionId: mochiSession.sessionId });
       await expect(
         reopenedBro.agent.resources.requestJournal.claim({
+          execution: broExecution,
           agentId: reopenedBro.agent.identity.id,
           ...journalReference,
           fingerprint: createRequestFingerprint({ message: 'hello' }),
@@ -183,8 +197,10 @@ describe('shared SQLite managed Agent registry', () => {
       ).resolves.toMatchObject({ status: 'existing' });
       await expect(
         reopenedMochi.agent.resources.requestJournal.claim({
+          execution: mochiExecution,
           agentId: reopenedMochi.agent.identity.id,
           ...journalReference,
+          sessionId: mochiSession.sessionId,
           fingerprint: createRequestFingerprint({ message: 'hello' }),
           requestId: 'request-mochi',
         })

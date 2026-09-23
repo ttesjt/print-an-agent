@@ -65,9 +65,12 @@ describe('public standalone provider consumer', () => {
     } as const;
     const firstSink = new MemoryOutputSink();
     const firstAgent = createStandaloneAgent(config, runtimeOptions);
+    const { sessionId } = await firstAgent.agent.resources.session.resolve({
+      agentId: firstAgent.identity.id,
+    });
     const request = {
       message: 'persist this request',
-      sessionId: 'durable-session',
+      sessionId,
       idempotencyKey: 'durable-request',
     };
 

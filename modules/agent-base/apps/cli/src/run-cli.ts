@@ -98,6 +98,12 @@ async function executeCommand(
       {
         signal,
         writeTextDelta: (delta) => dependencies.standardOutput.write(delta),
+        sessionOpened: (sessionId) =>
+          command.sessionId === undefined
+            ? dependencies.standardError.write(
+                `${JSON.stringify({ type: 'session-created', sessionId })}\n`
+              )
+            : Promise.resolve(),
       }
     );
     await dependencies.standardOutput.write('\n');

@@ -56,6 +56,23 @@ function dependencies(
 }
 
 describe('Agent Base CLI command contract', () => {
+  it('reports a generated Session ID separately from assistant text', async () => {
+    const deps = dependencies(
+      runtime({
+        run: async (_input, options) => {
+          await options.sessionOpened('generated-session');
+          await options.writeTextDelta('answer');
+        },
+      })
+    );
+    expect(
+      await runAgentBaseCli(['run', '--config', 'agent.json', '--message', 'hello'], deps)
+    ).toBe(0);
+    expect(deps.standardOutput.output()).toBe('answer\n');
+    expect(deps.standardError.output()).toBe(
+      '{"type":"session-created","sessionId":"generated-session"}\n'
+    );
+  });
   it('parses a bounded run command without provider-specific options', () => {
     expect(
       parseAgentBaseCliCommand([

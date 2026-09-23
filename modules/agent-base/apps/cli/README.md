@@ -44,3 +44,9 @@ Run `agent-base --help` for the exact command surface. A provider that declares 
 also requires a matching top-level credential binding such as
 `{"reference":"credentials/agent","environmentVariable":"AGENT_API_KEY"}`; the environment
 value itself is resolved only at runtime.
+
+Omit `--session-id` to create a new Session. When its response stream opens, the CLI emits one
+`{"type":"session-created","sessionId":"..."}` metadata line to stderr; assistant text remains
+on stdout. Use that returned ID with `--session-id` to continue a durable Session. An unknown ID
+fails rather than creating a named Session. `--idempotency-key` requires an existing Session ID.
+Memory Sessions remain process-local and cannot be reopened by another CLI process.

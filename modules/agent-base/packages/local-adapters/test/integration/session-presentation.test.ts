@@ -1,3 +1,4 @@
+import { sessionWrite } from '../support/session-write.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -29,20 +30,27 @@ describe.each(['memory', 'sqlite'] as const)('%s Session presentation contract',
       const adapter = h.adapter;
       const session = await adapter.resolve({
         agentId: parseAgentId('owner'),
-        requestedSessionId: 'conversation',
       });
       const turnId = parseTurnId('first');
-      await adapter.beginTurn({ ...session, turnId, userMessage: userMessage('hello', 1) });
+      await sessionWrite(
+        adapter,
+        { ...session, turnId, userMessage: userMessage('hello', 1) },
+        (input) => adapter.beginTurn(input)
+      );
       const firstBlock = { modelTurnIndex: 1, text: 'PRIVATE_PRESENTATION' };
       const presentation = {
         reasoningBlocks: [firstBlock, { modelTurnIndex: 3, text: 'after tool' }],
       };
-      await adapter.completeTurnWithPresentation({
-        ...session,
-        turnId,
-        assistantMessage: assistantMessage('answer', 2),
-        presentation,
-      });
+      await sessionWrite(
+        adapter,
+        {
+          ...session,
+          turnId,
+          assistantMessage: assistantMessage('answer', 2),
+          presentation,
+        },
+        (input) => adapter.completeTurnWithPresentation(input)
+      );
       firstBlock.text = 'mutated';
       presentation.reasoningBlocks.reverse();
       const reopened = h.reopen();
@@ -69,32 +77,48 @@ describe.each(['memory', 'sqlite'] as const)('%s Session presentation contract',
       );
       const resolved = await reopened.resolve({
         agentId: session.agentId,
-        requestedSessionId: session.sessionId,
+        sessionId: session.sessionId,
       });
       const next = parseTurnId('next');
-      await reopened.beginTurn({ ...resolved, turnId: next, userMessage: userMessage('next', 3) });
+      await sessionWrite(
+        reopened,
+        { ...resolved, turnId: next, userMessage: userMessage('next', 3) },
+        (input) => reopened.beginTurn(input)
+      );
       expect(
         JSON.stringify(await reopened.loadHistory({ ...session, beforeTurnId: next }))
       ).not.toContain('PRIVATE_PRESENTATION');
-      await reopened.commitCompaction({
-        ...session,
-        expectedRevision: 0,
-        throughTurnId: turnId,
-        context: { role: 'context', text: 'summary', timestamp: 3 },
-      });
+      await sessionWrite(
+        reopened,
+        {
+          ...session,
+          expectedRevision: 0,
+          throughTurnId: turnId,
+          context: { role: 'context', text: 'summary', timestamp: 3 },
+        },
+        (input) => reopened.commitCompaction(input)
+      );
       expect(
         JSON.stringify(await reopened.loadContext({ ...session, beforeTurnId: next }))
       ).not.toContain('PRIVATE_PRESENTATION');
-      await reopened.failTurn({ ...session, turnId: next, failureCode: 'CANCELLED' });
-      await reopened.applyNavigation({
-        ...session,
-        command: {
-          operation: 'rewind',
-          expectedRevision: (await reopened.inspect(session))?.navigation.revision ?? -1,
-          throughTurnId: turnId,
-          newBranchId: parseSessionBranchId('fork'),
+      await sessionWrite(
+        reopened,
+        { ...session, turnId: next, failureCode: 'CANCELLED' },
+        (input) => reopened.failTurn(input)
+      );
+      await sessionWrite(
+        reopened,
+        {
+          ...session,
+          command: {
+            operation: 'rewind',
+            expectedRevision: (await reopened.inspect(session))?.navigation.revision ?? -1,
+            throughTurnId: turnId,
+            newBranchId: parseSessionBranchId('fork'),
+          },
         },
-      });
+        (input) => reopened.applyNavigation(input)
+      );
       expect(await reopened.readTurnPresentation({ ...session, turnId })).toEqual(record);
       expect(
         await reopened.readTurnPresentation({ ...session, turnId, agentId: parseAgentId('other') })
@@ -117,25 +141,35 @@ describe.each(['memory', 'sqlite'] as const)('%s Session presentation contract',
     try {
       const session = await h.adapter.resolve({ agentId: parseAgentId('owner') });
       const turnId = parseTurnId('first');
-      await h.adapter.beginTurn({ ...session, turnId, userMessage: userMessage('hello', 1) });
+      await sessionWrite(
+        h.adapter,
+        { ...session, turnId, userMessage: userMessage('hello', 1) },
+        (input) => h.adapter.beginTurn(input)
+      );
       const request = {
         ...session,
         turnId,
         assistantMessage: assistantMessage('answer', 2),
         presentation: { reasoningBlocks: [] },
       };
-      await expect(h.adapter.completeTurnWithPresentation(request)).rejects.toMatchObject({
+      await expect(
+        sessionWrite(h.adapter, request, (input) => h.adapter.completeTurnWithPresentation(input))
+      ).rejects.toMatchObject({
         code: 'SESSION_PRESENTATION_INVALID',
       });
       expect((await h.adapter.inspect(session))?.turns[0]?.status).toBe('active');
       expect(await h.adapter.readTurnPresentation(request)).toBeUndefined();
-      await h.adapter.completeTurn(request);
+      await sessionWrite(h.adapter, request, (input) => h.adapter.completeTurn(input));
       expect(await h.adapter.readTurnPresentation(request)).toBeUndefined();
       await expect(
-        h.adapter.completeTurnWithPresentation({
-          ...request,
-          presentation: { reasoningBlocks: [{ modelTurnIndex: 1, text: 'late' }] },
-        })
+        sessionWrite(
+          h.adapter,
+          {
+            ...request,
+            presentation: { reasoningBlocks: [{ modelTurnIndex: 1, text: 'late' }] },
+          },
+          (input) => h.adapter.completeTurnWithPresentation(input)
+        )
       ).rejects.toMatchObject({ code: 'TURN_STATE_INVALID' });
     } finally {
       h.dispose();
@@ -150,7 +184,11 @@ describe('SQLite presentation integrity', () => {
     try {
       const session = await h.adapter.resolve({ agentId: parseAgentId('owner') });
       const turnId = parseTurnId('first');
-      await h.adapter.beginTurn({ ...session, turnId, userMessage: userMessage('hello', 1) });
+      await sessionWrite(
+        h.adapter,
+        { ...session, turnId, userMessage: userMessage('hello', 1) },
+        (input) => h.adapter.beginTurn(input)
+      );
       database.exec(
         "CREATE TRIGGER reject_branch BEFORE UPDATE ON consumer_session_branches BEGIN SELECT RAISE(ABORT, 'fixture'); END;"
       );
@@ -160,7 +198,9 @@ describe('SQLite presentation integrity', () => {
         assistantMessage: assistantMessage('answer', 2),
         presentation: { reasoningBlocks: [{ modelTurnIndex: 1, text: 'reason' }] },
       };
-      await expect(h.adapter.completeTurnWithPresentation(request)).rejects.toMatchObject({
+      await expect(
+        sessionWrite(h.adapter, request, (input) => h.adapter.completeTurnWithPresentation(input))
+      ).rejects.toMatchObject({
         code: 'SESSION_STORAGE_FAILED',
       });
       expect((await h.reopen().inspect(session))?.turns[0]?.status).toBe('active');
@@ -169,7 +209,9 @@ describe('SQLite presentation integrity', () => {
         database.prepare('SELECT assistant_message, presentation FROM consumer_session_turns').get()
       ).toMatchObject({ assistant_message: null, presentation: null });
       database.exec('DROP TRIGGER reject_branch');
-      await h.adapter.completeTurnWithPresentation(request);
+      await sessionWrite(h.adapter, request, (input) =>
+        h.adapter.completeTurnWithPresentation(input)
+      );
       database
         .prepare('UPDATE consumer_session_turns SET presentation = ?')
         .run('{"reasoning":"x","signature":"opaque"}');

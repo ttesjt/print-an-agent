@@ -1,11 +1,13 @@
 import type { AgentId } from '@ta-agent/base-identity';
 import type { AssistantModelMessage, ModelMessage, UserModelMessage } from '@ta-agent/base-model';
 import type { SessionContextSnapshot } from './compaction/contracts.js';
+import type { SessionWriteAuthority } from './lifecycle/execution.js';
 
 declare const sessionIdBrand: unique symbol;
 declare const sessionBranchIdBrand: unique symbol;
 declare const turnIdBrand: unique symbol;
 
+/** Adapter-generated opaque identity: immutable and never reassigned, including after deletion. */
 export type SessionId = string & { readonly [sessionIdBrand]: 'SessionId' };
 export type SessionBranchId = string & {
   readonly [sessionBranchIdBrand]: 'SessionBranchId';
@@ -75,10 +77,11 @@ export interface SessionSnapshot extends SessionReference {
 
 export interface ResolveSessionRequest {
   readonly agentId: AgentId;
-  readonly requestedSessionId?: string;
+  /** Open an existing Session only. Omit to create with a fresh adapter-generated ID. */
+  readonly sessionId?: string;
 }
 
-export interface BeginSessionTurnRequest extends ResolvedSessionReference {
+export interface BeginSessionTurnRequest extends ResolvedSessionReference, SessionWriteAuthority {
   readonly turnId: TurnId;
   readonly userMessage: UserModelMessage;
 }
@@ -87,17 +90,18 @@ export interface LoadSessionHistoryRequest extends SessionReference {
   readonly beforeTurnId: TurnId;
 }
 
-export interface CompleteSessionTurnRequest extends SessionReference {
+export interface CompleteSessionTurnRequest extends SessionReference, SessionWriteAuthority {
   readonly turnId: TurnId;
   readonly assistantMessage: AssistantModelMessage;
 }
 
-export interface FailSessionTurnRequest extends SessionReference {
+export interface FailSessionTurnRequest extends SessionReference, SessionWriteAuthority {
   readonly turnId: TurnId;
   readonly failureCode: string;
 }
 
 export interface SessionPort {
+  /** A supplied missing ID fails with SESSION_NOT_FOUND; it must never implicitly create. */
   resolve(request: ResolveSessionRequest): Promise<ResolvedSessionReference>;
   beginTurn(request: BeginSessionTurnRequest): Promise<ActiveSessionTurn>;
   loadHistory(request: LoadSessionHistoryRequest): Promise<readonly ModelMessage[]>;

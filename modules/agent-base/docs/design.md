@@ -519,6 +519,7 @@ The current foundation contains:
   resolver port, normalized text messages and usage, bounded Agent Loop events, execution targets,
   runtime ports, and structured failures;
 - `@ta-agent/base-session`: generic session/turn authority, navigation, and compaction behavior;
+  separate Session lifecycle, execution-fence and optional purge/recovery contracts;
 - `@ta-agent/base-workflow`: single-owner Agent, typed Agent Operation and Run contracts, one
   heterogeneous Workflow Catalog, minimum Run Context contracts, explicit Workflow Plans, two
   run-scoped Context lifetimes, Step/override registries, Step Executor, and registry-based
@@ -544,3 +545,24 @@ a development default for deterministic and ordinary-provider shortcuts. OAuth, 
 dynamic provider catalog persistence, broad provider qualification, automatic failover, hard delete,
 Agent ID rename, cross-root migration, and distributed lifecycle coordination remain bounded later
 work.
+
+## Session lifecycle boundary
+
+Session retirement is a management capability, not an Agent Operation or Workflow. Query,
+retire/restore, purge and execution protection are independently shaped ports owned by `base-session`.
+The [lifecycle contract](../packages/session/docs/lifecycle.md) defines active/retired state, shared
+metadata CAS, immutable adapter-generated Session IDs, non-expiring execution credentials, recovery and the
+atomic purge scope. Pure guards do not perform persistence or acquire locks.
+
+Lifecycle lists contain bounded summaries without execution-fence evidence; exact inspection adds
+that evidence. Session purge/recovery own only the Session aggregate and execution state. Request
+Journal cleanup/recovery remain request-owned. A managed profile may compose an atomic
+Session-plus-Journal purge and continuously fenced recovery, but cannot claim those guarantees from
+the Session ports alone or from sequential independent cleanup calls.
+
+The lifecycle contracts are implemented, but the existing local adapters and runtime execution are
+not yet lifecycle-qualified. Their admission, every write, Request Journal/replay and OutputSink
+finalization must be integrated as one change before management can be exposed. Standalone will
+later compose an independent `ManagedStandaloneSessionService` via existing namespace/port factories;
+this does not add methods to Agent, AgentAPI or the Agent registry, nor define a Host/Application
+framework.

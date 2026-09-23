@@ -19,6 +19,9 @@ import {
   type SessionTurn,
   type SessionTurnPresentation,
   type TurnId,
+  type SessionLifecycleState,
+  type SessionExecutionId,
+  type SessionExecutionLease,
 } from '@ta-agent/base-session';
 
 export interface StoredMemoryBranch {
@@ -30,6 +33,10 @@ export interface StoredMemoryBranch {
 }
 
 export interface StoredMemorySession {
+  lifecycle: SessionLifecycleState;
+  executionRevision: number;
+  executionState: 'ready' | 'recovering';
+  readonly executions: Map<SessionExecutionId, SessionExecutionLease>;
   readonly agentId: AgentId;
   readonly sessionId: SessionId;
   readonly createdAt: number;

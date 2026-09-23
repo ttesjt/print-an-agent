@@ -2,12 +2,10 @@ import type { DatabaseSync } from 'node:sqlite';
 import { quoteSqliteIdentifier } from './table-names.js';
 import {
   AgentSessionError,
-  DEFAULT_SESSION_BRANCH_ID,
   completedLineageForBranch,
   isCompletedAncestor,
   parseSessionBranchId,
   toSessionNavigationSnapshot,
-  type ResolvedSessionReference,
   type SessionBranchId,
   type SessionReference,
   type SessionSnapshot,
@@ -206,40 +204,6 @@ export function loadSqliteSessionSnapshot(
   assertTurnLineage(snapshot);
   assertCompactionLineage(database, snapshot, tableNames);
   return snapshot;
-}
-
-export function resolveSqliteSession(
-  database: DatabaseSync,
-  reference: SessionReference,
-  clock: () => number,
-  tableNames: SqliteSessionTableNames
-): ResolvedSessionReference {
-  runImmediateTransaction(database, () => {
-    const createdAt = readClock(clock);
-    const inserted = database
-      .prepare(
-        `INSERT OR IGNORE INTO ${quoteSqliteIdentifier(tableNames.sessions)}
-          (agent_id, session_id, next_turn_sequence, created_at, selected_branch_id,
-           navigation_revision, updated_at)
-         VALUES (?, ?, 0, ?, ?, 0, ?)`
-      )
-      .run(reference.agentId, reference.sessionId, createdAt, DEFAULT_SESSION_BRANCH_ID, createdAt);
-    if (inserted.changes === 1) {
-      database
-        .prepare(
-          `INSERT INTO ${quoteSqliteIdentifier(tableNames.branches)}
-            (agent_id, session_id, branch_id, created_at)
-           VALUES (?, ?, ?, ?)`
-        )
-        .run(reference.agentId, reference.sessionId, DEFAULT_SESSION_BRANCH_ID, createdAt);
-    }
-  });
-  const snapshot = loadSqliteSessionSnapshot(database, reference, tableNames);
-  return Object.freeze({
-    ...reference,
-    branchId: snapshot.navigation.selectedBranchId,
-    navigationRevision: snapshot.navigation.revision,
-  });
 }
 
 function inheritCompaction(

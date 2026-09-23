@@ -3,6 +3,7 @@ import {
   createRequestStepDefinitions,
   createRequestWorkflow,
   failRequest,
+  releaseRequestExecution,
   type AgentResponse,
   type DefaultRequestWorkflowContext,
   type RequestAgentRunContext,
@@ -47,7 +48,7 @@ export function composeRequestWorkflow(
   >({
     stepOverrides,
     createContext: (base) => ({ ...base, resources, policy }),
-    lifecycle: { onError: failRequest },
+    lifecycle: { onError: failRequest, onFinally: releaseRequestExecution },
     applyResult: (agentRunContext, result) => {
       agentRunContext.output = result;
       return Promise.resolve();

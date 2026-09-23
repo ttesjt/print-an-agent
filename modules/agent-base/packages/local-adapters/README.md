@@ -40,3 +40,54 @@ named presentation table is needed. Existing table-prefix and per-table naming o
 SQLite accepts only its current complete schema; it does not migrate older development layouts or
 silently add missing columns. Presentation reads are opt-in and bounded; history and compaction never
 select this content as model input.
+
+## Session lifecycle and coordinated persistence
+
+Memory and SQLite Session adapters implement independent lifecycle/query/execution capabilities:
+active/retired lists, inspection, metadata-CAS retire/restore, explicit purge, and recovery. Lists
+exclude execution-fence evidence; inspect provides it. Every runtime mutation requires a live
+`execution` lease; raw adapter consumers must acquire it and release only after all their work settles.
+Official request, compaction and navigation Workflows perform this propagation automatically.
+Reads need no lease. Retired Sessions retain history but reject runtime admission and writes.
+
+For a runtime using both Session and Request Journal, choose a coordinated profile:
+
+```ts
+import { createSqliteSessionPersistence } from '@ta-agent/base-local-adapters';
+
+const persistence = createSqliteSessionPersistence({
+  databasePath: '/explicit/application/data/agent.sqlite',
+  session: { tablePrefix: 'product_' },
+  requestJournal: { tablePrefix: 'product_' },
+});
+// Inject persistence.session and persistence.requestJournal into composition.
+// persistence.maintenance.purgeSessionPersistence(...) deletes both domains atomically.
+// persistence.maintenance.recoverSessionPersistence(...) recovers both domains under one fence.
+```
+
+`createMemorySessionPersistence` provides the same observable scope using an isolated in-process
+queue. The SQLite profile uses same-database transactions. Composite purge atomically removes the
+Session aggregate and its Journal records; traces, attachments and other product resources are not
+included. Session adapters' own purge/recovery remain Session-only. Independently injected adapters
+do not acquire a composite atomicity guarantee merely by implementing the two ports.
+
+The SQLite Session, Request Journal and coordinated persistence constructors default to
+`schemaMode: 'initialize'`. Use `schemaMode: 'existing'` for a management reader that must not
+create a missing Session or Journal table family. This requires both selected schemas to exist and
+fails on a missing or invalid schema.
+
+`CoordinatedSessionMaintenance` deliberately uses different method names from `SessionPurgePort`
+and `SessionExecutionRecoveryPort`. It cannot be structurally injected as a Session-only capability,
+which would silently expand that caller's deletion scope. Memory's coordination hooks are internal
+implementation methods and are omitted from generated public declarations.
+
+Recovery is explicit operator action with execution-revision CAS. It revokes old credentials,
+preserves completed Turns/responses, and marks active Turns/Journal entries interrupted. Failure
+retains recovering/busy state until explicit retry. There is no timeout-based unlock, replay
+synthesis, automatic model/tool retry, or rollback of external side effects. SQLite preserves
+occupancy across restart; Memory is a process-local development profile.
+
+Default in-process composition selects the coordinated Memory pair when neither port is supplied.
+Official Standalone SQLite runtime profiles select the coordinated SQLite pair. The namespace-based
+Standalone Session management service selects the existing-schema mode; no lifecycle methods are
+added to Agent, AgentAPI, Agent Operations, or the Agent registry.

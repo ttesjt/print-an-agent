@@ -144,7 +144,6 @@ describe('public Agent integration', () => {
     const sink = new MemoryOutputSink();
     const response = await agent.invoke('foreground', {
       message: 'blue',
-      sessionId: 'consumer-session',
       outputSink: sink,
     });
     const api = createAgentAPI(agent);

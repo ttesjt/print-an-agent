@@ -9,6 +9,7 @@ import type {
   WorkflowDefinition,
 } from '@ta-agent/base-workflow';
 import type { SessionBranchId, SessionSnapshot } from '../../types.js';
+import type { SessionExecutionLease } from '../../lifecycle/execution.js';
 import type {
   CompactableSessionPort,
   CompactSessionInput,
@@ -42,6 +43,7 @@ export interface SessionCompactionWorkflowContext extends BaseWorkflowContext<
 > {
   readonly resources: SessionCompactionResources;
   snapshot?: SessionSnapshot;
+  execution?: SessionExecutionLease;
   branchId?: SessionBranchId;
   previousCompaction?: SessionCompaction;
   source?: SessionCompactionSource;

@@ -3,7 +3,6 @@ import { parseAgentId } from '@ta-agent/base-identity';
 import type { DatabaseSync } from 'node:sqlite';
 import type { ModelMessage } from '@ta-agent/base-model';
 import {
-  parseSessionBranchId,
   parseSessionId,
   parseTurnId,
   defineSessionTurnPresentation,
@@ -31,7 +30,6 @@ import {
   type SessionReference,
   type SessionSnapshot,
   type SessionInspection,
-  type SessionListPage,
   type SessionMetadataPort,
   type SessionQueryPort,
   type SessionTurnPage,
@@ -39,10 +37,22 @@ import {
   type ListSessionTurnsInput,
   type SessionTurn,
   type RenameSessionInput,
+  type SessionWriteAuthority,
+  type SessionExecutionLease,
+  type SessionLifecycleMutationInput,
+  type PurgeSessionInput,
+  type RecoverSessionExecutionsInput,
+  type SessionLifecycleInspection,
+  type SessionLifecycleListPage,
+  type ListRetiredSessionsInput,
+  type RetiredSessionListPage,
+  AgentSessionError,
 } from '@ta-agent/base-session';
 import {
   defineSqliteDatabaseConfiguration,
   useSqliteDatabase,
+  runImmediateTransaction,
+  runReadTransaction,
   type SqliteDatabaseConfiguration,
 } from './database.js';
 import {
@@ -53,8 +63,8 @@ import {
 import {
   applySqliteSessionNavigation,
   loadSqliteSessionSnapshot,
-  resolveSqliteSession,
 } from './session-navigation-storage.js';
+import { createSqliteSession, openSqliteSession } from './session-resolution.js';
 import { normalizeReference } from './session-record-codec.js';
 import {
   beginSqliteSessionTurn,
@@ -66,8 +76,20 @@ import {
   inspectSqliteSession,
   listSqliteSessions,
   listSqliteSessionTurns,
+  listRetiredSqliteSessions,
 } from './session-query-storage.js';
 import { renameSqliteSession } from './session-metadata-storage.js';
+import {
+  readSqliteLifecycle,
+  assertSqliteSessionOpen,
+  assertSqliteSessionWrite,
+  advanceSqliteExecution,
+  acquireSqliteExecution,
+  releaseSqliteExecution,
+  transitionSqliteSession,
+  purgeSqliteSession,
+  recoverSqliteSession,
+} from './session-lifecycle-storage.js';
 import { readSqliteTurnPresentation } from './session-presentation-storage.js';
 import { assertSessionSchema, configureDefensiveMode, initializeSessionSchema } from './schema.js';
 import {
@@ -79,68 +101,20 @@ import {
 
 export interface SqliteSessionAdapterOptions extends SqliteSessionTableNamingInput {
   readonly databasePath: string;
+  /** Management readers require an existing schema rather than initializing a new table family. */
+  readonly schemaMode?: 'initialize' | 'existing';
+  /** Must issue fresh, never-reused IDs, including across adapter reconstruction. */
   readonly createSessionId?: () => string;
   readonly createBranchId?: () => string;
   readonly clock?: () => number;
   readonly busyTimeoutMilliseconds?: number;
 }
 
-function normalizeResolvedReference(request: BeginSessionTurnRequest): BeginSessionTurnRequest {
-  return Object.freeze({
-    agentId: parseAgentId(request.agentId),
-    sessionId: parseSessionId(request.sessionId),
-    branchId: parseSessionBranchId(request.branchId),
-    navigationRevision: request.navigationRevision,
-    turnId: parseTurnId(request.turnId),
-    userMessage: request.userMessage,
-  });
-}
-
-function normalizeBranchReference(reference: SessionBranchReference): SessionBranchReference {
-  return Object.freeze({
-    ...normalizeReference(reference),
-    branchId: parseSessionBranchId(reference.branchId),
-  });
-}
-
-function normalizeNavigationRequest(
-  request: ApplySessionNavigationRequest
-): ApplySessionNavigationRequest {
-  const reference = normalizeReference(request);
-  const command = request.command;
-  if (command.operation === 'select') {
-    return Object.freeze({
-      ...reference,
-      command: Object.freeze({
-        ...command,
-        branchId: parseSessionBranchId(command.branchId),
-      }),
-    });
-  }
-  if (command.operation === 'fork') {
-    return Object.freeze({
-      ...reference,
-      command: Object.freeze({
-        ...command,
-        sourceBranchId: parseSessionBranchId(command.sourceBranchId),
-        throughTurnId: parseTurnId(command.throughTurnId),
-        ...(command.newBranchId === undefined
-          ? {}
-          : { newBranchId: parseSessionBranchId(command.newBranchId) }),
-      }),
-    });
-  }
-  return Object.freeze({
-    ...reference,
-    command: Object.freeze({
-      ...command,
-      throughTurnId: parseTurnId(command.throughTurnId),
-      ...(command.newBranchId === undefined
-        ? {}
-        : { newBranchId: parseSessionBranchId(command.newBranchId) }),
-    }),
-  });
-}
+import {
+  normalizeResolvedReference,
+  normalizeBranchReference,
+  normalizeNavigationRequest,
+} from './session-input.js';
 
 export class SqliteSessionAdapter
   implements
@@ -158,6 +132,16 @@ export class SqliteSessionAdapter
   readonly #tableNames: SqliteSessionTableNames;
 
   constructor(options: SqliteSessionAdapterOptions) {
+    if (
+      options.schemaMode !== undefined &&
+      options.schemaMode !== 'initialize' &&
+      options.schemaMode !== 'existing'
+    ) {
+      throw new AgentSessionError(
+        'SESSION_CONFIGURATION_INVALID',
+        'SQLite Session schema mode is invalid.'
+      );
+    }
     this.#tableNames = resolveSqliteSessionTableNames(options);
     this.#configuration = defineSqliteDatabaseConfiguration(
       options.databasePath,
@@ -167,7 +151,8 @@ export class SqliteSessionAdapter
     this.#createBranchId = options.createBranchId ?? randomUUID;
     this.#clock = options.clock ?? Date.now;
     useSqliteDatabase(this.#configuration, 'initialize schema', (database) => {
-      initializeSessionSchema(database, this.#tableNames);
+      if (options.schemaMode === 'existing') assertSessionSchema(database, this.#tableNames);
+      else initializeSessionSchema(database, this.#tableNames);
       configureDefensiveMode(database);
     });
   }
@@ -176,17 +161,23 @@ export class SqliteSessionAdapter
     return Promise.resolve().then(() => {
       const reference = Object.freeze({
         agentId: parseAgentId(request.agentId),
-        sessionId: parseSessionId(request.requestedSessionId ?? this.#createSessionId()),
+        sessionId: parseSessionId(
+          request.sessionId === undefined ? this.#createSessionId() : request.sessionId
+        ),
       });
-      return this.#useDatabase('resolve session', (database) =>
-        resolveSqliteSession(database, reference, this.#clock, this.#tableNames)
-      );
+      return this.#useDatabase('resolve session', (database) => {
+        if (request.sessionId !== undefined)
+          assertSqliteSessionOpen(database, reference, this.#tableNames);
+        return request.sessionId === undefined
+          ? createSqliteSession(database, reference, this.#clock, this.#tableNames)
+          : openSqliteSession(database, reference, this.#tableNames);
+      });
     });
   }
 
   beginTurn(request: BeginSessionTurnRequest): Promise<ActiveSessionTurn> {
     return Promise.resolve().then(() =>
-      this.#useDatabase('begin turn', (database) =>
+      this.#write(request, 'begin turn', (database) =>
         beginSqliteSessionTurn(
           database,
           normalizeResolvedReference(request),
@@ -228,7 +219,7 @@ export class SqliteSessionAdapter
         turnId: parseTurnId(request.turnId),
         assistantMessage: request.assistantMessage,
       };
-      return this.#useDatabase('complete turn', (database) =>
+      return this.#write(request, 'complete turn', (database) =>
         completeSqliteSessionTurn(database, normalized, this.#clock, this.#tableNames)
       );
     });
@@ -241,7 +232,7 @@ export class SqliteSessionAdapter
         turnId: parseTurnId(request.turnId),
         failureCode: request.failureCode,
       };
-      return this.#useDatabase('fail turn', (database) =>
+      return this.#write(request, 'fail turn', (database) =>
         failSqliteSessionTurn(database, normalized, this.#clock, this.#tableNames)
       );
     });
@@ -257,7 +248,7 @@ export class SqliteSessionAdapter
         turnId: parseTurnId(request.turnId),
         assistantMessage: request.assistantMessage,
       };
-      return this.#useDatabase('complete turn with presentation', (database) =>
+      return this.#write(request, 'complete turn with presentation', (database) =>
         completeSqliteSessionTurn(database, normalized, this.#clock, this.#tableNames, presentation)
       );
     });
@@ -293,7 +284,7 @@ export class SqliteSessionAdapter
     });
   }
 
-  listSessions(input: ListSessionsInput): Promise<SessionListPage> {
+  listSessions(input: ListSessionsInput): Promise<SessionLifecycleListPage> {
     return Promise.resolve().then(() =>
       this.#useDatabase('list sessions', (database) =>
         listSqliteSessions(database, input, this.#tableNames)
@@ -301,10 +292,72 @@ export class SqliteSessionAdapter
     );
   }
 
-  inspectSession(reference: SessionReference): Promise<SessionInspection | undefined> {
+  inspectSession(reference: SessionReference): Promise<SessionLifecycleInspection | undefined> {
     return Promise.resolve().then(() =>
       this.#useDatabase('inspect session', (database) =>
-        inspectSqliteSession(database, reference, this.#tableNames)
+        runReadTransaction(database, () => {
+          const summary = inspectSqliteSession(database, reference, this.#tableNames);
+          return summary === undefined
+            ? undefined
+            : Object.freeze({
+                ...summary,
+                execution: readSqliteLifecycle(database, reference, this.#tableNames).fence,
+              });
+        })
+      )
+    );
+  }
+
+  listRetiredSessions(input: ListRetiredSessionsInput): Promise<RetiredSessionListPage> {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('list retired sessions', (db) =>
+        runReadTransaction(db, () => listRetiredSqliteSessions(db, input, this.#tableNames))
+      )
+    );
+  }
+
+  retireSession(input: SessionLifecycleMutationInput) {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('retire session', (db) =>
+        transitionSqliteSession(db, input, 'retire', this.#clock, this.#tableNames)
+      )
+    );
+  }
+
+  restoreSession(input: SessionLifecycleMutationInput) {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('restore session', (db) =>
+        transitionSqliteSession(db, input, 'restore', this.#clock, this.#tableNames)
+      )
+    );
+  }
+
+  acquireSessionExecution(reference: SessionReference) {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('acquire execution', (db) =>
+        acquireSqliteExecution(db, normalizeReference(reference), this.#tableNames)
+      )
+    );
+  }
+
+  releaseSessionExecution(lease: SessionExecutionLease): Promise<void> {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('release execution', (db) =>
+        releaseSqliteExecution(db, lease, this.#tableNames)
+      )
+    );
+  }
+
+  purgeSession(input: PurgeSessionInput): Promise<void> {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('purge session', (db) => purgeSqliteSession(db, input, this.#tableNames))
+    );
+  }
+
+  recoverSessionExecutions(input: RecoverSessionExecutionsInput) {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('recover session', (db) =>
+        recoverSqliteSession(db, input, this.#clock, this.#tableNames)
       )
     );
   }
@@ -320,14 +373,19 @@ export class SqliteSessionAdapter
   renameSession(input: RenameSessionInput): Promise<SessionInspection> {
     return Promise.resolve().then(() =>
       this.#useDatabase('rename session', (database) =>
-        renameSqliteSession(database, input, this.#clock, this.#tableNames)
+        runImmediateTransaction(database, () => {
+          if (readSqliteLifecycle(database, input, this.#tableNames).fence.state === 'recovering') {
+            throw new AgentSessionError('SESSION_BUSY', 'Session recovery is unsettled.');
+          }
+          return renameSqliteSession(database, input, this.#clock, this.#tableNames);
+        })
       )
     );
   }
 
   applyNavigation(request: ApplySessionNavigationRequest): Promise<AppliedSessionNavigation> {
     return Promise.resolve().then(() =>
-      this.#useDatabase('apply navigation', (database) =>
+      this.#write(request, 'apply navigation', (database) =>
         applySqliteSessionNavigation(
           database,
           normalizeNavigationRequest(request),
@@ -356,10 +414,25 @@ export class SqliteSessionAdapter
         throughTurnId: parseTurnId(request.throughTurnId),
         context: request.context,
       };
-      return this.#useDatabase('commit compaction', (database) =>
+      return this.#write(request, 'commit compaction', (database) =>
         commitSqliteSessionCompaction(database, normalized, this.#clock, this.#tableNames)
       );
     });
+  }
+
+  #write<T>(
+    request: SessionReference & SessionWriteAuthority,
+    operation: string,
+    action: (db: DatabaseSync) => T
+  ): T {
+    return this.#useDatabase(operation, (db) =>
+      runImmediateTransaction(db, () => {
+        assertSqliteSessionWrite(db, request, this.#tableNames);
+        const result = action(db);
+        advanceSqliteExecution(db, request, this.#tableNames);
+        return result;
+      })
+    );
   }
 
   #useDatabase<T>(operation: string, action: (database: DatabaseSync) => T): T {

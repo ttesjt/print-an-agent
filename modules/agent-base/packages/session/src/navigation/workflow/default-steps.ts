@@ -1,5 +1,6 @@
 import type { StepOverrides } from '@ta-agent/base-workflow';
 import { AgentSessionError } from '../../errors.js';
+import { supportsSessionExecution } from '../../lifecycle/execution.js';
 import { parseSessionBranchId, parseSessionId, parseTurnId } from '../../identifiers.js';
 import { toSessionNavigationSnapshot } from '../lineage.js';
 import type {
@@ -120,6 +121,12 @@ function validateSessionNavigation(context: SessionNavigationWorkflowContext): P
 
 async function inspectSessionNavigation(context: SessionNavigationWorkflowContext): Promise<void> {
   const { command, sessionId } = requireCommand(context);
+  if (command.operation !== 'inspect' && supportsSessionExecution(context.resources.session)) {
+    context.execution = await context.resources.session.acquireSessionExecution({
+      agentId: context.agentRunContext.identity.id,
+      sessionId,
+    });
+  }
   const snapshot = await context.resources.session.inspect({
     agentId: context.agentRunContext.identity.id,
     sessionId,
@@ -157,6 +164,7 @@ async function commitSessionNavigation(context: SessionNavigationWorkflowContext
     agentId: context.agentRunContext.identity.id,
     sessionId,
     command,
+    ...(context.execution === undefined ? {} : { execution: context.execution }),
   });
   const result: SessionNavigationOutcome = Object.freeze({
     status: outcomeStatus(applied.operation),

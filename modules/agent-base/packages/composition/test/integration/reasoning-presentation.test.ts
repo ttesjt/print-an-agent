@@ -6,6 +6,7 @@ import {
   parseSessionId,
   parseTurnId,
   type NavigableCompactableSessionPort,
+  type SessionExecutionPort,
 } from '@ta-agent/base-session';
 import {
   requireInteractionEvent,
@@ -17,7 +18,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { FOREGROUND_AGENT_OPERATION_NAME } from '../../src/index.js';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';
 
-function reference(fixture: ReturnType<typeof interactionAgent>) {
+function reference(fixture: Awaited<ReturnType<typeof interactionAgent>>) {
   return {
     agentId: fixture.agent.identity.id,
     sessionId: parseSessionId('session'),
@@ -30,7 +31,7 @@ describe('Reasoning presentation composition', () => {
     'bounds %s overrides before atomic commit',
     async (stage) => {
       const oversized = 'x'.repeat(MAX_SESSION_PRESENTATION_CHARACTERS + 1);
-      const fixture = interactionAgent(
+      const fixture = await interactionAgent(
         async (request) => {
           await request.emit({ type: 'reasoning-delta', delta: 'small input' });
           const message = interactionMessage();
@@ -76,7 +77,7 @@ describe('Reasoning presentation composition', () => {
     'uses independent registered capture and delivery Steps: %s',
     async (mode) => {
       let savedContext: DefaultRequestWorkflowContext | undefined;
-      const fixture = interactionAgent(
+      const fixture = await interactionAgent(
         async (request) => {
           for (const delta of ['first', 'second'])
             await request.emit({ type: 'reasoning-delta', delta });
@@ -144,7 +145,7 @@ describe('Reasoning presentation composition', () => {
     'discards partial presentation on %s and preserves the failure identity',
     async (mode) => {
       const controller = new AbortController();
-      const fixture = interactionAgent(async (request) => {
+      const fixture = await interactionAgent(async (request) => {
         await request.emit({ type: 'reasoning-delta', delta: 'partial' });
         if (mode === 'engine-failure') throw new Error('engine failed');
         if (mode === 'cancel') controller.abort();
@@ -169,7 +170,7 @@ describe('Reasoning presentation composition', () => {
   );
 
   it('keeps a committed presentation if subsequent output close fails', async () => {
-    const fixture = interactionAgent(async (request) => {
+    const fixture = await interactionAgent(async (request) => {
       await request.emit({ type: 'reasoning-delta', delta: 'complete reason' });
       const message = interactionMessage();
       await request.emit({ type: 'assistant-complete', message });
@@ -184,7 +185,7 @@ describe('Reasoning presentation composition', () => {
   });
 
   it('creates no empty presentation when the Engine emits none', async () => {
-    const fixture = interactionAgent(async (request) => {
+    const fixture = await interactionAgent(async (request) => {
       const message = interactionMessage();
       await request.emit({ type: 'assistant-complete', message });
       return { message };
@@ -197,7 +198,9 @@ describe('Reasoning presentation composition', () => {
 
   it('fails before invocation for an unsupported adapter unless capture is explicitly skipped', async () => {
     const backing = new MemorySessionAdapter();
-    const session: NavigableCompactableSessionPort = {
+    const session: NavigableCompactableSessionPort & SessionExecutionPort = {
+      acquireSessionExecution: backing.acquireSessionExecution.bind(backing),
+      releaseSessionExecution: backing.releaseSessionExecution.bind(backing),
       resolve: backing.resolve.bind(backing),
       beginTurn: backing.beginTurn.bind(backing),
       completeTurn: backing.completeTurn.bind(backing),
@@ -219,7 +222,7 @@ describe('Reasoning presentation composition', () => {
       Promise.resolve().then(() => interactionAgent(engine, { session }))
     ).rejects.toMatchObject({ code: 'SESSION_PRESENTATION_NOT_CONFIGURED' });
     expect(engine).not.toHaveBeenCalled();
-    const fixture = interactionAgent(engine, {
+    const fixture = await interactionAgent(engine, {
       session,
       stepOverrides: { captureReasoningPresentation: { step: SKIP_STEP } },
     });

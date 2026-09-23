@@ -67,12 +67,18 @@ Official Memory and restart-safe SQLite journal implementations live in
 identity.
 
 ```ts
+const { sessionId } = await agent.agent.resources.session.resolve({ agentId: agent.identity.id });
 const response = await agent.run({
-  sessionId: 'conversation',
+  sessionId,
   idempotencyKey: 'client-operation-42',
   message: 'Perform this request once.',
 });
 ```
+
+`AgentRequestInput.sessionId` opens an existing Session only. Omit it to create a fresh Session and
+obtain its identity from `AgentResponse.sessionId` or OutputSink `open`. Supplying an unknown ID fails
+before Journal claim or model execution. An idempotency key requires an existing Session ID; callers
+needing replay for the first turn can explicitly create through the injected Session port first.
 
 The journal persists a request fingerprint rather than input plaintext, plus the final response or a
 bounded failure view. It never stores tool arguments/results, intermediate provider text,

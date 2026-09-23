@@ -6,11 +6,14 @@ import {
   parseSessionId,
   type ListSessionsInput,
   type ListSessionTurnsInput,
-  type SessionInspection,
-  type SessionListPage,
   type SessionReference,
-  type SessionSummary,
   type SessionTurnPage,
+  type SessionLifecycleSummary,
+  type SessionLifecycleListPage,
+  type ListRetiredSessionsInput,
+  type RetiredSessionListPage,
+  normalizeListRetiredSessionsInput,
+  defineSessionLifecycleSnapshot,
 } from '@ta-agent/base-session';
 import type { DatabaseSync } from 'node:sqlite';
 
@@ -27,9 +30,17 @@ import { quoteSqliteIdentifier, type SqliteSessionTableNames } from './table-nam
 const TURN_COLUMNS = `turn_id, status, user_message, assistant_message, failure_code,
   branch_id, parent_turn_id`;
 
-function decodeSummary(row: SqliteRow): SessionSummary {
+function decodeSummary(row: SqliteRow): SessionLifecycleSummary {
   const title = optionalString(row, 'title');
   return Object.freeze({
+    ...defineSessionLifecycleSnapshot({
+      agentId: row.agent_id,
+      sessionId: row.session_id,
+      status: row.lifecycle_status,
+      metadataRevision: row.metadata_revision,
+      metadataUpdatedAt: row.metadata_updated_at,
+      ...(row.retired_at === null ? {} : { retiredAt: row.retired_at }),
+    }),
     agentId: parseAgentId(requireString(row, 'agent_id')),
     sessionId: parseSessionId(requireString(row, 'session_id')),
     ...(title === undefined ? {} : { title }),
@@ -51,7 +62,7 @@ export function listSqliteSessions(
   database: DatabaseSync,
   input: ListSessionsInput,
   tableNames: SqliteSessionTableNames
-): SessionListPage {
+): SessionLifecycleListPage {
   const request = normalizeListSessionsInput(input);
   const cursorFilter =
     request.cursor === undefined
@@ -66,6 +77,7 @@ export function listSqliteSessions(
   const rows = database
     .prepare(
       `SELECT session.agent_id, session.session_id, session.created_at, session.updated_at,
+              session.lifecycle_status, session.retired_at,
               session.title, session.metadata_revision, session.metadata_updated_at,
               session.selected_branch_id, session.navigation_revision,
               (SELECT COUNT(*)
@@ -77,13 +89,15 @@ export function listSqliteSessions(
                WHERE turn.agent_id = session.agent_id
                  AND turn.session_id = session.session_id) AS turn_count
        FROM ${quoteSqliteIdentifier(tableNames.sessions)} AS session
-       WHERE session.agent_id = ? ${cursorFilter}
+       WHERE session.agent_id = ? AND session.lifecycle_status = 'active' ${cursorFilter}
        ORDER BY session.updated_at DESC, session.session_id ASC
        LIMIT ?`
     )
     .all(...parameters) as SqliteRow[];
   const hasMore = rows.length > request.limit;
-  const records = rows.slice(0, request.limit).map(decodeSummary);
+  const records = rows
+    .slice(0, request.limit)
+    .map((row) => Object.freeze({ ...decodeSummary(row), status: 'active' as const }));
   const last = records.at(-1);
   return Object.freeze({
     records: Object.freeze(records),
@@ -102,7 +116,7 @@ export function inspectSqliteSession(
   database: DatabaseSync,
   referenceInput: SessionReference,
   tableNames: SqliteSessionTableNames
-): SessionInspection | undefined {
+): SessionLifecycleSummary | undefined {
   const reference = Object.freeze({
     agentId: parseAgentId(referenceInput.agentId),
     sessionId: parseSessionId(referenceInput.sessionId),
@@ -110,6 +124,7 @@ export function inspectSqliteSession(
   const row = database
     .prepare(
       `SELECT agent_id, session_id, created_at, updated_at, title, metadata_revision,
+              lifecycle_status, retired_at,
               metadata_updated_at, selected_branch_id,
               navigation_revision,
               (SELECT COUNT(*)
@@ -126,6 +141,47 @@ export function inspectSqliteSession(
     .get(reference.agentId, reference.sessionId) as SqliteRow | undefined;
   if (row === undefined) return undefined;
   return decodeSummary(row);
+}
+
+export function listRetiredSqliteSessions(
+  db: DatabaseSync,
+  input: ListRetiredSessionsInput,
+  names: SqliteSessionTableNames
+): RetiredSessionListPage {
+  const request = normalizeListRetiredSessionsInput(input);
+  const cursor = request.cursor;
+  const rows = db
+    .prepare(
+      `SELECT session_id FROM ${quoteSqliteIdentifier(names.sessions)}
+    WHERE agent_id = ? AND lifecycle_status = 'retired'
+    ${cursor === undefined ? '' : 'AND (retired_at < ? OR (retired_at = ? AND session_id > ?))'}
+    ORDER BY retired_at DESC, session_id ASC LIMIT ?`
+    )
+    .all(
+      request.agentId,
+      ...(cursor === undefined ? [] : [cursor.retiredAt, cursor.retiredAt, cursor.sessionId]),
+      request.limit + 1
+    );
+  const records = rows.slice(0, request.limit).map((row) => {
+    const summary = inspectSqliteSession(
+      db,
+      { agentId: request.agentId, sessionId: parseSessionId(row.session_id) },
+      names
+    );
+    if (summary === undefined || summary.status !== 'retired')
+      throw new AgentSessionError(
+        'SESSION_RECORD_INVALID',
+        'Retired Session changed during query.'
+      );
+    return summary;
+  });
+  const last = records.at(-1);
+  return Object.freeze({
+    records: Object.freeze(records),
+    ...(rows.length > request.limit && last !== undefined
+      ? { nextCursor: Object.freeze({ retiredAt: last.retiredAt, sessionId: last.sessionId }) }
+      : {}),
+  });
 }
 
 export function listSqliteSessionTurns(

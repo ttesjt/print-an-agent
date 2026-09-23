@@ -28,16 +28,19 @@ describe('composed Step policy overrides', () => {
         ],
       },
     });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
     for (const message of ['one', 'two', 'three', 'four']) {
-      await expect(agent.run({ message, sessionId: 'conversation' })).resolves.toMatchObject({
+      await expect(agent.run({ message, sessionId: sessionId })).resolves.toMatchObject({
         message: { text: message },
       });
     }
-    await expect(agent.compactSession({ sessionId: 'conversation' })).resolves.toMatchObject({
+    await expect(agent.compactSession({ sessionId: sessionId })).resolves.toMatchObject({
       status: 'compacted',
     });
     await expect(
-      agent.navigateSession({ operation: 'inspect', sessionId: 'conversation' })
+      agent.navigateSession({ operation: 'inspect', sessionId: sessionId })
     ).resolves.toMatchObject({ status: 'inspected' });
     expect(agent.inspectDeterministicProvider().callCount).toBe(5);
   });

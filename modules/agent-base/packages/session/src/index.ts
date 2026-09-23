@@ -12,6 +12,34 @@ export {
   parseTurnId,
 } from './identifiers.js';
 export type * from './types.js';
+export type * from './lifecycle/contracts.js';
+export type * from './lifecycle/execution.js';
+export { supportsSessionExecution } from './lifecycle/execution.js';
+export { parseSessionExecutionId } from './lifecycle/identifiers.js';
+export {
+  defineSessionLifecycleSnapshot,
+  defineSessionExecutionFence,
+  normalizeSessionReference,
+  normalizeSessionLifecycleMutationInput,
+  normalizePurgeSessionInput,
+  normalizeSessionExecutionLease,
+  normalizeRecoverSessionExecutionsInput,
+  normalizeListRetiredSessionsInput,
+  type NormalizedListRetiredSessionsInput,
+} from './lifecycle/validation.js';
+export {
+  requireSessionReference,
+  requireSessionMetadataRevision,
+  assertSessionIdle,
+  assertSessionExecutionAllowed,
+  assertSessionExecutionLease,
+  assertSessionRecoveryRevision,
+} from './lifecycle/guards.js';
+export {
+  retireSessionState,
+  restoreSessionState,
+  assertSessionPurgeAllowed,
+} from './lifecycle/transitions.js';
 export type * from './presentation/contracts.js';
 export { supportsSessionPresentation } from './presentation/contracts.js';
 export {

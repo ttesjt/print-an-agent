@@ -298,10 +298,13 @@ describe('assembled Agent Base request path', () => {
       ),
       provider: { responses: [{ status: 'success', text: 'must not execute' }] },
     });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
     const sink = new LifecycleRecordingOutputSink();
 
     await expect(
-      agent.run({ message: 'hello', sessionId: 'disabled-routing', outputSink: sink })
+      agent.run({ message: 'hello', sessionId: sessionId, outputSink: sink })
     ).rejects.toMatchObject({ code: 'RESPONSIBILITY_UNAVAILABLE' });
     expect(agent.inspectDeterministicProvider().callCount).toBe(0);
     expect(sink.inspect()).toMatchObject({
@@ -312,7 +315,7 @@ describe('assembled Agent Base request path', () => {
       (
         await session.inspect({
           agentId: agent.identity.id,
-          sessionId: parseSessionId('disabled-routing'),
+          sessionId: parseSessionId(sessionId),
         })
       )?.turns
     ).toMatchObject([{ status: 'failed', failureCode: 'RESPONSIBILITY_UNAVAILABLE' }]);
@@ -343,9 +346,12 @@ describe('assembled Agent Base request path', () => {
         return () => ++now;
       })(),
     });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
     const firstSink = new LifecycleRecordingOutputSink();
     const first = await agent.run({
-      sessionId: 'conversation',
+      sessionId: sessionId,
       message: 'My name is Wei.',
       outputSink: firstSink,
     });
@@ -371,7 +377,7 @@ describe('assembled Agent Base request path', () => {
     ).toEqual(['user', 'assistant', 'user']);
     const snapshot = await session.inspect({
       agentId: agent.identity.id,
-      sessionId: parseSessionId('conversation'),
+      sessionId: parseSessionId(sessionId),
     });
     expect(snapshot?.turns.map((turn) => turn.status)).toEqual(['completed', 'completed']);
     const serializedSecondTrace = JSON.stringify(
@@ -397,8 +403,11 @@ describe('assembled Agent Base request path', () => {
         session: firstSession,
         provider: { responses: [{ status: 'success', text: 'Remembered.' }] },
       });
+      const { sessionId } = await firstAgent.agent.resources.session.resolve({
+        agentId: firstAgent.identity.id,
+      });
       const first = await firstAgent.run({
-        sessionId: 'durable-conversation',
+        sessionId: sessionId,
         message: 'Remember this.',
       });
 
@@ -423,7 +432,7 @@ describe('assembled Agent Base request path', () => {
       expect(second.message.text).toBe('history:user,assistant,user');
       const snapshot = await reopenedSession.inspect({
         agentId: reopenedAgent.identity.id,
-        sessionId: parseSessionId('durable-conversation'),
+        sessionId: parseSessionId(sessionId),
       });
       expect(snapshot?.turns.map((turn) => turn.status)).toEqual(['completed', 'completed']);
       const independentlyReopened = new SqliteSessionAdapter({ databasePath });
@@ -431,7 +440,7 @@ describe('assembled Agent Base request path', () => {
         (
           await independentlyReopened.inspect({
             agentId: reopenedAgent.identity.id,
-            sessionId: parseSessionId('durable-conversation'),
+            sessionId: parseSessionId(sessionId),
           })
         )?.turns.map((turn) => turn.status)
       ).toEqual(['completed', 'completed']);
@@ -480,8 +489,11 @@ describe('assembled Agent Base request path', () => {
           ],
         },
       });
+      const { sessionId } = await firstAgent.agent.resources.session.resolve({
+        agentId: firstAgent.identity.id,
+      });
       const first = await firstAgent.run({
-        sessionId: 'replay-conversation',
+        sessionId: sessionId,
         idempotencyKey: 'logical-request-1',
         message: 'add two and three',
       });
@@ -506,7 +518,7 @@ describe('assembled Agent Base request path', () => {
       });
       const replaySink = new LifecycleRecordingOutputSink();
       const replayed = await reopenedAgent.run({
-        sessionId: 'replay-conversation',
+        sessionId: sessionId,
         idempotencyKey: 'logical-request-1',
         message: 'add two and three',
         outputSink: replaySink,
@@ -521,13 +533,13 @@ describe('assembled Agent Base request path', () => {
         (
           await reopenedSession.inspect({
             agentId: reopenedAgent.identity.id,
-            sessionId: parseSessionId('replay-conversation'),
+            sessionId: parseSessionId(sessionId),
           })
         )?.turns
       ).toHaveLength(1);
       const journalEntry = await reopenedJournal.inspect({
         agentId: reopenedAgent.identity.id,
-        sessionId: parseSessionId('replay-conversation'),
+        sessionId: parseSessionId(sessionId),
         idempotencyKey: parseRequestIdempotencyKey('logical-request-1'),
       });
       expect(journalEntry).toMatchObject({ status: 'completed', requestId: 'original-request' });
@@ -563,7 +575,7 @@ describe('assembled Agent Base request path', () => {
       provider: { responses: [{ status: 'success', text: 'must not execute' }] },
     });
     const agentId = agent.identity.id;
-    const sessionId = parseSessionId('replay-guards');
+    const { sessionId } = await session.resolve({ agentId });
     const activeKey = parseRequestIdempotencyKey('active-key');
     const failedKey = parseRequestIdempotencyKey('failed-key');
     const conflictKey = parseRequestIdempotencyKey('conflict-key');
@@ -647,11 +659,14 @@ describe('assembled Agent Base request path', () => {
         tokensPerSecond: 1_000,
       },
     });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
 
     await expect(
       agent.run(
         {
-          sessionId: 'cancelled',
+          sessionId: sessionId,
           idempotencyKey: 'cancelled-request',
           message: 'start',
           outputSink: sink,
@@ -669,7 +684,7 @@ describe('assembled Agent Base request path', () => {
     });
     const snapshot = await session.inspect({
       agentId: agent.identity.id,
-      sessionId: parseSessionId('cancelled'),
+      sessionId: parseSessionId(sessionId),
     });
     expect(snapshot?.turns[0]).toMatchObject({
       status: 'failed',
@@ -678,7 +693,7 @@ describe('assembled Agent Base request path', () => {
     expect(
       await journal.inspect({
         agentId: agent.identity.id,
-        sessionId: parseSessionId('cancelled'),
+        sessionId: parseSessionId(sessionId),
         idempotencyKey: parseRequestIdempotencyKey('cancelled-request'),
       })
     ).toMatchObject({
@@ -706,10 +721,13 @@ describe('assembled Agent Base request path', () => {
         charactersPerChunk: 3,
       },
     });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
 
     await expect(
       agent.run({
-        sessionId: 'failure',
+        sessionId: sessionId,
         idempotencyKey: 'failure-request',
         message: 'start',
         outputSink: sink,
@@ -728,7 +746,7 @@ describe('assembled Agent Base request path', () => {
     expect(
       await journal.inspect({
         agentId: agent.identity.id,
-        sessionId: parseSessionId('failure'),
+        sessionId: parseSessionId(sessionId),
         idempotencyKey: parseRequestIdempotencyKey('failure-request'),
       })
     ).toMatchObject({ status: 'failed', failure: { code: 'MODEL_PROVIDER_FAILED' } });
@@ -753,10 +771,13 @@ describe('assembled Agent Base request path', () => {
       observability: { sink: trace, clock: () => 1 },
       provider: { responses: [{ status: 'success', text: 'persisted' }] },
     });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
 
     await expect(
       agent.run({
-        sessionId: 'close-failure',
+        sessionId: sessionId,
         idempotencyKey: 'close-failure-request',
         message: 'start',
         outputSink: sink,
@@ -766,7 +787,7 @@ describe('assembled Agent Base request path', () => {
     );
     const snapshot = await session.inspect({
       agentId: agent.identity.id,
-      sessionId: parseSessionId('close-failure'),
+      sessionId: parseSessionId(sessionId),
     });
     expect(snapshot?.turns[0]).toMatchObject({
       status: 'completed',
@@ -779,7 +800,7 @@ describe('assembled Agent Base request path', () => {
     expect(
       await journal.inspect({
         agentId: agent.identity.id,
-        sessionId: parseSessionId('close-failure'),
+        sessionId: parseSessionId(sessionId),
         idempotencyKey: parseRequestIdempotencyKey('close-failure-request'),
       })
     ).toMatchObject({ status: 'completed', response: { message: { text: 'persisted' } } });
@@ -798,15 +819,18 @@ describe('assembled Agent Base request path', () => {
       session,
       provider: { responses: [{ status: 'success', text: 'not published' }] },
     });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
 
     await expect(
-      agent.run({ sessionId: 'write-failure', message: 'start', outputSink: sink })
+      agent.run({ sessionId: sessionId, message: 'start', outputSink: sink })
     ).rejects.toEqual(
       expect.objectContaining<Partial<AgentRequestError>>({ code: 'REQUEST_OUTPUT_FAILED' })
     );
     const snapshot = await session.inspect({
       agentId: agent.identity.id,
-      sessionId: parseSessionId('write-failure'),
+      sessionId: parseSessionId(sessionId),
     });
     expect(snapshot?.turns[0]).toMatchObject({
       status: 'failed',
@@ -824,10 +848,13 @@ describe('assembled Agent Base request path', () => {
       identity: { id: 'assistant' },
       provider: { responses: [{ status: 'failure', message: 'provider failed' }] },
     });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
 
     let received: unknown;
     try {
-      await agent.run({ sessionId: 'aggregate', message: 'start', outputSink: sink });
+      await agent.run({ sessionId: sessionId, message: 'start', outputSink: sink });
     } catch (error: unknown) {
       received = error;
     }
@@ -940,13 +967,16 @@ describe('assembled Agent Base request path', () => {
           ],
         },
       });
+      const { sessionId } = await first.agent.resources.session.resolve({
+        agentId: first.identity.id,
+      });
       for (let index = 1; index <= 4; index += 1) {
-        await first.run({ message: `PRIVATE_USER_${index}`, sessionId: 'conversation' });
+        await first.run({ message: `PRIVATE_USER_${index}`, sessionId: sessionId });
       }
 
-      await expect(first.compactSession({ sessionId: 'conversation' })).resolves.toEqual({
+      await expect(first.compactSession({ sessionId: sessionId })).resolves.toEqual({
         status: 'compacted',
-        sessionId: 'conversation',
+        sessionId: sessionId,
         branchId: 'main',
         revision: 1,
         throughTurnId: 'request-2',
@@ -965,7 +995,7 @@ describe('assembled Agent Base request path', () => {
       });
       const requestAfterCompaction = {
         message: 'PRIVATE_USER_5',
-        sessionId: 'conversation',
+        sessionId: sessionId,
         idempotencyKey: 'after-compaction',
       } as const;
       const firstAfterCompaction = await reopened.run(requestAfterCompaction);
@@ -985,7 +1015,7 @@ describe('assembled Agent Base request path', () => {
         (
           await reopenedSession.inspect({
             agentId: reopened.identity.id,
-            sessionId: parseSessionId('conversation'),
+            sessionId: parseSessionId(sessionId),
           })
         )?.turns
       ).toHaveLength(5);
@@ -1023,12 +1053,15 @@ describe('assembled Agent Base request path', () => {
         ],
       },
     });
-    await agent.run({ message: 'one', sessionId: 'short' });
-    await agent.run({ message: 'two', sessionId: 'short' });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
+    await agent.run({ message: 'one', sessionId: sessionId });
+    await agent.run({ message: 'two', sessionId: sessionId });
 
-    await expect(agent.compactSession({ sessionId: 'short' })).resolves.toEqual({
+    await expect(agent.compactSession({ sessionId: sessionId })).resolves.toEqual({
       status: 'skipped',
-      sessionId: 'short',
+      sessionId: sessionId,
       branchId: 'main',
       reason: 'not-needed',
     });
@@ -1106,16 +1139,17 @@ describe('assembled Agent Base request path', () => {
       createCompactionRunId: () => 'custom-compaction',
       observability: { sink: trace, clock: () => 1 },
     });
+    const { sessionId } = await agent.resources.session.resolve({ agentId: agent.identity.id });
 
     for (const message of ['one', 'two', 'three', 'four']) {
       await agent.invoke(FOREGROUND_AGENT_OPERATION_NAME, {
         message,
-        sessionId: 'custom-routing',
+        sessionId: sessionId,
       });
     }
     await expect(
       agent.invoke(SESSION_COMPACTION_AGENT_OPERATION_NAME, {
-        sessionId: 'custom-routing',
+        sessionId: sessionId,
       })
     ).resolves.toMatchObject({ status: 'compacted', compactedTurnCount: 2 });
 
@@ -1181,15 +1215,18 @@ describe('assembled Agent Base request path', () => {
           ],
         },
       });
+      const { sessionId } = await first.agent.resources.session.resolve({
+        agentId: first.identity.id,
+      });
       for (let index = 1; index <= 4; index += 1) {
         await first.run({
           message: `PRIVATE_MAIN_USER_${index}`,
-          sessionId: 'branching',
+          sessionId: sessionId,
         });
       }
-      await first.compactSession({ sessionId: 'branching' });
+      await first.compactSession({ sessionId: sessionId });
       const inspected = await first.navigateSession({
-        sessionId: 'branching',
+        sessionId: sessionId,
         operation: 'inspect',
       });
       expect(inspected).toMatchObject({
@@ -1198,7 +1235,7 @@ describe('assembled Agent Base request path', () => {
       });
       await expect(
         first.navigateSession({
-          sessionId: 'branching',
+          sessionId: sessionId,
           operation: 'rewind',
           throughTurnId: 'branch-request-2',
           newBranchId: childBranchId,
@@ -1206,14 +1243,14 @@ describe('assembled Agent Base request path', () => {
         })
       ).resolves.toEqual({
         status: 'rewound',
-        sessionId: 'branching',
+        sessionId: sessionId,
         selectedBranchId: childBranchId,
         affectedBranchId: childBranchId,
         revision: 5,
       });
       const childRequest = {
         message: 'PRIVATE_CHILD_USER',
-        sessionId: 'branching',
+        sessionId: sessionId,
         idempotencyKey: 'child-request',
       } as const;
       const childResponse = await first.run(childRequest);
@@ -1227,7 +1264,7 @@ describe('assembled Agent Base request path', () => {
 
       await expect(
         first.navigateSession({
-          sessionId: 'branching',
+          sessionId: sessionId,
           operation: 'select',
           branchId: DEFAULT_SESSION_BRANCH_ID,
           expectedRevision: 6,
@@ -1261,7 +1298,7 @@ describe('assembled Agent Base request path', () => {
       });
       const mainResponse = await reopened.run({
         message: 'PRIVATE_MAIN_USER_5',
-        sessionId: 'branching',
+        sessionId: sessionId,
       });
       expect(mainResponse.branchId).toBe(DEFAULT_SESSION_BRANCH_ID);
       const serializedMainRequest = JSON.stringify(
@@ -1276,7 +1313,7 @@ describe('assembled Agent Base request path', () => {
       expect(reopened.inspectDeterministicProvider().callCount).toBe(1);
       const snapshot = await reopenedSession.inspect({
         agentId: reopened.identity.id,
-        sessionId: parseSessionId('branching'),
+        sessionId: parseSessionId(sessionId),
       });
       expect(snapshot?.navigation).toMatchObject({
         revision: 8,
@@ -1327,10 +1364,13 @@ describe('assembled Agent Base request path', () => {
         ],
       },
     });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
     for (const message of ['one', 'two', 'three', 'four']) {
-      await agent.run({ message, sessionId: 'override' });
+      await agent.run({ message, sessionId: sessionId });
     }
-    await expect(agent.compactSession({ sessionId: 'override' })).resolves.toMatchObject({
+    await expect(agent.compactSession({ sessionId: sessionId })).resolves.toMatchObject({
       status: 'compacted',
       revision: 1,
     });
@@ -1416,14 +1456,17 @@ describe('assembled Agent Base request path', () => {
       createRunId: () => 'navigation-base-request',
       provider: { responses: [{ status: 'success', text: 'base' }] },
     });
-    await agent.run({ message: 'base', sessionId: 'cancel-navigation' });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
+    await agent.run({ message: 'base', sessionId: sessionId });
     const controller = new AbortController();
     controller.abort();
 
     await expect(
       agent.navigateSession(
         {
-          sessionId: 'cancel-navigation',
+          sessionId: sessionId,
           operation: 'select',
           branchId: DEFAULT_SESSION_BRANCH_ID,
           expectedRevision: 1,
@@ -1432,7 +1475,7 @@ describe('assembled Agent Base request path', () => {
       )
     ).rejects.toBeDefined();
     await expect(
-      agent.navigateSession({ sessionId: 'cancel-navigation', operation: 'inspect' })
+      agent.navigateSession({ sessionId: sessionId, operation: 'inspect' })
     ).resolves.toMatchObject({ navigation: { revision: 1 } });
   });
 

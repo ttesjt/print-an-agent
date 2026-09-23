@@ -13,6 +13,7 @@ export interface AgentBaseCliRuntime {
     options: Readonly<{
       signal: AbortSignal;
       writeTextDelta(delta: string): Promise<void>;
+      sessionOpened(sessionId: string): Promise<void>;
     }>
   ): Promise<unknown>;
   compactSession(

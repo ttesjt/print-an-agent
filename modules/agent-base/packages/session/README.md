@@ -7,6 +7,23 @@ The package defines Session ports and domain behavior without selecting a concre
 implementation. Official process-local Memory and durable SQLite implementations live in
 `@ta-agent/base-local-adapters`.
 
+`sessionId` is the sole immutable, opaque Session identity. Adapters allocate fresh IDs and must
+never reassign them, including after deletion or reconstruction. Official adapters default to UUIDs;
+custom generators may use other reliable IDs within the validated bounded string format. `title`
+is the existing optional, mutable, non-unique human-readable label; it does not select identity.
+
+`resolve({ agentId })` creates a new Session. Supplying `sessionId` only opens an existing
+Session owned by that Agent; an unknown ID returns `SESSION_NOT_FOUND`, never an implicit creation.
+Generated collisions within an adapter's store return `SESSION_ID_CONFLICT`, without modifying or
+returning the existing Session. A custom generator is responsible for avoiding reuse across deleted
+records or independent stores; the framework does not maintain a global ID registry or tombstones.
+
+Session Lifecycle has separate query, retire/restore, optional purge, execution-fence and recovery
+contracts with pure validation/authority helpers. See [lifecycle contract](docs/lifecycle.md) for
+state, CAS, busy, stale-reference and cleanup semantics. Official local adapters implement these
+capabilities, and runtime Workflows propagate execution leases. No Agent/Workflow management API
+is added; lifecycle management remains a separate capability.
+
 ```ts
 import { createDeterministicAgentAPI } from '@ta-agent/base-composition';
 import { SqliteSessionAdapter } from '@ta-agent/base-local-adapters';
@@ -81,9 +98,11 @@ inside foreground response production.
 
 This durable profile intentionally retains a bounded navigation surface. Branch merge, rename,
 delete, pruning, retention, cross-Session clone, backup policy, encryption, automatic compaction
-scheduling, and multi-process ownership remain separate capabilities. A caller recovering from a
-known process interruption must identify the exact active Turn ID and call `failTurn`; merely opening
-the database never rewrites active turns.
+scheduling, and distributed coordination remain separate capabilities. SQLite executions stay busy
+across restart; opening a database never rewrites active turns. Explicit recovery revokes credentials
+and fails interrupted work. A runtime using Request Journal must use the local adapter profile's
+coordinated `maintenance` capability to reconcile both domains before reopening admission; Session
+recovery alone does not certify Journal recovery.
 
 The core contract remains storage-agnostic. Future file, product-database, or Pi Session adapters can
 replace these implementations without exposing their types to request or workflow logic.

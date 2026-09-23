@@ -28,7 +28,7 @@ describe('reasoning streaming', () => {
   it('separates live reasoning from final text, Session history, replay, and trace content', async () => {
     const histories: string[] = [];
     let sequence = 0;
-    const fixture = interactionAgent(
+    const fixture = await interactionAgent(
       async (request) => {
         histories.push(JSON.stringify(request.history));
         await request.emit({ type: 'reasoning-delta', delta: 'PRIVATE_REASONING' });
@@ -85,7 +85,7 @@ describe('reasoning streaming', () => {
     'supports %s through the ordinary Step Registry',
     async (mode) => {
       const seen: string[] = [];
-      const fixture = interactionAgent(
+      const fixture = await interactionAgent(
         async (request) => {
           for (const delta of ['first', 'second'])
             await request.emit({ type: 'reasoning-delta', delta });
@@ -123,7 +123,7 @@ describe('reasoning streaming', () => {
     'enforces cumulative reasoning budget before %s delivery with a stable failure',
     async (mode) => {
       const delivered = vi.fn(() => Promise.resolve());
-      const fixture = interactionAgent(
+      const fixture = await interactionAgent(
         async (request) => {
           try {
             for (const delta of ['abc', 'def']) {
@@ -180,7 +180,7 @@ describe('reasoning streaming', () => {
   );
 
   it('allows exactly the configured reasoning limit independently of the text budget', async () => {
-    const fixture = interactionAgent(
+    const fixture = await interactionAgent(
       async (request) => {
         await request.emit({ type: 'reasoning-delta', delta: '12345' });
         await request.emit({ type: 'text-delta', delta: 'AB' });
@@ -200,7 +200,7 @@ describe('reasoning streaming', () => {
   });
 
   it('rejects reasoning emitted after terminal without committing the Session', async () => {
-    const fixture = interactionAgent(async (request) => {
+    const fixture = await interactionAgent(async (request) => {
       const message = interactionMessage();
       await request.emit({ type: 'assistant-complete', message });
       await request.emit({ type: 'reasoning-delta', delta: 'late' });

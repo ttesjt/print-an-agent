@@ -58,3 +58,46 @@ credential persistence are intentionally absent.
 multiple Agents in one explicitly configured SQLite database. Existing domain tables remain isolated
 by Agent ID. A versioned publication marker hides interrupted provisioning until an exact retry can
 complete it. This profile creates no Agent directories and has no manifest projection requirement.
+
+## Session management
+
+`createManagedStandaloneSessionService()` accepts an Agent namespace resolver and a narrow Session
+management port factory. Its methods do not construct a runtime Agent or read provider credentials.
+The official `createStandaloneDirectorySessionService()` and
+`createSharedSqliteStandaloneSessionService()` constructors select the corresponding SQLite
+namespace and table naming profile. They are separate entry points from the Agent registry; use the
+same root or database path and the same `sqlite` options when constructing both.
+The management constructors require the selected Session and Journal schemas to already exist:
+omitting a custom table prefix or table-name override fails instead of silently creating a new,
+empty table family. A database containing multiple complete table families cannot reveal which
+one the host intended, so the host must still supply the registry's exact naming options.
+
+```ts
+import {
+  createStandaloneAgentDirectory,
+  createStandaloneDirectorySessionService,
+} from '@ta-agent/base-standalone-agent';
+
+const rootDirectory = '/explicit/application/agents';
+const agents = createStandaloneAgentDirectory({
+  rootDirectory,
+  readEnvironmentVariable: (name) => process.env[name],
+});
+const sessions = createStandaloneDirectorySessionService({ rootDirectory });
+const agent = await agents.create(manifest);
+const active = await sessions.list({ agentId: agent.identity.identity.id, limit: 20 });
+```
+
+The service exposes active and retired lists, exact lifecycle inspection, bounded Turn pagination,
+metadata-CAS retire/restore, explicit coordinated Session + Request Journal purge, and explicit
+recovery by execution revision. `purge` requires the exact confirmation literal. Retired Sessions
+remain readable, including their Turn ledger. A disabled Agent's namespace remains manageable;
+disabling only prevents runtime opening. Missing Agent namespaces produce
+`STANDALONE_AGENT_NOT_FOUND`; missing Session reads follow the underlying query port's `undefined`
+semantics. Busy, conflict, stale-credential, and purge errors retain their Session domain codes.
+
+The generic service requires a `CoordinatedSessionMaintenance` port for purge and recovery, so a
+custom composition cannot claim Session + Journal cleanup by supplying only a Session adapter. It
+checks the exact Agent namespace before obtaining management ports and binds request identity before
+asynchronous resolution. Authorization for management actions belongs to the calling application.
+The service does not add methods to `Agent`, `AgentAPI`, Agent Operations, or the Agent registry.

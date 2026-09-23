@@ -119,6 +119,7 @@ export function resolveSqliteSessionTableNames(
   });
   const compactionStagingTable = sessionCompactionMigrationTableName(tableNames);
   const activityIndex = sessionActivityIndexName(tableNames);
+  const retirementIndex = sessionRetirementIndexName(tableNames);
   assertDistinct([
     tableNames.schema,
     tableNames.sessions,
@@ -127,6 +128,11 @@ export function resolveSqliteSessionTableNames(
     tableNames.compactions,
     compactionStagingTable,
     activityIndex,
+    retirementIndex,
   ]);
   return tableNames;
+}
+
+export function sessionRetirementIndexName(tableNames: SqliteSessionTableNames): string {
+  return validateIdentifier(`${tableNames.sessions}_retired_idx`);
 }

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { parseAgentId } from '@ta-agent/base-identity';
 import { type ModelMessage } from '@ta-agent/base-model';
 import {
   AgentSessionError,
@@ -10,7 +11,6 @@ import {
   type CompleteSessionTurnWithPresentationRequest,
   DEFAULT_SESSION_BRANCH_ID,
   completedLineageBeforeTurn,
-  completedLineageForBranch,
   parseSessionFailureCode,
   parseSessionId,
   normalizeRenameSessionInput,
@@ -35,7 +35,6 @@ import {
   type SessionReference,
   type SessionSnapshot,
   type SessionInspection,
-  type SessionListPage,
   type SessionMetadataPort,
   type SessionQueryPort,
   type SessionTurnPage,
@@ -44,6 +43,14 @@ import {
   type SessionTurn,
   type RenameSessionInput,
   type TurnId,
+  type SessionLifecycleMutationInput,
+  type PurgeSessionInput,
+  type RecoverSessionExecutionsInput,
+  type SessionExecutionLease,
+  type SessionLifecycleListPage,
+  type SessionLifecycleInspection,
+  type ListRetiredSessionsInput,
+  type RetiredSessionListPage,
 } from '@ta-agent/base-session';
 import {
   cloneMemoryCompaction,
@@ -55,19 +62,27 @@ import {
   readMemoryClock,
   resolveMemorySessionReference,
   touchMemorySession,
-  validateMemoryContext,
   type StoredMemoryBranch,
   type StoredMemorySession,
 } from './session-state.js';
 import { completeMemorySessionTurn } from './session-completion.js';
+import { commitMemorySessionCompaction } from './session-compaction.js';
+import {
+  MemorySessionLifecycle,
+  advanceMemoryExecution,
+  memoryExecutionFence,
+} from './session-lifecycle.js';
+import { memorySessionCoordination } from '../../persistence/memory-coordination.js';
 import { applyMemorySessionNavigation } from './session-navigation.js';
 import {
   inspectMemorySession,
   listMemorySessions,
   listMemorySessionTurns,
+  listRetiredMemorySessions,
 } from './session-query.js';
 
 export interface MemorySessionAdapterOptions {
+  /** Must issue fresh, never-reused IDs, including across restarts of the owning application. */
   readonly createSessionId?: () => string;
   readonly createBranchId?: () => string;
   readonly clock?: () => number;
@@ -83,55 +98,100 @@ export class MemorySessionAdapter
     SessionMetadataPort
 {
   readonly #sessions = new Map<string, StoredMemorySession>();
+  readonly #sessionIds = new Set<string>();
   readonly #createSessionId: () => string;
   readonly #createBranchId: () => string;
   readonly #clock: () => number;
+  readonly #lifecycle: MemorySessionLifecycle;
+
+  /** @internal Coordination authority belongs only to the local persistence factory. */
+  [memorySessionCoordination]() {
+    return {
+      assertWrite: (
+        request: SessionReference & import('@ta-agent/base-session').SessionWriteAuthority
+      ) => {
+        this.#lifecycle.assertWrite(request);
+      },
+      checkpoint: (reference: SessionReference) => {
+        const copy = structuredClone(this.#lifecycle.require(reference));
+        return () => {
+          this.#sessions.set(memorySessionKey(copy.agentId, copy.sessionId), copy);
+          this.#sessionIds.add(copy.sessionId);
+        };
+      },
+      fenceRecovery: (reference: SessionReference) => {
+        const session = this.#lifecycle.require(reference);
+        advanceMemoryExecution(session);
+        session.executionState = 'recovering';
+        session.executions.clear();
+      },
+    };
+  }
 
   constructor(options: MemorySessionAdapterOptions | (() => string) = {}) {
     const normalized = typeof options === 'function' ? { createSessionId: options } : options;
     this.#createSessionId = normalized.createSessionId ?? randomUUID;
     this.#createBranchId = normalized.createBranchId ?? randomUUID;
     this.#clock = normalized.clock ?? Date.now;
+    this.#lifecycle = new MemorySessionLifecycle(this.#sessions, this.#clock);
   }
 
   resolve(request: ResolveSessionRequest): Promise<ResolvedSessionReference> {
     return Promise.resolve().then(() => {
-      const sessionId = parseSessionId(request.requestedSessionId ?? this.#createSessionId());
-      const key = memorySessionKey(request.agentId, sessionId);
-      let session = this.#sessions.get(key);
-      if (session === undefined) {
-        const timestamp = readMemoryClock(this.#clock);
-        session = {
-          agentId: request.agentId,
-          sessionId,
-          createdAt: timestamp,
-          branches: new Map([
-            [
-              DEFAULT_SESSION_BRANCH_ID,
-              {
-                branchId: DEFAULT_SESSION_BRANCH_ID,
-                createdAt: timestamp,
-              },
-            ],
-          ]),
-          turns: [],
-          presentations: new Map(),
-          compactions: new Map(),
-          metadataRevision: 0,
-          metadataUpdatedAt: timestamp,
-          updatedAt: timestamp,
-          selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
-          navigationRevision: 0,
-        };
-        this.#sessions.set(key, session);
+      const agentId = parseAgentId(request.agentId);
+      if (request.sessionId !== undefined) {
+        this.#lifecycle.assertOpen({ agentId, sessionId: parseSessionId(request.sessionId) });
+        return resolveMemorySessionReference(
+          this.#requireSession({
+            agentId,
+            sessionId: parseSessionId(request.sessionId),
+          })
+        );
       }
+      const sessionId = parseSessionId(this.#createSessionId());
+      const key = memorySessionKey(agentId, sessionId);
+      if (this.#sessionIds.has(sessionId)) {
+        throw new AgentSessionError(
+          'SESSION_ID_CONFLICT',
+          'Session ID generator returned an existing identity.'
+        );
+      }
+      const timestamp = readMemoryClock(this.#clock);
+      const session: StoredMemorySession = {
+        lifecycle: { status: 'active' },
+        executionRevision: 0,
+        executionState: 'ready',
+        executions: new Map(),
+        agentId,
+        sessionId,
+        createdAt: timestamp,
+        branches: new Map([
+          [
+            DEFAULT_SESSION_BRANCH_ID,
+            {
+              branchId: DEFAULT_SESSION_BRANCH_ID,
+              createdAt: timestamp,
+            },
+          ],
+        ]),
+        turns: [],
+        presentations: new Map(),
+        compactions: new Map(),
+        metadataRevision: 0,
+        metadataUpdatedAt: timestamp,
+        updatedAt: timestamp,
+        selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
+        navigationRevision: 0,
+      };
+      this.#sessions.set(key, session);
+      this.#sessionIds.add(sessionId);
       return resolveMemorySessionReference(session);
     });
   }
 
   beginTurn(request: BeginSessionTurnRequest): Promise<ActiveSessionTurn> {
     return Promise.resolve().then(() => {
-      const session = this.#requireSession(request);
+      const session = this.#lifecycle.assertWrite(request);
       if (
         request.navigationRevision !== session.navigationRevision ||
         request.branchId !== session.selectedBranchId
@@ -165,6 +225,7 @@ export class MemorySessionAdapter
       });
       const updatedAt = readMemoryClock(this.#clock);
       session.turns.push(turn);
+      advanceMemoryExecution(session);
       touchMemorySession(session, updatedAt);
       return cloneMemoryTurn(turn);
     });
@@ -240,15 +301,18 @@ export class MemorySessionAdapter
     request: CompleteSessionTurnRequest,
     presentation?: SessionTurnPresentation
   ): Promise<CompletedSessionTurn> {
-    return Promise.resolve().then(() =>
-      completeMemorySessionTurn(this.#requireSession(request), request, this.#clock, presentation)
-    );
+    return Promise.resolve().then(() => {
+      const session = this.#lifecycle.assertWrite(request);
+      const result = completeMemorySessionTurn(session, request, this.#clock, presentation);
+      advanceMemoryExecution(session);
+      return result;
+    });
   }
 
   failTurn(request: FailSessionTurnRequest): Promise<SessionTurn> {
     return Promise.resolve().then(() => {
       const failureCode = parseSessionFailureCode(request.failureCode);
-      const session = this.#requireSession(request);
+      const session = this.#lifecycle.assertWrite(request);
       const index = this.#requireTurnIndex(session, request.turnId);
       const current = session.turns[index];
       if (current === undefined) {
@@ -265,6 +329,7 @@ export class MemorySessionAdapter
         failureCode,
       });
       session.turns[index] = failed;
+      advanceMemoryExecution(session);
       touchMemorySession(session, updatedAt);
       return cloneMemoryTurn(failed);
     });
@@ -277,12 +342,51 @@ export class MemorySessionAdapter
     });
   }
 
-  listSessions(input: ListSessionsInput): Promise<SessionListPage> {
+  listSessions(input: ListSessionsInput): Promise<SessionLifecycleListPage> {
     return Promise.resolve().then(() => listMemorySessions(this.#sessions, input));
   }
 
-  inspectSession(reference: SessionReference): Promise<SessionInspection | undefined> {
-    return Promise.resolve().then(() => inspectMemorySession(this.#sessions, reference));
+  inspectSession(reference: SessionReference): Promise<SessionLifecycleInspection | undefined> {
+    return Promise.resolve().then(() => {
+      const summary = inspectMemorySession(this.#sessions, reference);
+      return summary === undefined
+        ? undefined
+        : Object.freeze({
+            ...summary,
+            execution: memoryExecutionFence(this.#lifecycle.require(reference)),
+          });
+    });
+  }
+
+  listRetiredSessions(input: ListRetiredSessionsInput): Promise<RetiredSessionListPage> {
+    return Promise.resolve().then(() => listRetiredMemorySessions(this.#sessions, input));
+  }
+
+  retireSession(input: SessionLifecycleMutationInput) {
+    return Promise.resolve().then(() => this.#lifecycle.transition(input, 'retire'));
+  }
+
+  restoreSession(input: SessionLifecycleMutationInput) {
+    return Promise.resolve().then(() => this.#lifecycle.transition(input, 'restore'));
+  }
+
+  acquireSessionExecution(reference: SessionReference) {
+    return Promise.resolve().then(() => this.#lifecycle.acquire(reference));
+  }
+
+  releaseSessionExecution(lease: SessionExecutionLease): Promise<void> {
+    return Promise.resolve().then(() => this.#lifecycle.release(lease));
+  }
+
+  purgeSession(input: PurgeSessionInput): Promise<void> {
+    return Promise.resolve().then(() => {
+      this.#lifecycle.purge(input);
+      this.#sessionIds.delete(input.sessionId);
+    });
+  }
+
+  recoverSessionExecutions(input: RecoverSessionExecutionsInput) {
+    return Promise.resolve().then(() => this.#lifecycle.recover(input));
   }
 
   listSessionTurns(input: ListSessionTurnsInput): Promise<SessionTurnPage | undefined> {
@@ -293,15 +397,24 @@ export class MemorySessionAdapter
     return Promise.resolve().then(() => {
       const request = normalizeRenameSessionInput(input);
       const session = this.#requireSession(request);
+      if (session.executionState === 'recovering')
+        throw new AgentSessionError('SESSION_BUSY', 'Session recovery is unsettled.');
       if (session.metadataRevision !== request.expectedRevision) {
         throw new AgentSessionError(
           'SESSION_METADATA_CONFLICT',
           `Session metadata expected revision ${request.expectedRevision} but found ${session.metadataRevision}.`
         );
       }
+      const updatedAt = Math.max(session.metadataUpdatedAt, readMemoryClock(this.#clock));
+      if (session.metadataRevision >= Number.MAX_SAFE_INTEGER) {
+        throw new AgentSessionError(
+          'SESSION_METADATA_INVALID',
+          'Session metadata revision exhausted.'
+        );
+      }
       session.title = request.title;
       session.metadataRevision += 1;
-      session.metadataUpdatedAt = Math.max(session.metadataUpdatedAt, readMemoryClock(this.#clock));
+      session.metadataUpdatedAt = updatedAt;
       const renamed = inspectMemorySession(this.#sessions, request);
       if (renamed === undefined)
         throw new AgentSessionError('SESSION_NOT_FOUND', 'Session missing.');
@@ -311,7 +424,7 @@ export class MemorySessionAdapter
 
   applyNavigation(request: ApplySessionNavigationRequest): Promise<AppliedSessionNavigation> {
     return Promise.resolve().then(() => {
-      const session = this.#requireSession(request);
+      const session = this.#lifecycle.assertWrite(request);
       return applyMemorySessionNavigation(
         session,
         request,
@@ -332,48 +445,9 @@ export class MemorySessionAdapter
 
   commitCompaction(request: CommitSessionCompactionRequest): Promise<SessionCompaction> {
     return Promise.resolve().then(() => {
-      const session = this.#requireSession(request);
+      const session = this.#lifecycle.assertWrite(request);
       this.#requireBranch(session, request.branchId);
-      const current = session.compactions.get(request.branchId);
-      const currentRevision = current?.revision ?? 0;
-      if (request.expectedRevision !== currentRevision) {
-        throw new AgentSessionError(
-          'SESSION_COMPACTION_CONFLICT',
-          `Session compaction expected revision ${request.expectedRevision} but found ${currentRevision}.`
-        );
-      }
-      const lineage = completedLineageForBranch(
-        createMemorySessionSnapshot(session),
-        request.branchId
-      );
-      const throughIndex = lineage.findIndex((turn) => turn.turnId === request.throughTurnId);
-      if (throughIndex < 0) {
-        throw new AgentSessionError(
-          'SESSION_COMPACTION_INVALID',
-          'Session compaction boundary must be a completed ancestor of its branch head.'
-        );
-      }
-      if (current !== undefined) {
-        const previousIndex = lineage.findIndex((turn) => turn.turnId === current.throughTurnId);
-        if (previousIndex < 0 || throughIndex <= previousIndex) {
-          throw new AgentSessionError(
-            'SESSION_COMPACTION_CONFLICT',
-            'Session compaction boundary must advance the current branch projection.'
-          );
-        }
-      }
-      const committed = Object.freeze({
-        agentId: session.agentId,
-        sessionId: session.sessionId,
-        branchId: request.branchId,
-        revision: currentRevision + 1,
-        throughTurnId: request.throughTurnId,
-        context: validateMemoryContext(request.context),
-      });
-      const updatedAt = readMemoryClock(this.#clock);
-      session.compactions.set(request.branchId, committed);
-      touchMemorySession(session, updatedAt);
-      return cloneMemoryCompaction(committed);
+      return commitMemorySessionCompaction(session, request, this.#clock);
     });
   }
 

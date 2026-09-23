@@ -1,7 +1,7 @@
 import { AgentActorError } from '@ta-agent/base-actor';
 import { AgentModelError } from '@ta-agent/base-model';
 import { AgentToolError } from '@ta-agent/base-tool';
-import { AgentSessionError } from '@ta-agent/base-session';
+import { AgentSessionError, supportsSessionExecution } from '@ta-agent/base-session';
 import type { OutputFailure } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
 import { RequestReplayFailedError } from '../replay/replay-error.js';
@@ -56,6 +56,7 @@ export async function failRequest(
         sessionId: journalClaim.sessionId,
         idempotencyKey: journalClaim.idempotencyKey,
         requestId: journalClaim.requestId,
+        ...(session?.execution === undefined ? {} : { execution: session.execution }),
         failure: Object.freeze({
           code: failure.code,
           message:
@@ -74,8 +75,22 @@ export async function failRequest(
       cleanupErrors.push(cleanupError);
     }
   }
+  context.executionSettled = cleanupErrors.length === 0;
   if (cleanupErrors.length === 1) throw cleanupErrors[0];
   if (cleanupErrors.length > 1) {
     throw new AggregateError(cleanupErrors, 'Request cleanup failed.');
+  }
+}
+
+export async function releaseRequestExecution(
+  context: DefaultRequestWorkflowContext
+): Promise<void> {
+  const execution = context.session?.execution;
+  if (
+    execution !== undefined &&
+    context.executionSettled === true &&
+    supportsSessionExecution(context.resources.session)
+  ) {
+    await context.resources.session.releaseSessionExecution(execution);
   }
 }

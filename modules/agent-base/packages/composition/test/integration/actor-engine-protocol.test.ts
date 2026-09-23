@@ -81,10 +81,11 @@ describe('composed Agent Engine protocol', () => {
       createRunId: () => 'protocol-run',
       observability: { sink: trace, clock: () => 1 },
     });
+    const { sessionId } = await agent.resources.session.resolve({ agentId: agent.identity.id });
 
     await expect(
       agent.invoke(FOREGROUND_AGENT_OPERATION_NAME, {
-        sessionId: 'protocol-session',
+        sessionId: sessionId,
         idempotencyKey: 'protocol-request',
         message: 'start',
         outputSink: output,
@@ -99,7 +100,7 @@ describe('composed Agent Engine protocol', () => {
     expect(
       await session.inspect({
         agentId: agent.identity.id,
-        sessionId: parseSessionId('protocol-session'),
+        sessionId: parseSessionId(sessionId),
       })
     ).toMatchObject({
       turns: [
@@ -112,7 +113,7 @@ describe('composed Agent Engine protocol', () => {
     expect(
       await journal.inspect({
         agentId: agent.identity.id,
-        sessionId: parseSessionId('protocol-session'),
+        sessionId: parseSessionId(sessionId),
         idempotencyKey: parseRequestIdempotencyKey('protocol-request'),
       })
     ).toMatchObject({

@@ -1,5 +1,9 @@
 import { parseAgentId } from '@ta-agent/base-identity';
-import { parseSessionId } from '@ta-agent/base-session';
+import {
+  parseSessionId,
+  type SessionReference,
+  type SessionWriteAuthority,
+} from '@ta-agent/base-session';
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import {
   AgentRequestError,
@@ -37,11 +41,22 @@ import {
   type SqliteRequestJournalTableNames,
   type SqliteRequestJournalTableNamingInput,
 } from './table-names.js';
+import { assertSqliteSessionWrite } from '../../session/sqlite/session-lifecycle-storage.js';
+import {
+  resolveSqliteSessionTableNames,
+  type SqliteSessionTableNamingInput,
+  type SqliteSessionTableNames,
+} from '../../session/sqlite/table-names.js';
+import { purgeSqliteSessionRequests, recoverSqliteSessionRequests } from './journal-maintenance.js';
 
 export interface SqliteRequestJournalAdapterOptions extends SqliteRequestJournalTableNamingInput {
   readonly databasePath: string;
+  /** Management readers require an existing schema rather than initializing a new table family. */
+  readonly schemaMode?: 'initialize' | 'existing';
   readonly clock?: () => number;
   readonly busyTimeoutMilliseconds?: number;
+  /** Same-database execution fence; normally selected by the coordinated persistence factory. */
+  readonly sessionExecution?: SqliteSessionTableNamingInput;
 }
 
 type SqliteRow = Record<string, SQLOutputValue>;
@@ -203,16 +218,32 @@ export class SqliteRequestJournalAdapter implements InspectableRequestJournalPor
   readonly #configuration: RequestJournalDatabaseConfiguration;
   readonly #clock: () => number;
   readonly #tableNames: SqliteRequestJournalTableNames;
+  readonly #sessionTables: SqliteSessionTableNames | undefined;
 
   constructor(options: SqliteRequestJournalAdapterOptions) {
+    if (
+      options.schemaMode !== undefined &&
+      options.schemaMode !== 'initialize' &&
+      options.schemaMode !== 'existing'
+    ) {
+      throw new AgentRequestError(
+        'REQUEST_REPLAY_CONFIGURATION_INVALID',
+        'SQLite Request Journal schema mode is invalid.'
+      );
+    }
     this.#tableNames = resolveSqliteRequestJournalTableNames(options);
+    this.#sessionTables =
+      options.sessionExecution === undefined
+        ? undefined
+        : resolveSqliteSessionTableNames(options.sessionExecution);
     this.#configuration = defineRequestJournalDatabaseConfiguration(
       options.databasePath,
       options.busyTimeoutMilliseconds
     );
     this.#clock = options.clock ?? Date.now;
     useRequestJournalDatabase(this.#configuration, 'initialize schema', (database) => {
-      initializeRequestJournalSchema(database, this.#tableNames);
+      if (options.schemaMode === 'existing') assertRequestJournalSchema(database, this.#tableNames);
+      else initializeRequestJournalSchema(database, this.#tableNames);
       configureRequestJournalDefensiveMode(database);
     });
   }
@@ -225,6 +256,7 @@ export class SqliteRequestJournalAdapter implements InspectableRequestJournalPor
       const startedAt = readJournalClock(this.#clock);
       return this.#useDatabase('claim request', (database) =>
         runImmediateTransaction(database, () => {
+          this.#assertExecution(database, request);
           const existingRow = selectEntry(database, reference, this.#tableNames);
           if (existingRow !== undefined) {
             const existing = decodeEntry(existingRow);
@@ -279,6 +311,7 @@ export class SqliteRequestJournalAdapter implements InspectableRequestJournalPor
       const finishedAt = readJournalClock(this.#clock);
       return this.#useDatabase('complete request', (database) =>
         runImmediateTransaction(database, () => {
+          this.#assertExecution(database, request);
           const entry = requireEntry(database, reference, this.#tableNames);
           requireOwner(entry, requestId);
           if (entry.status !== 'active') {
@@ -327,6 +360,7 @@ export class SqliteRequestJournalAdapter implements InspectableRequestJournalPor
       const finishedAt = readJournalClock(this.#clock);
       return this.#useDatabase('fail request', (database) =>
         runImmediateTransaction(database, () => {
+          this.#assertExecution(database, request);
           const entry = requireEntry(database, reference, this.#tableNames);
           requireOwner(entry, requestId);
           if (entry.status !== 'active') return entry;
@@ -366,6 +400,31 @@ export class SqliteRequestJournalAdapter implements InspectableRequestJournalPor
         return row === undefined ? undefined : decodeEntry(row);
       });
     });
+  }
+
+  purgeSessionRequests(reference: SessionReference): Promise<void> {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('purge session requests', (db) =>
+        runImmediateTransaction(db, () =>
+          purgeSqliteSessionRequests(db, reference, this.#tableNames)
+        )
+      )
+    );
+  }
+
+  recoverSessionRequests(reference: SessionReference): Promise<void> {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('recover session requests', (db) =>
+        runImmediateTransaction(db, () =>
+          recoverSqliteSessionRequests(db, reference, this.#clock, this.#tableNames)
+        )
+      )
+    );
+  }
+
+  #assertExecution(db: DatabaseSync, request: SessionReference & SessionWriteAuthority): void {
+    if (this.#sessionTables !== undefined)
+      assertSqliteSessionWrite(db, request, this.#sessionTables);
   }
 
   #useDatabase<T>(operation: string, action: (database: DatabaseSync) => T): T {

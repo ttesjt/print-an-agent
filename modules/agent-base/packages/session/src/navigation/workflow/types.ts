@@ -12,6 +12,7 @@ import type {
   ValidatedSessionNavigationCommand,
 } from '../contracts.js';
 import type { SessionId, SessionSnapshot } from '../../types.js';
+import type { SessionExecutionLease } from '../../lifecycle/execution.js';
 import type { SessionNavigationStepName } from './names.js';
 
 export interface SessionNavigationResources {
@@ -33,6 +34,7 @@ export interface SessionNavigationWorkflowContext extends BaseWorkflowContext<
 > {
   readonly resources: SessionNavigationResources;
   sessionId?: SessionId;
+  execution?: SessionExecutionLease;
   command?: ValidatedSessionNavigationCommand;
   snapshot?: SessionSnapshot;
 }

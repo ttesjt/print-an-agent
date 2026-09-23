@@ -9,6 +9,7 @@ import type {
   ResolvedSessionReference,
   SessionPort,
   SessionTurnPresentation,
+  SessionWriteAuthority,
 } from '@ta-agent/base-session';
 import type { ToolExecutionPolicy, ToolName, ToolRegistry, ToolRuntime } from '@ta-agent/base-tool';
 import type { BaseAgentRunContext, BaseWorkflowContext } from '@ta-agent/base-workflow';
@@ -52,7 +53,9 @@ export interface DefaultRequestWorkflowContext extends BaseWorkflowContext<
   readonly resources: RequestRuntimeResources;
   readonly policy: RequestPolicy;
   request?: ValidatedAgentRequest;
-  session?: ResolvedSessionReference;
+  session?: ResolvedSessionReference & SessionWriteAuthority;
+  /** True only after all owned persistent work and output finalization settled successfully. */
+  executionSettled?: boolean;
   turn?: ActiveSessionTurn;
   requestJournalEntry?: RequestJournalEntry;
   ownedRequestJournalClaim?: ActiveRequestJournalEntry;

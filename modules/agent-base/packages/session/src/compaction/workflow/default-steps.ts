@@ -2,6 +2,7 @@ import { AgentActorError, SESSION_COMPACTION_RESPONSIBILITY_ID } from '@ta-agent
 import type { ContextModelMessage, ModelMessage } from '@ta-agent/base-model';
 import type { StepOverrides } from '@ta-agent/base-workflow';
 import { AgentSessionError } from '../../errors.js';
+import { supportsSessionExecution } from '../../lifecycle/execution.js';
 import { parseSessionBranchId, parseSessionId } from '../../identifiers.js';
 import { selectSessionCompactionSource } from '../source-selection.js';
 import type { SessionCompactionStepName } from './names.js';
@@ -22,6 +23,9 @@ async function inspectSession(context: SessionCompactionWorkflowContext): Promis
     agentId: context.agentRunContext.identity.id,
     sessionId: parseSessionId(context.agentRunContext.input.sessionId),
   };
+  if (supportsSessionExecution(context.resources.session)) {
+    context.execution = await context.resources.session.acquireSessionExecution(reference);
+  }
   const snapshot = await context.resources.session.inspect(reference);
   if (snapshot === undefined) {
     throw new AgentSessionError(
@@ -184,6 +188,7 @@ async function persistCompaction(context: SessionCompactionWorkflowContext): Pro
     expectedRevision: source.expectedRevision,
     throughTurnId: source.throughTurnId,
     context: compactedContext,
+    ...(context.execution === undefined ? {} : { execution: context.execution }),
   });
   context.result = Object.freeze({
     status: 'compacted',

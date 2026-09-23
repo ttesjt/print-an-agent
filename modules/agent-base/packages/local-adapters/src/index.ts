@@ -64,3 +64,13 @@ export type {
   SqliteSessionTableNamesInput,
   SqliteSessionTableNamingInput,
 } from './session/sqlite/table-names.js';
+export { createMemorySessionPersistence } from './persistence/memory-session-persistence.js';
+export {
+  createSqliteSessionPersistence,
+  type SqliteSessionPersistenceOptions,
+} from './persistence/sqlite-session-persistence.js';
+export type {
+  CoordinatedSessionMaintenance,
+  CoordinatedSessionPersistence,
+  LocalLifecycleSessionPort,
+} from './persistence/contracts.js';

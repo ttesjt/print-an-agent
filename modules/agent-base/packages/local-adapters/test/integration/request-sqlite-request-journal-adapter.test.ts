@@ -232,10 +232,12 @@ describe('SqliteRequestJournalAdapter durability', () => {
     const temporary = createTemporaryDatabase();
     try {
       const reference = journalReference();
-      const session = new SqliteSessionAdapter({ databasePath: temporary.databasePath });
+      const session = new SqliteSessionAdapter({
+        databasePath: temporary.databasePath,
+        createSessionId: () => reference.sessionId,
+      });
       await session.resolve({
         agentId: reference.agentId,
-        requestedSessionId: reference.sessionId,
       });
 
       const journal = new SqliteRequestJournalAdapter({

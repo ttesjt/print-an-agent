@@ -1,8 +1,7 @@
 import {
   SqliteAgentConfigAdapter,
   SqliteAgentIdentityCatalogAdapter,
-  SqliteRequestJournalAdapter,
-  SqliteSessionAdapter,
+  createSqliteSessionPersistence,
 } from '@ta-agent/base-local-adapters';
 import type {
   AgentResourceNamespace,
@@ -37,24 +36,17 @@ export function createSharedSqliteManagedAgentPortFactory(
           tableNames: options.tableNames.config,
         }),
       }),
-    createRuntimePorts: (namespace: AgentResourceNamespace<SharedSqliteAgentResourceNamespace>) =>
-      Object.freeze({
-        session: new SqliteSessionAdapter({
-          databasePath: namespace.handle.databasePath,
-          ...(options.clock === undefined ? {} : { clock: options.clock }),
-          ...(options.busyTimeoutMilliseconds === undefined
-            ? {}
-            : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
-          tableNames: options.tableNames.session,
-        }),
-        requestJournal: new SqliteRequestJournalAdapter({
-          databasePath: namespace.handle.databasePath,
-          ...(options.clock === undefined ? {} : { clock: options.clock }),
-          ...(options.busyTimeoutMilliseconds === undefined
-            ? {}
-            : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
-          tableNames: options.tableNames.requestJournal,
-        }),
-      }),
+    createRuntimePorts: (namespace: AgentResourceNamespace<SharedSqliteAgentResourceNamespace>) => {
+      const { session, requestJournal } = createSqliteSessionPersistence({
+        databasePath: namespace.handle.databasePath,
+        ...(options.clock === undefined ? {} : { clock: options.clock }),
+        ...(options.busyTimeoutMilliseconds === undefined
+          ? {}
+          : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
+        session: { tableNames: options.tableNames.session },
+        requestJournal: { tableNames: options.tableNames.requestJournal },
+      });
+      return Object.freeze({ session, requestJournal });
+    },
   });
 }

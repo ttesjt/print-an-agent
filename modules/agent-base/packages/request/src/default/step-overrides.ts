@@ -1,6 +1,6 @@
 import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
 import type { AgentLoopEvent } from '@ta-agent/base-model';
-import { parseSessionId, parseTurnId } from '@ta-agent/base-session';
+import { parseSessionId, parseTurnId, supportsSessionExecution } from '@ta-agent/base-session';
 import { createBoundedToolRuntime, defineToolPermissionPolicy } from '@ta-agent/base-tool';
 import { SKIP_STEP, type StepOverrides } from '@ta-agent/base-workflow';
 import type { OutputSink, ValidatedAgentRequest } from '../contracts.js';
@@ -127,6 +127,7 @@ async function publishReplayedResponse(context: DefaultRequestWorkflowContext): 
     });
   }
   await traceOutputCompleted(context);
+  context.executionSettled = true;
 }
 
 async function resolveRequestReplay(context: DefaultRequestWorkflowContext): Promise<void> {
@@ -174,8 +175,12 @@ async function resolveSession(context: DefaultRequestWorkflowContext): Promise<v
   const request = requireValue(context.request, 'request');
   context.session = await context.resources.session.resolve({
     agentId: context.agentRunContext.identity.id,
-    ...(request.sessionId === undefined ? {} : { requestedSessionId: request.sessionId }),
+    ...(request.sessionId === undefined ? {} : { sessionId: request.sessionId }),
   });
+  if (supportsSessionExecution(context.resources.session)) {
+    const execution = await context.resources.session.acquireSessionExecution(context.session);
+    context.session = Object.freeze({ ...context.session, execution });
+  }
   await traceSessionResolved(context);
 }
 
@@ -272,6 +277,7 @@ async function completeResponse(context: DefaultRequestWorkflowContext): Promise
       idempotencyKey: claim.idempotencyKey,
       requestId: claim.requestId,
       response,
+      ...(context.session?.execution === undefined ? {} : { execution: context.session.execution }),
     });
   }
   try {
@@ -282,6 +288,7 @@ async function completeResponse(context: DefaultRequestWorkflowContext): Promise
   }
   await traceOutputCompleted(context);
   context.result = response;
+  context.executionSettled = true;
 }
 
 export function createDefaultRequestStepOverrides(): StepOverrides<

@@ -1,5 +1,10 @@
 import { parseAgentId } from '@ta-agent/base-identity';
-import { parseSessionId } from '@ta-agent/base-session';
+import {
+  parseSessionId,
+  normalizeSessionReference,
+  type SessionReference,
+  type SessionWriteAuthority,
+} from '@ta-agent/base-session';
 import {
   AgentRequestError,
   decodeAgentResponse,
@@ -17,7 +22,9 @@ import {
   type RequestJournalClaim,
   type RequestJournalEntry,
   type RequestJournalReference,
+  REQUEST_EXECUTION_INTERRUPTED,
 } from '@ta-agent/base-request';
+import { memoryJournalCoordination } from '../persistence/memory-coordination.js';
 
 function journalKey(reference: RequestJournalReference): string {
   return `${reference.agentId}\u0000${reference.sessionId}\u0000${reference.idempotencyKey}`;
@@ -61,6 +68,31 @@ function cloneEntry(entry: RequestJournalEntry): RequestJournalEntry {
 export class MemoryRequestJournalAdapter implements InspectableRequestJournalPort {
   readonly #entries = new Map<string, RequestJournalEntry>();
   readonly #clock: () => number;
+  #assertExecution: ((request: SessionReference & SessionWriteAuthority) => void) | undefined;
+
+  /** @internal Coordination authority belongs only to the local persistence factory. */
+  [memoryJournalCoordination]() {
+    return {
+      bindExecution: (guard: (request: SessionReference & SessionWriteAuthority) => void) => {
+        if (this.#assertExecution !== undefined)
+          throw new Error('Journal execution binding already exists.');
+        this.#assertExecution = guard;
+      },
+      checkpoint: (reference: SessionReference) => {
+        const entries = [...this.#entries].filter(
+          ([, entry]) =>
+            entry.agentId === reference.agentId && entry.sessionId === reference.sessionId
+        );
+        return () => {
+          for (const [key, entry] of this.#entries) {
+            if (entry.agentId === reference.agentId && entry.sessionId === reference.sessionId)
+              this.#entries.delete(key);
+          }
+          for (const [key, entry] of entries) this.#entries.set(key, entry);
+        };
+      },
+    };
+  }
 
   constructor(clock: () => number = Date.now) {
     this.#clock = clock;
@@ -68,6 +100,7 @@ export class MemoryRequestJournalAdapter implements InspectableRequestJournalPor
 
   claim(request: ClaimRequestJournalRequest): Promise<RequestJournalClaim> {
     return Promise.resolve().then(() => {
+      this.#assertExecution?.(request);
       const reference = normalizeReference(request);
       const fingerprint = parseRequestFingerprint(request.fingerprint);
       const requestId = parseRequestJournalRequestId(request.requestId);
@@ -97,6 +130,7 @@ export class MemoryRequestJournalAdapter implements InspectableRequestJournalPor
 
   complete(request: CompleteRequestJournalRequest): Promise<CompletedRequestJournalEntry> {
     return Promise.resolve().then(() => {
+      this.#assertExecution?.(request);
       const reference = normalizeReference(request);
       const requestId = parseRequestJournalRequestId(request.requestId);
       const response = decodeAgentResponse(encodeAgentResponse(request.response));
@@ -127,6 +161,7 @@ export class MemoryRequestJournalAdapter implements InspectableRequestJournalPor
 
   fail(request: FailRequestJournalRequest): Promise<RequestJournalEntry> {
     return Promise.resolve().then(() => {
+      this.#assertExecution?.(request);
       const reference = normalizeReference(request);
       const requestId = parseRequestJournalRequestId(request.requestId);
       const failure = defineRequestJournalFailure(request.failure);
@@ -150,6 +185,43 @@ export class MemoryRequestJournalAdapter implements InspectableRequestJournalPor
       const reference = normalizeReference(referenceInput);
       const entry = this.#entries.get(journalKey(reference));
       return entry === undefined ? undefined : cloneEntry(entry);
+    });
+  }
+
+  purgeSessionRequests(input: SessionReference): Promise<void> {
+    return Promise.resolve().then(() => {
+      const reference = normalizeSessionReference(input);
+      for (const [key, entry] of this.#entries) {
+        if (entry.agentId === reference.agentId && entry.sessionId === reference.sessionId)
+          this.#entries.delete(key);
+      }
+    });
+  }
+
+  recoverSessionRequests(input: SessionReference): Promise<void> {
+    return Promise.resolve().then(() => {
+      const reference = normalizeSessionReference(input);
+      const now = readClock(this.#clock);
+      for (const [key, entry] of this.#entries) {
+        if (
+          entry.agentId === reference.agentId &&
+          entry.sessionId === reference.sessionId &&
+          entry.status === 'active'
+        ) {
+          this.#entries.set(
+            key,
+            Object.freeze({
+              ...entry,
+              status: 'failed',
+              finishedAt: Math.max(now, entry.startedAt),
+              failure: Object.freeze({
+                code: REQUEST_EXECUTION_INTERRUPTED,
+                message: 'Request execution was interrupted.',
+              }),
+            })
+          );
+        }
+      }
     });
   }
 

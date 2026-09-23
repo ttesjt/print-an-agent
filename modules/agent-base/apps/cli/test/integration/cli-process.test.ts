@@ -247,8 +247,6 @@ describe('standalone Agent Base CLI process', () => {
       'managed-agent',
       '--message',
       'hello managed Agent',
-      '--session-id',
-      'managed-session',
     ]).completion;
     expect(run).toMatchObject({ exitCode: 0, standardOutput: 'loopback response\n' });
 
@@ -301,17 +299,18 @@ describe('standalone Agent Base CLI process', () => {
     expect(readiness.standardError).toBe('');
     expect(readiness.standardOutput).toContain('"status":"ready"');
 
-    const first = await runCli([
-      'run',
-      '--config',
-      configPath,
-      '--message',
-      'first turn',
-      '--session-id',
-      'durable-session',
-      '--idempotency-key',
-      'request-one',
-    ]).completion;
+    const first = await runCli(['run', '--config', configPath, '--message', 'first turn'])
+      .completion;
+    const created: unknown = JSON.parse(first.standardError.trim());
+    if (
+      typeof created !== 'object' ||
+      created === null ||
+      !('sessionId' in created) ||
+      typeof created.sessionId !== 'string'
+    ) {
+      throw new Error('Expected generated Session ID on stderr.');
+    }
+    const sessionId = created.sessionId;
     const second = await runCli([
       'run',
       '--config',
@@ -319,7 +318,7 @@ describe('standalone Agent Base CLI process', () => {
       '--message',
       'second turn',
       '--session-id',
-      'durable-session',
+      sessionId,
       '--idempotency-key',
       'request-two',
     ]).completion;
@@ -330,7 +329,7 @@ describe('standalone Agent Base CLI process', () => {
       '--message',
       'second turn',
       '--session-id',
-      'durable-session',
+      sessionId,
       '--idempotency-key',
       'request-two',
     ]).completion;
@@ -349,7 +348,7 @@ describe('standalone Agent Base CLI process', () => {
       '--config',
       configPath,
       '--session-id',
-      'durable-session',
+      sessionId,
     ]).completion;
     expect(inspection.exitCode).toBe(0);
     expect(inspection.standardError).toBe('');
@@ -365,8 +364,6 @@ describe('standalone Agent Base CLI process', () => {
       configPath,
       '--message',
       'wait for cancellation',
-      '--session-id',
-      'cancel-session',
     ]);
 
     await server.waitForRequest();

@@ -1,5 +1,9 @@
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
-import { quoteSqliteIdentifier, sessionActivityIndexName } from './table-names.js';
+import {
+  quoteSqliteIdentifier,
+  sessionActivityIndexName,
+  sessionRetirementIndexName,
+} from './table-names.js';
 import { AgentSessionError } from '@ta-agent/base-session';
 import { runImmediateTransaction } from './database.js';
 import { createSessionStoreMigration } from './migrations/0001_create_session_store.js';
@@ -17,6 +21,11 @@ const SESSION_COLUMNS = Object.freeze([
   'session_id',
   'next_turn_sequence',
   'created_at',
+  'lifecycle_status',
+  'retired_at',
+  'execution_revision',
+  'execution_state',
+  'execution_leases',
   'selected_branch_id',
   'navigation_revision',
   'updated_at',
@@ -124,11 +133,15 @@ function assertTableColumns(
   }
 }
 
-function assertSessionActivityIndex(
+function assertSessionListIndex(
   database: DatabaseSync,
-  tableNames: SqliteSessionTableNames
+  tableNames: SqliteSessionTableNames,
+  kind: 'activity' | 'retirement'
 ): void {
-  const indexName = sessionActivityIndexName(tableNames);
+  const indexName =
+    kind === 'activity'
+      ? sessionActivityIndexName(tableNames)
+      : sessionRetirementIndexName(tableNames);
   const indexes = database
     .prepare(`PRAGMA index_list(${quoteSqliteIdentifier(tableNames.sessions)})`)
     .all() as SqliteRow[];
@@ -136,17 +149,25 @@ function assertSessionActivityIndex(
   if (index === undefined || index.unique !== 0 || index.origin !== 'c' || index.partial !== 0) {
     throw new AgentSessionError(
       'SESSION_SCHEMA_INVALID',
-      `SQLite Session activity index "${indexName}" is missing or invalid.`
+      `SQLite Session ${kind} index "${indexName}" is missing or invalid.`
     );
   }
   const columns = database
     .prepare(`PRAGMA index_xinfo(${quoteSqliteIdentifier(indexName)})`)
     .all() as SqliteRow[];
-  const expected = [
-    { sequence: 0, name: 'agent_id', descending: 0 },
-    { sequence: 1, name: 'updated_at', descending: 1 },
-    { sequence: 2, name: 'session_id', descending: 0 },
-  ] as const;
+  const expected =
+    kind === 'activity'
+      ? [
+          { sequence: 0, name: 'agent_id', descending: 0 },
+          { sequence: 1, name: 'updated_at', descending: 1 },
+          { sequence: 2, name: 'session_id', descending: 0 },
+        ]
+      : [
+          { sequence: 0, name: 'agent_id', descending: 0 },
+          { sequence: 1, name: 'lifecycle_status', descending: 0 },
+          { sequence: 2, name: 'retired_at', descending: 1 },
+          { sequence: 3, name: 'session_id', descending: 0 },
+        ];
   const keyColumns = columns.filter((column) => column.key === 1);
   if (
     keyColumns.length !== expected.length ||
@@ -160,7 +181,27 @@ function assertSessionActivityIndex(
   ) {
     throw new AgentSessionError(
       'SESSION_SCHEMA_INVALID',
-      `SQLite Session activity index "${indexName}" does not match the expected ordering.`
+      `SQLite Session ${kind} index "${indexName}" does not match the expected ordering.`
+    );
+  }
+}
+
+function assertSessionIdentityIndex(
+  database: DatabaseSync,
+  tableNames: SqliteSessionTableNames
+): void {
+  const indexes = database
+    .prepare(`PRAGMA index_list(${quoteSqliteIdentifier(tableNames.sessions)})`)
+    .all();
+  const hasUniqueIdentity = indexes.some((index) => {
+    if (index.unique !== 1 || index.partial !== 0 || typeof index.name !== 'string') return false;
+    const columns = database.prepare('SELECT name FROM pragma_index_info(?)').all(index.name);
+    return columns.length === 1 && columns[0]?.name === 'session_id';
+  });
+  if (!hasUniqueIdentity) {
+    throw new AgentSessionError(
+      'SESSION_SCHEMA_INVALID',
+      'SQLite Session identity must be unique.'
     );
   }
 }
@@ -206,7 +247,9 @@ export function assertSessionSchema(
   assertTableColumns(database, tableNames.turns, TURN_COLUMNS);
   assertTableColumns(database, tableNames.branches, BRANCH_COLUMNS);
   assertTableColumns(database, tableNames.compactions, COMPACTION_COLUMNS);
-  assertSessionActivityIndex(database, tableNames);
+  assertSessionListIndex(database, tableNames, 'activity');
+  assertSessionListIndex(database, tableNames, 'retirement');
+  assertSessionIdentityIndex(database, tableNames);
 }
 
 export function configureDefensiveMode(database: DatabaseSync): void {

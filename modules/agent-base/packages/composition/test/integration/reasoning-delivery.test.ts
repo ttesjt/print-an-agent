@@ -13,7 +13,7 @@ describe('reasoning delivery lifecycle', () => {
       const release = Promise.withResolvers<void>();
       const calls: string[] = [];
       let engineEmit: AgentLoopEventSink | undefined;
-      const fixture = interactionAgent(
+      const fixture = await interactionAgent(
         async (request) => {
           engineEmit = request.emit;
           void request.emit({ type: 'reasoning-delta', delta: 'reason' });

@@ -1,4 +1,5 @@
 import { createWorkflow, type Workflow } from '@ta-agent/base-workflow';
+import { finalizeSessionExecution } from '../../lifecycle/workflow-execution.js';
 import type { SessionNavigationOutcome } from '../contracts.js';
 import { SESSION_NAVIGATION_WORKFLOW_NAME, type SessionNavigationStepName } from './names.js';
 import { createSessionNavigationStepDefinitions } from './step-definitions.js';
@@ -23,6 +24,10 @@ export function createSessionNavigationWorkflow(
     SessionNavigationOutcome
   >({
     ...options,
+    lifecycle: {
+      ...options.lifecycle,
+      onFinally: (context) => finalizeSessionExecution(context, options.lifecycle?.onFinally),
+    },
     name: SESSION_NAVIGATION_WORKFLOW_NAME,
     entryStep: 'runSessionNavigation',
     stepDefinitions: createSessionNavigationStepDefinitions(),

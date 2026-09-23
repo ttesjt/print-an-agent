@@ -1,8 +1,7 @@
 import {
   SqliteAgentConfigAdapter,
   SqliteAgentIdentityCatalogAdapter,
-  SqliteRequestJournalAdapter,
-  SqliteSessionAdapter,
+  createSqliteSessionPersistence,
 } from '@ta-agent/base-local-adapters';
 import type {
   AgentResourceNamespace,
@@ -30,16 +29,14 @@ export function createFilesystemManagedAgentPortFactory(
           tableNames: options.tableNames.config,
         }),
       }),
-    createRuntimePorts: (namespace: AgentResourceNamespace<FilesystemAgentResourceNamespace>) =>
-      Object.freeze({
-        session: new SqliteSessionAdapter({
-          databasePath: namespace.handle.databasePath,
-          tableNames: options.tableNames.session,
-        }),
-        requestJournal: new SqliteRequestJournalAdapter({
-          databasePath: namespace.handle.databasePath,
-          tableNames: options.tableNames.requestJournal,
-        }),
-      }),
+    createRuntimePorts: (namespace: AgentResourceNamespace<FilesystemAgentResourceNamespace>) => {
+      const { session, requestJournal } = createSqliteSessionPersistence({
+        databasePath: namespace.handle.databasePath,
+        session: { tableNames: options.tableNames.session },
+        requestJournal: { tableNames: options.tableNames.requestJournal },
+        ...(options.clock === undefined ? {} : { clock: options.clock }),
+      });
+      return Object.freeze({ session, requestJournal });
+    },
   });
 }

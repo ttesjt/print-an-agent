@@ -1,4 +1,5 @@
 import type { ContextModelMessage, ModelMessage } from '@ta-agent/base-model';
+import type { SessionWriteAuthority } from '../lifecycle/execution.js';
 import type {
   CompletedSessionTurn,
   InspectableSessionPort,
@@ -29,7 +30,8 @@ export interface SessionContextSnapshot extends SessionBranchReference {
 
 export type ReadSessionCompactionRequest = SessionBranchReference;
 
-export interface CommitSessionCompactionRequest extends SessionBranchReference {
+export interface CommitSessionCompactionRequest
+  extends SessionBranchReference, SessionWriteAuthority {
   readonly expectedRevision: number;
   readonly throughTurnId: TurnId;
   readonly context: ContextModelMessage;

@@ -53,11 +53,11 @@ export function defaultRequestStep(name: RequestStepName): Step<DefaultRequestWo
   return step;
 }
 
-export function interactionAgent(
+export async function interactionAgent(
   interact: ActorInteractionHandler,
   options: Partial<ComposeAgentOptions> = {}
 ) {
-  const session = new MemorySessionAdapter();
+  const session = new MemorySessionAdapter({ createSessionId: () => 'session' });
   const journal = new MemoryRequestJournalAdapter();
   const output = new MemoryOutputSink();
   const trace = new MemoryAgentTraceAdapter({ maxEvents: 512 });
@@ -90,6 +90,7 @@ export function interactionAgent(
     createRunId: () => 'interaction-run',
     ...options,
   });
+  const { sessionId } = await (options.session ?? session).resolve({ agentId: agent.identity.id });
   return {
     agent,
     session,
@@ -101,7 +102,7 @@ export function interactionAgent(
         FOREGROUND_AGENT_OPERATION_NAME,
         {
           message: 'start',
-          sessionId: 'session',
+          sessionId,
           idempotencyKey: 'request',
           outputSink: output,
         },

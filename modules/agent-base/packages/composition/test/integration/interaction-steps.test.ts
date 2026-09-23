@@ -16,7 +16,7 @@ describe('interaction Composite Steps', () => {
   it('routes event and result overrides through the registry while preserving authoritative Session data', async () => {
     const calls: string[] = [];
     let contextAfterRun: DefaultRequestWorkflowContext | undefined;
-    const fixture = interactionAgent(
+    const fixture = await interactionAgent(
       async (request) => {
         await request.emit({ type: 'text-delta', delta: 'A' });
         await request.emit({ type: 'text-delta', delta: 'B' });
@@ -82,7 +82,7 @@ describe('interaction Composite Steps', () => {
     const started = Promise.withResolvers<void>();
     const release = Promise.withResolvers<void>();
     let lateEmit: AgentLoopEventSink | undefined;
-    const fixture = interactionAgent((request) => {
+    const fixture = await interactionAgent((request) => {
       lateEmit = request.emit;
       void request.emit({ type: 'text-delta', delta: 'A' });
       void request.emit({ type: 'text-delta', delta: 'B' });
@@ -121,7 +121,7 @@ describe('interaction Composite Steps', () => {
   });
 
   it('keeps a swallowed delivery failure authoritative and never commits a later terminal', async () => {
-    const fixture = interactionAgent(async (request) => {
+    const fixture = await interactionAgent(async (request) => {
       try {
         await request.emit({ type: 'text-delta', delta: 'A' });
       } catch {
@@ -146,7 +146,7 @@ describe('interaction Composite Steps', () => {
   });
 
   it('rejects terminal/result mismatch before the Session Step is invoked', async () => {
-    const fixture = interactionAgent(async (request) => {
+    const fixture = await interactionAgent(async (request) => {
       await request.emit({ type: 'assistant-complete', message: interactionMessage('first') });
       return { message: interactionMessage('different') };
     });
@@ -163,7 +163,7 @@ describe('interaction Composite Steps', () => {
       const emitted = Promise.withResolvers<void>();
       const release = Promise.withResolvers<void>();
       const calls: string[] = [];
-      const fixture = interactionAgent(
+      const fixture = await interactionAgent(
         async (request) => {
           void request.emit({ type: 'text-delta', delta: 'A' });
           await started.promise;
@@ -209,7 +209,7 @@ describe('interaction Composite Steps', () => {
     'checks %s budget before custom delivery or Session steps',
     async (mode) => {
       const delivered = vi.fn(() => Promise.resolve());
-      const fixture = interactionAgent(
+      const fixture = await interactionAgent(
         async (request) => {
           if (mode === 'delta') await request.emit({ type: 'text-delta', delta: 'too long' });
           const message = interactionMessage('too long');
@@ -236,7 +236,7 @@ describe('interaction Composite Steps', () => {
   ] as const)('closes Tools after failure in %s', async (stepName) => {
     const failure = new Error('step failed');
     const close = vi.fn();
-    const fixture = interactionAgent(
+    const fixture = await interactionAgent(
       async (request) => {
         const message = interactionMessage();
         await request.emit({ type: 'assistant-complete', message });

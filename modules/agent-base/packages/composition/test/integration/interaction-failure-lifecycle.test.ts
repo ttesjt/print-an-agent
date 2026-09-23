@@ -8,7 +8,7 @@ describe('interaction failure lifecycle', () => {
     async (mode) => {
       const controller = new AbortController();
       const reason = new DOMException('cancelled', 'AbortError');
-      const fixture = interactionAgent(async (request) => {
+      const fixture = await interactionAgent(async (request) => {
         controller.abort(reason);
         expect(request.signal.reason).toBe(reason);
         if (mode === 'reject') throw reason;
@@ -32,7 +32,7 @@ describe('interaction failure lifecycle', () => {
     const failure = new Error('Engine failed');
     const calls: string[] = [];
     let lateEmit: AgentLoopEventSink | undefined;
-    const fixture = interactionAgent(async (request) => {
+    const fixture = await interactionAgent(async (request) => {
       lateEmit = request.emit;
       request.signal.addEventListener('abort', () => stopped.resolve(), { once: true });
       void request.emit({ type: 'text-delta', delta: 'first' });

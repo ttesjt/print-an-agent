@@ -6,6 +6,7 @@ import {
   MemoryOutputSink,
   MemoryRequestJournalAdapter,
   MemorySessionAdapter,
+  createMemorySessionPersistence,
 } from '@ta-agent/base-local-adapters';
 import {
   AgentRequestError,
@@ -110,8 +111,15 @@ function parseToolAllowList(values: readonly string[] | undefined): readonly Too
 
 export function createStandardAgentDefinition(options: ComposeAgentOptions) {
   const identity = defineAgentIdentity(options.identity);
-  const session = options.session ?? new MemorySessionAdapter();
-  const requestJournal = options.requestJournal ?? new MemoryRequestJournalAdapter(options.clock);
+  const persistence =
+    options.session === undefined && options.requestJournal === undefined
+      ? createMemorySessionPersistence(options.clock === undefined ? {} : { clock: options.clock })
+      : undefined;
+  const session = options.session ?? persistence?.session ?? new MemorySessionAdapter();
+  const requestJournal =
+    options.requestJournal ??
+    persistence?.requestJournal ??
+    new MemoryRequestJournalAdapter(options.clock);
   const requestPolicy = validateRequestPolicy(options.requestPolicy ?? DEFAULT_REQUEST_POLICY);
   const toolRegistry = options.toolRegistry ?? EMPTY_TOOL_REGISTRY;
   const productToolAllowList = parseToolAllowList(options.productToolAllowList);

@@ -130,16 +130,19 @@ describe('ordinary Pi Agent Base composition', () => {
         credentialResolver: resolver,
       },
     });
+    const { sessionId } = await agent.agent.resources.session.resolve({
+      agentId: agent.identity.id,
+    });
     const firstSink = new MemoryOutputSink();
 
     await expect(agent.checkProviderReadiness()).resolves.toMatchObject({ status: 'ready' });
     await expect(
-      agent.run({ message: 'first turn', sessionId: 'ordinary-session', outputSink: firstSink })
+      agent.run({ message: 'first turn', sessionId: sessionId, outputSink: firstSink })
     ).resolves.toMatchObject({ message: { text: 'ordinary agent response' } });
     await expect(
-      agent.run({ message: 'second turn', sessionId: 'ordinary-session' })
+      agent.run({ message: 'second turn', sessionId: sessionId })
     ).resolves.toMatchObject({ message: { text: 'ordinary agent response' } });
-    await expect(agent.compactSession({ sessionId: 'ordinary-session' })).resolves.toMatchObject({
+    await expect(agent.compactSession({ sessionId: sessionId })).resolves.toMatchObject({
       status: 'compacted',
       compactedTurnCount: 1,
     });

@@ -6,6 +6,7 @@ import type {
   TurnId,
 } from '../types.js';
 import type { SessionCompactionPort } from '../compaction/contracts.js';
+import type { SessionWriteAuthority } from '../lifecycle/execution.js';
 
 export type SessionNavigationOperation = 'inspect' | 'select' | 'fork' | 'rewind';
 
@@ -59,7 +60,7 @@ export type MutatingSessionNavigationCommand = Exclude<
   Readonly<{ operation: 'inspect' }>
 >;
 
-export interface ApplySessionNavigationRequest extends SessionReference {
+export interface ApplySessionNavigationRequest extends SessionReference, SessionWriteAuthority {
   readonly command: MutatingSessionNavigationCommand;
 }
 

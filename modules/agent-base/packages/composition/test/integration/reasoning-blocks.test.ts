@@ -76,7 +76,7 @@ describe('Model-turn reasoning presentation boundaries', () => {
 
   it('keeps model ordinals across empty and filtered turns instead of renumbering display blocks', async () => {
     const capture = defaultRequestStep('captureReasoningPresentation');
-    const fixture = interactionAgent(
+    const fixture = await interactionAgent(
       async (request) => {
         for (const delta of ['first', 'filtered', '', 'fourth']) {
           await request.emit({ type: 'turn-start' });

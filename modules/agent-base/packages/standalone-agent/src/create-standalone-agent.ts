@@ -1,5 +1,5 @@
 import { createProviderAgentAPI } from '@ta-agent/base-composition';
-import { SqliteRequestJournalAdapter, SqliteSessionAdapter } from '@ta-agent/base-local-adapters';
+import { createSqliteSessionPersistence } from '@ta-agent/base-local-adapters';
 import { defineStandaloneAgentConfig } from './config.js';
 import { createStandaloneCredentialResolver } from './credential-resolver.js';
 import { AgentBaseStandaloneError } from './errors.js';
@@ -20,16 +20,12 @@ export function createStandaloneAgent(
     config.persistence.kind === 'sqlite'
       ? (() => {
           const tableNames = resolveStandaloneRuntimeSqliteTableNames(runtimeOptions.sqlite);
-          return {
-            session: new SqliteSessionAdapter({
-              databasePath: config.persistence.databasePath,
-              tableNames: tableNames.session,
-            }),
-            requestJournal: new SqliteRequestJournalAdapter({
-              databasePath: config.persistence.databasePath,
-              tableNames: tableNames.requestJournal,
-            }),
-          };
+          const persistence = createSqliteSessionPersistence({
+            databasePath: config.persistence.databasePath,
+            session: { tableNames: tableNames.session },
+            requestJournal: { tableNames: tableNames.requestJournal },
+          });
+          return { session: persistence.session, requestJournal: persistence.requestJournal };
         })()
       : {};
   const credentialResolver =

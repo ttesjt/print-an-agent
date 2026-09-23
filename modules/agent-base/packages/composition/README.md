@@ -27,6 +27,12 @@ builtin or OpenAI-compatible provider profile, creates the required `main` Actor
 Responsibilities, and retains the same replacement boundaries. Its `inspectProvider()` and
 `checkProviderReadiness()` surfaces are metadata-only. Pi `0.82.1` remains the pinned internal
 adapter; its name and types do not enter this package's public declarations.
+OpenAI-compatible provider config requires an explicit `supportsReasoning` capability declaration;
+builtin provider capability remains catalog-owned. It also requires the independent closed
+`compatibility.supportsDeveloperRole` declaration so a reasoning-capable endpoint can retain
+`system` instructions when it does not implement OpenAI's `developer` role. Inspection exposes both
+non-secret declarations for OpenAI-compatible profiles and does not fabricate compatibility
+metadata for builtin profiles.
 
 `createDeterministicAgentAPI()` selects the reproducible offline development/test profile through
 the same internal low-level loop boundary. It exposes `inspectDeterministicProvider()` for bounded

@@ -16,6 +16,12 @@ absolute-path SQLite persistence profile. The API is a transparent delivery conv
 its underlying composed `Agent`. SQLite composes both Session and Request Journal adapters over the
 supplied database. Credential references bind only to a named environment reader; API keys never
 belong in configuration.
+Standalone OpenAI-compatible provider JSON must explicitly declare `supportsReasoning`; the field is
+preserved in managed Config and `agent.json`. It declares endpoint capability and does not enable a
+reasoning effort or guarantee that a response contains readable reasoning. The same provider object
+must declare `compatibility.supportsDeveloperRole`. This independent, non-secret decision is also
+preserved through managed Config and `agent.json`; unknown endpoints should conservatively use
+`false` unless their message-role behavior has been verified.
 
 This package depends on `@ta-agent/base-composition` and official concrete adapters. It does not
 import or expose the internal Pi adapter.

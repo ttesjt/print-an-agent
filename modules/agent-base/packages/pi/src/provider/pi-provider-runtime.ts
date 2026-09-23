@@ -80,7 +80,10 @@ function createOpenAICompatibleModels(config: DefinedPiOpenAICompatibleProviderC
     api: 'openai-completions',
     provider: config.reference.provider,
     baseUrl: config.reference.baseUrl,
-    reasoning: false,
+    reasoning: config.supportsReasoning,
+    compat: Object.freeze({
+      supportsDeveloperRole: config.compatibility.supportsDeveloperRole,
+    }),
     input: inputMediaTypes,
     cost: Object.freeze({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }),
     contextWindow: config.contextWindowTokens,
@@ -114,8 +117,7 @@ function createInspection(
   model: Model<Api>,
   actorEngineId: PiProviderRuntimeInspection['actorEngineId']
 ): PiProviderRuntimeInspection {
-  return Object.freeze({
-    kind: config.kind,
+  const common = {
     provider: config.reference.provider,
     model: config.reference.model,
     baseUrl: model.baseUrl,
@@ -124,7 +126,15 @@ function createInspection(
     actorEngineId,
     contextWindowTokens: model.contextWindow,
     maxOutputTokens: model.maxTokens,
-  });
+    supportsReasoning: model.reasoning,
+  } as const;
+  return config.kind === 'builtin'
+    ? Object.freeze({ kind: config.kind, ...common })
+    : Object.freeze({
+        kind: config.kind,
+        ...common,
+        compatibility: config.compatibility,
+      });
 }
 
 export function createPiProviderRuntime(

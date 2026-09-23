@@ -227,6 +227,10 @@ function encodeStandaloneAgentDefinition(config: StandaloneAgentDefinition): Con
           reference: encodeProviderReference(config.provider.reference),
           contextWindowTokens: config.provider.contextWindowTokens,
           maxOutputTokens: config.provider.maxOutputTokens,
+          supportsReasoning: config.provider.supportsReasoning,
+          compatibility: {
+            supportsDeveloperRole: config.provider.compatibility.supportsDeveloperRole,
+          },
         };
   const credential: ConfigValue | undefined =
     config.credential === undefined

@@ -13,11 +13,19 @@ export interface PiBuiltinProviderConfigInput {
   readonly reference: ProviderModelReferenceInput;
 }
 
+export interface PiOpenAICompatibleProviderCompatibility {
+  /** Whether the endpoint accepts OpenAI's developer message role for instructions. */
+  readonly supportsDeveloperRole: boolean;
+}
+
 export interface PiOpenAICompatibleProviderConfigInput {
   readonly kind: 'openai-compatible';
   readonly reference: ProviderModelReferenceInput;
   readonly contextWindowTokens: number;
   readonly maxOutputTokens: number;
+  /** Declares endpoint capability; it does not request reasoning generation. */
+  readonly supportsReasoning: boolean;
+  readonly compatibility: PiOpenAICompatibleProviderCompatibility;
 }
 
 export type PiProviderConfigInput =
@@ -30,8 +38,7 @@ export interface PiProviderRuntimeOptions {
   readonly actorEngineId?: string;
 }
 
-export interface PiProviderRuntimeInspection {
-  readonly kind: PiProviderConfigInput['kind'];
+export interface PiProviderRuntimeInspectionBase {
   readonly provider: ProviderId;
   readonly model: ProviderModelId;
   readonly baseUrl: string;
@@ -39,7 +46,22 @@ export interface PiProviderRuntimeInspection {
   readonly actorEngineId: ActorEngineId;
   readonly contextWindowTokens: number;
   readonly maxOutputTokens: number;
+  /** Resolved non-secret capability used by the Pi model boundary. */
+  readonly supportsReasoning: boolean;
 }
+
+export interface PiBuiltinProviderRuntimeInspection extends PiProviderRuntimeInspectionBase {
+  readonly kind: 'builtin';
+}
+
+export interface PiOpenAICompatibleProviderRuntimeInspection extends PiProviderRuntimeInspectionBase {
+  readonly kind: 'openai-compatible';
+  readonly compatibility: PiOpenAICompatibleProviderCompatibility;
+}
+
+export type PiProviderRuntimeInspection =
+  | PiBuiltinProviderRuntimeInspection
+  | PiOpenAICompatibleProviderRuntimeInspection;
 
 export type PiProviderReadiness =
   | Readonly<{ status: 'ready'; inspection: PiProviderRuntimeInspection }>

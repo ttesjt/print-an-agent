@@ -1,4 +1,5 @@
 import { AgentModelError, defineProviderModelReference } from '@ta-agent/base-model';
+import type { PiOpenAICompatibleProviderCompatibility } from './types.js';
 
 const BUILTIN_PROVIDER_CONFIG_KEYS = Object.freeze(['kind', 'reference']);
 const OPENAI_COMPATIBLE_PROVIDER_CONFIG_KEYS = Object.freeze([
@@ -6,7 +7,10 @@ const OPENAI_COMPATIBLE_PROVIDER_CONFIG_KEYS = Object.freeze([
   'reference',
   'contextWindowTokens',
   'maxOutputTokens',
+  'supportsReasoning',
+  'compatibility',
 ]);
+const OPENAI_COMPATIBILITY_KEYS = Object.freeze(['supportsDeveloperRole']);
 
 export interface DefinedPiBuiltinProviderConfig {
   readonly kind: 'builtin';
@@ -20,6 +24,9 @@ export interface DefinedPiOpenAICompatibleProviderConfig {
   };
   readonly contextWindowTokens: number;
   readonly maxOutputTokens: number;
+  /** Declares endpoint capability; it does not request reasoning generation. */
+  readonly supportsReasoning: boolean;
+  readonly compatibility: PiOpenAICompatibleProviderCompatibility;
 }
 
 export type DefinedPiProviderConfig =
@@ -44,6 +51,13 @@ function parsePositiveInteger(value: unknown, label: string): number {
     );
   }
   return value as number;
+}
+
+function parseBoolean(value: unknown, label: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new AgentModelError('MODEL_REFERENCE_INVALID', `${label} must be a boolean.`);
+  }
+  return value;
 }
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
@@ -81,6 +95,27 @@ function defineOpenAICompatibleProviderConfig(
     input.maxOutputTokens,
     'OpenAI-compatible maxOutputTokens'
   );
+  const supportsReasoning = parseBoolean(
+    input.supportsReasoning,
+    'OpenAI-compatible supportsReasoning'
+  );
+  if (!isUnknownRecord(input.compatibility)) {
+    throw new AgentModelError(
+      'MODEL_REFERENCE_INVALID',
+      'OpenAI-compatible compatibility must be an object.'
+    );
+  }
+  assertExactKeys(
+    input.compatibility,
+    OPENAI_COMPATIBILITY_KEYS,
+    'OpenAI-compatible compatibility'
+  );
+  const compatibility = Object.freeze({
+    supportsDeveloperRole: parseBoolean(
+      input.compatibility.supportsDeveloperRole,
+      'OpenAI-compatible compatibility.supportsDeveloperRole'
+    ),
+  });
   if (maxOutputTokens > contextWindowTokens) {
     throw new AgentModelError(
       'MODEL_REFERENCE_INVALID',
@@ -92,6 +127,8 @@ function defineOpenAICompatibleProviderConfig(
     reference: Object.freeze({ ...reference, baseUrl: reference.baseUrl }),
     contextWindowTokens,
     maxOutputTokens,
+    supportsReasoning,
+    compatibility,
   });
 }
 

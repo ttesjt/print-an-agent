@@ -34,6 +34,8 @@ function manifest(id: string): StandaloneAgentManifestInput {
         },
         contextWindowTokens: 8_192,
         maxOutputTokens: 1_024,
+        supportsReasoning: false,
+        compatibility: { supportsDeveloperRole: false },
       },
     },
   };

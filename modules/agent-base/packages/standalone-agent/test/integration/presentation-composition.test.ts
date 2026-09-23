@@ -21,6 +21,8 @@ const definition: StandaloneAgentDefinitionInput = {
     reference: { provider: 'fixture', model: 'fixture', baseUrl: 'http://127.0.0.1:1/v1' },
     contextWindowTokens: 4096,
     maxOutputTokens: 512,
+    supportsReasoning: false,
+    compatibility: { supportsDeveloperRole: false },
   },
 };
 

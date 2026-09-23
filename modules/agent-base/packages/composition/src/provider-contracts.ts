@@ -12,11 +12,19 @@ export interface BuiltinProviderConfigInput {
   readonly reference: ProviderModelReferenceInput;
 }
 
+export interface OpenAICompatibleProviderCompatibility {
+  /** Whether the endpoint accepts OpenAI's developer message role for instructions. */
+  readonly supportsDeveloperRole: boolean;
+}
+
 export interface OpenAICompatibleProviderConfigInput {
   readonly kind: 'openai-compatible';
   readonly reference: ProviderModelReferenceInput;
   readonly contextWindowTokens: number;
   readonly maxOutputTokens: number;
+  /** Declares endpoint capability; it does not request reasoning generation. */
+  readonly supportsReasoning: boolean;
+  readonly compatibility: OpenAICompatibleProviderCompatibility;
 }
 
 export type ProviderConfigInput = BuiltinProviderConfigInput | OpenAICompatibleProviderConfigInput;
@@ -31,6 +39,9 @@ export interface DefinedOpenAICompatibleProviderConfig {
   readonly reference: ProviderModelReference & Readonly<{ baseUrl: string }>;
   readonly contextWindowTokens: number;
   readonly maxOutputTokens: number;
+  /** Declares endpoint capability; it does not request reasoning generation. */
+  readonly supportsReasoning: boolean;
+  readonly compatibility: OpenAICompatibleProviderCompatibility;
 }
 
 export type DefinedProviderConfig =
@@ -43,8 +54,7 @@ export interface ProviderRuntimeOptions {
   readonly actorEngineId?: string;
 }
 
-export interface ProviderRuntimeInspection {
-  readonly kind: ProviderConfigInput['kind'];
+export interface ProviderRuntimeInspectionBase {
   readonly provider: ProviderId;
   readonly model: ProviderModelId;
   readonly baseUrl: string;
@@ -52,7 +62,22 @@ export interface ProviderRuntimeInspection {
   readonly actorEngineId: ActorEngineId;
   readonly contextWindowTokens: number;
   readonly maxOutputTokens: number;
+  /** Resolved non-secret capability used by the provider runtime. */
+  readonly supportsReasoning: boolean;
 }
+
+export interface BuiltinProviderRuntimeInspection extends ProviderRuntimeInspectionBase {
+  readonly kind: 'builtin';
+}
+
+export interface OpenAICompatibleProviderRuntimeInspection extends ProviderRuntimeInspectionBase {
+  readonly kind: 'openai-compatible';
+  readonly compatibility: OpenAICompatibleProviderCompatibility;
+}
+
+export type ProviderRuntimeInspection =
+  | BuiltinProviderRuntimeInspection
+  | OpenAICompatibleProviderRuntimeInspection;
 
 export type ProviderReadiness =
   | Readonly<{ status: 'ready'; inspection: ProviderRuntimeInspection }>

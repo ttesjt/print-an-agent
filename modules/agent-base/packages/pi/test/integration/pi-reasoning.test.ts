@@ -86,42 +86,84 @@ describe('Pi reasoning events', () => {
     }
   });
 
-  it('maps ordinary HTTP reasoning through the real Pi provider parser without duplicating thinking_end', async () => {
-    const server = await createOpenAICompatibleTestServer('answer', 'readable summary');
-    const signal = new AbortController().signal;
-    const runtime = tools(signal, false);
-    const events: AgentLoopEvent[] = [];
-    try {
-      const profile = createPiProviderRuntime({
-        provider: {
-          kind: 'openai-compatible',
-          reference: { provider: 'local', model: 'test-model', baseUrl: server.baseUrl },
-          contextWindowTokens: 4096,
-          maxOutputTokens: 512,
-        },
-      });
-      const result = await profile.actorEngine.interact?.({
-        instructions: '',
-        history: [],
-        prompt: { role: 'user', text: 'hello', timestamp: 1 },
-        tools: runtime,
-        maxModelTurns: 1,
-        maxOutputCharacters: 100,
-        signal,
-        invocationConfig: {},
-        emit: (event) => {
-          events.push(event);
-          return Promise.resolve();
-        },
-      });
-      expect(events.filter((event) => event.type === 'reasoning-delta')).toEqual([
-        { type: 'reasoning-delta', delta: 'readable summary' },
-      ]);
-      expect(result?.message.text).toBe('answer');
-      expect(JSON.stringify(result)).not.toContain('readable summary');
-    } finally {
-      runtime.close();
-      await server.close();
+  it.each([
+    {
+      supportsReasoning: true,
+      supportsDeveloperRole: false,
+      instructionRole: 'system',
+      reasoning: 'readable summary',
+    },
+    {
+      supportsReasoning: true,
+      supportsDeveloperRole: true,
+      instructionRole: 'developer',
+      reasoning: 'readable summary',
+    },
+    {
+      supportsReasoning: false,
+      supportsDeveloperRole: false,
+      instructionRole: 'system',
+      reasoning: undefined,
+    },
+    {
+      supportsReasoning: false,
+      supportsDeveloperRole: true,
+      instructionRole: 'system',
+      reasoning: undefined,
+    },
+  ] as const)(
+    'uses $instructionRole instructions when reasoning=$supportsReasoning and developer-role=$supportsDeveloperRole',
+    async ({ supportsReasoning, supportsDeveloperRole, instructionRole, reasoning }) => {
+      const server = await createOpenAICompatibleTestServer('answer', reasoning);
+      const signal = new AbortController().signal;
+      const runtime = tools(signal, false);
+      const events: AgentLoopEvent[] = [];
+      try {
+        const profile = createPiProviderRuntime({
+          provider: {
+            kind: 'openai-compatible',
+            reference: { provider: 'local', model: 'test-model', baseUrl: server.baseUrl },
+            contextWindowTokens: 4096,
+            maxOutputTokens: 512,
+            supportsReasoning,
+            compatibility: { supportsDeveloperRole },
+          },
+        });
+        const result = await profile.actorEngine.interact?.({
+          instructions: 'Answer directly.',
+          history: [],
+          prompt: { role: 'user', text: 'hello', timestamp: 1 },
+          tools: runtime,
+          maxModelTurns: 1,
+          maxOutputCharacters: 100,
+          signal,
+          invocationConfig: {},
+          emit: (event) => {
+            events.push(event);
+            return Promise.resolve();
+          },
+        });
+        expect(events.filter((event) => event.type === 'reasoning-delta')).toEqual(
+          reasoning === undefined ? [] : [{ type: 'reasoning-delta', delta: reasoning }]
+        );
+        expect(result?.message.text).toBe('answer');
+        expect(JSON.stringify(result)).not.toContain('readable summary');
+        expect(profile.inspect().supportsReasoning).toBe(supportsReasoning);
+        expect(profile.inspect()).toMatchObject({
+          compatibility: { supportsDeveloperRole },
+        });
+        const requestBody = server.requests()[0]?.body as
+          | Readonly<{ messages?: readonly unknown[] }>
+          | undefined;
+        expect(requestBody?.messages?.[0]).toMatchObject({
+          role: instructionRole,
+          content: 'Answer directly.',
+        });
+        expect(requestBody).not.toHaveProperty('reasoning_effort');
+      } finally {
+        runtime.close();
+        await server.close();
+      }
     }
-  });
+  );
 });

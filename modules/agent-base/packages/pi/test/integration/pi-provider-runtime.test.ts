@@ -57,6 +57,8 @@ describe('ordinary Pi provider runtime', () => {
         },
         contextWindowTokens: 8_192,
         maxOutputTokens: 1_024,
+        supportsReasoning: false,
+        compatibility: { supportsDeveloperRole: false },
       },
       credentialResolver: resolver,
     });
@@ -79,6 +81,8 @@ describe('ordinary Pi provider runtime', () => {
       actorEngineId: 'provider',
       contextWindowTokens: 8_192,
       maxOutputTokens: 1_024,
+      supportsReasoning: false,
+      compatibility: { supportsDeveloperRole: false },
     });
     expect(JSON.stringify(profile.inspect())).not.toContain('PRIVATE_TEST_KEY');
     expect(JSON.stringify(profile.inspect())).not.toContain('credentials/local-openai');
@@ -97,6 +101,8 @@ describe('ordinary Pi provider runtime', () => {
         },
         contextWindowTokens: 4_096,
         maxOutputTokens: 512,
+        supportsReasoning: false,
+        compatibility: { supportsDeveloperRole: false },
       },
     });
 
@@ -121,6 +127,8 @@ describe('ordinary Pi provider runtime', () => {
         },
         contextWindowTokens: 4_096,
         maxOutputTokens: 512,
+        supportsReasoning: false,
+        compatibility: { supportsDeveloperRole: false },
       },
       credentialResolver: { resolve: () => Promise.resolve(undefined) },
     });
@@ -147,6 +155,8 @@ describe('ordinary Pi provider runtime', () => {
         },
         contextWindowTokens: 4_096,
         maxOutputTokens: 512,
+        supportsReasoning: false,
+        compatibility: { supportsDeveloperRole: false },
       },
       credentialResolver: {
         resolve: () => Promise.resolve({ type: 'api-key', apiKey: '' }),
@@ -163,6 +173,8 @@ describe('ordinary Pi provider runtime', () => {
         },
         contextWindowTokens: 4_096,
         maxOutputTokens: 512,
+        supportsReasoning: false,
+        compatibility: { supportsDeveloperRole: false },
       },
       credentialResolver: {
         resolve: () => Promise.reject(new Error('PRIVATE_RESOLVER_DETAIL')),
@@ -202,6 +214,27 @@ describe('ordinary Pi provider runtime', () => {
       })
     );
     expect(error.code).toBe('MODEL_PROVIDER_NOT_FOUND');
+  });
+
+  it('reports the reasoning capability owned by the builtin Pi catalog', () => {
+    const profile = createPiProviderRuntime({
+      provider: {
+        kind: 'builtin',
+        reference: {
+          provider: 'openai',
+          model: 'gpt-5-mini',
+          credentialRef: 'credentials/openai',
+        },
+      },
+    });
+
+    expect(profile.inspect()).toMatchObject({
+      kind: 'builtin',
+      provider: 'openai',
+      model: 'gpt-5-mini',
+      supportsReasoning: true,
+    });
+    expect(profile.inspect()).not.toHaveProperty('compatibility');
   });
 
   it('rejects unknown models within a Pi builtin provider', () => {

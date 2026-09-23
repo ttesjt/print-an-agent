@@ -30,6 +30,16 @@ OpenAI-compatible endpoint with bounded context and output tokens. Builtin profi
 opaque credential reference; compatible endpoints may instead be explicitly keyless. API keys are
 resolved once per invocation through the Agent Base credential port. Pi ambient environment/file
 auth is disabled, and inspection/readiness never returns credential references or secret values.
+Builtin reasoning capability comes from Pi's catalog. Every OpenAI-compatible profile must instead
+declare `supportsReasoning` explicitly because arbitrary endpoints cannot be detected reliably; the
+value is validated, mapped to Pi's `Model.reasoning`, and exposed through runtime inspection. It is
+a truthful capability/request-construction declaration, not a request to generate reasoning and not
+a guarantee that a provider response will contain readable reasoning. Such profiles must also
+declare `compatibility.supportsDeveloperRole`. This independent flag controls whether reasoning
+models encode instructions with OpenAI's `developer` role or the more broadly compatible `system`
+role. Agent Base does not infer it from an OpenAI-compatible URL. Inspection exposes this closed,
+non-secret compatibility decision. Builtin profiles continue to use Pi catalog compatibility and do
+not accept or invent this declaration.
 
 The implementation is organized by change reason: `runtime/` owns shared Pi translations and loop
 execution, `provider/` owns ordinary validation/composition, and `faux/` owns deterministic fixtures

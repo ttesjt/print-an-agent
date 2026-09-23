@@ -29,7 +29,9 @@ Example configuration:
       "baseUrl": "http://127.0.0.1:8000/v1"
     },
     "contextWindowTokens": 8192,
-    "maxOutputTokens": 1024
+    "maxOutputTokens": 1024,
+    "supportsReasoning": false,
+    "compatibility": { "supportsDeveloperRole": false }
   },
   "persistence": {
     "kind": "sqlite",

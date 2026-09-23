@@ -40,6 +40,8 @@ describe('public standalone provider consumer', () => {
         },
         contextWindowTokens: 8_192,
         maxOutputTokens: 1_024,
+        supportsReasoning: false,
+        compatibility: { supportsDeveloperRole: false },
       },
       persistence: { kind: 'sqlite' as const, databasePath: join(directory, 'agent.sqlite') },
     };
@@ -126,6 +128,8 @@ describe('public standalone provider consumer', () => {
           },
           contextWindowTokens: 8_192,
           maxOutputTokens: 1_024,
+          supportsReasoning: false,
+          compatibility: { supportsDeveloperRole: false },
         },
         persistence: { kind: 'memory' },
       },

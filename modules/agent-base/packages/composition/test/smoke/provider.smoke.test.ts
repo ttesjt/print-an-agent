@@ -42,6 +42,10 @@ function providerConfig(): ProviderConfigInput {
         process.env.TA_AGENT_PROVIDER_SMOKE_CONTEXT_WINDOW_TOKENS ?? '32768'
       ),
       maxOutputTokens: Number(process.env.TA_AGENT_PROVIDER_SMOKE_MAX_OUTPUT_TOKENS ?? '512'),
+      supportsReasoning: process.env.TA_AGENT_PROVIDER_SMOKE_SUPPORTS_REASONING === '1',
+      compatibility: {
+        supportsDeveloperRole: process.env.TA_AGENT_PROVIDER_SMOKE_SUPPORTS_DEVELOPER_ROLE === '1',
+      },
     };
   }
   throw new Error('TA_AGENT_PROVIDER_SMOKE_KIND must be builtin or openai-compatible.');

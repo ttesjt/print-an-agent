@@ -54,6 +54,26 @@ defaults. Callers may inject SQLite or product-owned adapters without changing t
 Completed replay returns the original response without another provider call, Tool call, or Session
 turn. Tool access remains deny-by-omission across Responsibility, Actor, product, and runtime policy.
 
+The foreground Operation carries the validated `RequestPolicy` as its existing Operation config and
+uses the generic Run Executor boundary to apply `timeoutMilliseconds`. The standard policy defaults
+to `NO_REQUEST_TIMEOUT`; callers may select a positive cooperative Request Workflow execution
+deadline or rely on explicit cancellation. The Request boundary maps only the deadline it creates;
+narrower child deadlines retain their own error identity. Agent Operation itself has no
+timeout-specific declaration, and the Agent runtime does not inspect arbitrary config fields.
+
+The TypeScript Actor shortcuts on `createProviderAgentAPI()` and `createDeterministicAgentAPI()`
+also accept `mainActor.invocationPolicy`. Its deadline is independent from Request policy, applies
+only around the selected Actor's LLM invocation, and defaults to no automatic timeout. Products that
+inject catalogs through `composeAgent()` define the same policy directly on each Actor. Standalone
+durable JSON and managed manifests do not encode this host/runtime policy.
+
+The ordinary provider shortcut also accepts
+`provider.transportLivenessPolicy.responseStartTimeoutMilliseconds` and
+`streamEventIdleTimeoutMilliseconds`. Both default to `null` and remain independent from Request and
+Actor invocation deadlines. The official composition forwards the policy to its internal provider
+adapter and exposes the normalized values through `inspectProvider()` without leaking Pi types.
+Standalone durable JSON and managed manifests do not encode this TypeScript host/runtime policy.
+
 Standalone configuration and concrete persistence selection belong to
 `@ta-agent/base-standalone-agent`. Agent directories, Identity lifecycle, managed Config persistence,
 automatic compaction scheduling, advanced branch lifecycle, provider failover, and product UX are

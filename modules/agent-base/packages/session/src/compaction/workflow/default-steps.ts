@@ -1,6 +1,6 @@
 import { AgentActorError, SESSION_COMPACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
 import type { ContextModelMessage, ModelMessage } from '@ta-agent/base-model';
-import type { StepOverrides } from '@ta-agent/base-workflow';
+import { runWithExecutionTimeout, type StepOverrides } from '@ta-agent/base-workflow';
 import { AgentSessionError } from '../../errors.js';
 import { supportsSessionExecution } from '../../lifecycle/execution.js';
 import { parseSessionBranchId, parseSessionId } from '../../identifiers.js';
@@ -99,40 +99,48 @@ async function buildCompactedContext(context: SessionCompactionWorkflowContext):
       'Session compaction source was not selected.'
     );
   }
-  const timeoutSignal = AbortSignal.timeout(context.resources.policy.timeoutMilliseconds);
-  const signal = AbortSignal.any([context.signal, timeoutSignal]);
   let text: string;
   try {
-    const responsibility = await context.resources.responsibilities.resolve(
-      SESSION_COMPACTION_RESPONSIBILITY_ID
+    text = await runWithExecutionTimeout(
+      {
+        parentSignal: context.signal,
+        timeoutMilliseconds: context.resources.policy.timeoutMilliseconds,
+        createTimeoutFailure: ({ timeoutMilliseconds, cause }) =>
+          new AgentSessionError(
+            'SESSION_COMPACTION_TIMEOUT',
+            `Session compaction exceeded ${timeoutMilliseconds} milliseconds.`,
+            { cause }
+          ),
+      },
+      async (signal) => {
+        const responsibility = await context.resources.responsibilities.resolve(
+          SESSION_COMPACTION_RESPONSIBILITY_ID
+        );
+        context.responsibility = responsibility;
+        await context.agentRunContext.traceEmitter?.record({
+          type: 'actor-resolved',
+          workflowName: context.workflowName,
+          workflowRunId: context.workflowRunId,
+          responsibilityId: responsibility.id,
+          responsibilityRevision: responsibility.catalogRevision,
+          actorId: responsibility.actor.id,
+          actorRevision: responsibility.actor.catalogRevision,
+          engineId: responsibility.actor.engineId,
+          candidateIndex: responsibility.candidateIndex,
+          invocationMode: 'direct',
+        });
+        const result = await responsibility.complete({
+          instructions: context.resources.instructions,
+          messages: buildCompactionMessages(source),
+          maxOutputCharacters: context.resources.policy.maxContextCharacters,
+          signal,
+        });
+        return result.message.text;
+      }
     );
-    context.responsibility = responsibility;
-    await context.agentRunContext.traceEmitter?.record({
-      type: 'actor-resolved',
-      workflowName: context.workflowName,
-      workflowRunId: context.workflowRunId,
-      responsibilityId: responsibility.id,
-      responsibilityRevision: responsibility.catalogRevision,
-      actorId: responsibility.actor.id,
-      actorRevision: responsibility.actor.catalogRevision,
-      engineId: responsibility.actor.engineId,
-      candidateIndex: responsibility.candidateIndex,
-      invocationMode: 'direct',
-    });
-    const result = await responsibility.complete({
-      instructions: context.resources.instructions,
-      messages: buildCompactionMessages(source),
-      maxOutputCharacters: context.resources.policy.maxContextCharacters,
-      signal,
-    });
-    text = result.message.text;
   } catch (cause: unknown) {
-    if (timeoutSignal.aborted && !context.signal.aborted) {
-      throw new AgentSessionError(
-        'SESSION_COMPACTION_TIMEOUT',
-        `Session compaction exceeded ${context.resources.policy.timeoutMilliseconds} milliseconds.`,
-        { cause }
-      );
+    if (cause instanceof AgentSessionError && cause.code === 'SESSION_COMPACTION_TIMEOUT') {
+      throw cause;
     }
     if (context.signal.aborted) {
       throw new AgentSessionError(
@@ -142,6 +150,7 @@ async function buildCompactedContext(context: SessionCompactionWorkflowContext):
       );
     }
     if (cause instanceof AgentActorError) {
+      if (cause.code === 'ACTOR_INVOCATION_TIMEOUT') throw cause;
       throw new AgentSessionError(
         'SESSION_COMPACTION_RUNTIME_FAILED',
         'Session compaction Responsibility could not complete the invocation.',

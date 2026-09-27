@@ -6,6 +6,8 @@ import type {
   ProviderModelId,
   ProviderModelReference,
   ProviderModelReferenceInput,
+  ProviderTransportLivenessPolicy,
+  ProviderTransportLivenessPolicyInput,
 } from '@ta-agent/base-model';
 
 export interface PiBuiltinProviderConfigInput {
@@ -36,6 +38,8 @@ export interface PiProviderRuntimeOptions {
   readonly provider: PiProviderConfigInput;
   readonly credentialResolver?: ProviderCredentialResolver;
   readonly actorEngineId?: string;
+  /** Optional provider transport liveness; omission adds no Agent Base transport deadline. */
+  readonly transportLivenessPolicy?: ProviderTransportLivenessPolicyInput;
 }
 
 export interface PiProviderRuntimeInspectionBase {
@@ -48,6 +52,7 @@ export interface PiProviderRuntimeInspectionBase {
   readonly maxOutputTokens: number;
   /** Resolved non-secret capability used by the Pi model boundary. */
   readonly supportsReasoning: boolean;
+  readonly transportLivenessPolicy: ProviderTransportLivenessPolicy;
 }
 
 export interface PiBuiltinProviderRuntimeInspection extends PiProviderRuntimeInspectionBase {

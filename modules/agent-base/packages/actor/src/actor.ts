@@ -16,6 +16,12 @@ import {
 } from './engine.js';
 import { AgentActorError } from './errors.js';
 import {
+  defineActorInvocationPolicy,
+  type ActorInvocationPolicy,
+  type ActorInvocationPolicyInput,
+} from './invocation-policy.js';
+import { runActorInvocation } from './invocation-timeout.js';
+import {
   parseActorEngineId,
   parseActorId,
   type ActorEngineId,
@@ -29,6 +35,7 @@ export interface ActorDefinitionInput {
   readonly engineId: string;
   readonly instructions?: string;
   readonly invocationConfig?: ActorInvocationConfig;
+  readonly invocationPolicy?: ActorInvocationPolicyInput;
   readonly capabilityLimits?: ActorCapabilityLimits;
   readonly allowedTools?: readonly string[];
 }
@@ -38,6 +45,7 @@ export interface ActorDefinition {
   readonly engineId: ActorEngineId;
   readonly instructions?: string;
   readonly invocationConfig: ActorInvocationConfig;
+  readonly invocationPolicy: ActorInvocationPolicy;
   readonly capabilityLimits?: ActorCapabilityLimits;
   readonly allowedTools: readonly ToolName[];
 }
@@ -57,6 +65,7 @@ const ACTOR_KEYS = Object.freeze([
   'engineId',
   'instructions',
   'invocationConfig',
+  'invocationPolicy',
   'capabilityLimits',
   'allowedTools',
 ]);
@@ -106,6 +115,7 @@ export function defineActor(input: ActorDefinitionInput): ActorDefinition {
     engineId: parseActorEngineId(input.engineId),
     ...(instructions === undefined ? {} : { instructions }),
     invocationConfig: defineActorInvocationConfig(input.invocationConfig),
+    invocationPolicy: defineActorInvocationPolicy(input.invocationPolicy),
     ...(capabilityLimits === undefined ? {} : { capabilityLimits }),
     allowedTools: parseAllowedTools(input.allowedTools),
   });
@@ -130,7 +140,8 @@ export function resolveActor(
     capabilities,
     allowedTools: definition.allowedTools,
     async interact(request: ActorInteractionRequest): Promise<AgentLoopResult> {
-      if (!capabilities.invocationModes.includes('interaction') || engine.interact === undefined) {
+      const interact = engine.interact;
+      if (!capabilities.invocationModes.includes('interaction') || interact === undefined) {
         throw new AgentActorError(
           'ACTOR_INVOCATION_UNSUPPORTED',
           `Actor "${definition.id}" does not support interaction invocation.`
@@ -142,36 +153,62 @@ export function resolveActor(
           `Actor "${definition.id}" does not support Tool calls.`
         );
       }
-      const protocol = createActorInteractionProtocol(request.emit, request.maxModelTurns);
-      let result: unknown;
-      try {
-        result = await engine.interact({
-          ...request,
-          instructions: composeActorInstructions(definition.instructions, request.instructions),
-          invocationConfig: definition.invocationConfig,
-          emit: protocol.emit,
-        });
-      } catch (cause: unknown) {
-        protocol.assertValid();
-        throw cause;
-      } finally {
-        protocol.close();
-      }
-      return protocol.complete(result);
+      return runActorInvocation(
+        {
+          actorId: definition.id,
+          invocationKind: 'interact',
+          parentSignal: request.signal,
+          policy: definition.invocationPolicy,
+        },
+        async (signal, assertWithinDeadline) => {
+          const protocol = createActorInteractionProtocol((event) => {
+            assertWithinDeadline();
+            return request.emit(event);
+          }, request.maxModelTurns);
+          let result: unknown;
+          try {
+            result = await interact({
+              ...request,
+              instructions: composeActorInstructions(definition.instructions, request.instructions),
+              invocationConfig: definition.invocationConfig,
+              signal,
+              emit: protocol.emit,
+            });
+          } catch (cause: unknown) {
+            protocol.assertValid();
+            throw cause;
+          } finally {
+            protocol.close();
+          }
+          return protocol.complete(result);
+        }
+      );
     },
     async complete(request: ActorDirectRequest): Promise<ActorDirectResult> {
-      if (!capabilities.invocationModes.includes('direct') || engine.complete === undefined) {
+      const complete = engine.complete;
+      if (!capabilities.invocationModes.includes('direct') || complete === undefined) {
         throw new AgentActorError(
           'ACTOR_INVOCATION_UNSUPPORTED',
           `Actor "${definition.id}" does not support direct invocation.`
         );
       }
-      const result = await engine.complete({
-        ...request,
-        instructions: composeActorInstructions(definition.instructions, request.instructions),
-        invocationConfig: definition.invocationConfig,
-      });
-      return normalizeActorDirectResult(result);
+      return runActorInvocation(
+        {
+          actorId: definition.id,
+          invocationKind: 'complete',
+          parentSignal: request.signal,
+          policy: definition.invocationPolicy,
+        },
+        async (signal) => {
+          const result = await complete({
+            ...request,
+            instructions: composeActorInstructions(definition.instructions, request.instructions),
+            invocationConfig: definition.invocationConfig,
+            signal,
+          });
+          return normalizeActorDirectResult(result);
+        }
+      );
     },
   });
 }

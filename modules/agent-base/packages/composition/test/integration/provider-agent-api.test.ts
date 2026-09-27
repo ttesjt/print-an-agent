@@ -31,7 +31,7 @@ function listen(server: Server): Promise<number> {
   });
 }
 
-async function startServer(): Promise<TestServer> {
+async function startServer(responseStartDelayMilliseconds = 0): Promise<TestServer> {
   const captured: Readonly<Record<string, unknown>>[] = [];
   const server = createServer((request, response) => {
     void handleRequest(request, response).catch(() => {
@@ -50,6 +50,8 @@ async function startServer(): Promise<TestServer> {
       throw new Error('Expected an object request body.');
     }
     captured.push(Object.freeze({ ...parsedBody }));
+    await new Promise((resolve) => setTimeout(resolve, responseStartDelayMilliseconds));
+    if (response.destroyed) return;
     response.writeHead(200, { 'content-type': 'text/event-stream' });
     response.write(
       `data: ${JSON.stringify({
@@ -84,6 +86,7 @@ async function startServer(): Promise<TestServer> {
     requests: () => Object.freeze([...captured]),
     close: () =>
       new Promise<void>((resolve, reject) => {
+        server.closeAllConnections();
         server.close((error) => (error === undefined ? resolve() : reject(error)));
       }),
   });
@@ -128,6 +131,10 @@ describe('ordinary Pi Agent Base composition', () => {
           compatibility: { supportsDeveloperRole: false },
         },
         credentialResolver: resolver,
+        transportLivenessPolicy: {
+          responseStartTimeoutMilliseconds: 5_000,
+          streamEventIdleTimeoutMilliseconds: 5_000,
+        },
       },
     });
     const { sessionId } = await agent.agent.resources.session.resolve({
@@ -172,6 +179,10 @@ describe('ordinary Pi Agent Base composition', () => {
       kind: 'openai-compatible',
       authentication: 'credential-reference',
       actorEngineId: 'provider',
+      transportLivenessPolicy: {
+        responseStartTimeoutMilliseconds: 5_000,
+        streamEventIdleTimeoutMilliseconds: 5_000,
+      },
     });
     expect(JSON.stringify(agent.inspectProvider())).not.toContain('credentials/ordinary-agent');
     expect(JSON.stringify(trace.inspect())).not.toContain('PRIVATE_AGENT_KEY');
@@ -211,6 +222,66 @@ describe('ordinary Pi Agent Base composition', () => {
     expect(sink.inspect()).toMatchObject({
       status: 'failed',
       failure: { code: 'MODEL_CREDENTIAL_NOT_FOUND' },
+    });
+  });
+
+  it('keeps an earlier Actor deadline authoritative over a longer provider deadline', async () => {
+    const server = await startServer(100);
+    const agent = createProviderAgentAPI({
+      identity: { id: 'actor-deadline-agent' },
+      mainActor: { invocationPolicy: { timeoutMilliseconds: 20 } },
+      provider: {
+        config: {
+          kind: 'openai-compatible',
+          reference: {
+            provider: 'local-openai',
+            model: 'agent-test-model',
+            baseUrl: server.baseUrl,
+          },
+          contextWindowTokens: 4_096,
+          maxOutputTokens: 512,
+          supportsReasoning: false,
+          compatibility: { supportsDeveloperRole: false },
+        },
+        transportLivenessPolicy: {
+          responseStartTimeoutMilliseconds: 80,
+          streamEventIdleTimeoutMilliseconds: null,
+        },
+      },
+    });
+
+    await expect(agent.run({ message: 'hello' })).rejects.toMatchObject({
+      code: 'ACTOR_INVOCATION_TIMEOUT',
+    });
+  });
+
+  it('keeps an earlier provider deadline distinct from a longer Actor deadline', async () => {
+    const server = await startServer(100);
+    const agent = createProviderAgentAPI({
+      identity: { id: 'provider-deadline-agent' },
+      mainActor: { invocationPolicy: { timeoutMilliseconds: 80 } },
+      provider: {
+        config: {
+          kind: 'openai-compatible',
+          reference: {
+            provider: 'local-openai',
+            model: 'agent-test-model',
+            baseUrl: server.baseUrl,
+          },
+          contextWindowTokens: 4_096,
+          maxOutputTokens: 512,
+          supportsReasoning: false,
+          compatibility: { supportsDeveloperRole: false },
+        },
+        transportLivenessPolicy: {
+          responseStartTimeoutMilliseconds: 20,
+          streamEventIdleTimeoutMilliseconds: null,
+        },
+      },
+    });
+
+    await expect(agent.run({ message: 'hello' })).rejects.toMatchObject({
+      code: 'MODEL_PROVIDER_RESPONSE_START_TIMEOUT',
     });
   });
 });

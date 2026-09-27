@@ -1,8 +1,16 @@
 import { AgentModelError } from '@ta-agent/base-model';
+import {
+  createBoundedToolRuntime,
+  createToolRegistry,
+  defineTool,
+  defineToolPermissionPolicy,
+  DEFAULT_TOOL_EXECUTION_POLICY,
+} from '@ta-agent/base-tool';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createPiProviderRuntime } from '../../src/index.js';
 import {
   createOpenAICompatibleTestServer,
+  createScriptedOpenAICompatibleTestServer,
   type OpenAICompatibleTestServer,
 } from '../support/openai-compatible-server.js';
 
@@ -16,6 +24,72 @@ async function startServer(responseText?: string): Promise<OpenAICompatibleTestS
   const server = await createOpenAICompatibleTestServer(responseText);
   servers.push(server);
   return server;
+}
+
+async function startTimedServer(
+  timing: Parameters<typeof createOpenAICompatibleTestServer>[2],
+  reasoning?: string
+): Promise<OpenAICompatibleTestServer> {
+  const server = await createOpenAICompatibleTestServer('timed response', reasoning, timing);
+  servers.push(server);
+  return server;
+}
+
+function providerConfig(baseUrl: string) {
+  return {
+    kind: 'openai-compatible' as const,
+    reference: { provider: 'local-keyless', model: 'test-model', baseUrl },
+    contextWindowTokens: 4_096,
+    maxOutputTokens: 512,
+    supportsReasoning: true,
+    compatibility: { supportsDeveloperRole: false },
+  };
+}
+
+function emptyTools(signal: AbortSignal) {
+  return createBoundedToolRuntime({
+    registry: createToolRegistry([]),
+    permissionPolicy: defineToolPermissionPolicy({
+      responsibility: [],
+      actor: [],
+      product: [],
+      runtime: [],
+    }),
+    executionPolicy: DEFAULT_TOOL_EXECUTION_POLICY,
+    signal,
+  });
+}
+
+function delayedLookupTools(signal: AbortSignal, delayMilliseconds: number) {
+  const execute = vi.fn(async () => {
+    await new Promise((resolve) => setTimeout(resolve, delayMilliseconds));
+    return { text: 'lookup result' };
+  });
+  const tool = defineTool({
+    name: 'lookup',
+    description: 'Returns a lookup result.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+      additionalProperties: false,
+    },
+    execute,
+  });
+  return {
+    execute,
+    runtime: createBoundedToolRuntime({
+      registry: createToolRegistry([tool]),
+      permissionPolicy: defineToolPermissionPolicy({
+        responsibility: ['lookup'],
+        actor: ['lookup'],
+        product: ['lookup'],
+        runtime: ['lookup'],
+      }),
+      executionPolicy: DEFAULT_TOOL_EXECUTION_POLICY,
+      signal,
+    }),
+  };
 }
 
 function directRequest() {
@@ -83,6 +157,10 @@ describe('ordinary Pi provider runtime', () => {
       maxOutputTokens: 1_024,
       supportsReasoning: false,
       compatibility: { supportsDeveloperRole: false },
+      transportLivenessPolicy: {
+        responseStartTimeoutMilliseconds: null,
+        streamEventIdleTimeoutMilliseconds: null,
+      },
     });
     expect(JSON.stringify(profile.inspect())).not.toContain('PRIVATE_TEST_KEY');
     expect(JSON.stringify(profile.inspect())).not.toContain('credentials/local-openai');
@@ -140,6 +218,220 @@ describe('ordinary Pi provider runtime', () => {
       expect.objectContaining<Partial<AgentModelError>>({ code: 'MODEL_CREDENTIAL_NOT_FOUND' })
     );
     expect(server.requests()).toHaveLength(0);
+  });
+
+  it('adds no transport deadline by default, even when response start is delayed', async () => {
+    const server = await startTimedServer({ responseStartDelayMilliseconds: 50 });
+    const profile = createPiProviderRuntime({ provider: providerConfig(server.baseUrl) });
+
+    await expect(profile.actorEngine.complete?.(directRequest())).resolves.toMatchObject({
+      message: { text: 'timed response' },
+    });
+    expect(profile.inspect().transportLivenessPolicy).toEqual({
+      responseStartTimeoutMilliseconds: null,
+      streamEventIdleTimeoutMilliseconds: null,
+    });
+  });
+
+  it('fails direct completion with its owned response-start timeout', async () => {
+    const server = await startTimedServer({ responseStartDelayMilliseconds: 100 });
+    const profile = createPiProviderRuntime({
+      provider: providerConfig(server.baseUrl),
+      transportLivenessPolicy: {
+        responseStartTimeoutMilliseconds: 20,
+        streamEventIdleTimeoutMilliseconds: null,
+      },
+    });
+
+    await expect(profile.actorEngine.complete?.(directRequest())).rejects.toEqual(
+      expect.objectContaining<Partial<AgentModelError>>({
+        code: 'MODEL_PROVIDER_RESPONSE_START_TIMEOUT',
+      })
+    );
+  });
+
+  it('fails an interaction when a started provider stream stops producing events', async () => {
+    const server = await startTimedServer({ terminalEventDelayMilliseconds: 100 });
+    const profile = createPiProviderRuntime({
+      provider: providerConfig(server.baseUrl),
+      transportLivenessPolicy: {
+        responseStartTimeoutMilliseconds: null,
+        streamEventIdleTimeoutMilliseconds: 20,
+      },
+    });
+    const signal = new AbortController().signal;
+    const tools = emptyTools(signal);
+
+    try {
+      await expect(
+        profile.actorEngine.interact?.({
+          instructions: 'Reply briefly.',
+          history: [],
+          prompt: { role: 'user', text: 'hello', timestamp: 1 },
+          tools,
+          maxModelTurns: 1,
+          maxOutputCharacters: 1_000,
+          signal,
+          invocationConfig: {},
+          emit: () => Promise.resolve(),
+        })
+      ).rejects.toEqual(
+        expect.objectContaining<Partial<AgentModelError>>({
+          code: 'MODEL_PROVIDER_STREAM_IDLE_TIMEOUT',
+        })
+      );
+    } finally {
+      tools.close();
+    }
+  });
+
+  it('starts the idle deadline after response headers while awaiting the first event', async () => {
+    const server = await startTimedServer({ firstEventDelayMilliseconds: 100 });
+    const profile = createPiProviderRuntime({
+      provider: providerConfig(server.baseUrl),
+      transportLivenessPolicy: {
+        responseStartTimeoutMilliseconds: null,
+        streamEventIdleTimeoutMilliseconds: 20,
+      },
+    });
+
+    await expect(profile.actorEngine.complete?.(directRequest())).rejects.toEqual(
+      expect.objectContaining<Partial<AgentModelError>>({
+        code: 'MODEL_PROVIDER_STREAM_IDLE_TIMEOUT',
+      })
+    );
+  });
+
+  it('resets the idle deadline as normalized reasoning, text, and terminal events arrive', async () => {
+    const server = await startTimedServer(
+      {
+        firstEventDelayMilliseconds: 15,
+        contentEventDelayMilliseconds: 15,
+        terminalEventDelayMilliseconds: 15,
+      },
+      'thinking'
+    );
+    const profile = createPiProviderRuntime({
+      provider: providerConfig(server.baseUrl),
+      transportLivenessPolicy: {
+        responseStartTimeoutMilliseconds: 60,
+        streamEventIdleTimeoutMilliseconds: 60,
+      },
+    });
+
+    await expect(profile.actorEngine.complete?.(directRequest())).resolves.toMatchObject({
+      message: { text: 'timed response' },
+    });
+  });
+
+  it('does not charge downstream event backpressure to provider stream idleness', async () => {
+    const server = await startServer('backpressured response');
+    const profile = createPiProviderRuntime({
+      provider: providerConfig(server.baseUrl),
+      transportLivenessPolicy: {
+        responseStartTimeoutMilliseconds: null,
+        streamEventIdleTimeoutMilliseconds: 20,
+      },
+    });
+    const signal = new AbortController().signal;
+    const tools = emptyTools(signal);
+
+    try {
+      await expect(
+        profile.actorEngine.interact?.({
+          instructions: 'Reply briefly.',
+          history: [],
+          prompt: { role: 'user', text: 'hello', timestamp: 1 },
+          tools,
+          maxModelTurns: 1,
+          maxOutputCharacters: 1_000,
+          signal,
+          invocationConfig: {},
+          emit: (event) =>
+            event.type === 'text-delta'
+              ? new Promise((resolve) => setTimeout(resolve, 50))
+              : Promise.resolve(),
+        })
+      ).resolves.toMatchObject({ message: { text: 'backpressured response' } });
+    } finally {
+      tools.close();
+    }
+  });
+
+  it('rebuilds provider liveness boundaries for every model turn in a real Tool loop', async () => {
+    const server = await createScriptedOpenAICompatibleTestServer([
+      {
+        kind: 'tool-call',
+        id: 'lookup-call-1',
+        name: 'lookup',
+        arguments: {},
+      },
+      {
+        kind: 'text',
+        text: 'answer after lookup',
+        timing: { responseStartDelayMilliseconds: 40 },
+      },
+    ]);
+    servers.push(server);
+    const profile = createPiProviderRuntime({
+      provider: providerConfig(server.baseUrl),
+      transportLivenessPolicy: {
+        responseStartTimeoutMilliseconds: 80,
+        streamEventIdleTimeoutMilliseconds: 80,
+      },
+    });
+    const signal = new AbortController().signal;
+    const tools = delayedLookupTools(signal, 120);
+
+    try {
+      await expect(
+        profile.actorEngine.interact?.({
+          instructions: 'Use the lookup tool before answering.',
+          history: [],
+          prompt: { role: 'user', text: 'lookup this', timestamp: 1 },
+          tools: tools.runtime,
+          maxModelTurns: 2,
+          maxOutputCharacters: 1_000,
+          signal,
+          invocationConfig: {},
+          emit: () => Promise.resolve(),
+        })
+      ).resolves.toMatchObject({ message: { text: 'answer after lookup' } });
+
+      expect(tools.execute).toHaveBeenCalledTimes(1);
+      expect(server.requests()).toHaveLength(2);
+      const secondRequest = server.requests()[1]?.body as
+        | Readonly<{ messages?: readonly Readonly<{ role?: unknown }>[] }>
+        | undefined;
+      expect(secondRequest?.messages?.some((message) => message.role === 'tool')).toBe(true);
+    } finally {
+      tools.runtime.close();
+    }
+  });
+
+  it('preserves caller cancellation instead of relabelling it as provider timeout', async () => {
+    const server = await startTimedServer({ responseStartDelayMilliseconds: 100 });
+    const profile = createPiProviderRuntime({
+      provider: providerConfig(server.baseUrl),
+      transportLivenessPolicy: {
+        responseStartTimeoutMilliseconds: 80,
+        streamEventIdleTimeoutMilliseconds: 80,
+      },
+    });
+    const controller = new AbortController();
+    const cancellation = setTimeout(() => controller.abort(new Error('caller cancelled')), 15);
+
+    try {
+      await expect(
+        profile.actorEngine.complete?.({ ...directRequest(), signal: controller.signal })
+      ).rejects.toEqual(
+        expect.objectContaining<Partial<AgentModelError>>({
+          code: 'MODEL_INVOCATION_CANCELLED',
+        })
+      );
+    } finally {
+      clearTimeout(cancellation);
+    }
   });
 
   it('normalizes malformed and throwing credential resolvers without exposing their details', async () => {

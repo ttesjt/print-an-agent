@@ -77,6 +77,29 @@ function snapshot(turnCount: number): SessionSnapshot {
 }
 
 describe('Session compaction policy and source selection', () => {
+  it('defaults to no automatic compaction timeout and validates explicit deadlines', () => {
+    expect(DEFAULT_SESSION_COMPACTION_POLICY.timeoutMilliseconds).toBeNull();
+    expect(
+      validateSessionCompactionPolicy({
+        ...DEFAULT_SESSION_COMPACTION_POLICY,
+        timeoutMilliseconds: 120_000,
+      }).timeoutMilliseconds
+    ).toBe(120_000);
+
+    for (const timeoutMilliseconds of [0, -1, 1.5, undefined, 2_147_483_648]) {
+      let received: unknown;
+      try {
+        validateSessionCompactionPolicy({
+          ...DEFAULT_SESSION_COMPACTION_POLICY,
+          timeoutMilliseconds,
+        });
+      } catch (error: unknown) {
+        received = error;
+      }
+      expect(received).toMatchObject({ code: 'SESSION_COMPACTION_INVALID' });
+    }
+  });
+
   it('selects a bounded whole-turn prefix while retaining the configured recent tail', () => {
     const selection = selectSessionCompactionSource(
       snapshot(6),

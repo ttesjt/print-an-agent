@@ -17,6 +17,9 @@ export function createProviderAgentAPI(options: CreateProviderAgentAPIOptions): 
       ? {}
       : { credentialResolver: provider.credentialResolver }),
     ...(provider.actorEngineId === undefined ? {} : { actorEngineId: provider.actorEngineId }),
+    ...(provider.transportLivenessPolicy === undefined
+      ? {}
+      : { transportLivenessPolicy: provider.transportLivenessPolicy }),
   });
   const actorCatalog = createActorCatalog({
     actors: [

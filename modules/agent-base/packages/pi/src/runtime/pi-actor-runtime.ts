@@ -1,5 +1,19 @@
-import type { Api, Context, Message, Model, Models, UserMessage } from '@earendil-works/pi-ai';
-import { runAgentLoop, type AgentMessage, type StreamFn } from '@earendil-works/pi-agent-core';
+import type {
+  Api,
+  AssistantMessage,
+  AssistantMessageEventStream,
+  Context,
+  Message,
+  Model,
+  Models,
+  UserMessage,
+} from '@earendil-works/pi-ai';
+import {
+  runAgentLoop,
+  type AgentEvent,
+  type AgentMessage,
+  type StreamFn,
+} from '@earendil-works/pi-agent-core';
 import {
   defineActorEngine,
   type ActorDirectResult,
@@ -16,6 +30,7 @@ import {
   type ProviderApiKeyCredential,
   type ProviderCredentialResolver,
   type ProviderModelReference,
+  type ProviderTransportLivenessPolicy,
   type ResolvedExecutionTarget,
 } from '@ta-agent/base-model';
 import { AgentToolError } from '@ta-agent/base-tool';
@@ -26,6 +41,10 @@ import {
   type PiToolEventObserver,
 } from './pi-event-adapter.js';
 import { toModelMessage, toPiMessage } from './pi-message-mapping.js';
+import {
+  createPiProviderTransportLivenessBoundary,
+  type PiProviderTransportLivenessBoundary,
+} from './pi-provider-transport-liveness.js';
 import { createPiTools, type PiToolAdapterState } from './pi-tool-adapter.js';
 
 const MAX_API_KEY_CHARACTERS = 65_536;
@@ -43,6 +62,7 @@ interface PiActorRuntimeOptions {
   readonly models: Models;
   readonly model: Model<Api>;
   readonly modelReference: ProviderModelReference;
+  readonly transportLivenessPolicy: ProviderTransportLivenessPolicy;
   readonly credentialResolver?: ProviderCredentialResolver;
   readonly hooks?: PiActorRuntimeHooks;
 }
@@ -103,6 +123,7 @@ export class PiActorRuntime implements AgentLoopRuntime {
   readonly #models: Models;
   readonly #model: Model<Api>;
   readonly #modelReference: ProviderModelReference;
+  readonly #transportLivenessPolicy: ProviderTransportLivenessPolicy;
   readonly #credentialResolver: ProviderCredentialResolver | undefined;
   readonly #hooks: PiActorRuntimeHooks;
   readonly #targetModels = new WeakMap<ResolvedExecutionTarget, Model<Api>>();
@@ -111,6 +132,7 @@ export class PiActorRuntime implements AgentLoopRuntime {
     this.#models = options.models;
     this.#model = options.model;
     this.#modelReference = options.modelReference;
+    this.#transportLivenessPolicy = options.transportLivenessPolicy;
     this.#credentialResolver = options.credentialResolver;
     this.#hooks = options.hooks ?? Object.freeze({});
   }
@@ -214,6 +236,8 @@ export class PiActorRuntime implements AgentLoopRuntime {
     const apiKey = await this.#resolveApiKey(request.signal);
     const internalAbort = new AbortController();
     const signal = AbortSignal.any([request.signal, internalAbort.signal]);
+    let activeTransportBoundary: PiProviderTransportLivenessBoundary | undefined;
+    let transportFailure: AgentModelError | undefined;
     const toolAdapter: PiToolAdapterState = { attemptedCallIds: new Set() };
     const state: PiRunState = {
       outputCharacters: 0,
@@ -234,11 +258,32 @@ export class PiActorRuntime implements AgentLoopRuntime {
     };
     const streamFn: StreamFn = (selectedModel, context, options) => {
       this.#hooks.observeInvocation?.(context, 'agent-loop', invocationConfig);
+      activeTransportBoundary?.close();
+      const boundary = createPiProviderTransportLivenessBoundary({
+        parentSignal: options?.signal ?? signal,
+        policy: this.#transportLivenessPolicy,
+        onTimeout: (failure) => {
+          transportFailure ??= failure;
+        },
+      });
+      activeTransportBoundary = boundary;
+      const onResponse = options?.onResponse;
       return this.#models.streamSimple(selectedModel, context, {
         ...options,
         ...toPiInvocationOptions(invocationConfig, apiKey),
+        signal: boundary.signal,
+        onResponse: async (response, responseModel) => {
+          boundary.responseStarted();
+          await onResponse?.(response, responseModel);
+        },
       });
     };
+    const eventSink = createPiEventSink(
+      request,
+      internalAbort,
+      state,
+      this.#hooks.observeToolEvent
+    );
 
     try {
       await runAgentLoop(
@@ -260,7 +305,13 @@ export class PiActorRuntime implements AgentLoopRuntime {
             return false;
           },
         },
-        createPiEventSink(request, internalAbort, state, this.#hooks.observeToolEvent),
+        async (event) => {
+          const providerEvent = observeProviderStreamActivity(activeTransportBoundary, event);
+          await eventSink(event);
+          if (providerEvent && event.type !== 'message_end') {
+            activeTransportBoundary?.waitForNextStreamEvent();
+          }
+        },
         signal,
         streamFn
       );
@@ -270,11 +321,15 @@ export class PiActorRuntime implements AgentLoopRuntime {
       }
       if (state.limitFailure !== undefined) throw state.limitFailure;
       if (state.eventSinkFailure !== undefined) throw state.eventSinkFailure;
+      if (transportFailure !== undefined) throw transportFailure;
       throw normalizeProviderFailure(cause, request.signal);
+    } finally {
+      activeTransportBoundary?.close();
     }
 
     if (state.toolAdapter.terminalFailure !== undefined) throw state.toolAdapter.terminalFailure;
     if (state.modelTurnFailure !== undefined) throw state.modelTurnFailure;
+    if (transportFailure !== undefined) throw transportFailure;
     if (state.terminalFailure !== undefined) {
       throwTerminalFailure(request.signal, state.terminalFailure);
     }
@@ -301,15 +356,31 @@ export class PiActorRuntime implements AgentLoopRuntime {
     };
     this.#hooks.observeInvocation?.(piContext, 'direct', request.invocationConfig);
 
-    let response;
+    let transportFailure: AgentModelError | undefined;
+    const boundary = createPiProviderTransportLivenessBoundary({
+      parentSignal: request.signal,
+      policy: this.#transportLivenessPolicy,
+      onTimeout: (failure) => {
+        transportFailure ??= failure;
+      },
+    });
+    let response: AssistantMessage;
     try {
-      response = await this.#models.completeSimple(this.#model, piContext, {
-        signal: request.signal,
+      const responseStream = this.#models.streamSimple(this.#model, piContext, {
+        signal: boundary.signal,
         ...toPiInvocationOptions(request.invocationConfig, apiKey),
+        onResponse: () => {
+          boundary.responseStarted();
+        },
       });
+      response = await consumeDirectProviderStream(responseStream, boundary);
     } catch (cause: unknown) {
+      if (transportFailure !== undefined) throw transportFailure;
       throw normalizeProviderFailure(cause, request.signal);
+    } finally {
+      boundary.close();
     }
+    if (transportFailure !== undefined) throw transportFailure;
     if (response.stopReason === 'error' || response.stopReason === 'aborted') {
       throwTerminalFailure(request.signal, response);
     }
@@ -334,6 +405,38 @@ export class PiActorRuntime implements AgentLoopRuntime {
     }
     return Object.freeze({ message: normalized });
   }
+}
+
+function observeProviderStreamActivity(
+  boundary: PiProviderTransportLivenessBoundary | undefined,
+  event: AgentEvent
+): boolean {
+  if (
+    boundary === undefined ||
+    (event.type !== 'message_start' &&
+      event.type !== 'message_update' &&
+      event.type !== 'message_end')
+  ) {
+    return false;
+  }
+  boundary.streamEventReceived();
+  if (event.type === 'message_end') boundary.close();
+  return true;
+}
+
+async function consumeDirectProviderStream(
+  stream: AssistantMessageEventStream,
+  boundary: PiProviderTransportLivenessBoundary
+): Promise<AssistantMessage> {
+  for await (const event of stream) {
+    boundary.streamEventReceived();
+    if (event.type === 'done' || event.type === 'error') {
+      boundary.close();
+    } else {
+      boundary.waitForNextStreamEvent();
+    }
+  }
+  return stream.result();
 }
 
 export function createPiActorEngine(

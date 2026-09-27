@@ -18,6 +18,34 @@ export interface OpenAICompatibleTestServer {
   close(): Promise<void>;
 }
 
+export interface OpenAICompatibleResponseTiming {
+  readonly responseStartDelayMilliseconds?: number;
+  readonly firstEventDelayMilliseconds?: number;
+  readonly contentEventDelayMilliseconds?: number;
+  readonly terminalEventDelayMilliseconds?: number;
+}
+
+export type OpenAICompatibleScriptedResponse =
+  | Readonly<{
+      kind: 'text';
+      text: string;
+      reasoning?: string;
+      timing?: OpenAICompatibleResponseTiming;
+    }>
+  | Readonly<{
+      kind: 'tool-call';
+      id: string;
+      name: string;
+      arguments: Readonly<Record<string, unknown>>;
+      timing?: OpenAICompatibleResponseTiming;
+    }>;
+
+function delay(milliseconds: number | undefined): Promise<void> {
+  return milliseconds === undefined
+    ? Promise.resolve()
+    : new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 function readBody(request: AsyncIterable<Uint8Array>): Promise<string> {
   return (async () => {
     const chunks: Uint8Array[] = [];
@@ -43,7 +71,31 @@ function listen(server: Server): Promise<number> {
 
 export async function createOpenAICompatibleTestServer(
   responseText = 'ordinary response',
-  reasoning?: string
+  reasoning?: string,
+  timing: OpenAICompatibleResponseTiming = Object.freeze({})
+): Promise<OpenAICompatibleTestServer> {
+  return createOpenAICompatibleServer(() => ({
+    kind: 'text',
+    text: responseText,
+    ...(reasoning === undefined ? {} : { reasoning }),
+    timing,
+  }));
+}
+
+export async function createScriptedOpenAICompatibleTestServer(
+  responses: readonly OpenAICompatibleScriptedResponse[]
+): Promise<OpenAICompatibleTestServer> {
+  return createOpenAICompatibleServer((requestIndex) => {
+    const scriptedResponse = responses[requestIndex];
+    if (scriptedResponse === undefined) {
+      throw new Error(`No scripted response exists for provider request ${requestIndex + 1}.`);
+    }
+    return scriptedResponse;
+  });
+}
+
+async function createOpenAICompatibleServer(
+  resolveResponse: (requestIndex: number) => OpenAICompatibleScriptedResponse
 ): Promise<OpenAICompatibleTestServer> {
   const captured: OpenAICompatibleRequestSnapshot[] = [];
   const server = createServer((request, response) => {
@@ -60,12 +112,19 @@ export async function createOpenAICompatibleTestServer(
         body: JSON.parse(rawBody) as unknown,
       })
     );
+    const scriptedResponse = resolveResponse(captured.length - 1);
+    const timing: OpenAICompatibleResponseTiming = scriptedResponse.timing ?? Object.freeze({});
+    await delay(timing.responseStartDelayMilliseconds);
+    if (response.destroyed) return;
     response.writeHead(200, {
       'content-type': 'text/event-stream',
       connection: 'keep-alive',
       'cache-control': 'no-cache',
     });
-    if (reasoning !== undefined) {
+    response.flushHeaders();
+    await delay(timing.firstEventDelayMilliseconds);
+    if (response.destroyed) return;
+    if (scriptedResponse.kind === 'tool-call') {
       response.write(
         `data: ${JSON.stringify({
           id: 'chatcmpl-test',
@@ -75,34 +134,67 @@ export async function createOpenAICompatibleTestServer(
           choices: [
             {
               index: 0,
-              delta: { role: 'assistant', reasoning_content: reasoning },
+              delta: {
+                role: 'assistant',
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: scriptedResponse.id,
+                    type: 'function',
+                    function: {
+                      name: scriptedResponse.name,
+                      arguments: JSON.stringify(scriptedResponse.arguments),
+                    },
+                  },
+                ],
+              },
               finish_reason: null,
             },
           ],
         })}\n\n`
       );
+      await delay(timing.terminalEventDelayMilliseconds);
+      if (response.destroyed) return;
+      writeTerminalEvent(response, 'tool_calls');
+    } else {
+      if (scriptedResponse.reasoning !== undefined) {
+        response.write(
+          `data: ${JSON.stringify({
+            id: 'chatcmpl-test',
+            object: 'chat.completion.chunk',
+            created: 1,
+            model: 'test-model',
+            choices: [
+              {
+                index: 0,
+                delta: { role: 'assistant', reasoning_content: scriptedResponse.reasoning },
+                finish_reason: null,
+              },
+            ],
+          })}\n\n`
+        );
+        await delay(timing.contentEventDelayMilliseconds);
+        if (response.destroyed) return;
+      }
+      response.write(
+        `data: ${JSON.stringify({
+          id: 'chatcmpl-test',
+          object: 'chat.completion.chunk',
+          created: 1,
+          model: 'test-model',
+          choices: [
+            {
+              index: 0,
+              delta: { role: 'assistant', content: scriptedResponse.text },
+              finish_reason: null,
+            },
+          ],
+        })}\n\n`
+      );
+      await delay(timing.terminalEventDelayMilliseconds);
+      if (response.destroyed) return;
+      writeTerminalEvent(response, 'stop');
     }
-    response.write(
-      `data: ${JSON.stringify({
-        id: 'chatcmpl-test',
-        object: 'chat.completion.chunk',
-        created: 1,
-        model: 'test-model',
-        choices: [
-          { index: 0, delta: { role: 'assistant', content: responseText }, finish_reason: null },
-        ],
-      })}\n\n`
-    );
-    response.write(
-      `data: ${JSON.stringify({
-        id: 'chatcmpl-test',
-        object: 'chat.completion.chunk',
-        created: 1,
-        model: 'test-model',
-        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
-        usage: { prompt_tokens: 2, completion_tokens: 2, total_tokens: 4 },
-      })}\n\n`
-    );
     response.end('data: [DONE]\n\n');
   }
   const port = await listen(server);
@@ -112,6 +204,20 @@ export async function createOpenAICompatibleTestServer(
     close: () =>
       new Promise<void>((resolve, reject) => {
         server.close((error) => (error === undefined ? resolve() : reject(error)));
+        server.closeAllConnections();
       }),
   });
+}
+
+function writeTerminalEvent(response: ServerResponse, finishReason: 'stop' | 'tool_calls'): void {
+  response.write(
+    `data: ${JSON.stringify({
+      id: 'chatcmpl-test',
+      object: 'chat.completion.chunk',
+      created: 1,
+      model: 'test-model',
+      choices: [{ index: 0, delta: {}, finish_reason: finishReason }],
+      usage: { prompt_tokens: 2, completion_tokens: 2, total_tokens: 4 },
+    })}\n\n`
+  );
 }

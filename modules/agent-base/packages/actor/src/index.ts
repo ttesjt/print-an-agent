@@ -1,6 +1,15 @@
 export { AgentActorError } from './errors.js';
 export type { AgentActorErrorCode } from './errors.js';
 export {
+  DEFAULT_ACTOR_INVOCATION_POLICY,
+  MAX_ACTOR_INVOCATION_TIMEOUT_MILLISECONDS,
+  NO_ACTOR_INVOCATION_TIMEOUT,
+  defineActorInvocationPolicy,
+  type ActorInvocationPolicy,
+  type ActorInvocationPolicyInput,
+  type ActorInvocationTimeoutMilliseconds,
+} from './invocation-policy.js';
+export {
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
   MAIN_ACTOR_ID,
   SESSION_COMPACTION_RESPONSIBILITY_ID,

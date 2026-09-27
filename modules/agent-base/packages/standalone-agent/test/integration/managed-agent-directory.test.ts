@@ -27,17 +27,19 @@ const TEST_USAGE = Object.freeze({
 function definition(tone = 'Answer directly.'): StandaloneAgentDefinitionInput {
   return {
     provider: {
-      kind: 'openai-compatible',
-      reference: {
-        provider: 'loopback',
-        model: 'test-model',
-        baseUrl: 'http://127.0.0.1:8080/v1',
-        credentialRef: 'credentials/standalone',
+      config: {
+        kind: 'openai-compatible',
+        reference: {
+          provider: 'loopback',
+          model: 'test-model',
+          baseUrl: 'http://127.0.0.1:8080/v1',
+          credentialRef: 'credentials/standalone',
+        },
+        contextWindowTokens: 8_192,
+        maxOutputTokens: 1_024,
+        supportsReasoning: false,
+        compatibility: { supportsDeveloperRole: false },
       },
-      contextWindowTokens: 8_192,
-      maxOutputTokens: 1_024,
-      supportsReasoning: false,
-      compatibility: { supportsDeveloperRole: false },
     },
     credential: {
       reference: 'credentials/standalone',
@@ -90,6 +92,19 @@ describe('managed Standalone Agent directory', () => {
         expect(text).toContain(`"id": "${agentId}"`);
         expect(text).not.toContain('PRIVATE_RUNTIME_KEY');
         expect(text).not.toContain('directory_');
+        expect(JSON.parse(text) as unknown).toMatchObject({
+          config: {
+            provider: {
+              transportLivenessPolicy: {
+                responseStartTimeoutMilliseconds: null,
+                streamEventIdleTimeoutMilliseconds: null,
+              },
+            },
+            mainActor: { invocationPolicy: { timeoutMilliseconds: null } },
+            request: { timeoutMilliseconds: null },
+            sessionCompaction: { timeoutMilliseconds: null },
+          },
+        });
 
         const database = new DatabaseSync(join(rootDirectory, agentId, 'agent.sqlite'));
         const tables = database

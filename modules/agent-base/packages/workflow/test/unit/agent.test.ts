@@ -95,6 +95,12 @@ function expectDefinitionError(run: () => unknown, code: AgentDefinitionError['c
   throw new Error(`Expected AgentDefinitionError with code ${code}.`);
 }
 
+function cancellationError(signal: AbortSignal): Error {
+  return signal.reason instanceof Error
+    ? signal.reason
+    : new Error('Run cancelled.', { cause: signal.reason });
+}
+
 describe('Agent Operations', () => {
   it('runs differently typed public Operations through one Agent owner', async () => {
     const text = textWorkflow('text', 'text');
@@ -144,9 +150,11 @@ describe('Agent Operations', () => {
   it('lets an Operation prepare its Run and map terminal errors without an outer facade', async () => {
     const failure = new Error('raw failure');
     const mappedFailure = new Error('mapped failure');
-    const preparedSignal = new AbortController().signal;
+    const parentSignal = new AbortController().signal;
+    let preparationSignal: AbortSignal | undefined;
     let observedInput: string | undefined;
     let observedSignal: AbortSignal | undefined;
+    let mappedSignal: AbortSignal | undefined;
     const workflow = new Workflow<StepName, TextRunContext, TextWorkflowContext, string>({
       name: 'prepared-run',
       entryStep: 'execute',
@@ -170,12 +178,14 @@ describe('Agent Operations', () => {
       workflowPlan: [workflow],
       config: Object.freeze({}),
       resources: Object.freeze({}),
-      prepareRun: ({ input }) =>
-        Promise.resolve(Object.freeze({ input: input.toUpperCase(), signal: preparedSignal })),
+      prepareRun: ({ input, signal }) => {
+        preparationSignal = signal;
+        return Promise.resolve(Object.freeze({ input: input.toUpperCase() }));
+      },
       mapRunError: (error, prepared) => {
         expect(error).toBe(failure);
         expect(prepared.input).toBe('HELLO');
-        expect(prepared.signal).toBe(preparedSignal);
+        mappedSignal = prepared.signal;
         return mappedFailure;
       },
       createContext: (
@@ -193,9 +203,461 @@ describe('Agent Operations', () => {
       operations: { prepared: operation },
     });
 
-    await expect(agent.invoke('prepared', 'hello')).rejects.toBe(mappedFailure);
+    await expect(agent.invoke('prepared', 'hello', { signal: parentSignal })).rejects.toBe(
+      mappedFailure
+    );
     expect(observedInput).toBe('HELLO');
-    expect(observedSignal).toBe(preparedSignal);
+    expect(preparationSignal).toBe(parentSignal);
+    expect(observedSignal).toBe(parentSignal);
+    expect(mappedSignal).toBe(observedSignal);
+  });
+
+  it('rejects a Run preparation that attempts to replace the effective signal', async () => {
+    let workflowStarted = false;
+    const replacementSignal = new AbortController().signal;
+    const workflow = new Workflow<StepName, NumberRunContext, NumberWorkflowContext, number>({
+      name: 'invalid-preparation',
+      entryStep: 'execute',
+      stepDefinitions: {
+        execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+          skippable: false,
+          step: () => {
+            workflowStarted = true;
+            return Promise.resolve();
+          },
+        },
+      },
+      createContext: (base) => ({ ...base }),
+      applyResult: () => Promise.resolve(),
+    });
+    const operation = defineAgentOperation({
+      name: 'invalidPreparation',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      prepareRun: ({ input }) => Promise.resolve({ input, signal: replacementSignal } as never),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { invalidPreparation: operation },
+    });
+
+    await expect(agent.invoke('invalidPreparation', 1)).rejects.toMatchObject({
+      code: 'AGENT_RUN_PREPARATION_INVALID',
+    });
+    expect(workflowStarted).toBe(false);
+  });
+
+  it('lets an Operation executor wrap exactly one Run without owning its behavior', async () => {
+    const parentSignal = new AbortController().signal;
+    const executionSignal = new AbortController().signal;
+    const config = Object.freeze({ boundary: 'request' });
+    const resources = Object.freeze({ marker: 'resource' });
+    let observedSignal: AbortSignal | undefined;
+    const workflow = numberWorkflow('executed-run');
+    const operation = defineAgentOperation({
+      name: 'executed',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config,
+      resources,
+      executeRun: (execution) => {
+        expect(Object.isFrozen(execution)).toBe(true);
+        expect(execution.input).toBe(3);
+        expect(execution.signal).toBe(parentSignal);
+        expect(execution.config).toBe(config);
+        expect(execution.resources).toBe(resources);
+        return execution.execute(executionSignal);
+      },
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          typeof config,
+          typeof resources,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => {
+        observedSignal = base.signal;
+        return { ...base };
+      },
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { executed: operation },
+    });
+
+    await expect(agent.invoke('executed', 3, { signal: parentSignal })).resolves.toBe(6);
+    expect(observedSignal).not.toBe(executionSignal);
+    expect(observedSignal?.aborted).toBe(false);
+  });
+
+  it('rejects Operation executors that omit, repeat, or corrupt Run execution', async () => {
+    const workflow = numberWorkflow('executor-invariant');
+    const createContext = (
+      base: AgentRunContextFactoryInput<
+        number,
+        Readonly<Record<string, never>>,
+        Readonly<Record<string, never>>,
+        Readonly<Record<never, never>>
+      >
+    ): NumberRunContext => ({ ...base });
+    const omitted = defineAgentOperation({
+      name: 'omitted',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      executeRun: () => Promise.resolve(),
+      createContext,
+    });
+    const repeated = defineAgentOperation({
+      name: 'repeated',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      executeRun: async ({ signal, execute }) => {
+        await execute(signal);
+        return execute(signal);
+      },
+      createContext,
+    });
+    const invalidSignal = defineAgentOperation({
+      name: 'invalidSignal',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      executeRun: ({ execute }) => execute({} as AbortSignal),
+      createContext,
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { omitted, repeated, invalidSignal },
+    });
+
+    await expect(agent.invoke('omitted', 1)).rejects.toMatchObject({
+      code: 'AGENT_RUN_EXECUTION_MISSING',
+    });
+    await expect(agent.invoke('repeated', 1)).rejects.toMatchObject({
+      code: 'AGENT_RUN_EXECUTION_REENTERED',
+    });
+    await expect(agent.invoke('invalidSignal', 1)).rejects.toMatchObject({
+      code: 'AGENT_RUN_EXECUTION_SIGNAL_INVALID',
+    });
+  });
+
+  it('does not let an Operation executor swallow a Run failure', async () => {
+    const failure = new Error('Run failed');
+    const workflow = new Workflow<StepName, NumberRunContext, NumberWorkflowContext, number>({
+      name: 'failing-run',
+      entryStep: 'execute',
+      stepDefinitions: {
+        execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+          skippable: false,
+          step: () => Promise.reject(failure),
+        },
+      },
+      createContext: (base) => ({ ...base }),
+      applyResult: () => Promise.resolve(),
+    });
+    const operation = defineAgentOperation({
+      name: 'failing',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      executeRun: async ({ signal, execute }) => {
+        try {
+          await execute(signal);
+        } catch {
+          // An executor owns the boundary, not the authoritative Run outcome.
+        }
+      },
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { failing: operation },
+    });
+
+    await expect(agent.invoke('failing', 1)).rejects.toBe(failure);
+  });
+
+  it('preserves the authoritative protocol failure when an earlier parent cancellation wins the effective signal', async () => {
+    let cancellationReason: unknown;
+    let workSettled = false;
+    const parentController = new AbortController();
+    const executorController = new AbortController();
+    const parentFailure = new Error('caller cancelled');
+    const workflow = new Workflow<StepName, NumberRunContext, NumberWorkflowContext, number>({
+      name: 'unawaited-run',
+      entryStep: 'execute',
+      stepDefinitions: {
+        execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+          skippable: false,
+          step: (context) =>
+            new Promise((_resolve, reject) => {
+              const cancel = (): void => {
+                cancellationReason = context.signal.reason;
+                workSettled = true;
+                reject(
+                  context.signal.reason instanceof Error
+                    ? context.signal.reason
+                    : new Error('Run cancelled.', { cause: context.signal.reason })
+                );
+              };
+              if (context.signal.aborted) cancel();
+              else context.signal.addEventListener('abort', cancel, { once: true });
+            }),
+        },
+      },
+      createContext: (base) => ({ ...base }),
+      applyResult: () => Promise.resolve(),
+    });
+    const operation = defineAgentOperation({
+      name: 'unawaited',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      executeRun: ({ execute }) => {
+        void execute(executorController.signal);
+        parentController.abort(parentFailure);
+        return Promise.resolve();
+      },
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { unawaited: operation },
+    });
+
+    await expect(
+      agent.invoke('unawaited', 1, { signal: parentController.signal })
+    ).rejects.toMatchObject({
+      code: 'AGENT_RUN_EXECUTION_INCOMPLETE',
+    });
+    expect(cancellationReason).toBe(parentFailure);
+    expect(workSettled).toBe(true);
+    expect(executorController.signal.aborted).toBe(false);
+  });
+
+  it('propagates parent cancellation through an executor-local signal without aborting the source', async () => {
+    const parentController = new AbortController();
+    const executorController = new AbortController();
+    const parentFailure = new Error('caller cancelled');
+    let observedSignal: AbortSignal | undefined;
+    let startWork: (() => void) | undefined;
+    const workStarted = new Promise<void>((resolve) => {
+      startWork = resolve;
+    });
+    const workflow = new Workflow<StepName, NumberRunContext, NumberWorkflowContext, number>({
+      name: 'parent-cancellation',
+      entryStep: 'execute',
+      stepDefinitions: {
+        execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+          skippable: false,
+          step: (context) => {
+            observedSignal = context.signal;
+            startWork?.();
+            return new Promise((_resolve, reject) => {
+              const cancel = (): void => reject(cancellationError(context.signal));
+              if (context.signal.aborted) cancel();
+              else context.signal.addEventListener('abort', cancel, { once: true });
+            });
+          },
+        },
+      },
+      createContext: (base) => ({ ...base }),
+      applyResult: () => Promise.resolve(),
+    });
+    const operation = defineAgentOperation({
+      name: 'parentCancellation',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      executeRun: ({ execute }) => execute(executorController.signal),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { parentCancellation: operation },
+    });
+
+    const invocation = agent.invoke('parentCancellation', 1, { signal: parentController.signal });
+    await workStarted;
+    parentController.abort(parentFailure);
+
+    await expect(invocation).rejects.toBe(parentFailure);
+    expect(observedSignal?.reason).toBe(parentFailure);
+    expect(executorController.signal.aborted).toBe(false);
+  });
+
+  it('propagates executor-local cancellation without aborting the parent source', async () => {
+    const parentController = new AbortController();
+    const executorController = new AbortController();
+    const localFailure = new Error('executor cancelled');
+    let observedSignal: AbortSignal | undefined;
+    const workflow = new Workflow<StepName, NumberRunContext, NumberWorkflowContext, number>({
+      name: 'executor-cancellation',
+      entryStep: 'execute',
+      stepDefinitions: {
+        execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+          skippable: false,
+          step: (context) => {
+            observedSignal = context.signal;
+            return new Promise((_resolve, reject) => {
+              const cancel = (): void => reject(cancellationError(context.signal));
+              if (context.signal.aborted) cancel();
+              else context.signal.addEventListener('abort', cancel, { once: true });
+            });
+          },
+        },
+      },
+      createContext: (base) => ({ ...base }),
+      applyResult: () => Promise.resolve(),
+    });
+    const operation = defineAgentOperation({
+      name: 'executorCancellation',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      executeRun: async ({ execute }) => {
+        const run = execute(executorController.signal);
+        executorController.abort(localFailure);
+        await run;
+      },
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { executorCancellation: operation },
+    });
+
+    await expect(
+      agent.invoke('executorCancellation', 1, { signal: parentController.signal })
+    ).rejects.toBe(localFailure);
+    expect(observedSignal?.reason).toBe(localFailure);
+    expect(parentController.signal.aborted).toBe(false);
+  });
+
+  it('locks a concurrent reentry violation even when the executor catches it', async () => {
+    let activeRunCancelled = false;
+    const workflow = new Workflow<StepName, NumberRunContext, NumberWorkflowContext, number>({
+      name: 'concurrent-reentry',
+      entryStep: 'execute',
+      stepDefinitions: {
+        execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+          skippable: false,
+          step: (context) =>
+            new Promise((_resolve, reject) => {
+              const cancel = (): void => {
+                activeRunCancelled = true;
+                reject(
+                  context.signal.reason instanceof Error
+                    ? context.signal.reason
+                    : new Error('Run cancelled.', { cause: context.signal.reason })
+                );
+              };
+              if (context.signal.aborted) cancel();
+              else context.signal.addEventListener('abort', cancel, { once: true });
+            }),
+        },
+      },
+      createContext: (base) => ({ ...base }),
+      applyResult: () => Promise.resolve(),
+    });
+    const operation = defineAgentOperation({
+      name: 'reentrant',
+      exposure: 'public',
+      workflowPlan: [workflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      executeRun: async ({ signal, execute }) => {
+        const activeRun = execute(signal);
+        try {
+          await execute(signal);
+        } catch {
+          // A protocol failure cannot be converted back into success.
+        }
+        try {
+          await activeRun;
+        } catch {
+          // Runtime drainage still owns the locked terminal failure.
+        }
+      },
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { reentrant: operation },
+    });
+
+    await expect(agent.invoke('reentrant', 1)).rejects.toMatchObject({
+      code: 'AGENT_RUN_EXECUTION_REENTERED',
+    });
+    expect(activeRunCancelled).toBe(true);
   });
 
   it('reuses one Agent-owned Workflow in multiple Operation plans', async () => {
@@ -323,6 +785,173 @@ describe('Agent Operations', () => {
         parentRunId: 'parent-run',
       }),
     ]);
+  });
+
+  it('rejects an invalid child Operation signal with a stable Run error', async () => {
+    const child = defineAgentOperation({
+      name: 'child',
+      exposure: 'internal',
+      workflowPlan: [numberWorkflow('child-workflow')],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
+    });
+    const callableOperations = Object.freeze({ child: child.reference });
+    type ParentContext = BaseAgentRunContext<string, string, typeof callableOperations>;
+    type ParentWorkflowContext = BaseWorkflowContext<StepName, ParentContext, string>;
+    const parent = defineAgentOperation({
+      name: 'parent',
+      exposure: 'public',
+      workflowPlan: [
+        new Workflow<StepName, ParentContext, ParentWorkflowContext, string>({
+          name: 'parent-workflow',
+          entryStep: 'execute',
+          stepDefinitions: {
+            execute: {
+              cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+              skippable: false,
+              step: async (context) => {
+                await context.agentRunContext.operations.invoke('child', 1, {
+                  signal: {} as AbortSignal,
+                });
+              },
+            },
+          },
+          createContext: (base) => ({ ...base }),
+          applyResult: () => Promise.resolve(),
+        }),
+      ],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      callableOperations,
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          string,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          typeof callableOperations
+        >
+      ): ParentContext => ({ ...base }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { parent, child },
+    });
+
+    await expect(agent.invoke('parent', 'start')).rejects.toMatchObject({
+      code: 'AGENT_RUN_EXECUTION_SIGNAL_INVALID',
+      subjectName: 'child',
+    });
+  });
+
+  it('retains inherited cancellation when a child Operation adds a local signal', async () => {
+    const parentController = new AbortController();
+    const childLocalController = new AbortController();
+    const parentFailure = new Error('parent cancelled');
+    let childSignal: AbortSignal | undefined;
+    let startChild: (() => void) | undefined;
+    const childStarted = new Promise<void>((resolve) => {
+      startChild = resolve;
+    });
+    const childWorkflow = new Workflow<StepName, NumberRunContext, NumberWorkflowContext, number>({
+      name: 'cancellable-child',
+      entryStep: 'execute',
+      stepDefinitions: {
+        execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+          skippable: false,
+          step: (context) => {
+            childSignal = context.signal;
+            startChild?.();
+            return new Promise((_resolve, reject) => {
+              const cancel = (): void => reject(cancellationError(context.signal));
+              if (context.signal.aborted) cancel();
+              else context.signal.addEventListener('abort', cancel, { once: true });
+            });
+          },
+        },
+      },
+      createContext: (base) => ({ ...base }),
+      applyResult: () => Promise.resolve(),
+    });
+    const child = defineAgentOperation({
+      name: 'cancellableChild',
+      exposure: 'internal',
+      workflowPlan: [childWorkflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          number,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          Readonly<Record<never, never>>
+        >
+      ): NumberRunContext => ({ ...base }),
+    });
+    const callableOperations = Object.freeze({ cancellableChild: child.reference });
+    type ParentContext = BaseAgentRunContext<string, string, typeof callableOperations>;
+    type ParentWorkflowContext = BaseWorkflowContext<StepName, ParentContext, string>;
+    const parentWorkflow = new Workflow<StepName, ParentContext, ParentWorkflowContext, string>({
+      name: 'cancellable-parent',
+      entryStep: 'execute',
+      stepDefinitions: {
+        execute: {
+          cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+          skippable: false,
+          step: async (context) => {
+            await context.agentRunContext.operations.invoke('cancellableChild', 1, {
+              signal: childLocalController.signal,
+            });
+            context.result = 'unreachable';
+          },
+        },
+      },
+      createContext: (base) => ({ ...base }),
+      applyResult: (context, result) => {
+        context.output = result;
+        return Promise.resolve();
+      },
+    });
+    const parent = defineAgentOperation({
+      name: 'cancellableParent',
+      exposure: 'public',
+      workflowPlan: [parentWorkflow],
+      config: Object.freeze({}),
+      resources: Object.freeze({}),
+      callableOperations,
+      createContext: (
+        base: AgentRunContextFactoryInput<
+          string,
+          Readonly<Record<string, never>>,
+          Readonly<Record<string, never>>,
+          typeof callableOperations
+        >
+      ): ParentContext => ({ ...base }),
+    });
+    const agent = createAgent({
+      identity: defineAgentIdentity({ id: 'agent' }),
+      resources: Object.freeze({}),
+      operations: { cancellableParent: parent, cancellableChild: child },
+    });
+
+    const invocation = agent.invoke('cancellableParent', 'start', {
+      signal: parentController.signal,
+    });
+    await childStarted;
+    parentController.abort(parentFailure);
+
+    await expect(invocation).rejects.toBe(parentFailure);
+    expect(childSignal?.reason).toBe(parentFailure);
+    expect(childLocalController.signal.aborted).toBe(false);
   });
 
   it('rejects conflicting definitions for one Agent-owned Workflow name', () => {

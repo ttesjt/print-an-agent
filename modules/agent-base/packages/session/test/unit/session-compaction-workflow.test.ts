@@ -14,7 +14,7 @@ import {
   defineProviderModelReference,
 } from '@ta-agent/base-model';
 import { RUN_WORKFLOW } from '@ta-agent/base-workflow';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createDefaultSessionCompactionStepOverrides,
   createSessionCompactionWorkflow,
@@ -30,7 +30,10 @@ import { createSessionPortStub } from '../support/session-port-stub.js';
 
 const model = defineProviderModelReference({ provider: 'test', model: 'test-model' });
 
-function createTestResponsibilities(complete?: ActorDirectHandler) {
+function createTestResponsibilities(
+  complete?: ActorDirectHandler,
+  actorTimeoutMilliseconds?: number
+) {
   const engine = defineActorEngine({
     id: 'test-engine',
     capabilities: {
@@ -64,7 +67,15 @@ function createTestResponsibilities(complete?: ActorDirectHandler) {
   });
   return createResponsibilityRouter({
     actorCatalog: createActorCatalog({
-      actors: [{ id: MAIN_ACTOR_ID, engineId: engine.id }],
+      actors: [
+        {
+          id: MAIN_ACTOR_ID,
+          engineId: engine.id,
+          ...(actorTimeoutMilliseconds === undefined
+            ? {}
+            : { invocationPolicy: { timeoutMilliseconds: actorTimeoutMilliseconds } }),
+        },
+      ],
       engines: [engine],
     }),
     responsibilityCatalog: createResponsibilityCatalog({
@@ -73,6 +84,26 @@ function createTestResponsibilities(complete?: ActorDirectHandler) {
   });
 }
 
+function rejectWhenAborted(signal: AbortSignal): Promise<never> {
+  return new Promise((_, reject) => {
+    if (signal.aborted) {
+      reject(abortFailure(signal));
+      return;
+    }
+    signal.addEventListener('abort', () => reject(abortFailure(signal)), { once: true });
+  });
+}
+
+function abortFailure(signal: AbortSignal): Error {
+  return signal.reason instanceof Error
+    ? signal.reason
+    : new Error('Session compaction was aborted.', { cause: signal.reason });
+}
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 function createTwoTurnSnapshot(agentId: SessionSnapshot['agentId']): SessionSnapshot {
   const sessionId = parseSessionId('session');
   const turns = ['one', 'two'].map((name, index) =>
@@ -80,6 +111,7 @@ function createTwoTurnSnapshot(agentId: SessionSnapshot['agentId']): SessionSnap
       status: 'completed' as const,
       turnId: parseTurnId(name),
       branchId: DEFAULT_SESSION_BRANCH_ID,
+      ...(index === 0 ? {} : { parentTurnId: parseTurnId('one') }),
       userMessage: Object.freeze({
         role: 'user' as const,
         text: `user-${name}`,
@@ -119,6 +151,59 @@ function createTwoTurnSnapshot(agentId: SessionSnapshot['agentId']): SessionSnap
     }),
     turns: Object.freeze(turns),
   });
+}
+
+function createRunnableCompaction(options: {
+  readonly identityId: string;
+  readonly complete: ActorDirectHandler;
+  readonly timeoutMilliseconds: number | null;
+  readonly actorTimeoutMilliseconds?: number;
+  readonly signal: AbortSignal;
+}) {
+  const identity = defineAgentIdentity({ id: options.identityId });
+  const snapshot = createTwoTurnSnapshot(identity.id);
+  const resources: SessionCompactionResources = Object.freeze({
+    session: createSessionPortStub({
+      inspect: () => Promise.resolve(snapshot),
+      readCompaction: () => Promise.resolve(undefined),
+    }),
+    responsibilities: createTestResponsibilities(
+      options.complete,
+      options.actorTimeoutMilliseconds
+    ),
+    instructions: 'Compact.',
+    policy: Object.freeze({
+      ...DEFAULT_SESSION_COMPACTION_POLICY,
+      minimumCompletedTurns: 2,
+      retainRecentTurns: 0,
+      timeoutMilliseconds: options.timeoutMilliseconds,
+    }),
+    clock: () => 1,
+  });
+  const workflow = createSessionCompactionWorkflow({
+    resources,
+    stepOverrides: createDefaultSessionCompactionStepOverrides(),
+    condition: () => Promise.resolve(RUN_WORKFLOW),
+    createRunId: () => 'workflow-run',
+  });
+  const context: SessionCompactionAgentRunContext = {
+    identity,
+    operationName: 'compactSession',
+    runId: 'agent-run',
+    input: Object.freeze({ sessionId: 'session', branchId: DEFAULT_SESSION_BRANCH_ID }),
+    output: Object.freeze({
+      status: 'skipped',
+      sessionId: 'session',
+      branchId: DEFAULT_SESSION_BRANCH_ID,
+      reason: 'not-needed',
+    }),
+    signal: options.signal,
+    operations: Object.freeze({
+      invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
+    }),
+    resources,
+  };
+  return Object.freeze({ context, workflow });
 }
 
 describe('Session compaction Workflow contracts', () => {
@@ -204,5 +289,46 @@ describe('Session compaction Workflow contracts', () => {
       status: 'completed',
       result: { status: 'skipped', reason: 'not-needed' },
     });
+  });
+
+  it('maps only its own explicit deadline to SESSION_COMPACTION_TIMEOUT', async () => {
+    vi.useFakeTimers();
+    const parentController = new AbortController();
+    const fixture = createRunnableCompaction({
+      identityId: 'timeout-agent',
+      complete: (request) => rejectWhenAborted(request.signal),
+      timeoutMilliseconds: 25,
+      signal: parentController.signal,
+    });
+
+    const run = fixture.workflow.run(fixture.context);
+    const expectation = expect(run).rejects.toMatchObject({
+      code: 'SESSION_COMPACTION_TIMEOUT',
+    });
+    await vi.advanceTimersByTimeAsync(25);
+
+    await expectation;
+    expect(parentController.signal.aborted).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('preserves a child Actor timeout instead of relabelling it as compaction timeout', async () => {
+    vi.useFakeTimers();
+    const fixture = createRunnableCompaction({
+      identityId: 'actor-timeout-agent',
+      complete: (request) => rejectWhenAborted(request.signal),
+      timeoutMilliseconds: null,
+      actorTimeoutMilliseconds: 10,
+      signal: new AbortController().signal,
+    });
+
+    const run = fixture.workflow.run(fixture.context);
+    const expectation = expect(run).rejects.toMatchObject({
+      code: 'ACTOR_INVOCATION_TIMEOUT',
+    });
+    await vi.advanceTimersByTimeAsync(10);
+
+    await expectation;
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

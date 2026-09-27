@@ -98,6 +98,29 @@ structured status only, never text or reasoning content. A completed replay emit
 fresh correlated output trace and deliberately emits no Agent Loop, model-turn, or tool-call
 events.
 
+## Request execution deadline
+
+`RequestPolicy.timeoutMilliseconds` is the foreground Request Workflow's cooperative execution
+deadline. It accepts a positive integer or `null`; `NO_REQUEST_TIMEOUT` and the standard default are
+`null`. Disabling the local deadline never disables caller cancellation. A configured deadline
+derives a child signal and offers cancellation to the active Engine, Tool, and event-delivery paths.
+Only the deadline created by this Request boundary maps to `REQUEST_TIMEOUT`; caller cancellation or
+a narrower child timeout retains its own identity.
+
+This is not a hard upper bound on when the public `agent.invoke()` Promise settles. The deadline
+starts after `agent-run-started` tracing and ends before terminal Agent Run tracing. Trace sinks and
+adapter methods such as Session commit, Request Journal commit, and OutputSink close do not currently
+accept `AbortSignal`; once one of those calls has started, runtime waits for it to settle. The
+official workflow checks cancellation immediately before and after irreversible terminal writes to
+avoid starting more work and to narrow the race window. If the deadline expires during such a write,
+the write may already have committed even though the Request eventually returns `REQUEST_TIMEOUT`.
+Adapters remain responsible for atomicity and callers must use the existing idempotency contract to
+resolve an ambiguous terminal outcome.
+
+This policy does not define Actor-invocation or provider-transport timeouts. Those are separate
+execution boundaries with their own future or adapter-owned policies. Request timeout is validated
+configuration, not a mandatory field on every Agent Operation, Workflow, or Step.
+
 ## Interaction Steps and event delivery
 
 The official `runAgentInteraction` implementation owns interaction scope, trace boundaries, event

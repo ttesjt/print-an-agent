@@ -1,4 +1,5 @@
 import type { ContextModelMessage, ModelMessage } from '@ta-agent/base-model';
+import type { ExecutionTimeoutMilliseconds } from '@ta-agent/base-workflow';
 import type { SessionWriteAuthority } from '../lifecycle/execution.js';
 import type {
   CompletedSessionTurn,
@@ -14,7 +15,7 @@ export interface SessionCompactionPolicy {
   readonly maxSourceTurns: number;
   readonly maxSourceCharacters: number;
   readonly maxContextCharacters: number;
-  readonly timeoutMilliseconds: number;
+  readonly timeoutMilliseconds: ExecutionTimeoutMilliseconds;
 }
 
 export interface SessionCompaction extends SessionBranchReference {

@@ -36,6 +36,7 @@ function cloneActorDefinition(definition: ActorDefinition): ActorDefinition {
   return Object.freeze({
     ...definition,
     invocationConfig: Object.freeze({ ...definition.invocationConfig }),
+    invocationPolicy: Object.freeze({ ...definition.invocationPolicy }),
     ...(definition.capabilityLimits === undefined
       ? {}
       : {

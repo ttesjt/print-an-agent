@@ -96,6 +96,13 @@ assembled Agent supplies concrete overrides. `buildCompactedContext` resolves th
 provider- or Pi-specific runtime contract. The Workflow is invoked explicitly and is never hidden
 inside foreground response production.
 
+`SessionCompactionPolicy.timeoutMilliseconds` is an optional cooperative boundary expressed as a
+positive integer or `NO_SESSION_COMPACTION_TIMEOUT`. The standard policy defaults to no automatic
+deadline. When configured, compaction maps only the deadline it owns to
+`SESSION_COMPACTION_TIMEOUT`; parent cancellation remains `SESSION_COMPACTION_CANCELLED`, and a
+narrower Actor deadline remains `ACTOR_INVOCATION_TIMEOUT`. This policy does not replace an Actor's
+independent invocation policy and does not impose a timeout on Session persistence Steps.
+
 This durable profile intentionally retains a bounded navigation surface. Branch merge, rename,
 delete, pruning, retention, cross-Session clone, backup policy, encryption, automatic compaction
 scheduling, and distributed coordination remain separate capabilities. SQLite executions stay busy

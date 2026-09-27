@@ -9,6 +9,7 @@ import {
   defineActor,
   defineActorEngine,
   defineActorEngineCapabilities,
+  defineActorInvocationPolicy,
   MAIN_ACTOR_ID,
   narrowActorCapabilities,
   parseActorId,
@@ -165,8 +166,41 @@ describe('Actor domain', () => {
       id: 'minimal',
       engineId: 'engine',
       invocationConfig: {},
+      invocationPolicy: { timeoutMilliseconds: null },
       allowedTools: [],
     });
+  });
+
+  it('defines a strict immutable Actor invocation policy with no default deadline', () => {
+    expect(defineActorInvocationPolicy(undefined)).toEqual({ timeoutMilliseconds: null });
+    expect(defineActorInvocationPolicy({ timeoutMilliseconds: null })).toEqual({
+      timeoutMilliseconds: null,
+    });
+    const policy = defineActorInvocationPolicy({ timeoutMilliseconds: 45_000 });
+    expect(policy).toEqual({ timeoutMilliseconds: 45_000 });
+    expect(Object.isFrozen(policy)).toBe(true);
+
+    for (const timeoutMilliseconds of [0, -1, 1.5, 2_147_483_648]) {
+      expectActorError(
+        () => defineActorInvocationPolicy({ timeoutMilliseconds }),
+        'ACTOR_DEFINITION_INVALID'
+      );
+    }
+    expectActorError(
+      () => defineActorInvocationPolicy({ timeoutMilliseconds: 1, extra: true } as never),
+      'ACTOR_DEFINITION_INVALID'
+    );
+    expectActorError(() => defineActorInvocationPolicy({} as never), 'ACTOR_DEFINITION_INVALID');
+    expectActorError(
+      () =>
+        defineActorInvocationPolicy(
+          Object.defineProperty({}, 'timeoutMilliseconds', {
+            enumerable: true,
+            get: () => 1,
+          }) as never
+        ),
+      'ACTOR_DEFINITION_INVALID'
+    );
   });
 
   it('rejects unknown invocation config and normalizes Actor-owned Tool errors', () => {
@@ -216,7 +250,14 @@ describe('Actor domain', () => {
   it('returns immutable detached definitions and resolved revisions', async () => {
     const catalog = createActorCatalog({
       revision: 7,
-      actors: [{ id: 'main', engineId: 'engine', allowedTools: ['search'] }],
+      actors: [
+        {
+          id: 'main',
+          engineId: 'engine',
+          invocationPolicy: { timeoutMilliseconds: 1_000 },
+          allowedTools: ['search'],
+        },
+      ],
       engines: [fakeEngine('engine', inspection())],
     });
     const listed = catalog.list();
@@ -224,6 +265,8 @@ describe('Actor domain', () => {
     expect(actor.catalogRevision).toBe(7);
     expect(Object.isFrozen(listed)).toBe(true);
     expect(Object.isFrozen(listed[0]?.allowedTools)).toBe(true);
+    expect(listed[0]?.invocationPolicy).toEqual({ timeoutMilliseconds: 1_000 });
+    expect(Object.isFrozen(listed[0]?.invocationPolicy)).toBe(true);
     expect(Object.isFrozen(actor.capabilities)).toBe(true);
   });
 

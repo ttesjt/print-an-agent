@@ -1,6 +1,5 @@
 import { createResponsibilityRouter, MAIN_ACTOR_ID, type ActorId } from '@ta-agent/base-actor';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
-import { AgentModelError } from '@ta-agent/base-model';
 import { NOOP_AGENT_TRACE_SINK } from '@ta-agent/base-observability';
 import {
   MemoryOutputSink,
@@ -41,6 +40,7 @@ import {
   createAgent,
   defineAgentOperation,
   mergeStepOverrides,
+  runWithExecutionTimeout,
   type AgentOperationDefinitionMap,
 } from '@ta-agent/base-workflow';
 import { composeRequestWorkflow } from './request-workflow.js';
@@ -85,17 +85,6 @@ function validateCompactionInput(input: CompactSessionInput): void {
       'Session compaction input must contain a sessionId string.'
     );
   }
-}
-
-function isTimeoutSignal(signal: AbortSignal): boolean {
-  if (!signal.aborted) return false;
-  const reason = signal.reason as unknown;
-  return (
-    typeof reason === 'object' &&
-    reason !== null &&
-    'name' in reason &&
-    reason.name === 'TimeoutError'
-  );
 }
 
 function parseToolAllowList(values: readonly string[] | undefined): readonly ToolName[] {
@@ -162,28 +151,20 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     config: requestPolicy,
     resources,
     workflowPlan: [requestWorkflow],
-    prepareRun: ({ input, signal }) =>
-      Promise.resolve(
-        Object.freeze({
-          input,
-          signal: AbortSignal.any([signal, AbortSignal.timeout(requestPolicy.timeoutMilliseconds)]),
-        })
+    executeRun: ({ signal, config, execute }) =>
+      runWithExecutionTimeout(
+        {
+          parentSignal: signal,
+          timeoutMilliseconds: config.timeoutMilliseconds,
+          createTimeoutFailure: ({ timeoutMilliseconds, cause }) =>
+            new AgentRequestError(
+              'REQUEST_TIMEOUT',
+              `Request execution exceeded ${timeoutMilliseconds} milliseconds.`,
+              { cause }
+            ),
+        },
+        execute
       ),
-    mapRunError: (error, { signal }) => {
-      if (
-        error instanceof AgentModelError &&
-        (error.code === 'MODEL_INVOCATION_CANCELLED' ||
-          error.code === 'MODEL_INVOCATION_TIMEOUT') &&
-        isTimeoutSignal(signal)
-      ) {
-        return new AgentRequestError(
-          'REQUEST_TIMEOUT',
-          `Request exceeded ${requestPolicy.timeoutMilliseconds} milliseconds.`,
-          { cause: error }
-        );
-      }
-      return error;
-    },
     createContext: (base): RequestAgentRunContext => ({ ...base }),
     ...(options.createRunId === undefined ? {} : { createRunId: options.createRunId }),
   });
@@ -262,7 +243,7 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     config: compactionPolicy,
     resources: compactionResources,
     workflowPlan: [compactionWorkflow],
-    prepareRun: async ({ identity: operationIdentity, input, signal }) => {
+    prepareRun: async ({ identity: operationIdentity, input }) => {
       validateCompactionInput(input);
       const sessionId = parseSessionId(input.sessionId);
       const snapshot = await session.inspect({ agentId: operationIdentity.id, sessionId });
@@ -278,7 +259,6 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
           : parseSessionBranchId(input.branchId);
       return Object.freeze({
         input: Object.freeze({ ...input, sessionId, branchId }),
-        signal,
       });
     },
     createContext: (base): SessionCompactionAgentRunContext => ({

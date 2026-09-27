@@ -95,6 +95,7 @@ async function publishReplayedResponse(context: DefaultRequestWorkflowContext): 
   const request = requireValue(context.request, 'request');
   const response = requireValue(context.response, 'response');
   await traceOutputStarted(context, true);
+  context.signal.throwIfAborted();
   try {
     await request.outputSink.open({
       requestId: response.requestId,
@@ -107,6 +108,7 @@ async function publishReplayedResponse(context: DefaultRequestWorkflowContext): 
       cause,
     });
   }
+  context.signal.throwIfAborted();
   try {
     countOutputCharacters(context, response.message.text.length);
     await request.outputSink.write(
@@ -118,6 +120,7 @@ async function publishReplayedResponse(context: DefaultRequestWorkflowContext): 
       cause,
     });
   }
+  context.signal.throwIfAborted();
   try {
     await request.outputSink.close(response);
   } catch (cause: unknown) {
@@ -126,6 +129,7 @@ async function publishReplayedResponse(context: DefaultRequestWorkflowContext): 
       cause,
     });
   }
+  context.signal.throwIfAborted();
   await traceOutputCompleted(context);
   context.executionSettled = true;
 }
@@ -270,6 +274,7 @@ async function completeResponse(context: DefaultRequestWorkflowContext): Promise
   const request = requireValue(context.request, 'request');
   const response = requireValue(context.response, 'response');
   const claim = context.ownedRequestJournalClaim;
+  context.signal.throwIfAborted();
   if (claim !== undefined) {
     context.requestJournalEntry = await context.resources.requestJournal.complete({
       agentId: claim.agentId,
@@ -280,12 +285,14 @@ async function completeResponse(context: DefaultRequestWorkflowContext): Promise
       ...(context.session?.execution === undefined ? {} : { execution: context.session.execution }),
     });
   }
+  context.signal.throwIfAborted();
   try {
     await request.outputSink.close(response);
   } catch (cause: unknown) {
     await traceOutputFailed(context, 'close');
     throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to close.', { cause });
   }
+  context.signal.throwIfAborted();
   await traceOutputCompleted(context);
   context.result = response;
   context.executionSettled = true;

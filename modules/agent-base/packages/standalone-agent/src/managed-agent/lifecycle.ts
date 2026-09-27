@@ -34,6 +34,7 @@ import type {
   StandaloneManifestProjectionPort,
 } from './contracts.js';
 import { createManagedStandaloneAgent } from './runtime.js';
+import { assertStandaloneRuntimeTimeoutAuthority } from '../runtime-policies.js';
 
 interface ManagedAgentAuthority {
   readonly identity: AgentIdentitySnapshot;
@@ -190,6 +191,7 @@ async function abortProvision<TNamespace>(
 export function createManagedStandaloneAgentRegistry<TNamespace>(
   options: CreateManagedStandaloneAgentRegistryOptions<TNamespace>
 ): ManagedStandaloneAgentRegistry {
+  assertStandaloneRuntimeTimeoutAuthority(options);
   const projection = options.manifestProjection;
 
   const inspectNamespace = async (

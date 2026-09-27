@@ -99,13 +99,35 @@ const response = await agent.invoke('foreground', input);
 
 Operation-to-Operation visibility is deny-by-default. `defineAgentOperationReference()` supports
 forward declarations; an Operation receives only the narrowed invoker described by its
-`callableOperations`. Child calls create distinct correlated Runs, inherit cancellation unless
-explicitly overridden, and fail closed on undeclared targets or invocation cycles.
+`callableOperations`. Child calls create distinct correlated Runs, always retain inherited
+cancellation, may add a narrower local source, and fail closed on undeclared targets or invocation
+cycles.
 
-An Operation may also own bounded `prepareRun` and `mapRunError` policies. Preparation can normalize
-its input or derive the runtime signal before Context creation; error mapping establishes its public
-terminal failure contract. These hooks are part of the Operation lifecycle, so raw `agent.invoke()`
-remains behavior-complete without an application facade.
+An Operation may also own bounded `prepareRun`, `executeRun`, and `mapRunError` policies.
+Preparation validates or normalizes input before Context creation, returns one closed input-only
+result, and observes but never replaces the effective execution signal. The optional Run Executor
+is the only execution-boundary extension point and is analogous to a Step Executor: it must invoke
+and await the supplied `execute(signal)` exactly once, cannot replace the authoritative Run output
+or swallow its failure, and may add a narrower local cancellation source. The runtime composes the
+original parent,
+executor-supplied, and runtime-owned containment sources into one effective downstream
+`AbortSignal`. No source is aborted in reverse. An omitted, overlapping, repeated, or unawaited
+execution locks a stable protocol failure, cancels and drains the active Run, and remains the
+authoritative terminal outcome even when an earlier cancellation reason won the effective signal.
+Catching the rejected `execute()` Promise cannot restore success. Error mapping establishes the
+public terminal failure contract. These hooks are part of the Operation lifecycle, so raw
+`agent.invoke()` remains behavior-complete without an application facade.
+
+`runWithExecutionTimeout()` is the provided thin deadline primitive. `null`, also exported as
+`NO_EXECUTION_TIMEOUT`, adds no timer and forwards the parent `AbortSignal` unchanged. A positive
+integer creates one child cancellation domain: parent cancellation propagates down, local expiry
+aborts actual work with the standard `TimeoutError` reason, and the owner receives a branded
+`EXECUTION_TIMEOUT` failure detectable through `isExecutionTimeoutFailure()`. The helper clears its
+timer and owned effective-signal listener in `finally`. A boundary may instead supply
+`createTimeoutFailure` to map only that invocation's deadline directly into its own domain error;
+consumers must not reinterpret an arbitrary nested `EXECUTION_TIMEOUT` as their own. Cancellation
+remains cooperative: the supplied operation must observe its signal and settle; the helper does not
+abandon unowned background work through a bare `Promise.race()`.
 
 `createWorkflow()` and `createAgent()` are constructor conveniences. Subclassing is not required,
 but classes remain available when a product benefits from a named domain type.

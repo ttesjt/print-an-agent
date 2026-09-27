@@ -14,7 +14,7 @@ export type {
 } from './interaction/presentation.js';
 export { AgentRequestError, RequestStepNotImplementedError } from './errors.js';
 export type { AgentRequestErrorCode } from './errors.js';
-export { DEFAULT_REQUEST_POLICY, validateRequestPolicy } from './policy.js';
+export { DEFAULT_REQUEST_POLICY, NO_REQUEST_TIMEOUT, validateRequestPolicy } from './policy.js';
 export type * from './replay/contracts.js';
 export { createRequestFingerprint } from './replay/fingerprint.js';
 export type { RequestFingerprintManifestV1 } from './replay/fingerprint.js';

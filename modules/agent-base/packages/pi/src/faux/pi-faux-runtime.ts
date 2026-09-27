@@ -5,7 +5,11 @@ import {
   type StreamOptions,
 } from '@earendil-works/pi-ai';
 import { type ActorInvocationConfig } from '@ta-agent/base-actor';
-import { AgentModelError, defineProviderModelReference } from '@ta-agent/base-model';
+import {
+  AgentModelError,
+  DEFAULT_PROVIDER_TRANSPORT_LIVENESS_POLICY,
+  defineProviderModelReference,
+} from '@ta-agent/base-model';
 import { createPiActorEngine, PiActorRuntime } from '../runtime/pi-actor-runtime.js';
 import {
   cloneRequestSnapshot,
@@ -116,6 +120,7 @@ export function createPiFauxRuntime(options: PiFauxRuntimeOptions): PiFauxRuntim
     models,
     model,
     modelReference,
+    transportLivenessPolicy: DEFAULT_PROVIDER_TRANSPORT_LIVENESS_POLICY,
     hooks: {
       observeInvocation: (context, kind) => invocationKinds.set(context, kind),
       observeToolEvent: (event) => toolEvents.push(Object.freeze({ ...event })),

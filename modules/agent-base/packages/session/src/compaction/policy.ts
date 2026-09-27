@@ -1,8 +1,14 @@
+import {
+  MAX_EXECUTION_TIMEOUT_MILLISECONDS,
+  NO_EXECUTION_TIMEOUT,
+  type ExecutionTimeoutMilliseconds,
+} from '@ta-agent/base-workflow';
 import { AgentSessionError } from '../errors.js';
 import type { SessionCompactionPolicy } from './contracts.js';
 
 const MAX_POLICY_INTEGER = 1_000_000;
 export const MAX_SESSION_COMPACTION_CHARACTERS = MAX_POLICY_INTEGER;
+export const NO_SESSION_COMPACTION_TIMEOUT = NO_EXECUTION_TIMEOUT;
 
 export const DEFAULT_SESSION_COMPACTION_POLICY: SessionCompactionPolicy = Object.freeze({
   minimumCompletedTurns: 4,
@@ -10,8 +16,24 @@ export const DEFAULT_SESSION_COMPACTION_POLICY: SessionCompactionPolicy = Object
   maxSourceTurns: 32,
   maxSourceCharacters: 32_768,
   maxContextCharacters: 4_096,
-  timeoutMilliseconds: 30_000,
+  timeoutMilliseconds: NO_SESSION_COMPACTION_TIMEOUT,
 });
+
+function requireTimeoutMilliseconds(value: unknown): ExecutionTimeoutMilliseconds {
+  if (
+    value !== null &&
+    (typeof value !== 'number' ||
+      !Number.isSafeInteger(value) ||
+      value < 1 ||
+      value > MAX_EXECUTION_TIMEOUT_MILLISECONDS)
+  ) {
+    throw new AgentSessionError(
+      'SESSION_COMPACTION_INVALID',
+      `timeoutMilliseconds must be null or a positive safe integer no greater than ${MAX_EXECUTION_TIMEOUT_MILLISECONDS}.`
+    );
+  }
+  return value;
+}
 
 function requirePositiveInteger(value: unknown, name: string): number {
   if (
@@ -77,9 +99,6 @@ export function validateSessionCompactionPolicy(policy: unknown): SessionCompact
       candidate.maxContextCharacters,
       'maxContextCharacters'
     ),
-    timeoutMilliseconds: requirePositiveInteger(
-      candidate.timeoutMilliseconds,
-      'timeoutMilliseconds'
-    ),
+    timeoutMilliseconds: requireTimeoutMilliseconds(candidate.timeoutMilliseconds),
   });
 }

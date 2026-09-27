@@ -3,6 +3,7 @@ import type {
   CreateSharedSqliteStandaloneAgentRegistryOptions,
   ManagedStandaloneAgentRegistry,
 } from '../../types.js';
+import { assertStandaloneRuntimeTimeoutAuthority } from '../../runtime-policies.js';
 import { createSharedSqliteAgentResourceNamespaceAdapter } from './namespace-adapter.js';
 import { createSharedSqliteManagedAgentPortFactory } from './port-factory.js';
 import { resolveStandaloneSharedSqliteTableNames } from '../sqlite-table-naming.js';
@@ -10,6 +11,7 @@ import { resolveStandaloneSharedSqliteTableNames } from '../sqlite-table-naming.
 export function createSharedSqliteStandaloneAgentRegistry(
   options: CreateSharedSqliteStandaloneAgentRegistryOptions
 ): ManagedStandaloneAgentRegistry {
+  assertStandaloneRuntimeTimeoutAuthority(options);
   const tableNames = resolveStandaloneSharedSqliteTableNames(options.sqlite);
   return createManagedStandaloneAgentRegistry({
     namespaces: createSharedSqliteAgentResourceNamespaceAdapter({
@@ -28,5 +30,6 @@ export function createSharedSqliteStandaloneAgentRegistry(
     }),
     readEnvironmentVariable: options.readEnvironmentVariable,
     ...(options.stepOverrides === undefined ? {} : { stepOverrides: options.stepOverrides }),
+    ...(options.requestLimits === undefined ? {} : { requestLimits: options.requestLimits }),
   });
 }

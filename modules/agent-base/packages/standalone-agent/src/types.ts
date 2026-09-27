@@ -1,6 +1,11 @@
-import type { ActorInvocationConfig } from '@ta-agent/base-actor';
+import type {
+  ActorInvocationConfig,
+  ActorInvocationPolicy,
+  ActorInvocationPolicyInput,
+} from '@ta-agent/base-actor';
 import type {
   ComposeAgentOptions,
+  DefinedProviderConfig,
   ProviderAgentAPI,
   ProviderConfigInput,
 } from '@ta-agent/base-composition';
@@ -9,6 +14,12 @@ import type {
   AgentIdentityInput,
   AgentIdentitySnapshot,
 } from '@ta-agent/base-identity';
+import type {
+  ProviderTransportLivenessPolicy,
+  ProviderTransportLivenessPolicyInput,
+} from '@ta-agent/base-model';
+import type { RequestPolicy } from '@ta-agent/base-request';
+import type { SessionCompactionPolicy } from '@ta-agent/base-session';
 import type {
   StandaloneManagedSqliteTableNamingInput,
   StandaloneRuntimeSqliteTableNamingInput,
@@ -27,20 +38,50 @@ export type StandalonePersistenceConfigInput =
 export interface StandaloneMainActorConfigInput {
   readonly instructions?: string;
   readonly invocationConfig?: ActorInvocationConfig;
-}
-
-export interface StandaloneAgentConfigInput {
-  readonly schemaVersion: 1;
-  readonly identity: AgentIdentityInput;
-  readonly provider: ProviderConfigInput;
-  readonly credential?: StandaloneCredentialBindingInput;
-  readonly persistence: StandalonePersistenceConfigInput;
-  readonly mainActor?: StandaloneMainActorConfigInput;
+  readonly invocationPolicy?: ActorInvocationPolicyInput;
 }
 
 export interface StandaloneMainActorConfig {
   readonly instructions?: string;
   readonly invocationConfig: ActorInvocationConfig;
+  readonly invocationPolicy: ActorInvocationPolicy;
+}
+
+export interface StandaloneProviderConfigInput {
+  readonly config: ProviderConfigInput;
+  readonly transportLivenessPolicy?: ProviderTransportLivenessPolicyInput;
+}
+
+export interface StandaloneProviderConfig {
+  readonly config: DefinedProviderConfig;
+  readonly transportLivenessPolicy: ProviderTransportLivenessPolicy;
+}
+
+export interface StandaloneRequestExecutionConfigInput {
+  readonly timeoutMilliseconds: RequestPolicy['timeoutMilliseconds'];
+}
+
+export interface StandaloneRequestExecutionConfig {
+  readonly timeoutMilliseconds: RequestPolicy['timeoutMilliseconds'];
+}
+
+export interface StandaloneSessionCompactionExecutionConfigInput {
+  readonly timeoutMilliseconds: SessionCompactionPolicy['timeoutMilliseconds'];
+}
+
+export interface StandaloneSessionCompactionExecutionConfig {
+  readonly timeoutMilliseconds: SessionCompactionPolicy['timeoutMilliseconds'];
+}
+
+export interface StandaloneAgentConfigInput {
+  readonly schemaVersion: 1;
+  readonly identity: AgentIdentityInput;
+  readonly provider: StandaloneProviderConfigInput;
+  readonly credential?: StandaloneCredentialBindingInput;
+  readonly persistence: StandalonePersistenceConfigInput;
+  readonly mainActor?: StandaloneMainActorConfigInput;
+  readonly request?: StandaloneRequestExecutionConfigInput;
+  readonly sessionCompaction?: StandaloneSessionCompactionExecutionConfigInput;
 }
 
 export type StandalonePersistenceConfig =
@@ -50,10 +91,12 @@ export type StandalonePersistenceConfig =
 export interface StandaloneAgentConfig {
   readonly schemaVersion: 1;
   readonly identity: AgentIdentity;
-  readonly provider: ProviderConfigInput;
+  readonly provider: StandaloneProviderConfig;
   readonly credential?: Readonly<StandaloneCredentialBindingInput>;
   readonly persistence: StandalonePersistenceConfig;
-  readonly mainActor?: StandaloneMainActorConfig;
+  readonly mainActor: StandaloneMainActorConfig;
+  readonly request: StandaloneRequestExecutionConfig;
+  readonly sessionCompaction: StandaloneSessionCompactionExecutionConfig;
 }
 
 export interface StandaloneCredentialRuntimeOptions {
@@ -63,6 +106,8 @@ export interface StandaloneCredentialRuntimeOptions {
 export interface StandaloneRuntimeOptions extends StandaloneCredentialRuntimeOptions {
   /** Executable host composition, never part of durable Agent JSON configuration. */
   readonly stepOverrides?: ComposeAgentOptions['stepOverrides'];
+  /** Non-timeout Request limits; durable Agent configuration owns the timeout. */
+  readonly requestLimits?: Omit<RequestPolicy, 'timeoutMilliseconds'>;
 }
 
 export interface CreateStandaloneAgentOptions extends StandaloneRuntimeOptions {
@@ -72,15 +117,19 @@ export interface CreateStandaloneAgentOptions extends StandaloneRuntimeOptions {
 export type StandaloneAgent = ProviderAgentAPI;
 
 export interface StandaloneAgentDefinitionInput {
-  readonly provider: ProviderConfigInput;
+  readonly provider: StandaloneProviderConfigInput;
   readonly credential?: StandaloneCredentialBindingInput;
   readonly mainActor?: StandaloneMainActorConfigInput;
+  readonly request?: StandaloneRequestExecutionConfigInput;
+  readonly sessionCompaction?: StandaloneSessionCompactionExecutionConfigInput;
 }
 
 export interface StandaloneAgentDefinition {
-  readonly provider: ProviderConfigInput;
+  readonly provider: StandaloneProviderConfig;
   readonly credential?: Readonly<StandaloneCredentialBindingInput>;
-  readonly mainActor?: StandaloneMainActorConfig;
+  readonly mainActor: StandaloneMainActorConfig;
+  readonly request: StandaloneRequestExecutionConfig;
+  readonly sessionCompaction: StandaloneSessionCompactionExecutionConfig;
 }
 
 export interface StandaloneAgentManifestInput {

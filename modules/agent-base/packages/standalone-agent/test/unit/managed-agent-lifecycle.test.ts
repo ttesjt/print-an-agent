@@ -26,16 +26,18 @@ function manifest(id: string): StandaloneAgentManifestInput {
     identity: { id, displayName: id.toUpperCase() },
     config: {
       provider: {
-        kind: 'openai-compatible',
-        reference: {
-          provider: 'loopback',
-          model: 'test-model',
-          baseUrl: 'http://127.0.0.1:8080/v1',
+        config: {
+          kind: 'openai-compatible',
+          reference: {
+            provider: 'loopback',
+            model: 'test-model',
+            baseUrl: 'http://127.0.0.1:8080/v1',
+          },
+          contextWindowTokens: 8_192,
+          maxOutputTokens: 1_024,
+          supportsReasoning: false,
+          compatibility: { supportsDeveloperRole: false },
         },
-        contextWindowTokens: 8_192,
-        maxOutputTokens: 1_024,
-        supportsReasoning: false,
-        compatibility: { supportsDeveloperRole: false },
       },
     },
   };

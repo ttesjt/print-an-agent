@@ -135,19 +135,30 @@ async function createConfig(server: LoopbackServer): Promise<string> {
       schemaVersion: 1,
       identity: { id: 'cli-agent' },
       provider: {
-        kind: 'openai-compatible',
-        reference: {
-          provider: 'loopback',
-          model: 'cli-test-model',
-          baseUrl: server.baseUrl,
+        config: {
+          kind: 'openai-compatible',
+          reference: {
+            provider: 'loopback',
+            model: 'cli-test-model',
+            baseUrl: server.baseUrl,
+          },
+          contextWindowTokens: 8_192,
+          maxOutputTokens: 1_024,
+          supportsReasoning: false,
+          compatibility: { supportsDeveloperRole: false },
         },
-        contextWindowTokens: 8_192,
-        maxOutputTokens: 1_024,
-        supportsReasoning: false,
-        compatibility: { supportsDeveloperRole: false },
+        transportLivenessPolicy: {
+          responseStartTimeoutMilliseconds: null,
+          streamEventIdleTimeoutMilliseconds: null,
+        },
       },
       persistence: { kind: 'sqlite', databasePath: join(directory, 'agent.sqlite') },
-      mainActor: { invocationConfig: { temperature: 0, maxOutputTokens: 128 } },
+      mainActor: {
+        invocationConfig: { temperature: 0, maxOutputTokens: 128 },
+        invocationPolicy: { timeoutMilliseconds: null },
+      },
+      request: { timeoutMilliseconds: null },
+      sessionCompaction: { timeoutMilliseconds: null },
     })
   );
   return configPath;
@@ -170,16 +181,18 @@ async function createManagedManifest(server: LoopbackServer): Promise<
       identity: { id: 'managed-agent', displayName: 'Managed Agent' },
       config: {
         provider: {
-          kind: 'openai-compatible',
-          reference: {
-            provider: 'loopback',
-            model: 'cli-test-model',
-            baseUrl: server.baseUrl,
+          config: {
+            kind: 'openai-compatible',
+            reference: {
+              provider: 'loopback',
+              model: 'cli-test-model',
+              baseUrl: server.baseUrl,
+            },
+            contextWindowTokens: 8_192,
+            maxOutputTokens: 1_024,
+            supportsReasoning: false,
+            compatibility: { supportsDeveloperRole: false },
           },
-          contextWindowTokens: 8_192,
-          maxOutputTokens: 1_024,
-          supportsReasoning: false,
-          compatibility: { supportsDeveloperRole: false },
         },
         mainActor: { invocationConfig: { temperature: 0, maxOutputTokens: 128 } },
       },
@@ -384,16 +397,18 @@ describe('standalone Agent Base CLI process', () => {
         schemaVersion: 1,
         identity: { id: 'cli-agent' },
         provider: {
-          kind: 'openai-compatible',
-          reference: {
-            provider: 'loopback',
-            model: 'PRIVATE_MODEL_NAME',
-            baseUrl: server.baseUrl,
+          config: {
+            kind: 'openai-compatible',
+            reference: {
+              provider: 'loopback',
+              model: 'PRIVATE_MODEL_NAME',
+              baseUrl: server.baseUrl,
+            },
+            contextWindowTokens: 8_192,
+            maxOutputTokens: 1_024,
+            supportsReasoning: false,
+            compatibility: { supportsDeveloperRole: false },
           },
-          contextWindowTokens: 8_192,
-          maxOutputTokens: 1_024,
-          supportsReasoning: false,
-          compatibility: { supportsDeveloperRole: false },
         },
         persistence: { kind: 'memory' },
         privateUnknownField: 'PRIVATE_CONFIG_CONTENT',

@@ -1,12 +1,14 @@
 # `@ta-agent/base-standalone-agent`
 
-Standalone TypeScript constructors accept host-owned `stepOverrides`, forwarded through explicit,
-managed-directory, and shared-SQLite profiles to the standard composition. For example,
-`captureReasoningPresentation: SKIP_STEP` disables saved reasoning without affecting live delivery.
-These executable overrides are not Agent JSON configuration or stored managed manifests. Official
-Session adapters support atomic turn presentation; explicit display queries are available on the
-same wrapped Agent's Session resource through `supportsSessionPresentation()` and
-`readTurnPresentation()`. The CLI remains text-only.
+Standalone TypeScript constructors accept host-owned `stepOverrides` and non-timeout `requestLimits`,
+forwarded through explicit, managed-directory, and shared-SQLite profiles to the standard
+composition. For example, `captureReasoningPresentation: SKIP_STEP` disables saved reasoning
+without affecting live delivery. Executable Step overrides and deployment limits are not stored in
+Agent JSON or managed manifests. Request, main Actor, Session compaction, and provider-transport
+timeouts are different: their values belong to the durable Standalone definition and cannot be
+silently replaced by host runtime options. Official Session adapters support atomic turn
+presentation; explicit display queries are available on the same wrapped Agent's Session resource
+through `supportsSessionPresentation()` and `readTurnPresentation()`. The CLI remains text-only.
 
 The official standalone reference Agent application boundary.
 
@@ -16,12 +18,38 @@ absolute-path SQLite persistence profile. The API is a transparent delivery conv
 its underlying composed `Agent`. SQLite composes both Session and Request Journal adapters over the
 supplied database. Credential references bind only to a named environment reader; API keys never
 belong in configuration.
-Standalone OpenAI-compatible provider JSON must explicitly declare `supportsReasoning`; the field is
-preserved in managed Config and `agent.json`. It declares endpoint capability and does not enable a
-reasoning effort or guarantee that a response contains readable reasoning. The same provider object
-must declare `compatibility.supportsDeveloperRole`. This independent, non-secret decision is also
-preserved through managed Config and `agent.json`; unknown endpoints should conservatively use
-`false` unless their message-role behavior has been verified.
+Standalone provider JSON separates the model/provider binding under `provider.config` from optional
+transport liveness under `provider.transportLivenessPolicy`. OpenAI-compatible configuration must
+explicitly declare `supportsReasoning`; the field is preserved in managed Config and `agent.json`.
+It declares endpoint capability and does not enable a reasoning effort or guarantee that a response
+contains readable reasoning. The provider config must also declare
+`compatibility.supportsDeveloperRole`. This independent, non-secret decision is preserved through
+managed Config and `agent.json`; unknown endpoints should conservatively use `false` unless their
+message-role behavior has been verified.
+
+All four Standalone timeout layers use `number | null`: a supported positive integer installs that
+layer's cooperative deadline, while `null` installs none and still preserves parent cancellation.
+Omitted sections normalize to explicit `null` values in canonical managed configuration and
+`agent.json`:
+
+```json
+{
+  "provider": {
+    "config": { "kind": "builtin", "reference": { "provider": "openai", "model": "gpt" } },
+    "transportLivenessPolicy": {
+      "responseStartTimeoutMilliseconds": null,
+      "streamEventIdleTimeoutMilliseconds": null
+    }
+  },
+  "mainActor": { "invocationPolicy": { "timeoutMilliseconds": null } },
+  "request": { "timeoutMilliseconds": null },
+  "sessionCompaction": { "timeoutMilliseconds": null }
+}
+```
+
+The example is only the timeout shape; ordinary provider validation, credential binding, and the
+remaining required Standalone fields still apply. The CLI adds no timeout flags and consumes the
+same durable authority.
 
 This package depends on `@ta-agent/base-composition` and official concrete adapters. It does not
 import or expose the internal Pi adapter.

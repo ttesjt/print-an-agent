@@ -83,6 +83,7 @@ export type * from './compaction/contracts.js';
 export {
   DEFAULT_SESSION_COMPACTION_POLICY,
   MAX_SESSION_COMPACTION_CHARACTERS,
+  NO_SESSION_COMPACTION_TIMEOUT,
   validateSessionCompactionPolicy,
 } from './compaction/policy.js';
 export {

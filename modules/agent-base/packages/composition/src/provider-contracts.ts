@@ -5,6 +5,8 @@ import type {
   ProviderModelId,
   ProviderModelReference,
   ProviderModelReferenceInput,
+  ProviderTransportLivenessPolicy,
+  ProviderTransportLivenessPolicyInput,
 } from '@ta-agent/base-model';
 
 export interface BuiltinProviderConfigInput {
@@ -52,6 +54,8 @@ export interface ProviderRuntimeOptions {
   readonly config: ProviderConfigInput;
   readonly credentialResolver?: ProviderCredentialResolver;
   readonly actorEngineId?: string;
+  /** Optional provider transport liveness; omission adds no Agent Base transport deadline. */
+  readonly transportLivenessPolicy?: ProviderTransportLivenessPolicyInput;
 }
 
 export interface ProviderRuntimeInspectionBase {
@@ -64,6 +68,7 @@ export interface ProviderRuntimeInspectionBase {
   readonly maxOutputTokens: number;
   /** Resolved non-secret capability used by the provider runtime. */
   readonly supportsReasoning: boolean;
+  readonly transportLivenessPolicy: ProviderTransportLivenessPolicy;
 }
 
 export interface BuiltinProviderRuntimeInspection extends ProviderRuntimeInspectionBase {

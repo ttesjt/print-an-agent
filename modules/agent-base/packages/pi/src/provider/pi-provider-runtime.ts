@@ -9,7 +9,7 @@ import {
 } from '@earendil-works/pi-ai';
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy';
 import { builtinModels } from '@earendil-works/pi-ai/providers/all';
-import { AgentModelError } from '@ta-agent/base-model';
+import { AgentModelError, defineProviderTransportLivenessPolicy } from '@ta-agent/base-model';
 import { createPiActorEngine, PiActorRuntime } from '../runtime/pi-actor-runtime.js';
 import {
   definePiProviderConfig,
@@ -115,7 +115,8 @@ function resolveModels(config: DefinedPiProviderConfig) {
 function createInspection(
   config: DefinedPiProviderConfig,
   model: Model<Api>,
-  actorEngineId: PiProviderRuntimeInspection['actorEngineId']
+  actorEngineId: PiProviderRuntimeInspection['actorEngineId'],
+  transportLivenessPolicy: PiProviderRuntimeInspection['transportLivenessPolicy']
 ): PiProviderRuntimeInspection {
   const common = {
     provider: config.reference.provider,
@@ -127,6 +128,7 @@ function createInspection(
     contextWindowTokens: model.contextWindow,
     maxOutputTokens: model.maxTokens,
     supportsReasoning: model.reasoning,
+    transportLivenessPolicy,
   } as const;
   return config.kind === 'builtin'
     ? Object.freeze({ kind: config.kind, ...common })
@@ -141,6 +143,9 @@ export function createPiProviderRuntime(
   options: PiProviderRuntimeOptions
 ): PiProviderRuntimeProfile {
   const config = definePiProviderConfig(options.provider);
+  const transportLivenessPolicy = defineProviderTransportLivenessPolicy(
+    options.transportLivenessPolicy
+  );
   const { models, model } = resolveModels(config);
   const runtime = new PiActorRuntime({
     models,
@@ -149,13 +154,14 @@ export function createPiProviderRuntime(
     ...(options.credentialResolver === undefined
       ? {}
       : { credentialResolver: options.credentialResolver }),
+    transportLivenessPolicy,
   });
   const actorEngine = createPiActorEngine(
     runtime,
     options.actorEngineId ?? DEFAULT_ACTOR_ENGINE_ID,
     model.contextWindow
   );
-  const inspection = createInspection(config, model, actorEngine.id);
+  const inspection = createInspection(config, model, actorEngine.id, transportLivenessPolicy);
 
   return Object.freeze({
     runtime,

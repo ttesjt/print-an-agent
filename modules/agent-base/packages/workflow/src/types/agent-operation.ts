@@ -20,7 +20,6 @@ export interface AgentOperationRunPreparationInput<TInput, TConfig, TResources> 
 
 export interface PreparedAgentOperationRun<TInput> {
   readonly input: TInput;
-  readonly signal: AbortSignal;
 }
 
 export type AgentOperationRunPreparer<TInput, TConfig, TResources> = (
@@ -39,6 +38,18 @@ export type AgentOperationRunErrorMapper<TInput, TConfig, TResources> = (
   error: unknown,
   input: AgentOperationRunErrorMapperInput<TInput, TConfig, TResources>
 ) => unknown;
+
+export interface AgentOperationRunExecution<
+  TInput,
+  TConfig,
+  TResources,
+> extends AgentOperationRunPreparationInput<TInput, TConfig, TResources> {
+  readonly execute: (signal: AbortSignal) => Promise<void>;
+}
+
+export type AgentOperationRunExecutor<TInput, TConfig, TResources> = (
+  execution: AgentOperationRunExecution<TInput, TConfig, TResources>
+) => Promise<void>;
 
 export class AgentOperationReference<TName extends AgentOperationName, TInput, TOutput> {
   readonly name: TName;
@@ -120,7 +131,9 @@ export interface AgentOperationDefinition<
     TCallableOperations,
     C
   >;
+  /** Validates or normalizes input while observing the effective execution signal. */
   readonly prepareRun?: AgentOperationRunPreparer<TInput, TConfig, TResources>;
+  readonly executeRun?: AgentOperationRunExecutor<TInput, TConfig, TResources>;
   readonly mapRunError?: AgentOperationRunErrorMapper<TInput, TConfig, TResources>;
   readonly createRunId?: () => string;
 }
@@ -185,7 +198,9 @@ export interface DefineAgentOperationInput<
     TCallableOperations,
     C
   >;
+  /** Validates or normalizes input while observing the effective execution signal. */
   readonly prepareRun?: AgentOperationRunPreparer<AgentRunContextInput<C>, TConfig, TResources>;
+  readonly executeRun?: AgentOperationRunExecutor<AgentRunContextInput<C>, TConfig, TResources>;
   readonly mapRunError?: AgentOperationRunErrorMapper<AgentRunContextInput<C>, TConfig, TResources>;
   readonly createRunId?: () => string;
 }

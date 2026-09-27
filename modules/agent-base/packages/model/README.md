@@ -13,6 +13,12 @@ adapters resolve it at invocation time through `ProviderCredentialResolver`; mis
 failed resolutions use stable Agent Base errors. Resolver output is runtime-only and does not enter
 messages, inspection, traces, Sessions, or replay state.
 
+`ProviderTransportLivenessPolicy` is the provider-independent vocabulary for optional response-start
+and normalized stream-event idle deadlines. Both fields use `number | null`, and the standard policy
+sets both to `NO_PROVIDER_TRANSPORT_TIMEOUT`. The contract does not claim a portable DNS/TCP/TLS
+connect phase or impose one provider implementation; an adapter owns enforcement and maps only the
+deadline it creates to the corresponding stable model failure.
+
 The final message surface remains text-only. Tool proposal and execution authority live in
 `@ta-agent/base-tool`; this package carries only the run-scoped runtime port and safe event metadata.
 The normalized message union distinguishes user input, assistant output, and an untrusted `context`

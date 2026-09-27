@@ -200,8 +200,10 @@ async function completeAssistantMessage(context: DefaultRequestWorkflowContext):
     assistantMessage: event.message,
   };
   const session = context.resources.session;
+  context.signal.throwIfAborted();
   if (context.turnPresentation === undefined) {
     await session.completeTurn(request);
+    context.signal.throwIfAborted();
     return;
   }
   if (!supportsSessionPresentation(session)) {
@@ -221,6 +223,7 @@ async function completeAssistantMessage(context: DefaultRequestWorkflowContext):
     );
   }
   await session.completeTurnWithPresentation({ ...request, presentation });
+  context.signal.throwIfAborted();
 }
 
 function buildAgentResponse(context: DefaultRequestWorkflowContext): Promise<void> {

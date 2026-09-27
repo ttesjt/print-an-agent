@@ -32,16 +32,18 @@ describe('public standalone provider consumer', () => {
       schemaVersion: 1 as const,
       identity: { id: 'standalone-consumer' },
       provider: {
-        kind: 'openai-compatible' as const,
-        reference: {
-          provider: 'loopback',
-          model: 'qualification-model',
-          baseUrl: provider.baseUrl,
+        config: {
+          kind: 'openai-compatible' as const,
+          reference: {
+            provider: 'loopback',
+            model: 'qualification-model',
+            baseUrl: provider.baseUrl,
+          },
+          contextWindowTokens: 8_192,
+          maxOutputTokens: 1_024,
+          supportsReasoning: false,
+          compatibility: { supportsDeveloperRole: false },
         },
-        contextWindowTokens: 8_192,
-        maxOutputTokens: 1_024,
-        supportsReasoning: false,
-        compatibility: { supportsDeveloperRole: false },
       },
       persistence: { kind: 'sqlite' as const, databasePath: join(directory, 'agent.sqlite') },
     };
@@ -123,16 +125,18 @@ describe('public standalone provider consumer', () => {
         schemaVersion: 1,
         identity: { id: 'failing-consumer' },
         provider: {
-          kind: 'openai-compatible',
-          reference: {
-            provider: 'loopback',
-            model: 'qualification-model',
-            baseUrl: provider.baseUrl,
+          config: {
+            kind: 'openai-compatible',
+            reference: {
+              provider: 'loopback',
+              model: 'qualification-model',
+              baseUrl: provider.baseUrl,
+            },
+            contextWindowTokens: 8_192,
+            maxOutputTokens: 1_024,
+            supportsReasoning: false,
+            compatibility: { supportsDeveloperRole: false },
           },
-          contextWindowTokens: 8_192,
-          maxOutputTokens: 1_024,
-          supportsReasoning: false,
-          compatibility: { supportsDeveloperRole: false },
         },
         persistence: { kind: 'memory' },
       },

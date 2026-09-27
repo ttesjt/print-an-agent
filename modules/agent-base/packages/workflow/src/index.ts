@@ -1,4 +1,17 @@
 export { Agent, createAgent } from './lib/agent.js';
+export {
+  isExecutionTimeoutFailure,
+  MAX_EXECUTION_TIMEOUT_MILLISECONDS,
+  NO_EXECUTION_TIMEOUT,
+  runWithExecutionTimeout,
+} from './execution-timeout.js';
+export type {
+  ExecutionTimeoutFailureFactory,
+  ExecutionTimeoutFailureFactoryInput,
+  ExecutionTimeoutFailure,
+  ExecutionTimeoutMilliseconds,
+  RunWithExecutionTimeoutOptions,
+} from './execution-timeout.js';
 export { defineAgentOperation, defineAgentOperationReference } from './lib/agent-operation.js';
 export { createSequentialStep } from './lib/create-sequential-step.js';
 export { defaultStepExecutor } from './lib/default-step-executor.js';

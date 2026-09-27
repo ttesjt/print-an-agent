@@ -5,6 +5,7 @@ import type {
 } from '@ta-agent/base-model';
 import type { SessionBranchId, SessionId } from '@ta-agent/base-session';
 import type { ToolRunInspection } from '@ta-agent/base-tool';
+import type { ExecutionTimeoutMilliseconds } from '@ta-agent/base-workflow';
 import type { RequestIdempotencyKey } from './replay/contracts.js';
 
 export interface AgentRequestInput {
@@ -70,5 +71,6 @@ export interface RequestPolicy {
   readonly maxModelTurns: number;
   /** Maximum accepted interaction events, including the event currently being delivered. */
   readonly maxPendingInteractionEvents: number;
-  readonly timeoutMilliseconds: number;
+  /** Cooperative Request Workflow execution deadline; null adds no local deadline. */
+  readonly timeoutMilliseconds: ExecutionTimeoutMilliseconds;
 }

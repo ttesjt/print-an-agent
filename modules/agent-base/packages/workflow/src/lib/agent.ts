@@ -4,6 +4,7 @@ import type { AgentId, AgentIdentity } from '@ta-agent/base-identity';
 import {
   createAgentTraceEmitter,
   traceErrorCode,
+  type AgentTraceEmitter,
   type AgentTraceRuntimeOptions,
 } from '@ta-agent/base-observability';
 import type { AgentDefinition, RunnableAgent } from '../types/agent.js';
@@ -21,12 +22,51 @@ import type {
 import { AgentDefinitionError, AgentRunError } from '../types/errors.js';
 import type { AgentWorkflowCatalog } from '../types/workflow-catalog.js';
 import type { AnyRunnableWorkflow } from '../types/workflow-catalog.js';
+import {
+  AgentOperationExecutionProtocol,
+  type AgentOperationExecutorOutcome,
+} from './agent-operation-execution.js';
+import { composeExecutionSignal } from './execution-cancellation.js';
 import { createAgentWorkflowCatalog } from './workflow-catalog.js';
 
 interface InvocationLineage {
   readonly parentRunId?: string;
   readonly operationNames: readonly string[];
   readonly signal?: AbortSignal;
+}
+
+interface OperationExecutionState<TInput> {
+  input: TInput;
+  signal: AbortSignal;
+}
+
+function isPreparedAgentOperationRun<TInput>(value: unknown): value is Readonly<{ input: TInput }> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    Reflect.ownKeys(value).length === 1 &&
+    Object.hasOwn(value, 'input')
+  );
+}
+
+function resolveOperationParentSignal(
+  operationName: string,
+  lineageSignal: AbortSignal | undefined,
+  invocationSignal: AbortSignal | undefined
+): AbortSignal {
+  if (
+    (lineageSignal !== undefined && !(lineageSignal instanceof AbortSignal)) ||
+    (invocationSignal !== undefined && !(invocationSignal instanceof AbortSignal))
+  ) {
+    throw new AgentRunError(
+      'AGENT_RUN_EXECUTION_SIGNAL_INVALID',
+      `Agent Operation "${operationName}" received an invalid invocation signal.`,
+      operationName
+    );
+  }
+  if (lineageSignal === undefined) return invocationSignal ?? new AbortController().signal;
+  if (invocationSignal === undefined) return lineageSignal;
+  return composeExecutionSignal([lineageSignal, invocationSignal]);
 }
 
 interface RegisteredAgentOperation {
@@ -229,8 +269,15 @@ export class Agent<
         operation.name
       );
     }
-    let preparedInput = input;
-    let signal = options.signal ?? new AbortController().signal;
+    const parentSignal = resolveOperationParentSignal(
+      operation.name,
+      lineage.signal,
+      options.signal
+    );
+    const executionState: OperationExecutionState<TInput> = {
+      input,
+      signal: parentSignal,
+    };
     const runId = operation.createRunId?.() ?? randomUUID();
     const traceEmitter = createAgentTraceEmitter({
       agentId: this.agentId,
@@ -243,85 +290,51 @@ export class Agent<
       ...(lineage.parentRunId === undefined ? {} : { parentRunId: lineage.parentRunId }),
     });
 
-    try {
-      if (operation.prepareRun !== undefined) {
-        const prepared = await operation.prepareRun({
-          identity: this.identity,
+    const execution = new AgentOperationExecutionProtocol<TOutput>({
+      operationName: operation.name,
+      containsCustomExecutor: operation.executeRun !== undefined,
+      parentSignal,
+      executePlan: (signal) => {
+        executionState.signal = signal;
+        return this.#executeOperationPlan(
+          operation,
           input,
-          signal,
-          config: operation.config,
-          resources: operation.resources,
-        });
-        if (
-          typeof prepared !== 'object' ||
-          prepared === null ||
-          !(prepared.signal instanceof AbortSignal)
-        ) {
-          throw new AgentRunError(
-            'AGENT_RUN_PREPARATION_INVALID',
-            `Agent Operation "${operation.name}" returned an invalid Run preparation.`,
-            operation.name
+          runId,
+          lineage,
+          executionState,
+          traceEmitter
+        );
+      },
+    });
+
+    try {
+      let executorOutcome: AgentOperationExecutorOutcome = Object.freeze({ status: 'completed' });
+      try {
+        if (operation.executeRun === undefined) await execution.execute(executionState.signal);
+        else {
+          await operation.executeRun(
+            Object.freeze({
+              identity: this.identity,
+              input,
+              signal: executionState.signal,
+              config: operation.config,
+              resources: operation.resources,
+              execute: execution.execute,
+            })
           );
         }
-        preparedInput = prepared.input;
-        signal = prepared.signal;
+      } catch (error: unknown) {
+        executorOutcome = Object.freeze({ status: 'failed', error });
       }
-      const operations = this.#createOperationInvoker(
-        operation.callableOperations,
-        Object.freeze({
-          parentRunId: runId,
-          operationNames: Object.freeze([...lineage.operationNames, operation.name]),
-          signal,
-        })
-      );
-      const context = operation.createContext({
-        identity: this.identity,
-        operationName: operation.name,
-        runId,
-        ...(lineage.parentRunId === undefined ? {} : { parentRunId: lineage.parentRunId }),
-        input: preparedInput,
-        signal,
-        config: operation.config,
-        resources: operation.resources,
-        operations,
-        traceEmitter,
-      });
-      if (
-        context.identity !== this.identity ||
-        context.operationName !== operation.name ||
-        context.runId !== runId ||
-        context.parentRunId !== lineage.parentRunId ||
-        context.input !== preparedInput ||
-        context.signal !== signal ||
-        context.operations !== operations ||
-        context.traceEmitter !== traceEmitter
-      ) {
-        throw new AgentRunError(
-          'AGENT_RUN_CONTEXT_BASE_REPLACED',
-          `Agent Run Context factory for Operation "${operation.name}" replaced runtime-owned base fields.`,
-          operation.name
-        );
-      }
-
-      for (const workflow of operation.workflowPlan) {
-        const outcome = await workflow.run(context);
-        if (outcome.status === 'completed') await outcome.applyTo(context);
-      }
-      if (!Object.hasOwn(context, 'output')) {
-        throw new AgentRunError(
-          'AGENT_RUN_OUTPUT_MISSING',
-          `Agent Operation "${operation.name}" completed without assigning Agent Run Context output.`,
-          operation.name
-        );
-      }
+      const output = await execution.settleExecutor(executorOutcome);
       await traceEmitter.record({ type: 'agent-run-completed', operationName: operation.name });
-      return context.output as TOutput;
+      return output;
     } catch (error: unknown) {
       const mappedError =
         operation.mapRunError?.(error, {
           identity: this.identity,
-          input: preparedInput,
-          signal,
+          input: executionState.input,
+          signal: executionState.signal,
           config: operation.config,
           resources: operation.resources,
         }) ?? error;
@@ -332,6 +345,99 @@ export class Agent<
       });
       throw mappedError;
     }
+  }
+
+  async #executeOperationPlan<
+    TName extends string,
+    TInput,
+    TOutput,
+    TConfig,
+    TLocalResources,
+    TCallableOperations extends AgentOperationReferenceMap,
+    C extends import('../types/context.js').BaseAgentRunContext<TInput, TOutput>,
+  >(
+    operation: AgentOperationDefinition<
+      TName,
+      TInput,
+      TOutput,
+      TConfig,
+      TLocalResources,
+      TCallableOperations,
+      C
+    >,
+    input: TInput,
+    runId: string,
+    lineage: InvocationLineage,
+    state: OperationExecutionState<TInput>,
+    traceEmitter: AgentTraceEmitter
+  ): Promise<TOutput> {
+    if (operation.prepareRun !== undefined) {
+      const prepared = await operation.prepareRun({
+        identity: this.identity,
+        input,
+        signal: state.signal,
+        config: operation.config,
+        resources: operation.resources,
+      });
+      if (!isPreparedAgentOperationRun<TInput>(prepared)) {
+        throw new AgentRunError(
+          'AGENT_RUN_PREPARATION_INVALID',
+          `Agent Operation "${operation.name}" returned an invalid Run preparation.`,
+          operation.name
+        );
+      }
+      state.input = prepared.input;
+    }
+
+    const operations = this.#createOperationInvoker(
+      operation.callableOperations,
+      Object.freeze({
+        parentRunId: runId,
+        operationNames: Object.freeze([...lineage.operationNames, operation.name]),
+        signal: state.signal,
+      })
+    );
+    const context = operation.createContext({
+      identity: this.identity,
+      operationName: operation.name,
+      runId,
+      ...(lineage.parentRunId === undefined ? {} : { parentRunId: lineage.parentRunId }),
+      input: state.input,
+      signal: state.signal,
+      config: operation.config,
+      resources: operation.resources,
+      operations,
+      traceEmitter,
+    });
+    if (
+      context.identity !== this.identity ||
+      context.operationName !== operation.name ||
+      context.runId !== runId ||
+      context.parentRunId !== lineage.parentRunId ||
+      context.input !== state.input ||
+      context.signal !== state.signal ||
+      context.operations !== operations ||
+      context.traceEmitter !== traceEmitter
+    ) {
+      throw new AgentRunError(
+        'AGENT_RUN_CONTEXT_BASE_REPLACED',
+        `Agent Run Context factory for Operation "${operation.name}" replaced runtime-owned base fields.`,
+        operation.name
+      );
+    }
+
+    for (const workflow of operation.workflowPlan) {
+      const outcome = await workflow.run(context);
+      if (outcome.status === 'completed') await outcome.applyTo(context);
+    }
+    if (!Object.hasOwn(context, 'output')) {
+      throw new AgentRunError(
+        'AGENT_RUN_OUTPUT_MISSING',
+        `Agent Operation "${operation.name}" completed without assigning Agent Run Context output.`,
+        operation.name
+      );
+    }
+    return context.output as TOutput;
   }
 
   #createOperationInvoker<TReferences extends AgentOperationReferenceMap>(
@@ -364,11 +470,7 @@ export class Agent<
             )
           );
         }
-        const childOptions =
-          options.signal === undefined && lineage.signal !== undefined
-            ? Object.freeze({ ...options, signal: lineage.signal })
-            : options;
-        return target.execute(input, childOptions, lineage) as Promise<
+        return target.execute(input, options, lineage) as Promise<
           AgentOperationOutput<TReferences[TName]>
         >;
       },

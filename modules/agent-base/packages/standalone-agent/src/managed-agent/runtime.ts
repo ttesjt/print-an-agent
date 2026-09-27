@@ -1,6 +1,10 @@
 import { createProviderAgentAPI } from '@ta-agent/base-composition';
 import type { AgentIdentity } from '@ta-agent/base-identity';
 import { createStandaloneCredentialResolver } from '../credential-resolver.js';
+import {
+  resolveStandaloneRequestPolicy,
+  resolveStandaloneSessionCompactionPolicy,
+} from '../runtime-policies.js';
 import type {
   StandaloneAgent,
   StandaloneAgentDefinition,
@@ -22,12 +26,15 @@ export function createManagedStandaloneAgent(
   return createProviderAgentAPI({
     identity,
     provider: {
-      config: definition.provider,
+      config: definition.provider.config,
+      transportLivenessPolicy: definition.provider.transportLivenessPolicy,
       ...(credentialResolver === undefined ? {} : { credentialResolver }),
     },
     session: ports.session,
     requestJournal: ports.requestJournal,
     ...(options.stepOverrides === undefined ? {} : { stepOverrides: options.stepOverrides }),
-    ...(definition.mainActor === undefined ? {} : { mainActor: definition.mainActor }),
+    requestPolicy: resolveStandaloneRequestPolicy(definition.request, options.requestLimits),
+    sessionCompactionPolicy: resolveStandaloneSessionCompactionPolicy(definition.sessionCompaction),
+    mainActor: definition.mainActor,
   });
 }

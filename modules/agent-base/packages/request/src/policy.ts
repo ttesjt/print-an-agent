@@ -1,5 +1,8 @@
 import type { RequestPolicy } from './contracts.js';
 import { AgentRequestError } from './errors.js';
+import { MAX_EXECUTION_TIMEOUT_MILLISECONDS, NO_EXECUTION_TIMEOUT } from '@ta-agent/base-workflow';
+
+export const NO_REQUEST_TIMEOUT = NO_EXECUTION_TIMEOUT;
 
 export const DEFAULT_REQUEST_POLICY: RequestPolicy = Object.freeze({
   maxMessageCharacters: 32_000,
@@ -8,10 +11,9 @@ export const DEFAULT_REQUEST_POLICY: RequestPolicy = Object.freeze({
   maxReasoningCharacters: 64_000,
   maxModelTurns: 4,
   maxPendingInteractionEvents: 64,
-  timeoutMilliseconds: 30_000,
+  timeoutMilliseconds: NO_REQUEST_TIMEOUT,
 });
 
-const MAX_TIMEOUT_MILLISECONDS = 2_147_483_647;
 const REQUEST_POLICY_KEYS = Object.freeze([
   'maxMessageCharacters',
   'maxInstructionsCharacters',
@@ -39,13 +41,30 @@ function parsePolicyValue(
     invalidPolicy(`Request policy "${name}" must be an enumerable data field.`);
   }
   const value: unknown = descriptor.value;
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
+    invalidPolicy(`Request policy "${name}" is outside its supported positive integer range.`);
+  }
+  return value;
+}
+
+function parseTimeoutMilliseconds(
+  policy: Readonly<Record<string, unknown>>
+): RequestPolicy['timeoutMilliseconds'] {
+  const descriptor = Object.getOwnPropertyDescriptor(policy, 'timeoutMilliseconds');
+  if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
+    invalidPolicy('Request policy "timeoutMilliseconds" must be an enumerable data field.');
+  }
+  const value: unknown = descriptor.value;
+  if (value === NO_REQUEST_TIMEOUT) return NO_REQUEST_TIMEOUT;
   if (
     typeof value !== 'number' ||
     !Number.isSafeInteger(value) ||
     value < 1 ||
-    (name === 'timeoutMilliseconds' && value > MAX_TIMEOUT_MILLISECONDS)
+    value > MAX_EXECUTION_TIMEOUT_MILLISECONDS
   ) {
-    invalidPolicy(`Request policy "${name}" is outside its supported positive integer range.`);
+    invalidPolicy(
+      'Request policy "timeoutMilliseconds" must be null or a supported positive integer.'
+    );
   }
   return value;
 }
@@ -73,6 +92,6 @@ export function validateRequestPolicy(input: unknown): RequestPolicy {
     maxReasoningCharacters: parsePolicyValue(policy, 'maxReasoningCharacters'),
     maxModelTurns: parsePolicyValue(policy, 'maxModelTurns'),
     maxPendingInteractionEvents: parsePolicyValue(policy, 'maxPendingInteractionEvents'),
-    timeoutMilliseconds: parsePolicyValue(policy, 'timeoutMilliseconds'),
+    timeoutMilliseconds: parseTimeoutMilliseconds(policy),
   });
 }

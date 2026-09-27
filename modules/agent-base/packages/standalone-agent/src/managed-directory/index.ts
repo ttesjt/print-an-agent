@@ -3,12 +3,14 @@ import { createManagedStandaloneAgentRegistry } from '../managed-agent/lifecycle
 import { createFilesystemStandaloneManifestProjection } from '../resources/filesystem/manifest-projection.js';
 import { createFilesystemAgentResourceNamespaceAdapter } from '../resources/filesystem/namespace-adapter.js';
 import { createFilesystemManagedAgentPortFactory } from '../resources/filesystem/port-factory.js';
-import type { CreateStandaloneAgentDirectoryOptions, StandaloneAgentDirectory } from '../types.js';
 import { resolveStandaloneManagedSqliteTableNames } from '../resources/sqlite-table-naming.js';
+import { assertStandaloneRuntimeTimeoutAuthority } from '../runtime-policies.js';
+import type { CreateStandaloneAgentDirectoryOptions, StandaloneAgentDirectory } from '../types.js';
 
 export function createStandaloneAgentDirectory(
   options: CreateStandaloneAgentDirectoryOptions
 ): StandaloneAgentDirectory {
+  assertStandaloneRuntimeTimeoutAuthority(options);
   const createTemporaryId = options.createTemporaryId ?? randomUUID;
   const tableNames = resolveStandaloneManagedSqliteTableNames(options.sqlite);
   return createManagedStandaloneAgentRegistry({
@@ -23,5 +25,6 @@ export function createStandaloneAgentDirectory(
     manifestProjection: createFilesystemStandaloneManifestProjection({ createTemporaryId }),
     readEnvironmentVariable: options.readEnvironmentVariable,
     ...(options.stepOverrides === undefined ? {} : { stepOverrides: options.stepOverrides }),
+    ...(options.requestLimits === undefined ? {} : { requestLimits: options.requestLimits }),
   });
 }

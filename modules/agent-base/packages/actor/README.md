@@ -16,6 +16,16 @@ Interaction-capable Engines declare `interaction.streamable`; direct-only Engine
 streamability field. The declaration is a routing promise that the interaction handler can emit
 incremental events, not a call-time switch. Direct completion is currently buffered.
 
+Each Actor owns an independent `invocationPolicy`. Its `timeoutMilliseconds` is either a supported
+positive integer or `NO_ACTOR_INVOCATION_TIMEOUT`; omission and the standard default both mean no
+automatic deadline. The policy applies to both interaction and direct invocation and is deliberately
+separate from provider configuration and generation `invocationConfig`. A configured deadline
+creates one child cancellation boundary, passes the Engine one effective `AbortSignal`, never aborts
+its parent, and maps only its own expiry to `ACTOR_INVOCATION_TIMEOUT`. Parent cancellation and
+authoritative Engine protocol failures retain their original identity. Cancellation is cooperative:
+an Engine that ignores its signal may continue work, while the Actor waits for settlement and then
+still reports its expired deadline.
+
 The resolved Actor boundary enforces `maxModelTurns` for every Engine by counting normalized
 `turn-start` events. A terminal-only Engine consumes the provable minimum of one model turn. Custom
 Engines are trusted executable infrastructure and must emit `turn-start` before each real model

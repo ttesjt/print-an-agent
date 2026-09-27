@@ -95,16 +95,18 @@ describe('public managed resource consumer', () => {
       identity: { id: 'opaque-consumer', displayName: 'Opaque Consumer' },
       config: {
         provider: {
-          kind: 'openai-compatible',
-          reference: {
-            provider: 'loopback',
-            model: 'qualification-model',
-            baseUrl: 'http://127.0.0.1:8080/v1',
+          config: {
+            kind: 'openai-compatible',
+            reference: {
+              provider: 'loopback',
+              model: 'qualification-model',
+              baseUrl: 'http://127.0.0.1:8080/v1',
+            },
+            contextWindowTokens: 8_192,
+            maxOutputTokens: 1_024,
+            supportsReasoning: false,
+            compatibility: { supportsDeveloperRole: false },
           },
-          contextWindowTokens: 8_192,
-          maxOutputTokens: 1_024,
-          supportsReasoning: false,
-          compatibility: { supportsDeveloperRole: false },
         },
       },
     });

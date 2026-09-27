@@ -17,13 +17,22 @@ import {
 
 const definition: StandaloneAgentDefinitionInput = {
   provider: {
-    kind: 'openai-compatible',
-    reference: { provider: 'fixture', model: 'fixture', baseUrl: 'http://127.0.0.1:1/v1' },
-    contextWindowTokens: 4096,
-    maxOutputTokens: 512,
-    supportsReasoning: false,
-    compatibility: { supportsDeveloperRole: false },
+    config: {
+      kind: 'openai-compatible',
+      reference: { provider: 'fixture', model: 'fixture', baseUrl: 'http://127.0.0.1:1/v1' },
+      contextWindowTokens: 4096,
+      maxOutputTokens: 512,
+      supportsReasoning: false,
+      compatibility: { supportsDeveloperRole: false },
+    },
+    transportLivenessPolicy: {
+      responseStartTimeoutMilliseconds: 90_000,
+      streamEventIdleTimeoutMilliseconds: 100_000,
+    },
   },
+  mainActor: { invocationPolicy: { timeoutMilliseconds: 110_000 } },
+  request: { timeoutMilliseconds: 120_000 },
+  sessionCompaction: { timeoutMilliseconds: 130_000 },
 };
 
 describe.each(['explicit', 'directory', 'shared-sqlite'] as const)(
@@ -99,6 +108,12 @@ describe.each(['explicit', 'directory', 'shared-sqlite'] as const)(
             : await registry.open('fixture');
         const response = await api.run({ message: 'hello' });
         expect(captures).toBe(1);
+        expect(api.agent.operations.foreground.config.timeoutMilliseconds).toBe(120_000);
+        expect(api.agent.operations.compactSession.config.timeoutMilliseconds).toBe(130_000);
+        expect(api.inspectProvider().transportLivenessPolicy).toEqual({
+          responseStartTimeoutMilliseconds: 90_000,
+          streamEventIdleTimeoutMilliseconds: 100_000,
+        });
         const session = api.agent.resources.session;
         if (!supportsSessionPresentation(session))
           throw new Error('Expected official Session presentation support');
@@ -111,9 +126,10 @@ describe.each(['explicit', 'directory', 'shared-sqlite'] as const)(
           { modelTurnIndex: 1, text: '[filtered]' },
         ]);
         if (registry !== undefined) {
-          expect(JSON.stringify((await registry.inspect('fixture')).config)).not.toContain(
-            'stepOverrides'
-          );
+          const durableConfig = (await registry.inspect('fixture')).config;
+          expect(durableConfig.mainActor.invocationPolicy.timeoutMilliseconds).toBe(110_000);
+          expect(JSON.stringify(durableConfig)).not.toContain('stepOverrides');
+          expect(JSON.stringify(durableConfig)).not.toContain('requestPolicy');
           const reopened = (await registry.open('fixture')).agent.resources.session;
           if (!supportsSessionPresentation(reopened))
             throw new Error('Expected reopened presentation support');

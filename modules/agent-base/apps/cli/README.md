@@ -22,17 +22,26 @@ Example configuration:
   "schemaVersion": 1,
   "identity": { "id": "ordinary-agent" },
   "provider": {
-    "kind": "openai-compatible",
-    "reference": {
-      "provider": "local-openai",
-      "model": "served-model",
-      "baseUrl": "http://127.0.0.1:8000/v1"
+    "config": {
+      "kind": "openai-compatible",
+      "reference": {
+        "provider": "local-openai",
+        "model": "served-model",
+        "baseUrl": "http://127.0.0.1:8000/v1"
+      },
+      "contextWindowTokens": 8192,
+      "maxOutputTokens": 1024,
+      "supportsReasoning": false,
+      "compatibility": { "supportsDeveloperRole": false }
     },
-    "contextWindowTokens": 8192,
-    "maxOutputTokens": 1024,
-    "supportsReasoning": false,
-    "compatibility": { "supportsDeveloperRole": false }
+    "transportLivenessPolicy": {
+      "responseStartTimeoutMilliseconds": null,
+      "streamEventIdleTimeoutMilliseconds": null
+    }
   },
+  "mainActor": { "invocationPolicy": { "timeoutMilliseconds": null } },
+  "request": { "timeoutMilliseconds": null },
+  "sessionCompaction": { "timeoutMilliseconds": null },
   "persistence": {
     "kind": "sqlite",
     "databasePath": "/absolute/path/to/agent.sqlite"
@@ -44,6 +53,11 @@ Run `agent-base --help` for the exact command surface. A provider that declares 
 also requires a matching top-level credential binding such as
 `{"reference":"credentials/agent","environmentVariable":"AGENT_API_KEY"}`; the environment
 value itself is resolved only at runtime.
+
+The four timeout layers are durable Agent configuration. `null` means that Agent Base installs no
+automatic deadline at that layer; positive integers are milliseconds. The CLI provides no flags or
+environment overrides for these values, so direct config and managed `agent.json` remain the sole
+Standalone authority.
 
 Omit `--session-id` to create a new Session. When its response stream opens, the CLI emits one
 `{"type":"session-created","sessionId":"..."}` metadata line to stderr; assistant text remains

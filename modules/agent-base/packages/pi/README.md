@@ -41,6 +41,23 @@ role. Agent Base does not infer it from an OpenAI-compatible URL. Inspection exp
 non-secret compatibility decision. Builtin profiles continue to use Pi catalog compatibility and do
 not accept or invent this declaration.
 
+Ordinary provider runtime options may also supply a closed `transportLivenessPolicy`. Its
+`responseStartTimeoutMilliseconds` bounds the wait from the start of a Pi provider invocation to the
+response beginning or a first normalized provider event. Its `streamEventIdleTimeoutMilliseconds`
+bounds the wait for the
+first or next normalized Pi event after response start. Both default to `null`, so Agent Base adds no
+provider deadline unless the TypeScript host opts in. The idle clock pauses while Agent Base delivers
+an already-received event through downstream backpressure. Each model turn owns a fresh boundary;
+direct completion consumes the same Pi stream internally without becoming a streaming public API.
+Provider deadlines inherit but never reverse-abort Actor/Request cancellation and retain distinct
+`MODEL_PROVIDER_RESPONSE_START_TIMEOUT` or `MODEL_PROVIDER_STREAM_IDLE_TIMEOUT` identities.
+
+The policy deliberately does not expose a purported connect-only timeout: Pi's common public
+boundary cannot distinguish DNS, TCP, TLS, request upload, and server wait for every provider. It
+also does not treat Pi's provider-specific `timeoutMs` behavior as one portable Agent Base contract.
+Inspection exposes the normalized non-secret policy; credential readiness remains a credential-only
+check and performs no network health probe.
+
 The implementation is organized by change reason: `runtime/` owns shared Pi translations and loop
 execution, `provider/` owns ordinary validation/composition, and `faux/` owns deterministic fixtures
 and inspection. OAuth, durable credential storage, dynamic model refresh, provider health

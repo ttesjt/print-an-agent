@@ -4,12 +4,18 @@ import { defineStandaloneAgentConfig } from './config.js';
 import { createStandaloneCredentialResolver } from './credential-resolver.js';
 import { AgentBaseStandaloneError } from './errors.js';
 import { resolveStandaloneRuntimeSqliteTableNames } from './resources/sqlite-table-naming.js';
+import {
+  assertStandaloneRuntimeTimeoutAuthority,
+  resolveStandaloneRequestPolicy,
+  resolveStandaloneSessionCompactionPolicy,
+} from './runtime-policies.js';
 import type { CreateStandaloneAgentOptions, StandaloneAgent } from './types.js';
 
 export function createStandaloneAgent(
   input: unknown,
   runtimeOptions: CreateStandaloneAgentOptions
 ): StandaloneAgent {
+  assertStandaloneRuntimeTimeoutAuthority(runtimeOptions);
   const config = defineStandaloneAgentConfig(input);
   if (config.persistence.kind === 'memory' && runtimeOptions.sqlite !== undefined) {
     throw new AgentBaseStandaloneError(
@@ -36,13 +42,16 @@ export function createStandaloneAgent(
   return createProviderAgentAPI({
     identity: config.identity,
     provider: {
-      config: config.provider,
+      config: config.provider.config,
+      transportLivenessPolicy: config.provider.transportLivenessPolicy,
       ...(credentialResolver === undefined ? {} : { credentialResolver }),
     },
     ...sqliteOptions,
     ...(runtimeOptions.stepOverrides === undefined
       ? {}
       : { stepOverrides: runtimeOptions.stepOverrides }),
-    ...(config.mainActor === undefined ? {} : { mainActor: config.mainActor }),
+    requestPolicy: resolveStandaloneRequestPolicy(config.request, runtimeOptions.requestLimits),
+    sessionCompactionPolicy: resolveStandaloneSessionCompactionPolicy(config.sessionCompaction),
+    mainActor: config.mainActor,
   });
 }

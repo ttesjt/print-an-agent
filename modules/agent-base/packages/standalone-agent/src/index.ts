@@ -1,22 +1,30 @@
 export {
+  defineStandaloneAgentBootstrapConfig,
   defineStandaloneAgentConfig,
-  defineStandaloneAgentDefinition,
   defineStandaloneAgentManifest,
   encodeStandaloneAgentManifest,
-  STANDALONE_AGENT_DEFINITION_CODEC,
+  STANDALONE_AGENT_CONFIG_CODEC,
 } from './config.js';
 export { createStandaloneAgent } from './create-standalone-agent.js';
-export { createManagedStandaloneAgentRegistry } from './managed-agent/lifecycle.js';
-export { createManagedStandaloneSessionService } from './managed-session/service.js';
-export type * from './managed-session/contracts.js';
-export type { CreateManagedStandaloneAgentRegistryOptions } from './managed-agent/lifecycle.js';
-export type * from './managed-agent/contracts.js';
-export { createStandaloneAgentDirectory } from './managed-directory/index.js';
-export { createStandaloneDirectorySessionService } from './managed-directory/session-service.js';
-export type { CreateStandaloneDirectorySessionServiceOptions } from './managed-directory/session-service.js';
-export { createSharedSqliteStandaloneAgentRegistry } from './resources/shared-sqlite/profile.js';
-export { createSharedSqliteStandaloneSessionService } from './resources/shared-sqlite/session-service.js';
-export type { CreateSharedSqliteStandaloneSessionServiceOptions } from './resources/shared-sqlite/session-service.js';
+export { createStandaloneProviderService } from './services/provider-service.js';
+export type { StandaloneProviderService } from './services/provider-service.js';
+export type { StandaloneAgentManagementService } from './services/management-service.js';
+export type { StandaloneAgentRuntimeService } from './services/runtime-service.js';
+export type * from './services/session-management-service.js';
+export {
+  createStandaloneDirectoryDefinition,
+  createStandaloneDirectoryManagementService,
+  createStandaloneDirectoryRuntimeService,
+  createStandaloneDirectorySessionService,
+} from './profiles/directory.js';
+export type { StandaloneDirectoryDefinition } from './profiles/directory.js';
+export {
+  createSharedSqliteStandaloneDefinition,
+  createSharedSqliteStandaloneManagementService,
+  createSharedSqliteStandaloneRuntimeService,
+  createSharedSqliteStandaloneSessionService,
+} from './profiles/shared-sqlite.js';
+export type { SharedSqliteStandaloneDefinition } from './profiles/shared-sqlite.js';
 export {
   DEFAULT_SQLITE_MANAGED_NAMESPACE_TABLE_NAMES,
   resolveSqliteManagedNamespaceTableNames,
@@ -40,4 +48,9 @@ export type {
 } from './resources/sqlite-table-naming.js';
 export { AgentBaseStandaloneError } from './errors.js';
 export type { AgentBaseStandaloneErrorCode } from './errors.js';
+export type {
+  StandaloneRuntimeMaterializationInput,
+  StandaloneRuntimePorts,
+} from './runtime/materialize-standalone-agent.js';
+export { materializeStandaloneAgentRuntime } from './runtime/materialize-standalone-agent.js';
 export type * from './types.js';

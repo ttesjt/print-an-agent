@@ -1,0 +1,118 @@
+import {
+  createAgentManagementService,
+  createAgentRuntimeService,
+  createSessionManagementService,
+  defineManagedAgentComposition,
+  type SessionManagedAgentCompositionDefinition,
+  type SessionManagementPorts,
+} from '@ta-agent/base-composition';
+import { STANDALONE_AGENT_CONFIG_CODEC } from '../config.js';
+import { resolveStandaloneSharedSqliteTableNames } from '../resources/sqlite-table-naming.js';
+import { createSharedSqliteAgentResourceNamespaceAdapter } from '../resources/shared-sqlite/namespace-adapter.js';
+import { createSharedSqliteStandalonePortFactories } from '../resources/shared-sqlite/port-factory.js';
+import type { SharedSqliteAgentResourceNamespace } from '../resources/shared-sqlite/types.js';
+import { assertStandaloneRuntimeTimeoutAuthority } from '../runtime-policies.js';
+import {
+  projectStandaloneAgentManagementService,
+  type StandaloneAgentManagementService,
+} from '../services/management-service.js';
+import {
+  projectStandaloneAgentRuntimeService,
+  type StandaloneAgentRuntimeService,
+} from '../services/runtime-service.js';
+import {
+  projectStandaloneSessionManagementService,
+  type StandaloneSessionManagementService,
+} from '../services/session-management-service.js';
+import {
+  materializeStandaloneAgentRuntime,
+  type StandaloneRuntimePorts,
+} from '../runtime/materialize-standalone-agent.js';
+import type {
+  CreateSharedSqliteStandaloneProfileOptions,
+  CreateSharedSqliteStandaloneManagementServiceOptions,
+  CreateSharedSqliteStandaloneSessionServiceOptions,
+  StandaloneAgentConfig,
+  StandaloneRawAgent,
+} from '../types.js';
+
+export type SharedSqliteStandaloneDefinition = SessionManagedAgentCompositionDefinition<
+  StandaloneAgentConfig,
+  SharedSqliteAgentResourceNamespace,
+  StandaloneRuntimePorts,
+  StandaloneRawAgent,
+  SessionManagementPorts
+>;
+
+export function createSharedSqliteStandaloneDefinition(
+  options: CreateSharedSqliteStandaloneProfileOptions
+): SharedSqliteStandaloneDefinition {
+  assertStandaloneRuntimeTimeoutAuthority(options);
+  const tableNames = resolveStandaloneSharedSqliteTableNames(options.sqlite);
+  const busyTimeout =
+    options.busyTimeoutMilliseconds === undefined
+      ? {}
+      : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds };
+  const ports = createSharedSqliteStandalonePortFactories({
+    ...(options.clock === undefined ? {} : { clock: options.clock }),
+    ...busyTimeout,
+    tableNames,
+  });
+
+  return defineManagedAgentComposition({
+    config: { codec: STANDALONE_AGENT_CONFIG_CODEC },
+    namespace: {
+      port: createSharedSqliteAgentResourceNamespaceAdapter({
+        databasePath: options.databasePath,
+        ...busyTimeout,
+        tableNames: tableNames.managedNamespace,
+      }),
+    },
+    authority: { createPorts: ports.createAuthorityPorts },
+    runtime: {
+      createPorts: ports.createRuntimePorts,
+      materialize: ({ identity, config, ports: runtimePorts }) =>
+        materializeStandaloneAgentRuntime({
+          identity,
+          config,
+          ports: runtimePorts,
+          options,
+        }).agent,
+    },
+    sessionManagement: { createPorts: ports.createSessionManagementPorts },
+  });
+}
+
+export function createSharedSqliteStandaloneManagementService(
+  options: CreateSharedSqliteStandaloneManagementServiceOptions
+): StandaloneAgentManagementService {
+  return projectStandaloneAgentManagementService(
+    createAgentManagementService(
+      createSharedSqliteStandaloneDefinition({
+        ...options,
+        readEnvironmentVariable: () => undefined,
+      })
+    )
+  );
+}
+
+export function createSharedSqliteStandaloneRuntimeService(
+  options: CreateSharedSqliteStandaloneProfileOptions
+): StandaloneAgentRuntimeService {
+  return projectStandaloneAgentRuntimeService(
+    createAgentRuntimeService(createSharedSqliteStandaloneDefinition(options))
+  );
+}
+
+export function createSharedSqliteStandaloneSessionService(
+  options: CreateSharedSqliteStandaloneSessionServiceOptions
+): StandaloneSessionManagementService {
+  return projectStandaloneSessionManagementService(
+    createSessionManagementService(
+      createSharedSqliteStandaloneDefinition({
+        ...options,
+        readEnvironmentVariable: () => undefined,
+      })
+    )
+  );
+}

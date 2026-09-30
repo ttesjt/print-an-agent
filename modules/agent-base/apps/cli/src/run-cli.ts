@@ -1,6 +1,10 @@
 import { AgentBaseCliError } from './errors.js';
 import { parseAgentBaseCliCommand, type AgentBaseCliCommand } from './parse-command.js';
 import type { AgentBaseCliDependencies } from './contracts.js';
+import {
+  isAgentBaseCliSessionLifecycleCommand,
+  type AgentBaseCliSessionLifecycleCommand,
+} from './session-lifecycle-command.js';
 
 export const AGENT_BASE_CLI_USAGE = `Usage:
   agent-base agent create --root <dir> --manifest <file>
@@ -15,6 +19,14 @@ export const AGENT_BASE_CLI_USAGE = `Usage:
   agent-base session select (--config <file> | --root <dir> --agent-id <id>) --session-id <id> --branch-id <id> --expected-revision <n>
   agent-base session fork (--config <file> | --root <dir> --agent-id <id>) --session-id <id> --source-branch-id <id> --through-turn-id <id> --expected-revision <n> [--new-branch-id <id>]
   agent-base session rewind (--config <file> | --root <dir> --agent-id <id>) --session-id <id> --through-turn-id <id> --expected-revision <n> [--new-branch-id <id>]
+  agent-base session lifecycle list --root <dir> --agent-id <id> [--limit <n>] [--cursor-updated-at <timestamp> --cursor-session-id <id>]
+  agent-base session lifecycle list-retired --root <dir> --agent-id <id> [--limit <n>] [--cursor-retired-at <timestamp> --cursor-session-id <id>]
+  agent-base session lifecycle inspect --root <dir> --agent-id <id> --session-id <id>
+  agent-base session lifecycle turns --root <dir> --agent-id <id> --session-id <id> [--before-turn-id <id>] [--limit <n>]
+  agent-base session lifecycle retire --root <dir> --agent-id <id> --session-id <id> --expected-revision <n>
+  agent-base session lifecycle restore --root <dir> --agent-id <id> --session-id <id> --expected-revision <n>
+  agent-base session lifecycle purge --root <dir> --agent-id <id> --session-id <id> --expected-revision <n> --confirm-permanent-delete
+  agent-base session lifecycle recover --root <dir> --agent-id <id> --session-id <id> --expected-execution-revision <n>
 `;
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
@@ -32,6 +44,79 @@ function isCredentialUnavailable(value: unknown): boolean {
 
 async function writeJson(dependencies: AgentBaseCliDependencies, value: unknown): Promise<void> {
   await dependencies.standardOutput.write(`${JSON.stringify(value)}\n`);
+}
+
+async function executeSessionLifecycleCommand(
+  command: AgentBaseCliSessionLifecycleCommand,
+  dependencies: AgentBaseCliDependencies
+): Promise<number> {
+  const manager = await dependencies.loadSessionManager(command.rootDirectory, command.agentId);
+  if (command.kind === 'session-lifecycle-list') {
+    await writeJson(
+      dependencies,
+      await manager.list({
+        ...(command.cursor === undefined ? {} : { cursor: command.cursor }),
+        ...(command.limit === undefined ? {} : { limit: command.limit }),
+      })
+    );
+    return 0;
+  }
+  if (command.kind === 'session-lifecycle-list-retired') {
+    await writeJson(
+      dependencies,
+      await manager.listRetired({
+        ...(command.cursor === undefined ? {} : { cursor: command.cursor }),
+        ...(command.limit === undefined ? {} : { limit: command.limit }),
+      })
+    );
+    return 0;
+  }
+  if (command.kind === 'session-lifecycle-inspect') {
+    await writeJson(dependencies, (await manager.inspect(command.sessionId)) ?? null);
+    return 0;
+  }
+  if (command.kind === 'session-lifecycle-turns') {
+    await writeJson(
+      dependencies,
+      (await manager.listTurns({
+        sessionId: command.sessionId,
+        ...(command.beforeTurnId === undefined ? {} : { beforeTurnId: command.beforeTurnId }),
+        ...(command.limit === undefined ? {} : { limit: command.limit }),
+      })) ?? null
+    );
+    return 0;
+  }
+  if (command.kind === 'session-lifecycle-retire') {
+    await writeJson(
+      dependencies,
+      await manager.retire(command.sessionId, command.expectedRevision)
+    );
+    return 0;
+  }
+  if (command.kind === 'session-lifecycle-restore') {
+    await writeJson(
+      dependencies,
+      await manager.restore(command.sessionId, command.expectedRevision)
+    );
+    return 0;
+  }
+  if (command.kind === 'session-lifecycle-purge') {
+    await manager.purge(command.sessionId, command.expectedRevision);
+    await writeJson(
+      dependencies,
+      Object.freeze({
+        status: 'purged',
+        agentId: command.agentId,
+        sessionId: command.sessionId,
+      })
+    );
+    return 0;
+  }
+  await writeJson(
+    dependencies,
+    await manager.recover(command.sessionId, command.expectedExecutionRevision)
+  );
+  return 0;
 }
 
 async function executeCommand(
@@ -75,12 +160,16 @@ async function executeCommand(
     );
     return 0;
   }
-  const runtime = await dependencies.loadRuntime(command.runtime);
+  if (isAgentBaseCliSessionLifecycleCommand(command)) {
+    return executeSessionLifecycleCommand(command, dependencies);
+  }
   if (command.kind === 'provider-check') {
-    const outcome = await runtime.checkProvider(signal);
+    const provider = await dependencies.loadProvider(command.runtime);
+    const outcome = await provider.check(signal);
     await writeJson(dependencies, outcome);
     return isCredentialUnavailable(outcome) ? 3 : 0;
   }
+  const runtime = await dependencies.loadRuntime(command.runtime);
   if (command.kind === 'run') {
     const message =
       command.messageSource.kind === 'argument'

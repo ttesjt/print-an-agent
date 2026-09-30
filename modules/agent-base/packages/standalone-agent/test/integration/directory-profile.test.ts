@@ -10,10 +10,16 @@ import {
 import { parseTurnId, supportsSessionExecution } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
-  createStandaloneAgentDirectory,
-  type StandaloneAgentDefinitionInput,
+  createStandaloneDirectoryDefinition,
+  type CreateStandaloneDirectoryProfileOptions,
+  type StandaloneAgentConfigInput,
   type StandaloneAgentManifestInput,
 } from '../../src/index.js';
+import { createManagedProfileHarness } from '../support/managed-profile-harness.js';
+
+function createDirectoryProfileHarness(options: CreateStandaloneDirectoryProfileOptions) {
+  return createManagedProfileHarness(createStandaloneDirectoryDefinition(options));
+}
 
 const TEST_MODEL = defineProviderModelReference({ provider: 'loopback', model: 'test-model' });
 const TEST_USAGE = Object.freeze({
@@ -24,7 +30,7 @@ const TEST_USAGE = Object.freeze({
   totalTokens: 2,
 });
 
-function definition(tone = 'Answer directly.'): StandaloneAgentDefinitionInput {
+function definition(tone = 'Answer directly.'): StandaloneAgentConfigInput {
   return {
     provider: {
       config: {
@@ -69,21 +75,21 @@ async function withTemporaryRoot(action: (rootDirectory: string) => Promise<void
   }
 }
 
-describe('managed Standalone Agent directory', () => {
+describe('Standalone directory profile', () => {
   it('publishes and lists isolated per-Agent directories and databases', async () => {
     await withTemporaryRoot(async (rootDirectory) => {
-      const directory = createStandaloneAgentDirectory({
+      const profile = createDirectoryProfileHarness({
         rootDirectory,
         readEnvironmentVariable: () => 'PRIVATE_RUNTIME_KEY',
         sqlite: { tablePrefix: 'directory_' },
       });
-      await directory.create(manifest('mochi', 'Mochi'));
-      await directory.create(manifest('bro', 'Bro'));
+      await profile.create(manifest('mochi', 'Mochi'));
+      await profile.create(manifest('bro', 'Bro'));
 
-      const listed = await directory.list();
+      const listed = await profile.list();
       expect(listed.map((entry) => entry.identity.identity.id)).toEqual(['bro', 'mochi']);
       for (const agentId of ['bro', 'mochi']) {
-        await directory.open(agentId);
+        await profile.open(agentId);
         expect((await readdir(join(rootDirectory, agentId))).sort()).toEqual([
           'agent.json',
           'agent.sqlite',
@@ -131,37 +137,39 @@ describe('managed Standalone Agent directory', () => {
 
   it('updates durable config and reconciles a missing or stale manifest on inspect', async () => {
     await withTemporaryRoot(async (rootDirectory) => {
-      const directory = createStandaloneAgentDirectory({
+      const profile = createDirectoryProfileHarness({
         rootDirectory,
         readEnvironmentVariable: () => undefined,
       });
-      const created = await directory.create(manifest('bro', 'Bro'));
-      const updated = await directory.updateConfig({
+      const created = await profile.create(manifest('bro', 'Bro'));
+      const updated = await profile.updateConfig({
         agentId: created.identity.identity.id,
         config: definition('Prefer short answers.'),
-        expectedRevision: created.configRevision,
+        expectedRevision: created.config.revision,
       });
       expect(updated).toMatchObject({
-        configRevision: 2,
-        config: { mainActor: { instructions: 'Prefer short answers.' } },
-        manifestProjection: 'current',
+        config: {
+          revision: 2,
+          value: { mainActor: { instructions: 'Prefer short answers.' } },
+        },
+        projection: { kind: 'current' },
       });
 
       const manifestPath = join(rootDirectory, 'bro', 'agent.json');
       await writeFile(manifestPath, '{"stale":true}\n', 'utf8');
-      const reopened = createStandaloneAgentDirectory({
+      const reopened = createDirectoryProfileHarness({
         rootDirectory,
         readEnvironmentVariable: () => undefined,
       });
       await expect(reopened.inspect(created.identity.identity.id)).resolves.toMatchObject({
-        configRevision: 2,
-        manifestProjection: 'current',
+        config: { revision: 2 },
+        projection: { kind: 'current' },
       });
       expect(await readFile(manifestPath, 'utf8')).toContain('Prefer short answers.');
 
       await unlink(manifestPath);
       await expect(reopened.inspect(created.identity.identity.id)).resolves.toMatchObject({
-        manifestProjection: 'current',
+        projection: { kind: 'current' },
       });
       expect(await readFile(manifestPath, 'utf8')).toContain('Prefer short answers.');
     });
@@ -170,27 +178,27 @@ describe('managed Standalone Agent directory', () => {
   it('blocks runtime opening while disabled and preserves Session authority after reactivation', async () => {
     await withTemporaryRoot(async (rootDirectory) => {
       let clock = 100;
-      const directory = createStandaloneAgentDirectory({
+      const profile = createDirectoryProfileHarness({
         rootDirectory,
         readEnvironmentVariable: () => undefined,
         clock: () => ++clock,
       });
-      const created = await directory.create(manifest('bro', 'Bro'));
-      const agent = await directory.open(created.identity.identity.id);
-      const session = await agent.agent.resources.session.resolve({
+      const created = await profile.create(manifest('bro', 'Bro'));
+      const agent = await profile.open(created.identity.identity.id);
+      const session = await agent.resources.session.resolve({
         agentId: created.identity.identity.id,
       });
       const turnId = parseTurnId('turn-1');
-      const sessionPort = agent.agent.resources.session;
+      const sessionPort = agent.resources.session;
       if (!supportsSessionExecution(sessionPort)) throw new Error('Expected execution capability');
       const execution = await sessionPort.acquireSessionExecution(session);
-      await agent.agent.resources.session.beginTurn({
+      await agent.resources.session.beginTurn({
         ...session,
         execution,
         turnId,
         userMessage: { role: 'user', text: 'hello', timestamp: 1 },
       });
-      await agent.agent.resources.session.completeTurn({
+      await agent.resources.session.completeTurn({
         ...session,
         execution,
         turnId,
@@ -205,22 +213,22 @@ describe('managed Standalone Agent directory', () => {
       });
 
       await sessionPort.releaseSessionExecution(execution);
-      const disabled = await directory.disable({
+      const disabled = await profile.disable({
         agentId: created.identity.identity.id,
         expectedRevision: created.identity.revision,
       });
       expect(disabled.identity.status).toBe('disabled');
-      await expect(directory.open(created.identity.identity.id)).rejects.toMatchObject({
-        code: 'STANDALONE_AGENT_DISABLED',
+      await expect(profile.open(created.identity.identity.id)).rejects.toMatchObject({
+        code: 'MANAGED_AGENT_DISABLED',
       });
 
-      const active = await directory.reactivate({
+      const active = await profile.reactivate({
         agentId: created.identity.identity.id,
         expectedRevision: disabled.identity.revision,
       });
       expect(active.identity.status).toBe('active');
-      const reopened = await directory.open(created.identity.identity.id);
-      await expect(reopened.agent.resources.session.inspect(session)).resolves.toMatchObject({
+      const reopened = await profile.open(created.identity.identity.id);
+      await expect(reopened.resources.session.inspect(session)).resolves.toMatchObject({
         turns: [{ status: 'completed', userMessage: { text: 'hello' } }],
       });
     });
@@ -228,12 +236,12 @@ describe('managed Standalone Agent directory', () => {
 
   it('cleans unpublished staging state after creation fails', async () => {
     await withTemporaryRoot(async (rootDirectory) => {
-      const directory = createStandaloneAgentDirectory({
+      const profile = createDirectoryProfileHarness({
         rootDirectory,
         readEnvironmentVariable: () => undefined,
         clock: () => -1,
       });
-      await expect(directory.create(manifest('broken', 'Broken'))).rejects.toMatchObject({
+      await expect(profile.create(manifest('broken', 'Broken'))).rejects.toMatchObject({
         code: 'AGENT_IDENTITY_CONFIGURATION_INVALID',
       });
       expect(await readdir(rootDirectory)).toEqual([]);
@@ -245,12 +253,12 @@ describe('managed Standalone Agent directory', () => {
       const outside = await mkdtemp(join(tmpdir(), 'ta-agent-outside-'));
       try {
         await symlink(outside, join(rootDirectory, 'bro'));
-        const directory = createStandaloneAgentDirectory({
+        const profile = createDirectoryProfileHarness({
           rootDirectory,
           readEnvironmentVariable: () => undefined,
         });
-        await expect(directory.list()).rejects.toMatchObject({
-          code: 'STANDALONE_AGENT_STORAGE_INVALID',
+        await expect(profile.list()).rejects.toMatchObject({
+          code: 'MANAGED_AGENT_OPERATION_FAILED',
         });
       } finally {
         await rm(outside, { recursive: true, force: true });
@@ -260,17 +268,17 @@ describe('managed Standalone Agent directory', () => {
 
   it('fails closed when the manifest projection is replaced by a symbolic link', async () => {
     await withTemporaryRoot(async (rootDirectory) => {
-      const directory = createStandaloneAgentDirectory({
+      const profile = createDirectoryProfileHarness({
         rootDirectory,
         readEnvironmentVariable: () => undefined,
       });
-      const created = await directory.create(manifest('bro', 'Bro'));
+      const created = await profile.create(manifest('bro', 'Bro'));
       const manifestPath = join(rootDirectory, 'bro', 'agent.json');
       await unlink(manifestPath);
       await symlink(join(rootDirectory, 'bro', 'agent.sqlite'), manifestPath);
 
-      await expect(directory.inspect(created.identity.identity.id)).rejects.toMatchObject({
-        code: 'STANDALONE_AGENT_STORAGE_INVALID',
+      await expect(profile.inspect(created.identity.identity.id)).rejects.toMatchObject({
+        code: 'MANAGED_AGENT_PROJECTION_FAILED',
       });
     });
   });

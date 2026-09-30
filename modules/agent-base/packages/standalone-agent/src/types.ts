@@ -9,11 +9,7 @@ import type {
   ProviderAgentAPI,
   ProviderConfigInput,
 } from '@ta-agent/base-composition';
-import type {
-  AgentIdentity,
-  AgentIdentityInput,
-  AgentIdentitySnapshot,
-} from '@ta-agent/base-identity';
+import type { AgentIdentity, AgentIdentityInput } from '@ta-agent/base-identity';
 import type {
   ProviderTransportLivenessPolicy,
   ProviderTransportLivenessPolicyInput,
@@ -73,7 +69,7 @@ export interface StandaloneSessionCompactionExecutionConfig {
   readonly timeoutMilliseconds: SessionCompactionPolicy['timeoutMilliseconds'];
 }
 
-export interface StandaloneAgentConfigInput {
+export interface StandaloneAgentBootstrapConfigInput {
   readonly schemaVersion: 1;
   readonly identity: AgentIdentityInput;
   readonly provider: StandaloneProviderConfigInput;
@@ -88,7 +84,7 @@ export type StandalonePersistenceConfig =
   | Readonly<{ kind: 'memory' }>
   | Readonly<{ kind: 'sqlite'; databasePath: string }>;
 
-export interface StandaloneAgentConfig {
+export interface StandaloneAgentBootstrapConfig {
   readonly schemaVersion: 1;
   readonly identity: AgentIdentity;
   readonly provider: StandaloneProviderConfig;
@@ -115,8 +111,9 @@ export interface CreateStandaloneAgentOptions extends StandaloneRuntimeOptions {
 }
 
 export type StandaloneAgent = ProviderAgentAPI;
+export type StandaloneRawAgent = ProviderAgentAPI['agent'];
 
-export interface StandaloneAgentDefinitionInput {
+export interface StandaloneAgentConfigInput {
   readonly provider: StandaloneProviderConfigInput;
   readonly credential?: StandaloneCredentialBindingInput;
   readonly mainActor?: StandaloneMainActorConfigInput;
@@ -124,7 +121,7 @@ export interface StandaloneAgentDefinitionInput {
   readonly sessionCompaction?: StandaloneSessionCompactionExecutionConfigInput;
 }
 
-export interface StandaloneAgentDefinition {
+export interface StandaloneAgentConfig {
   readonly provider: StandaloneProviderConfig;
   readonly credential?: Readonly<StandaloneCredentialBindingInput>;
   readonly mainActor: StandaloneMainActorConfig;
@@ -135,63 +132,41 @@ export interface StandaloneAgentDefinition {
 export interface StandaloneAgentManifestInput {
   readonly schemaVersion: 1;
   readonly identity: AgentIdentityInput;
-  readonly config: StandaloneAgentDefinitionInput;
+  readonly config: StandaloneAgentConfigInput;
 }
 
 export interface StandaloneAgentManifest {
   readonly schemaVersion: 1;
   readonly identity: AgentIdentity;
-  readonly config: StandaloneAgentDefinition;
+  readonly config: StandaloneAgentConfig;
 }
 
-export type StandaloneManifestProjectionStatus = 'current' | 'stale';
-
-export interface ManagedStandaloneAgentSnapshot {
-  readonly identity: AgentIdentitySnapshot;
-  readonly config: StandaloneAgentDefinition;
-  readonly configRevision: number;
-  readonly manifestProjection: StandaloneManifestProjectionStatus;
-}
-
-export interface UpdateManagedStandaloneAgentConfigRequest {
-  readonly agentId: string;
-  readonly config: StandaloneAgentDefinitionInput;
-  readonly expectedRevision: number;
-}
-
-export interface TransitionManagedStandaloneAgentRequest {
-  readonly agentId: string;
-  readonly expectedRevision: number;
-}
-
-export interface ManagedStandaloneAgentRegistry {
-  create(manifest: unknown): Promise<ManagedStandaloneAgentSnapshot>;
-  inspect(agentId: string): Promise<ManagedStandaloneAgentSnapshot>;
-  list(): Promise<readonly ManagedStandaloneAgentSnapshot[]>;
-  updateConfig(
-    request: UpdateManagedStandaloneAgentConfigRequest
-  ): Promise<ManagedStandaloneAgentSnapshot>;
-  disable(
-    request: TransitionManagedStandaloneAgentRequest
-  ): Promise<ManagedStandaloneAgentSnapshot>;
-  reactivate(
-    request: TransitionManagedStandaloneAgentRequest
-  ): Promise<ManagedStandaloneAgentSnapshot>;
-  open(agentId: string): Promise<StandaloneAgent>;
-}
-
-export type StandaloneAgentDirectory = ManagedStandaloneAgentRegistry;
-
-export interface CreateStandaloneAgentDirectoryOptions extends StandaloneRuntimeOptions {
+export interface CreateStandaloneDirectoryProfileOptions extends StandaloneRuntimeOptions {
   readonly rootDirectory: string;
   readonly clock?: () => number;
   readonly createTemporaryId?: () => string;
   readonly sqlite?: StandaloneManagedSqliteTableNamingInput;
 }
 
-export interface CreateSharedSqliteStandaloneAgentRegistryOptions extends StandaloneRuntimeOptions {
+export type CreateStandaloneDirectoryManagementServiceOptions = Omit<
+  CreateStandaloneDirectoryProfileOptions,
+  keyof StandaloneRuntimeOptions
+>;
+
+export type CreateStandaloneDirectorySessionServiceOptions =
+  CreateStandaloneDirectoryManagementServiceOptions;
+
+export interface CreateSharedSqliteStandaloneProfileOptions extends StandaloneRuntimeOptions {
   readonly databasePath: string;
   readonly clock?: () => number;
   readonly busyTimeoutMilliseconds?: number;
   readonly sqlite?: StandaloneSharedSqliteTableNamingInput;
 }
+
+export type CreateSharedSqliteStandaloneManagementServiceOptions = Omit<
+  CreateSharedSqliteStandaloneProfileOptions,
+  keyof StandaloneRuntimeOptions
+>;
+
+export type CreateSharedSqliteStandaloneSessionServiceOptions =
+  CreateSharedSqliteStandaloneManagementServiceOptions;

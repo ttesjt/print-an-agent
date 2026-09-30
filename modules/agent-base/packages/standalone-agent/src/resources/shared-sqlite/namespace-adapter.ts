@@ -1,12 +1,13 @@
 import { lstatSync, mkdirSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { DatabaseSync, type SQLOutputValue } from 'node:sqlite';
+import {
+  ManagedAgentNamespaceError,
+  type ManagedAgentNamespacePort,
+  type StagedManagedAgentNamespace,
+} from '@ta-agent/base-composition';
 import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
 import { AgentBaseStandaloneError } from '../../errors.js';
-import type {
-  AgentResourceNamespaceAdapter,
-  StagedAgentResourceNamespace,
-} from '../../managed-agent/contracts.js';
 import type { SharedSqliteAgentResourceNamespace } from './types.js';
 import {
   quoteSqliteIdentifier,
@@ -253,7 +254,7 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
     busyTimeoutMilliseconds?: number;
   }> &
     SqliteManagedNamespaceTableNamingInput
-): AgentResourceNamespaceAdapter<SharedSqliteAgentResourceNamespace> {
+): ManagedAgentNamespacePort<SharedSqliteAgentResourceNamespace> {
   const tableNames = resolveSqliteManagedNamespaceTableNames(options);
   const configuration: SharedSqliteConfiguration = Object.freeze({
     databasePath: normalizeDatabasePath(options.databasePath),
@@ -286,9 +287,10 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
         runTransaction(connection, () => {
           const state = readState(connection, agentId, tableNames);
           if (state === 'published') {
-            throw new AgentBaseStandaloneError('Managed Standalone Agent already exists.', {
-              code: 'STANDALONE_AGENT_ALREADY_EXISTS',
-            });
+            throw new ManagedAgentNamespaceError(
+              'MANAGED_AGENT_NAMESPACE_ALREADY_EXISTS',
+              'Managed Agent namespace already exists.'
+            );
           }
           if (state === 'pending') return true;
           connection
@@ -299,9 +301,9 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
           return false;
         })
       );
-      return Promise.resolve(Object.freeze({ agentId, resumed, handle }));
+      return Promise.resolve(Object.freeze({ agentId, phase: 'staged' as const, resumed, handle }));
     },
-    publish: (staged: StagedAgentResourceNamespace<SharedSqliteAgentResourceNamespace>) => {
+    publish: (staged: StagedManagedAgentNamespace<SharedSqliteAgentResourceNamespace>) => {
       useDatabase(configuration, 'publish Agent', (connection) =>
         runTransaction(connection, () => {
           if (readState(connection, staged.agentId, tableNames) !== 'pending') {
@@ -317,7 +319,9 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
           }
         })
       );
-      return Promise.resolve(Object.freeze({ agentId: staged.agentId, handle }));
+      return Promise.resolve(
+        Object.freeze({ agentId: staged.agentId, phase: 'published' as const, handle })
+      );
     },
     abort: () => Promise.resolve(),
     resolve: (agentIdInput: AgentId) => {
@@ -327,7 +331,9 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
         'resolve Agent',
         (connection) => readState(connection, agentId, tableNames) === 'published'
       );
-      return Promise.resolve(published ? Object.freeze({ agentId, handle }) : undefined);
+      return Promise.resolve(
+        published ? Object.freeze({ agentId, phase: 'published' as const, handle }) : undefined
+      );
     },
     list: () => {
       const namespaces = useDatabase(configuration, 'list Agents', (connection) => {
@@ -340,7 +346,11 @@ export function createSharedSqliteAgentResourceNamespaceAdapter(
           if (typeof row.agent_id !== 'string') {
             throw storageError('Shared SQLite namespace Agent ID is invalid.');
           }
-          return Object.freeze({ agentId: parseAgentId(row.agent_id), handle });
+          return Object.freeze({
+            agentId: parseAgentId(row.agent_id),
+            phase: 'published' as const,
+            handle,
+          });
         });
       });
       return Promise.resolve(Object.freeze(namespaces));

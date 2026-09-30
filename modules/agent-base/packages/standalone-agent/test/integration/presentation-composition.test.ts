@@ -9,13 +9,14 @@ import { supportsSessionPresentation, parseTurnId } from '@ta-agent/base-session
 import { describe, expect, it } from 'vitest';
 import {
   createStandaloneAgent,
-  createStandaloneAgentDirectory,
-  createSharedSqliteStandaloneAgentRegistry,
+  createStandaloneDirectoryDefinition,
+  createSharedSqliteStandaloneDefinition,
   type StandaloneRuntimeOptions,
-  type StandaloneAgentDefinitionInput,
+  type StandaloneAgentConfigInput,
 } from '../../src/index.js';
+import { createManagedProfileHarness } from '../support/managed-profile-harness.js';
 
-const definition: StandaloneAgentDefinitionInput = {
+const definition: StandaloneAgentConfigInput = {
   provider: {
     config: {
       kind: 'openai-compatible',
@@ -79,23 +80,27 @@ describe.each(['explicit', 'directory', 'shared-sqlite'] as const)(
         },
       };
       try {
-        const registry =
+        const managedProfile =
           profile === 'directory'
-            ? createStandaloneAgentDirectory({ ...options, rootDirectory: directory })
+            ? createManagedProfileHarness(
+                createStandaloneDirectoryDefinition({ ...options, rootDirectory: directory })
+              )
             : profile === 'shared-sqlite'
-              ? createSharedSqliteStandaloneAgentRegistry({
-                  ...options,
-                  databasePath: join(directory, 'agents.sqlite'),
-                })
+              ? createManagedProfileHarness(
+                  createSharedSqliteStandaloneDefinition({
+                    ...options,
+                    databasePath: join(directory, 'agents.sqlite'),
+                  })
+                )
               : undefined;
-        if (registry !== undefined)
-          await registry.create({
+        if (managedProfile !== undefined)
+          await managedProfile.create({
             schemaVersion: 1,
             identity: { id: 'fixture' },
             config: definition,
           });
-        const api =
-          registry === undefined
+        const directApi =
+          managedProfile === undefined
             ? createStandaloneAgent(
                 {
                   schemaVersion: 1,
@@ -105,37 +110,41 @@ describe.each(['explicit', 'directory', 'shared-sqlite'] as const)(
                 },
                 options
               )
-            : await registry.open('fixture');
-        const response = await api.run({ message: 'hello' });
+            : undefined;
+        const agent = directApi?.agent ?? (await managedProfile?.open('fixture'));
+        if (agent === undefined) throw new Error('Expected a materialized Agent');
+        const response = await agent.invoke('foreground', { message: 'hello' });
         expect(captures).toBe(1);
-        expect(api.agent.operations.foreground.config.timeoutMilliseconds).toBe(120_000);
-        expect(api.agent.operations.compactSession.config.timeoutMilliseconds).toBe(130_000);
-        expect(api.inspectProvider().transportLivenessPolicy).toEqual({
-          responseStartTimeoutMilliseconds: 90_000,
-          streamEventIdleTimeoutMilliseconds: 100_000,
-        });
-        const session = api.agent.resources.session;
+        expect(agent.operations.foreground.config.timeoutMilliseconds).toBe(120_000);
+        expect(agent.operations.compactSession.config.timeoutMilliseconds).toBe(130_000);
+        if (directApi !== undefined) {
+          expect(directApi.inspectProvider().transportLivenessPolicy).toEqual({
+            responseStartTimeoutMilliseconds: 90_000,
+            streamEventIdleTimeoutMilliseconds: 100_000,
+          });
+        }
+        const session = agent.resources.session;
         if (!supportsSessionPresentation(session))
           throw new Error('Expected official Session presentation support');
         const record = await session.readTurnPresentation({
-          agentId: api.identity.id,
+          agentId: agent.identity.id,
           sessionId: response.sessionId,
           turnId: parseTurnId(response.requestId),
         });
         expect(record?.presentation.reasoningBlocks).toEqual([
           { modelTurnIndex: 1, text: '[filtered]' },
         ]);
-        if (registry !== undefined) {
-          const durableConfig = (await registry.inspect('fixture')).config;
+        if (managedProfile !== undefined) {
+          const durableConfig = (await managedProfile.inspect('fixture')).config.value;
           expect(durableConfig.mainActor.invocationPolicy.timeoutMilliseconds).toBe(110_000);
           expect(JSON.stringify(durableConfig)).not.toContain('stepOverrides');
           expect(JSON.stringify(durableConfig)).not.toContain('requestPolicy');
-          const reopened = (await registry.open('fixture')).agent.resources.session;
+          const reopened = (await managedProfile.open('fixture')).resources.session;
           if (!supportsSessionPresentation(reopened))
             throw new Error('Expected reopened presentation support');
           expect(
             await reopened.readTurnPresentation({
-              agentId: api.identity.id,
+              agentId: agent.identity.id,
               sessionId: response.sessionId,
               turnId: parseTurnId(response.requestId),
             })

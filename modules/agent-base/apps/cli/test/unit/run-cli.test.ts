@@ -3,6 +3,7 @@ import { parseAgentBaseCliCommand, runAgentBaseCli } from '../../src/index.js';
 import type {
   AgentBaseCliDependencies,
   AgentBaseCliRuntime,
+  AgentBaseCliSessionManager,
   AgentBaseCliWriter,
 } from '../../src/index.js';
 
@@ -19,13 +20,28 @@ function writer(): AgentBaseCliWriter & { output(): string } {
 
 function runtime(overrides: Partial<AgentBaseCliRuntime> = {}): AgentBaseCliRuntime {
   return {
-    checkProvider: () => Promise.resolve({ status: 'ready' }),
     run: (_input, options) => options.writeTextDelta('mock response'),
     compactSession: () => Promise.resolve({ status: 'skipped' }),
     inspectSession: () => Promise.resolve({ status: 'inspected' }),
     selectSessionBranch: () => Promise.resolve({ status: 'selected' }),
     forkSessionBranch: () => Promise.resolve({ status: 'forked' }),
     rewindSession: () => Promise.resolve({ status: 'rewound' }),
+    ...overrides,
+  };
+}
+
+function sessionManager(
+  overrides: Partial<AgentBaseCliSessionManager> = {}
+): AgentBaseCliSessionManager {
+  return {
+    list: () => Promise.resolve({ records: [] }),
+    listRetired: () => Promise.resolve({ records: [] }),
+    inspect: () => Promise.resolve(undefined),
+    listTurns: () => Promise.resolve(undefined),
+    retire: () => Promise.resolve({ status: 'retired' }),
+    restore: () => Promise.resolve({ status: 'active' }),
+    purge: () => Promise.resolve(),
+    recover: () => Promise.resolve({ state: 'ready' }),
     ...overrides,
   };
 }
@@ -38,6 +54,7 @@ function dependencies(
   standardError: AgentBaseCliWriter & { output(): string };
 } {
   return {
+    loadProvider: () => Promise.resolve({ check: () => Promise.resolve({ status: 'ready' }) }),
     loadRuntime: () => Promise.resolve(testRuntime),
     loadManagedDirectory: () =>
       Promise.resolve({
@@ -47,6 +64,7 @@ function dependencies(
         disable: () => Promise.resolve({ status: 'disabled' }),
         reactivate: () => Promise.resolve({ status: 'active' }),
       }),
+    loadSessionManager: () => Promise.resolve(sessionManager()),
     readJsonDocument: () => Promise.resolve({ schemaVersion: 1 }),
     readStandardInput: () => Promise.resolve(standardInput),
     standardOutput: writer(),
@@ -213,12 +231,14 @@ describe('Agent Base CLI command contract', () => {
   });
 
   it('returns readiness metadata and the credential-unavailable exit contract', async () => {
-    const deps = dependencies(
-      runtime({
-        checkProvider: () =>
-          Promise.resolve({ status: 'credential-unavailable', provider: 'test' }),
+    const baseDependencies = dependencies(runtime());
+    const loadRuntime = vi.fn(baseDependencies.loadRuntime);
+    const loadProvider = vi.fn(() =>
+      Promise.resolve({
+        check: () => Promise.resolve({ status: 'credential-unavailable', provider: 'test' }),
       })
     );
+    const deps = { ...baseDependencies, loadProvider, loadRuntime };
 
     await expect(
       runAgentBaseCli(['provider', 'check', '--config', 'agent.json'], deps)
@@ -228,6 +248,19 @@ describe('Agent Base CLI command contract', () => {
       provider: 'test',
     });
     expect(deps.standardError.output()).toBe('');
+    expect(loadProvider).toHaveBeenCalledOnce();
+    expect(loadRuntime).not.toHaveBeenCalled();
+  });
+
+  it('does not load provider inspection for runtime commands', async () => {
+    const baseDependencies = dependencies(runtime());
+    const loadProvider = vi.fn(baseDependencies.loadProvider);
+    const deps = { ...baseDependencies, loadProvider };
+
+    await expect(
+      runAgentBaseCli(['run', '--config', 'agent.json', '--message', 'hello'], deps)
+    ).resolves.toBe(0);
+    expect(loadProvider).not.toHaveBeenCalled();
   });
 
   it('routes every Session command to one matching Application API operation', async () => {
@@ -345,6 +378,223 @@ describe('Agent Base CLI command contract', () => {
       throughTurnId: 'turn-2',
       expectedRevision: 5,
     });
+  });
+
+  it('parses managed-only Session lifecycle commands and strict destructive confirmation', () => {
+    expect(
+      parseAgentBaseCliCommand([
+        'session',
+        'lifecycle',
+        'list',
+        '--root',
+        '/agents',
+        '--agent-id',
+        'bro',
+        '--limit',
+        '20',
+        '--cursor-updated-at',
+        '100',
+        '--cursor-session-id',
+        'session-1',
+      ])
+    ).toEqual({
+      kind: 'session-lifecycle-list',
+      rootDirectory: '/agents',
+      agentId: 'bro',
+      limit: 20,
+      cursor: { updatedAt: 100, sessionId: 'session-1' },
+    });
+    expect(
+      parseAgentBaseCliCommand([
+        'session',
+        'lifecycle',
+        'purge',
+        '--root',
+        '/agents',
+        '--agent-id',
+        'bro',
+        '--session-id',
+        'session-1',
+        '--expected-revision',
+        '2',
+        '--confirm-permanent-delete',
+      ])
+    ).toEqual({
+      kind: 'session-lifecycle-purge',
+      rootDirectory: '/agents',
+      agentId: 'bro',
+      sessionId: 'session-1',
+      expectedRevision: 2,
+    });
+    expect(() =>
+      parseAgentBaseCliCommand(['session', 'lifecycle', 'list', '--config', 'agent.json'])
+    ).toThrow('not supported');
+    expect(() =>
+      parseAgentBaseCliCommand([
+        'session',
+        'lifecycle',
+        'list',
+        '--root',
+        '/agents',
+        '--agent-id',
+        'bro',
+        '--cursor-updated-at',
+        '100',
+      ])
+    ).toThrow('must be provided together');
+    expect(() =>
+      parseAgentBaseCliCommand([
+        'session',
+        'lifecycle',
+        'purge',
+        '--root',
+        '/agents',
+        '--agent-id',
+        'bro',
+        '--session-id',
+        'session-1',
+        '--expected-revision',
+        '2',
+      ])
+    ).toThrow('--confirm-permanent-delete is required');
+  });
+
+  it('routes every Session lifecycle command through only the Session manager', async () => {
+    const list = vi.fn<AgentBaseCliSessionManager['list']>(() =>
+      Promise.resolve({ records: ['active'] })
+    );
+    const listRetired = vi.fn<AgentBaseCliSessionManager['listRetired']>(() =>
+      Promise.resolve({ records: ['retired'] })
+    );
+    const inspect = vi.fn<AgentBaseCliSessionManager['inspect']>(() =>
+      Promise.resolve({ status: 'active' })
+    );
+    const listTurns = vi.fn<AgentBaseCliSessionManager['listTurns']>(() =>
+      Promise.resolve({ records: ['turn'] })
+    );
+    const retire = vi.fn<AgentBaseCliSessionManager['retire']>(() =>
+      Promise.resolve({ status: 'retired' })
+    );
+    const restore = vi.fn<AgentBaseCliSessionManager['restore']>(() =>
+      Promise.resolve({ status: 'active' })
+    );
+    const purge = vi.fn<AgentBaseCliSessionManager['purge']>(() => Promise.resolve());
+    const recover = vi.fn<AgentBaseCliSessionManager['recover']>(() =>
+      Promise.resolve({ state: 'ready' })
+    );
+    const manager = sessionManager({
+      list,
+      listRetired,
+      inspect,
+      listTurns,
+      retire,
+      restore,
+      purge,
+      recover,
+    });
+    const baseDependencies = dependencies(runtime());
+    const loadSessionManager = vi.fn(() => Promise.resolve(manager));
+    const loadRuntime = vi.fn(baseDependencies.loadRuntime);
+    const loadProvider = vi.fn(baseDependencies.loadProvider);
+    const loadManagedDirectory = vi.fn(baseDependencies.loadManagedDirectory);
+    const deps = {
+      ...baseDependencies,
+      loadSessionManager,
+      loadRuntime,
+      loadProvider,
+      loadManagedDirectory,
+    };
+    const scope = ['--root', '/agents', '--agent-id', 'bro'] as const;
+
+    await runAgentBaseCli(['session', 'lifecycle', 'list', ...scope, '--limit', '10'], deps);
+    await runAgentBaseCli(['session', 'lifecycle', 'list-retired', ...scope], deps);
+    await runAgentBaseCli(
+      ['session', 'lifecycle', 'inspect', ...scope, '--session-id', 'session-1'],
+      deps
+    );
+    await runAgentBaseCli(
+      [
+        'session',
+        'lifecycle',
+        'turns',
+        ...scope,
+        '--session-id',
+        'session-1',
+        '--before-turn-id',
+        'turn-1',
+      ],
+      deps
+    );
+    await runAgentBaseCli(
+      [
+        'session',
+        'lifecycle',
+        'retire',
+        ...scope,
+        '--session-id',
+        'session-1',
+        '--expected-revision',
+        '1',
+      ],
+      deps
+    );
+    await runAgentBaseCli(
+      [
+        'session',
+        'lifecycle',
+        'restore',
+        ...scope,
+        '--session-id',
+        'session-1',
+        '--expected-revision',
+        '2',
+      ],
+      deps
+    );
+    await runAgentBaseCli(
+      [
+        'session',
+        'lifecycle',
+        'recover',
+        ...scope,
+        '--session-id',
+        'session-1',
+        '--expected-execution-revision',
+        '3',
+      ],
+      deps
+    );
+    await runAgentBaseCli(
+      [
+        'session',
+        'lifecycle',
+        'purge',
+        ...scope,
+        '--session-id',
+        'session-1',
+        '--expected-revision',
+        '4',
+        '--confirm-permanent-delete',
+      ],
+      deps
+    );
+
+    expect(loadSessionManager).toHaveBeenCalledTimes(8);
+    expect(loadSessionManager).toHaveBeenCalledWith('/agents', 'bro');
+    expect(list).toHaveBeenCalledWith({ limit: 10 });
+    expect(listRetired).toHaveBeenCalledWith({});
+    expect(inspect).toHaveBeenCalledWith('session-1');
+    expect(listTurns).toHaveBeenCalledWith({ sessionId: 'session-1', beforeTurnId: 'turn-1' });
+    expect(retire).toHaveBeenCalledWith('session-1', 1);
+    expect(restore).toHaveBeenCalledWith('session-1', 2);
+    expect(recover).toHaveBeenCalledWith('session-1', 3);
+    expect(purge).toHaveBeenCalledWith('session-1', 4);
+    expect(loadRuntime).not.toHaveBeenCalled();
+    expect(loadProvider).not.toHaveBeenCalled();
+    expect(loadManagedDirectory).not.toHaveBeenCalled();
+    expect(deps.standardOutput.output()).toContain(
+      '{"status":"purged","agentId":"bro","sessionId":"session-1"}'
+    );
   });
 
   it('emits only a stable runtime code when a command fails', async () => {

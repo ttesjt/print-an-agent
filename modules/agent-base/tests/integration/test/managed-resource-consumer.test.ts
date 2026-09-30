@@ -1,4 +1,15 @@
 import {
+  ManagedAgentNamespaceError,
+  createAgentManagementService,
+  createAgentRuntimeService,
+  defineManagedAgentComposition,
+  type ManagedAgentNamespace,
+  type ManagedAgentNamespacePort,
+  type ManagedAgentNamespaceReference,
+  type ManagedAgentRuntimeMaterializationInput,
+  type StagedManagedAgentNamespace,
+} from '@ta-agent/base-composition';
+import {
   MemoryAgentConfigAdapter,
   MemoryAgentIdentityCatalogAdapter,
   MemoryRequestJournalAdapter,
@@ -6,12 +17,12 @@ import {
 } from '@ta-agent/base-local-adapters';
 import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
 import {
-  AgentBaseStandaloneError,
-  createManagedStandaloneAgentRegistry,
-  type AgentResourceNamespace,
-  type AgentResourceNamespaceAdapter,
-  type ManagedAgentResourcePortFactory,
-  type StagedAgentResourceNamespace,
+  defineStandaloneAgentConfig,
+  materializeStandaloneAgentRuntime,
+  STANDALONE_AGENT_CONFIG_CODEC,
+  type StandaloneAgentConfig,
+  type StandaloneRawAgent,
+  type StandaloneRuntimePorts,
 } from '@ta-agent/base-standalone-agent';
 import { describe, expect, it } from 'vitest';
 
@@ -27,73 +38,113 @@ interface OpaqueResources {
 }
 
 function createOpaqueResourceProfile(): Readonly<{
-  namespaces: AgentResourceNamespaceAdapter<OpaqueNamespaceHandle>;
-  ports: ManagedAgentResourcePortFactory<OpaqueNamespaceHandle>;
+  namespaces: ManagedAgentNamespacePort<OpaqueNamespaceHandle>;
+  resources: ReadonlyMap<symbol, OpaqueResources>;
 }> {
-  const published = new Map<AgentId, AgentResourceNamespace<OpaqueNamespaceHandle>>();
+  const published = new Map<AgentId, ManagedAgentNamespace<OpaqueNamespaceHandle>>();
+  const staged = new Map<AgentId, StagedManagedAgentNamespace<OpaqueNamespaceHandle>>();
   const resources = new Map<symbol, OpaqueResources>();
-  return Object.freeze({
-    namespaces: Object.freeze({
-      stage: (agentIdInput: AgentId) => {
-        const agentId = parseAgentId(agentIdInput);
-        if (published.has(agentId)) {
-          throw new AgentBaseStandaloneError('Agent already exists.', {
-            code: 'STANDALONE_AGENT_ALREADY_EXISTS',
-          });
-        }
-        const handle = Object.freeze({ token: Symbol(agentId) });
-        resources.set(
-          handle.token,
-          Object.freeze({
-            identities: new MemoryAgentIdentityCatalogAdapter(),
-            configs: new MemoryAgentConfigAdapter(),
-            sessions: new MemorySessionAdapter(),
-            journal: new MemoryRequestJournalAdapter(),
-          })
+  const namespaces: ManagedAgentNamespacePort<OpaqueNamespaceHandle> = Object.freeze({
+    stage: (agentIdInput: AgentId) => {
+      const agentId = parseAgentId(agentIdInput);
+      if (published.has(agentId)) {
+        throw new ManagedAgentNamespaceError(
+          'MANAGED_AGENT_NAMESPACE_ALREADY_EXISTS',
+          'Opaque Agent namespace already exists.'
         );
-        return Promise.resolve(Object.freeze({ agentId, resumed: false, handle }));
-      },
-      publish: (staged: StagedAgentResourceNamespace<OpaqueNamespaceHandle>) => {
-        const namespace = Object.freeze({ agentId: staged.agentId, handle: staged.handle });
-        published.set(namespace.agentId, namespace);
-        return Promise.resolve(namespace);
-      },
-      abort: (staged: StagedAgentResourceNamespace<OpaqueNamespaceHandle>) => {
-        resources.delete(staged.handle.token);
-        return Promise.resolve();
-      },
-      resolve: (agentId: AgentId) => Promise.resolve(published.get(parseAgentId(agentId))),
-      list: () => Promise.resolve(Object.freeze([...published.values()])),
-    }),
-    ports: Object.freeze({
-      createAuthorityPorts: (namespace: AgentResourceNamespace<OpaqueNamespaceHandle>) => {
-        const resource = resources.get(namespace.handle.token);
-        if (resource === undefined) throw new Error('Opaque Agent resources are unavailable.');
-        return Object.freeze({
-          identityCatalog: resource.identities,
-          config: resource.configs,
-        });
-      },
-      createRuntimePorts: (namespace: AgentResourceNamespace<OpaqueNamespaceHandle>) => {
-        const resource = resources.get(namespace.handle.token);
-        if (resource === undefined) throw new Error('Opaque Agent resources are unavailable.');
-        return Object.freeze({ session: resource.sessions, requestJournal: resource.journal });
-      },
-    }),
+      }
+      const existing = staged.get(agentId);
+      if (existing !== undefined) {
+        return Promise.resolve(Object.freeze({ ...existing, resumed: true }));
+      }
+      const handle = Object.freeze({ token: Symbol(agentId) });
+      const namespace = Object.freeze({
+        agentId,
+        phase: 'staged' as const,
+        resumed: false,
+        handle,
+      });
+      staged.set(agentId, namespace);
+      resources.set(
+        handle.token,
+        Object.freeze({
+          identities: new MemoryAgentIdentityCatalogAdapter(),
+          configs: new MemoryAgentConfigAdapter(),
+          sessions: new MemorySessionAdapter(),
+          journal: new MemoryRequestJournalAdapter(),
+        })
+      );
+      return Promise.resolve(namespace);
+    },
+    publish: (namespace: StagedManagedAgentNamespace<OpaqueNamespaceHandle>) => {
+      const publishedNamespace = Object.freeze({
+        agentId: namespace.agentId,
+        phase: 'published' as const,
+        handle: namespace.handle,
+      });
+      staged.delete(namespace.agentId);
+      published.set(namespace.agentId, publishedNamespace);
+      return Promise.resolve(publishedNamespace);
+    },
+    abort: (namespace: StagedManagedAgentNamespace<OpaqueNamespaceHandle>) => {
+      staged.delete(namespace.agentId);
+      resources.delete(namespace.handle.token);
+      return Promise.resolve();
+    },
+    resolve: (agentId: AgentId) => Promise.resolve(published.get(parseAgentId(agentId))),
+    list: () => Promise.resolve(Object.freeze([...published.values()])),
   });
+  return Object.freeze({ namespaces, resources });
 }
 
 describe('public managed resource consumer', () => {
-  it('creates and opens an Agent through an opaque non-filesystem resource namespace', async () => {
+  it('uses generic management plus the Standalone materializer over opaque resources', async () => {
     const profile = createOpaqueResourceProfile();
-    const registry = createManagedStandaloneAgentRegistry({
-      ...profile,
-      readEnvironmentVariable: () => undefined,
+    const definition = defineManagedAgentComposition<
+      StandaloneAgentConfig,
+      OpaqueNamespaceHandle,
+      StandaloneRuntimePorts,
+      StandaloneRawAgent
+    >({
+      config: { codec: STANDALONE_AGENT_CONFIG_CODEC },
+      namespace: { port: profile.namespaces },
+      authority: {
+        createPorts: (namespace: ManagedAgentNamespaceReference<OpaqueNamespaceHandle>) => {
+          const resource = profile.resources.get(namespace.handle.token);
+          if (resource === undefined) throw new Error('Opaque Agent resources are unavailable.');
+          return Object.freeze({
+            identityCatalog: resource.identities,
+            config: resource.configs,
+          });
+        },
+      },
+      runtime: {
+        createPorts: (namespace: ManagedAgentNamespace<OpaqueNamespaceHandle>) => {
+          const resource = profile.resources.get(namespace.handle.token);
+          if (resource === undefined) throw new Error('Opaque Agent resources are unavailable.');
+          return Object.freeze({ session: resource.sessions, requestJournal: resource.journal });
+        },
+        materialize: ({
+          identity,
+          config,
+          ports,
+        }: ManagedAgentRuntimeMaterializationInput<
+          StandaloneAgentConfig,
+          StandaloneRuntimePorts
+        >) =>
+          materializeStandaloneAgentRuntime({
+            identity,
+            config,
+            ports,
+            options: { readEnvironmentVariable: () => undefined },
+          }).agent,
+      },
     });
-    const created = await registry.create({
-      schemaVersion: 1,
+    const management = createAgentManagementService(definition);
+    const runtime = createAgentRuntimeService(definition);
+    const created = await management.create({
       identity: { id: 'opaque-consumer', displayName: 'Opaque Consumer' },
-      config: {
+      config: defineStandaloneAgentConfig({
         provider: {
           config: {
             kind: 'openai-compatible',
@@ -108,17 +159,17 @@ describe('public managed resource consumer', () => {
             compatibility: { supportsDeveloperRole: false },
           },
         },
-      },
+      }),
     });
 
     expect(created).toMatchObject({
       identity: { identity: { id: 'opaque-consumer' }, status: 'active' },
-      configRevision: 1,
-      manifestProjection: 'current',
+      config: { revision: 1 },
+      projection: { kind: 'not-configured' },
     });
-    await expect(registry.open('opaque-consumer')).resolves.toMatchObject({
-      agent: { identity: { id: 'opaque-consumer' } },
+    await expect(runtime.open(parseAgentId('opaque-consumer'))).resolves.toMatchObject({
+      identity: { id: 'opaque-consumer' },
     });
-    expect(await registry.list()).toHaveLength(1);
+    expect(await management.list()).toHaveLength(1);
   });
 });

@@ -1,131 +1,112 @@
 # `@ta-agent/base-standalone-agent`
 
-Standalone TypeScript constructors accept host-owned `stepOverrides` and non-timeout `requestLimits`,
-forwarded through explicit, managed-directory, and shared-SQLite profiles to the standard
-composition. For example, `captureReasoningPresentation: SKIP_STEP` disables saved reasoning
-without affecting live delivery. Executable Step overrides and deployment limits are not stored in
-Agent JSON or managed manifests. Request, main Actor, Session compaction, and provider-transport
-timeouts are different: their values belong to the durable Standalone definition and cannot be
-silently replaced by host runtime options. Official Session adapters support atomic turn
-presentation; explicit display queries are available on the same wrapped Agent's Session resource
-through `supportsSessionPresentation()` and `readTurnPresentation()`. The CLI remains text-only.
+The official Standalone application profile for Agent Base.
 
-The official standalone reference Agent application boundary.
+This package owns Standalone policy: durable Config vocabulary, provider and credential wiring,
+timeout policy, SQLite table naming, filesystem/shared-SQLite profiles, `agent.json` projection, and
+the Standard runtime materializer. Generic Agent lifecycle, runtime opening, and out-of-band Session
+management belong to `@ta-agent/base-composition`; Standalone consumes those services rather than
+reimplementing them.
 
-`defineStandaloneAgentConfig()` decodes one closed `schemaVersion: 1` JSON-compatible value.
-`createStandaloneAgent()` selects the ordinary provider-backed `AgentAPI` plus an explicit Memory or
-absolute-path SQLite persistence profile. The API is a transparent delivery convenience and exposes
-its underlying composed `Agent`. SQLite composes both Session and Request Journal adapters over the
-supplied database. Credential references bind only to a named environment reader; API keys never
-belong in configuration.
-Standalone provider JSON separates the model/provider binding under `provider.config` from optional
-transport liveness under `provider.transportLivenessPolicy`. OpenAI-compatible configuration must
-explicitly declare `supportsReasoning`; the field is preserved in managed Config and `agent.json`.
-It declares endpoint capability and does not enable a reasoning effort or guarantee that a response
-contains readable reasoning. The provider config must also declare
-`compatibility.supportsDeveloperRole`. This independent, non-secret decision is preserved through
-managed Config and `agent.json`; unknown endpoints should conservatively use `false` unless their
-message-role behavior has been verified.
+## Config vocabulary
 
-All four Standalone timeout layers use `number | null`: a supported positive integer installs that
-layer's cooperative deadline, while `null` installs none and still preserves parent cancellation.
-Omitted sections normalize to explicit `null` values in canonical managed configuration and
-`agent.json`:
+`StandaloneAgentConfig` is the durable managed Config. It contains provider, credential binding,
+main Actor, Request, and Session compaction policy. `STANDALONE_AGENT_CONFIG_CODEC` is its canonical
+Config authority codec.
 
-```json
-{
-  "provider": {
-    "config": { "kind": "builtin", "reference": { "provider": "openai", "model": "gpt" } },
-    "transportLivenessPolicy": {
-      "responseStartTimeoutMilliseconds": null,
-      "streamEventIdleTimeoutMilliseconds": null
-    }
-  },
-  "mainActor": { "invocationPolicy": { "timeoutMilliseconds": null } },
-  "request": { "timeoutMilliseconds": null },
-  "sessionCompaction": { "timeoutMilliseconds": null }
-}
+`StandaloneAgentBootstrapConfig` adds Identity and a Memory or explicit SQLite persistence choice.
+`defineStandaloneAgentBootstrapConfig()` and `createStandaloneAgent()` use it to start one Agent
+directly, without the multi-Agent management plane.
+
+`StandaloneAgentManifest` is the filesystem document projection `{ identity, config }`. It is not
+Config authority.
+
+Provider configuration separates model binding from transport liveness. OpenAI-compatible endpoints
+must explicitly declare `supportsReasoning` and `compatibility.supportsDeveloperRole`; neither value
+is inferred from an endpoint label. Request, Actor invocation, Session compaction, response-start,
+and stream-idle timeout values use `number | null`. `null` adds no Agent Base deadline while parent
+cancellation remains effective.
+
+Host-owned Step overrides and non-timeout Request limits are executable runtime wiring. They are not
+stored in durable Config or `agent.json`. Credentials are resolved only while materializing runtime
+or checking provider readiness; management and Session services never resolve them.
+
+## Direct bootstrap
+
+```ts
+import { createStandaloneAgent } from '@ta-agent/base-standalone-agent';
+
+const api = createStandaloneAgent(bootstrapConfig, {
+  readEnvironmentVariable: (name) => process.env[name],
+});
+
+await api.run({ message: 'hello' });
 ```
 
-The example is only the timeout shape; ordinary provider validation, credential binding, and the
-remaining required Standalone fields still apply. The CLI adds no timeout flags and consumes the
-same durable authority.
+The returned `ProviderAgentAPI` is a convenience facade and exposes its raw `agent`. Direct Memory
+and SQLite bootstrap share the same Standard runtime materialization core used by managed profiles.
 
-This package depends on `@ta-agent/base-composition` and official concrete adapters. It does not
-import or expose the internal Pi adapter.
+## Managed profiles
 
-All three TypeScript SQLite construction paths accept an optional host-level `tablePrefix` and
-per-domain `tableNames` overrides. The profile resolves Identity, Config, Session, Request Journal,
-and managed namespace names before opening storage and rejects cross-domain collisions. This is
-deployment wiring only: the closed standalone JSON config, managed creation manifest, `agent.json`,
-CLI schema, Agent, Workflow, and Steps never contain table names. Direct adapter users can configure
-the same options without this package.
-
-`createManagedStandaloneAgentRegistry()` provides the storage-neutral managed lifecycle. It accepts a
-typed resource namespace adapter, an explicit factory for the independently shaped Identity, Config,
-Session, and Request Journal ports, and an optional manifest projection. The lifecycle contains no
-filesystem or database path policy and does not use a universal resource adapter or registry.
-
-`createStandaloneAgentDirectory()` is the default managed reference profile at one explicit absolute
-root:
+The filesystem profile stores one Agent per directory:
 
 ```text
 <root>/<agent-id>/agent.json
 <root>/<agent-id>/agent.sqlite
 ```
 
-Each Agent has one directory and one SQLite database containing its Identity lifecycle, Config,
-Session, and Request Journal authority. Creation publishes through a hidden staging directory and
-atomic rename. `agent.json` is a secret-free portable projection; SQLite Config is revision
-authority, and inspect/open repairs a missing or stale projection. The directory API supports
-create, inspect/list, Config CAS updates, disable/reactivate, and opening the existing `AgentAPI`.
-Disabled Agents retain state but cannot open. Hard delete, Agent ID rename, implicit roots, and
-credential persistence are intentionally absent.
+`createStandaloneDirectoryDefinition()` returns a Session-capable
+`ManagedAgentCompositionDefinition`. Namespace creation uses a hidden staging directory and atomic
+rename. SQLite stores Identity and Config authority plus Session and Request Journal state.
+`agent.json` is a one-way, secret-free Config projection repaired by management inspection.
 
-`createSharedSqliteStandaloneAgentRegistry()` is the alternative managed profile for hosts that want
-multiple Agents in one explicitly configured SQLite database. Existing domain tables remain isolated
-by Agent ID. A versioned publication marker hides interrupted provisioning until an exact retry can
-complete it. This profile creates no Agent directories and has no manifest projection requirement.
+`createSharedSqliteStandaloneDefinition()` stores multiple Agents in one explicit SQLite database.
+Its pending/published namespace marker is the publication boundary. It installs no Config projection,
+so management snapshots report `{ kind: 'not-configured' }`.
 
-## Session management
-
-`createManagedStandaloneSessionService()` accepts an Agent namespace resolver and a narrow Session
-management port factory. Its methods do not construct a runtime Agent or read provider credentials.
-The official `createStandaloneDirectorySessionService()` and
-`createSharedSqliteStandaloneSessionService()` constructors select the corresponding SQLite
-namespace and table naming profile. They are separate entry points from the Agent registry; use the
-same root or database path and the same `sqlite` options when constructing both.
-The management constructors require the selected Session and Journal schemas to already exist:
-omitting a custom table prefix or table-name override fails instead of silently creating a new,
-empty table family. A database containing multiple complete table families cannot reveal which
-one the host intended, so the host must still supply the registry's exact naming options.
+Both profiles expose narrow convenience factories:
 
 ```ts
 import {
-  createStandaloneAgentDirectory,
+  createStandaloneDirectoryManagementService,
+  createStandaloneDirectoryRuntimeService,
   createStandaloneDirectorySessionService,
 } from '@ta-agent/base-standalone-agent';
 
 const rootDirectory = '/explicit/application/agents';
-const agents = createStandaloneAgentDirectory({
+const agents = createStandaloneDirectoryManagementService({ rootDirectory });
+const runtime = createStandaloneDirectoryRuntimeService({
   rootDirectory,
   readEnvironmentVariable: (name) => process.env[name],
 });
 const sessions = createStandaloneDirectorySessionService({ rootDirectory });
-const agent = await agents.create(manifest);
-const active = await sessions.list({ agentId: agent.identity.identity.id, limit: 20 });
+
+const created = await agents.create({ identity, config });
+const agent = await runtime.open(created.identity.identity.id);
+const active = await sessions.list({ agentId: created.identity.identity.id, limit: 20 });
 ```
 
-The service exposes active and retired lists, exact lifecycle inspection, bounded Turn pagination,
-metadata-CAS retire/restore, explicit coordinated Session + Request Journal purge, and explicit
-recovery by execution revision. `purge` requires the exact confirmation literal. Retired Sessions
-remain readable, including their Turn ledger. A disabled Agent's namespace remains manageable;
-disabling only prevents runtime opening. Missing Agent namespaces produce
-`STANDALONE_AGENT_NOT_FOUND`; missing Session reads follow the underlying query port's `undefined`
-semantics. Busy, conflict, stale-credential, and purge errors retain their Session domain codes.
+Equivalent `createSharedSqliteStandalone*Service()` factories select the shared database profile.
+Management, runtime, and Session services are separate owners. Every runtime `open()` returns a new,
+uncached raw Agent. Disabling an Agent blocks future opens but does not terminate an already opened
+instance.
 
-The generic service requires a `CoordinatedSessionMaintenance` port for purge and recovery, so a
-custom composition cannot claim Session + Journal cleanup by supplying only a Session adapter. It
-checks the exact Agent namespace before obtaining management ports and binds request identity before
-asynchronous resolution. Authorization for management actions belongs to the calling application.
-The service does not add methods to `Agent`, `AgentAPI`, Agent Operations, or the Agent registry.
+All SQLite construction paths accept a host-level `tablePrefix` plus per-domain `tableNames`
+overrides. Names are resolved and collision-checked before storage initialization. They do not enter
+Agent Config, Workflow, Steps, or `agent.json`.
+
+## Provider readiness
+
+`createStandaloneProviderService(config, options)` provides out-of-band inspection and credential
+readiness for an authoritative Standalone Config. It is separate from the raw Agent returned by the
+generic runtime service; provider diagnostics are application management concerns, not Agent
+methods.
+
+## Extension boundary
+
+Applications with custom namespaces or resources can combine generic composition contracts with
+`STANDALONE_AGENT_CONFIG_CODEC` and `materializeStandaloneAgentRuntime()`. The materializer accepts
+only `{ identity, config, ports }`; namespace handles must first be projected into typed runtime
+ports. Omit `ports` for the complete default Memory profile, or provide both Session and Request
+Journal ports as one profile; advanced mixed persistence belongs at the lower Composition boundary.
+This keeps storage policy outside Agent construction while preserving the exact raw Agent type.

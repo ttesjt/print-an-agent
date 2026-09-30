@@ -15,15 +15,15 @@ import type {
   StandaloneMainActorConfig,
   StandaloneProviderConfig,
   StandalonePersistenceConfig,
+  StandaloneAgentBootstrapConfig,
   StandaloneAgentConfig,
-  StandaloneAgentDefinition,
-  StandaloneAgentDefinitionInput,
+  StandaloneAgentConfigInput,
   StandaloneAgentManifest,
 } from './types.js';
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
 
-const CONFIG_KEYS = Object.freeze([
+const BOOTSTRAP_CONFIG_KEYS = Object.freeze([
   'schemaVersion',
   'identity',
   'provider',
@@ -33,7 +33,7 @@ const CONFIG_KEYS = Object.freeze([
   'request',
   'sessionCompaction',
 ]);
-const DEFINITION_KEYS = Object.freeze([
+const AGENT_CONFIG_KEYS = Object.freeze([
   'provider',
   'credential',
   'mainActor',
@@ -235,9 +235,9 @@ function parseCredential(
   });
 }
 
-function parseStandaloneConfig(input: unknown): StandaloneAgentConfig {
+function parseStandaloneBootstrapConfig(input: unknown): StandaloneAgentBootstrapConfig {
   const record = requireRecord(input, 'Standalone Agent Base configuration');
-  assertExactKeys(record, CONFIG_KEYS, 'Standalone Agent Base configuration');
+  assertExactKeys(record, BOOTSTRAP_CONFIG_KEYS, 'Standalone Agent Base configuration');
   if (record.schemaVersion !== 1) {
     throw new AgentBaseStandaloneError('Standalone configuration schemaVersion must equal 1.');
   }
@@ -264,35 +264,35 @@ function parseStandaloneConfig(input: unknown): StandaloneAgentConfig {
   });
 }
 
-function parseStandaloneAgentDefinition(input: unknown): StandaloneAgentDefinition {
-  const record = requireRecord(input, 'Standalone Agent definition');
-  assertExactKeys(record, DEFINITION_KEYS, 'Standalone Agent definition');
+function parseStandaloneAgentConfig(input: unknown): StandaloneAgentConfig {
+  const record = requireRecord(input, 'Standalone Agent Config');
+  assertExactKeys(record, AGENT_CONFIG_KEYS, 'Standalone Agent Config');
   const provider = parseProvider(
-    readOptionalDataField(record, 'provider', 'Standalone Agent definition provider')
+    readOptionalDataField(record, 'provider', 'Standalone Agent Config provider')
   );
   const credential = parseCredential(record.credential, provider.config.reference.credentialRef);
   const mainActor = parseMainActor(
-    readOptionalDataField(record, 'mainActor', 'Standalone Agent definition mainActor')
+    readOptionalDataField(record, 'mainActor', 'Standalone Agent Config mainActor')
   );
   return Object.freeze({
     provider,
     ...(credential === undefined ? {} : { credential }),
     mainActor,
     request: parseStandaloneRequestExecution(
-      readOptionalDataField(record, 'request', 'Standalone Agent definition request')
+      readOptionalDataField(record, 'request', 'Standalone Agent Config request')
     ),
     sessionCompaction: parseStandaloneSessionCompactionExecution(
       readOptionalDataField(
         record,
         'sessionCompaction',
-        'Standalone Agent definition sessionCompaction'
+        'Standalone Agent Config sessionCompaction'
       )
     ),
   });
 }
 
 function encodeProviderReference(
-  reference: StandaloneAgentDefinition['provider']['config']['reference']
+  reference: StandaloneAgentConfig['provider']['config']['reference']
 ): ConfigValue {
   return {
     provider: reference.provider,
@@ -302,9 +302,7 @@ function encodeProviderReference(
   };
 }
 
-function encodeProviderConfig(
-  config: StandaloneAgentDefinition['provider']['config']
-): ConfigValue {
+function encodeProviderConfig(config: StandaloneAgentConfig['provider']['config']): ConfigValue {
   const provider: ConfigValue =
     config.kind === 'builtin'
       ? {
@@ -324,7 +322,7 @@ function encodeProviderConfig(
   return provider;
 }
 
-function encodeStandaloneAgentDefinition(config: StandaloneAgentDefinition): ConfigValue {
+function encodeStandaloneAgentConfig(config: StandaloneAgentConfig): ConfigValue {
   const credential: ConfigValue | undefined =
     config.credential === undefined
       ? undefined
@@ -367,9 +365,11 @@ function encodeStandaloneAgentDefinition(config: StandaloneAgentDefinition): Con
   };
 }
 
-export function defineStandaloneAgentConfig(input: unknown): StandaloneAgentConfig {
+export function defineStandaloneAgentBootstrapConfig(
+  input: unknown
+): StandaloneAgentBootstrapConfig {
   try {
-    return parseStandaloneConfig(input);
+    return parseStandaloneBootstrapConfig(input);
   } catch (cause: unknown) {
     if (cause instanceof AgentBaseStandaloneError) throw cause;
     throw new AgentBaseStandaloneError('Standalone Agent Base configuration is invalid.', {
@@ -378,12 +378,12 @@ export function defineStandaloneAgentConfig(input: unknown): StandaloneAgentConf
   }
 }
 
-export function defineStandaloneAgentDefinition(input: unknown): StandaloneAgentDefinition {
+export function defineStandaloneAgentConfig(input: unknown): StandaloneAgentConfig {
   try {
-    return parseStandaloneAgentDefinition(input);
+    return parseStandaloneAgentConfig(input);
   } catch (cause: unknown) {
     if (cause instanceof AgentBaseStandaloneError) throw cause;
-    throw new AgentBaseStandaloneError('Standalone Agent definition is invalid.', { cause });
+    throw new AgentBaseStandaloneError('Standalone Agent Config is invalid.', { cause });
   }
 }
 
@@ -397,7 +397,7 @@ export function defineStandaloneAgentManifest(input: unknown): StandaloneAgentMa
     return Object.freeze({
       schemaVersion: 1,
       identity: parseIdentity(record.identity),
-      config: parseStandaloneAgentDefinition(
+      config: parseStandaloneAgentConfig(
         readOptionalDataField(record, 'config', 'Standalone Agent manifest config')
       ),
     });
@@ -414,14 +414,15 @@ export function encodeStandaloneAgentManifest(manifest: StandaloneAgentManifest)
       id: manifest.identity.id,
       displayName: manifest.identity.displayName,
     },
-    config: encodeStandaloneAgentDefinition(manifest.config),
+    config: encodeStandaloneAgentConfig(manifest.config),
   };
 }
 
-export const STANDALONE_AGENT_DEFINITION_CODEC: AgentConfigCodec<StandaloneAgentDefinition> =
-  Object.freeze({
+export const STANDALONE_AGENT_CONFIG_CODEC: AgentConfigCodec<StandaloneAgentConfig> = Object.freeze(
+  {
     schemaVersion: 1,
-    decode: (value: unknown) => defineStandaloneAgentDefinition(value),
-    encode: (config: StandaloneAgentDefinitionInput) =>
-      encodeStandaloneAgentDefinition(defineStandaloneAgentDefinition(config)),
-  });
+    decode: (value: unknown) => defineStandaloneAgentConfig(value),
+    encode: (config: StandaloneAgentConfigInput) =>
+      encodeStandaloneAgentConfig(defineStandaloneAgentConfig(config)),
+  }
+);

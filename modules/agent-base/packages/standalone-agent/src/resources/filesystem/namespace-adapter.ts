@@ -1,13 +1,14 @@
 import { lstatSync, mkdirSync } from 'node:fs';
 import { lstat, mkdir, readdir, rename, rm } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
+import {
+  ManagedAgentNamespaceError,
+  type ManagedAgentNamespace,
+  type ManagedAgentNamespacePort,
+  type StagedManagedAgentNamespace,
+} from '@ta-agent/base-composition';
 import { isAgentId, parseAgentId, type AgentId } from '@ta-agent/base-identity';
 import { AgentBaseStandaloneError } from '../../errors.js';
-import type {
-  AgentResourceNamespace,
-  AgentResourceNamespaceAdapter,
-  StagedAgentResourceNamespace,
-} from '../../managed-agent/contracts.js';
 import type { FilesystemAgentResourceNamespace } from './types.js';
 
 const DATABASE_FILE_NAME = 'agent.sqlite';
@@ -108,7 +109,7 @@ export function createFilesystemAgentResourceNamespaceAdapter(
     rootDirectory: string;
     createTemporaryId: () => string;
   }>
-): AgentResourceNamespaceAdapter<FilesystemAgentResourceNamespace> {
+): ManagedAgentNamespacePort<FilesystemAgentResourceNamespace> {
   const rootDirectory = normalizeRootDirectory(options.rootDirectory);
 
   return Object.freeze({
@@ -116,9 +117,10 @@ export function createFilesystemAgentResourceNamespaceAdapter(
       const agentId = parseAgentId(agentIdInput);
       const finalPaths = definePaths(rootDirectory, agentId);
       if (await pathExists(finalPaths.directoryPath)) {
-        throw new AgentBaseStandaloneError('Managed Standalone Agent already exists.', {
-          code: 'STANDALONE_AGENT_ALREADY_EXISTS',
-        });
+        throw new ManagedAgentNamespaceError(
+          'MANAGED_AGENT_NAMESPACE_ALREADY_EXISTS',
+          'Managed Agent namespace already exists.'
+        );
       }
       const temporaryId = options.createTemporaryId();
       if (!TEMPORARY_ID_PATTERN.test(temporaryId)) {
@@ -138,6 +140,7 @@ export function createFilesystemAgentResourceNamespaceAdapter(
       }
       return Object.freeze({
         agentId,
+        phase: 'staged' as const,
         resumed: false,
         handle: Object.freeze({
           directoryPath: stagingPath,
@@ -146,12 +149,13 @@ export function createFilesystemAgentResourceNamespaceAdapter(
         }),
       });
     },
-    publish: async (staged: StagedAgentResourceNamespace<FilesystemAgentResourceNamespace>) => {
+    publish: async (staged: StagedManagedAgentNamespace<FilesystemAgentResourceNamespace>) => {
       const finalPaths = definePaths(rootDirectory, staged.agentId);
       if (await pathExists(finalPaths.directoryPath)) {
-        throw new AgentBaseStandaloneError('Managed Standalone Agent already exists.', {
-          code: 'STANDALONE_AGENT_ALREADY_EXISTS',
-        });
+        throw new ManagedAgentNamespaceError(
+          'MANAGED_AGENT_NAMESPACE_ALREADY_EXISTS',
+          'Managed Agent namespace already exists.'
+        );
       }
       try {
         await rename(staged.handle.directoryPath, finalPaths.directoryPath);
@@ -161,16 +165,20 @@ export function createFilesystemAgentResourceNamespaceAdapter(
           cause,
         });
       }
-      return Object.freeze({ agentId: staged.agentId, handle: finalPaths });
+      return Object.freeze({
+        agentId: staged.agentId,
+        phase: 'published' as const,
+        handle: finalPaths,
+      });
     },
-    abort: async (staged: StagedAgentResourceNamespace<FilesystemAgentResourceNamespace>) => {
+    abort: async (staged: StagedManagedAgentNamespace<FilesystemAgentResourceNamespace>) => {
       await rm(staged.handle.directoryPath, { recursive: true, force: true });
     },
     resolve: async (agentIdInput: AgentId) => {
       const agentId = parseAgentId(agentIdInput);
       const paths = definePaths(rootDirectory, agentId);
       if (!(await requirePublishedNamespace(paths))) return undefined;
-      return Object.freeze({ agentId, handle: paths });
+      return Object.freeze({ agentId, phase: 'published' as const, handle: paths });
     },
     list: async () => {
       let entries;
@@ -182,7 +190,7 @@ export function createFilesystemAgentResourceNamespaceAdapter(
           cause,
         });
       }
-      const namespaces: AgentResourceNamespace<FilesystemAgentResourceNamespace>[] = [];
+      const namespaces: ManagedAgentNamespace<FilesystemAgentResourceNamespace>[] = [];
       for (const entry of entries) {
         if (!isAgentId(entry.name)) continue;
         if (!entry.isDirectory() || entry.isSymbolicLink()) {
@@ -191,7 +199,7 @@ export function createFilesystemAgentResourceNamespaceAdapter(
         const agentId = parseAgentId(entry.name);
         const paths = definePaths(rootDirectory, agentId);
         if (!(await requirePublishedNamespace(paths))) continue;
-        namespaces.push(Object.freeze({ agentId, handle: paths }));
+        namespaces.push(Object.freeze({ agentId, phase: 'published' as const, handle: paths }));
       }
       namespaces.sort((left, right) => left.agentId.localeCompare(right.agentId));
       return Object.freeze(namespaces);

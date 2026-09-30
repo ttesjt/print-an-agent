@@ -275,17 +275,18 @@ describe('standalone Agent Base CLI process', () => {
     ]).completion;
     expect(disabled.standardOutput).toContain('"status":"disabled"');
     const blocked = await runCli([
-      'provider',
-      'check',
+      'run',
       '--root',
       managed.rootDirectory,
       '--agent-id',
       'managed-agent',
+      '--message',
+      'blocked while disabled',
     ]).completion;
     expect(blocked).toMatchObject({
       exitCode: 1,
       standardOutput: '',
-      standardError: 'Agent Base command failed (STANDALONE_AGENT_DISABLED).\n',
+      standardError: 'Agent Base command failed (MANAGED_AGENT_DISABLED).\n',
     });
 
     const reactivated = await runCli([
@@ -301,6 +302,190 @@ describe('standalone Agent Base CLI process', () => {
     expect(reactivated.standardOutput).toContain('"status":"active"');
     const listed = await runCli(['agent', 'list', '--root', managed.rootDirectory]).completion;
     expect(listed.standardOutput).toContain('"agentId":"managed-agent"');
+  });
+
+  it('manages the complete out-of-band Session lifecycle without opening a disabled Agent', async () => {
+    const server = await startLoopbackServer();
+    const managed = await createManagedManifest(server);
+    await runCli([
+      'agent',
+      'create',
+      '--root',
+      managed.rootDirectory,
+      '--manifest',
+      managed.manifestPath,
+    ]).completion;
+    const run = await runCli([
+      'run',
+      '--root',
+      managed.rootDirectory,
+      '--agent-id',
+      'managed-agent',
+      '--message',
+      'create lifecycle history',
+    ]).completion;
+    const opened: unknown = JSON.parse(run.standardError.trim());
+    if (
+      typeof opened !== 'object' ||
+      opened === null ||
+      !('sessionId' in opened) ||
+      typeof opened.sessionId !== 'string'
+    ) {
+      throw new Error('Expected generated managed Session ID.');
+    }
+    const sessionId = opened.sessionId;
+    await runCli([
+      'agent',
+      'disable',
+      '--root',
+      managed.rootDirectory,
+      '--agent-id',
+      'managed-agent',
+      '--expected-revision',
+      '1',
+    ]).completion;
+    const lifecycleScope = [
+      '--root',
+      managed.rootDirectory,
+      '--agent-id',
+      'managed-agent',
+    ] as const;
+
+    const active = await runCli(['session', 'lifecycle', 'list', ...lifecycleScope, '--limit', '1'])
+      .completion;
+    expect(active).toMatchObject({ exitCode: 0, standardError: '' });
+    expect(JSON.parse(active.standardOutput) as unknown).toMatchObject({
+      records: [{ sessionId, status: 'active' }],
+    });
+
+    const inspected = await runCli([
+      'session',
+      'lifecycle',
+      'inspect',
+      ...lifecycleScope,
+      '--session-id',
+      sessionId,
+    ]).completion;
+    const inspection: unknown = JSON.parse(inspected.standardOutput);
+    if (
+      typeof inspection !== 'object' ||
+      inspection === null ||
+      !('metadataRevision' in inspection) ||
+      typeof inspection.metadataRevision !== 'number' ||
+      !('execution' in inspection) ||
+      typeof inspection.execution !== 'object' ||
+      inspection.execution === null ||
+      !('revision' in inspection.execution) ||
+      typeof inspection.execution.revision !== 'number'
+    ) {
+      throw new Error('Expected lifecycle inspection revisions.');
+    }
+    expect(inspection.metadataRevision).toBe(0);
+
+    const turns = await runCli([
+      'session',
+      'lifecycle',
+      'turns',
+      ...lifecycleScope,
+      '--session-id',
+      sessionId,
+      '--limit',
+      '1',
+    ]).completion;
+    expect(JSON.parse(turns.standardOutput) as unknown).toMatchObject({
+      records: [{ status: 'completed', userMessage: { text: 'create lifecycle history' } }],
+    });
+
+    const recovered = await runCli([
+      'session',
+      'lifecycle',
+      'recover',
+      ...lifecycleScope,
+      '--session-id',
+      sessionId,
+      '--expected-execution-revision',
+      String(inspection.execution.revision),
+    ]).completion;
+    expect(JSON.parse(recovered.standardOutput) as unknown).toMatchObject({
+      state: 'ready',
+      activeLeaseCount: 0,
+      pendingWorkCount: 0,
+    });
+
+    const retired = await runCli([
+      'session',
+      'lifecycle',
+      'retire',
+      ...lifecycleScope,
+      '--session-id',
+      sessionId,
+      '--expected-revision',
+      String(inspection.metadataRevision),
+    ]).completion;
+    expect(JSON.parse(retired.standardOutput) as unknown).toMatchObject({
+      sessionId,
+      status: 'retired',
+      metadataRevision: 1,
+    });
+
+    const retiredList = await runCli(['session', 'lifecycle', 'list-retired', ...lifecycleScope])
+      .completion;
+    expect(JSON.parse(retiredList.standardOutput) as unknown).toMatchObject({
+      records: [{ sessionId, status: 'retired' }],
+    });
+
+    const restored = await runCli([
+      'session',
+      'lifecycle',
+      'restore',
+      ...lifecycleScope,
+      '--session-id',
+      sessionId,
+      '--expected-revision',
+      '1',
+    ]).completion;
+    expect(JSON.parse(restored.standardOutput) as unknown).toMatchObject({
+      sessionId,
+      status: 'active',
+      metadataRevision: 2,
+    });
+    await runCli([
+      'session',
+      'lifecycle',
+      'retire',
+      ...lifecycleScope,
+      '--session-id',
+      sessionId,
+      '--expected-revision',
+      '2',
+    ]).completion;
+
+    const purged = await runCli([
+      'session',
+      'lifecycle',
+      'purge',
+      ...lifecycleScope,
+      '--session-id',
+      sessionId,
+      '--expected-revision',
+      '3',
+      '--confirm-permanent-delete',
+    ]).completion;
+    expect(JSON.parse(purged.standardOutput) as unknown).toEqual({
+      status: 'purged',
+      agentId: 'managed-agent',
+      sessionId,
+    });
+    const missing = await runCli([
+      'session',
+      'lifecycle',
+      'inspect',
+      ...lifecycleScope,
+      '--session-id',
+      sessionId,
+    ]).completion;
+    expect(missing.standardOutput).toBe('null\n');
+    expect(server.requests()).toHaveLength(1);
   });
 
   it('streams through Pi and preserves Session history and replay across processes', async () => {

@@ -105,6 +105,9 @@ importers:
       '@ta-agent/base-actor':
         specifier: workspace:*
         version: link:../actor
+      '@ta-agent/base-config':
+        specifier: workspace:*
+        version: link:../config
       '@ta-agent/base-identity':
         specifier: workspace:*
         version: link:../identity

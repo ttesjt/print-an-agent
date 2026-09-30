@@ -7,10 +7,16 @@ import { supportsSessionExecution } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
   AgentBaseStandaloneError,
-  createSharedSqliteStandaloneAgentRegistry,
-  type StandaloneAgentDefinitionInput,
+  createSharedSqliteStandaloneDefinition,
+  type CreateSharedSqliteStandaloneProfileOptions,
+  type StandaloneAgentConfigInput,
   type StandaloneAgentManifestInput,
 } from '../../src/index.js';
+import { createManagedProfileHarness } from '../support/managed-profile-harness.js';
+
+function createSharedSqliteProfileHarness(options: CreateSharedSqliteStandaloneProfileOptions) {
+  return createManagedProfileHarness(createSharedSqliteStandaloneDefinition(options));
+}
 
 const CUSTOM_SQLITE_TABLES = Object.freeze({
   tablePrefix: 'unused_',
@@ -40,7 +46,7 @@ function expectStandaloneConfigInvalid(action: () => unknown): void {
   }
 }
 
-function definition(instructions: string): StandaloneAgentDefinitionInput {
+function definition(instructions: string): StandaloneAgentConfigInput {
   return {
     provider: {
       config: {
@@ -83,11 +89,11 @@ async function withSharedDatabase(
   }
 }
 
-describe('shared SQLite managed Agent registry', () => {
+describe('shared SQLite Standalone profile', () => {
   it('rejects cross-domain table collisions before creating the database', async () => {
     await withSharedDatabase(async (databasePath, directory) => {
       expectStandaloneConfigInvalid(() =>
-        createSharedSqliteStandaloneAgentRegistry({
+        createSharedSqliteProfileHarness({
           databasePath,
           readEnvironmentVariable: () => undefined,
           sqlite: {
@@ -109,33 +115,33 @@ describe('shared SQLite managed Agent registry', () => {
       productDatabase.prepare('INSERT INTO product_artifacts (artifact_id) VALUES (?)').run('a1');
       productDatabase.close();
 
-      const registry = createSharedSqliteStandaloneAgentRegistry({
+      const profile = createSharedSqliteProfileHarness({
         databasePath,
         readEnvironmentVariable: () => undefined,
         sqlite: CUSTOM_SQLITE_TABLES,
       });
-      const bro = await registry.create(manifest('bro', 'Bro'));
-      await registry.create(manifest('mochi', 'Mochi', 'Be precise.'));
-      await registry.updateConfig({
+      const bro = await profile.create(manifest('bro', 'Bro'));
+      await profile.create(manifest('mochi', 'Mochi', 'Be precise.'));
+      await profile.updateConfig({
         agentId: 'bro',
         config: definition('Keep it short.'),
-        expectedRevision: bro.configRevision,
+        expectedRevision: bro.config.revision,
       });
 
-      const broAgent = await registry.open('bro');
-      const mochiAgent = await registry.open('mochi');
-      const broSession = await broAgent.agent.resources.session.resolve({
-        agentId: broAgent.agent.identity.id,
+      const broAgent = await profile.open('bro');
+      const mochiAgent = await profile.open('mochi');
+      const broSession = await broAgent.resources.session.resolve({
+        agentId: broAgent.identity.id,
       });
-      const mochiSession = await mochiAgent.agent.resources.session.resolve({
-        agentId: mochiAgent.agent.identity.id,
+      const mochiSession = await mochiAgent.resources.session.resolve({
+        agentId: mochiAgent.identity.id,
       });
       const journalReference = {
         sessionId: broSession.sessionId,
         idempotencyKey: parseRequestIdempotencyKey('same-request'),
       };
-      const broPort = broAgent.agent.resources.session;
-      const mochiPort = mochiAgent.agent.resources.session;
+      const broPort = broAgent.resources.session;
+      const mochiPort = mochiAgent.resources.session;
       if (!supportsSessionExecution(broPort) || !supportsSessionExecution(mochiPort)) {
         throw new Error('Managed SQLite profile must expose execution fencing.');
       }
@@ -147,15 +153,15 @@ describe('shared SQLite managed Agent registry', () => {
         agentId: mochiSession.agentId,
         sessionId: mochiSession.sessionId,
       });
-      await broAgent.agent.resources.requestJournal.claim({
+      await broAgent.resources.requestJournal.claim({
         execution: broExecution,
-        agentId: broAgent.agent.identity.id,
+        agentId: broAgent.identity.id,
         ...journalReference,
         fingerprint: createRequestFingerprint({ message: 'hello' }),
         requestId: 'request-bro',
       });
 
-      const reopened = createSharedSqliteStandaloneAgentRegistry({
+      const reopened = createSharedSqliteProfileHarness({
         databasePath,
         readEnvironmentVariable: () => undefined,
         sqlite: CUSTOM_SQLITE_TABLES,
@@ -165,42 +171,41 @@ describe('shared SQLite managed Agent registry', () => {
         'mochi',
       ]);
       await expect(reopened.inspect('bro')).resolves.toMatchObject({
-        configRevision: 2,
-        config: { mainActor: { instructions: 'Keep it short.' } },
-        manifestProjection: 'current',
+        config: { revision: 2, value: { mainActor: { instructions: 'Keep it short.' } } },
+        projection: { kind: 'not-configured' },
       });
       await expect(reopened.inspect('mochi')).resolves.toMatchObject({
-        configRevision: 1,
-        config: { mainActor: { instructions: 'Be precise.' } },
+        config: { revision: 1, value: { mainActor: { instructions: 'Be precise.' } } },
+        projection: { kind: 'not-configured' },
       });
 
       const reopenedBro = await reopened.open('bro');
       const reopenedMochi = await reopened.open('mochi');
       await expect(
-        reopenedBro.agent.resources.session.inspect({
-          agentId: reopenedBro.agent.identity.id,
+        reopenedBro.resources.session.inspect({
+          agentId: reopenedBro.identity.id,
           sessionId: broSession.sessionId,
         })
       ).resolves.toMatchObject({ agentId: 'bro', sessionId: broSession.sessionId });
       await expect(
-        reopenedMochi.agent.resources.session.inspect({
-          agentId: reopenedMochi.agent.identity.id,
+        reopenedMochi.resources.session.inspect({
+          agentId: reopenedMochi.identity.id,
           sessionId: mochiSession.sessionId,
         })
       ).resolves.toMatchObject({ agentId: 'mochi', sessionId: mochiSession.sessionId });
       await expect(
-        reopenedBro.agent.resources.requestJournal.claim({
+        reopenedBro.resources.requestJournal.claim({
           execution: broExecution,
-          agentId: reopenedBro.agent.identity.id,
+          agentId: reopenedBro.identity.id,
           ...journalReference,
           fingerprint: createRequestFingerprint({ message: 'hello' }),
           requestId: 'request-bro-retry',
         })
       ).resolves.toMatchObject({ status: 'existing' });
       await expect(
-        reopenedMochi.agent.resources.requestJournal.claim({
+        reopenedMochi.resources.requestJournal.claim({
           execution: mochiExecution,
-          agentId: reopenedMochi.agent.identity.id,
+          agentId: reopenedMochi.identity.id,
           ...journalReference,
           sessionId: mochiSession.sessionId,
           fingerprint: createRequestFingerprint({ message: 'hello' }),
@@ -243,7 +248,7 @@ describe('shared SQLite managed Agent registry', () => {
 
   it('keeps interrupted provisioning unpublished and only resumes exact authority', async () => {
     await withSharedDatabase(async (databasePath) => {
-      const registry = createSharedSqliteStandaloneAgentRegistry({
+      const profile = createSharedSqliteProfileHarness({
         databasePath,
         readEnvironmentVariable: () => undefined,
       });
@@ -270,27 +275,27 @@ describe('shared SQLite managed Agent registry', () => {
       `);
       initialize.close();
 
-      await expect(registry.create(manifest('bro', 'Bro'))).rejects.toBeDefined();
-      await expect(registry.list()).resolves.toEqual([]);
+      await expect(profile.create(manifest('bro', 'Bro'))).rejects.toBeDefined();
+      await expect(profile.list()).resolves.toEqual([]);
 
       const repair = new DatabaseSync(databasePath);
       repair.exec('DROP TRIGGER reject_initial_config;');
       repair.close();
 
-      await expect(registry.create(manifest('bro', 'Different'))).rejects.toMatchObject({
-        code: 'STANDALONE_AGENT_STORAGE_INVALID',
+      await expect(profile.create(manifest('bro', 'Different'))).rejects.toMatchObject({
+        code: 'MANAGED_AGENT_PROVISIONING_CONFLICT',
       });
-      await expect(registry.list()).resolves.toEqual([]);
-      await expect(registry.create(manifest('bro', 'Bro'))).resolves.toMatchObject({
+      await expect(profile.list()).resolves.toEqual([]);
+      await expect(profile.create(manifest('bro', 'Bro'))).resolves.toMatchObject({
         identity: { identity: { id: 'bro', displayName: 'Bro' } },
-        configRevision: 1,
+        config: { revision: 1 },
       });
     });
   });
 
   it('rejects a future namespace storage schema', async () => {
     await withSharedDatabase((databasePath) => {
-      createSharedSqliteStandaloneAgentRegistry({
+      createSharedSqliteProfileHarness({
         databasePath,
         readEnvironmentVariable: () => undefined,
       });
@@ -301,13 +306,13 @@ describe('shared SQLite managed Agent registry', () => {
       database.close();
 
       expect(() =>
-        createSharedSqliteStandaloneAgentRegistry({
+        createSharedSqliteProfileHarness({
           databasePath,
           readEnvironmentVariable: () => undefined,
         })
       ).toThrowError(AgentBaseStandaloneError);
       try {
-        createSharedSqliteStandaloneAgentRegistry({
+        createSharedSqliteProfileHarness({
           databasePath,
           readEnvironmentVariable: () => undefined,
         });

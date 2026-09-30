@@ -1,12 +1,13 @@
 import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type {
+  AgentConfigProjectionPort,
+  AgentConfigProjectionView,
+  ManagedAgentNamespace,
+} from '@ta-agent/base-composition';
 import { encodeStandaloneAgentManifest } from '../../config.js';
 import { AgentBaseStandaloneError } from '../../errors.js';
-import type {
-  AgentResourceNamespace,
-  StandaloneManifestProjectionPort,
-} from '../../managed-agent/contracts.js';
-import type { StandaloneAgentManifest } from '../../types.js';
+import type { StandaloneAgentConfig, StandaloneAgentManifest } from '../../types.js';
 import type { FilesystemAgentResourceNamespace } from './types.js';
 
 const MANIFEST_FILE_NAME = 'agent.json';
@@ -38,7 +39,7 @@ async function requireRegularManifest(path: string): Promise<void> {
 }
 
 async function manifestIsCurrent(
-  namespace: AgentResourceNamespace<FilesystemAgentResourceNamespace>,
+  namespace: ManagedAgentNamespace<FilesystemAgentResourceNamespace>,
   manifest: StandaloneAgentManifest
 ): Promise<boolean> {
   try {
@@ -61,11 +62,16 @@ export function createFilesystemStandaloneManifestProjection(
   options: Readonly<{
     createTemporaryId: () => string;
   }>
-): StandaloneManifestProjectionPort<FilesystemAgentResourceNamespace> {
+): AgentConfigProjectionPort<FilesystemAgentResourceNamespace, StandaloneAgentConfig> {
   const publish = async (
-    namespace: AgentResourceNamespace<FilesystemAgentResourceNamespace>,
-    manifest: StandaloneAgentManifest
+    namespace: ManagedAgentNamespace<FilesystemAgentResourceNamespace>,
+    view: AgentConfigProjectionView<StandaloneAgentConfig>
   ): Promise<void> => {
+    const manifest: StandaloneAgentManifest = Object.freeze({
+      schemaVersion: 1,
+      identity: view.identity,
+      config: view.config,
+    });
     const temporaryId = options.createTemporaryId();
     if (!TEMPORARY_ID_PATTERN.test(temporaryId)) {
       throw storageError('Standalone temporary ID generator returned an invalid value.');
@@ -104,13 +110,20 @@ export function createFilesystemStandaloneManifestProjection(
   return Object.freeze({
     publish,
     reconcile: async (
-      namespace: AgentResourceNamespace<FilesystemAgentResourceNamespace>,
-      manifest: StandaloneAgentManifest
+      namespace: ManagedAgentNamespace<FilesystemAgentResourceNamespace>,
+      view: AgentConfigProjectionView<StandaloneAgentConfig>
     ) => {
-      if (await manifestIsCurrent(namespace, manifest)) return 'current';
+      const manifest: StandaloneAgentManifest = Object.freeze({
+        schemaVersion: 1,
+        identity: view.identity,
+        config: view.config,
+      });
+      if (await manifestIsCurrent(namespace, manifest)) {
+        return Object.freeze({ kind: 'current' as const });
+      }
       try {
-        await publish(namespace, manifest);
-        return 'current';
+        await publish(namespace, view);
+        return Object.freeze({ kind: 'current' as const });
       } catch (cause: unknown) {
         if (
           cause instanceof AgentBaseStandaloneError &&
@@ -118,7 +131,7 @@ export function createFilesystemStandaloneManifestProjection(
         ) {
           throw cause;
         }
-        return 'stale';
+        return Object.freeze({ kind: 'stale' as const });
       }
     },
   });

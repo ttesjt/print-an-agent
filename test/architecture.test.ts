@@ -1,6 +1,16 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { dirname, extname, join, normalize, resolve } from 'node:path';
+import {
+  dirname,
+  extname,
+  isAbsolute,
+  join,
+  normalize,
+  relative,
+  resolve,
+  sep as pathSeparator,
+} from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -121,19 +131,61 @@ function typeScriptFiles(directory: string): readonly string[] {
   if (!existsSync(directory)) return [];
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const entryPath = join(directory, entry.name);
-    if (entry.isDirectory()) return typeScriptFiles(entryPath);
+    if (entry.isDirectory()) {
+      return isIgnoredTraversalDirectory(entry.name) ? [] : typeScriptFiles(entryPath);
+    }
     return entry.isFile() && /\.[cm]?tsx?$/.test(entry.name) ? [entryPath] : [];
   });
 }
 
 function moduleSpecifiers(source: string): readonly string[] {
   const specifiers: string[] = [];
-  const pattern = /\b(?:from|import)\s*(?:\([^)]*?\)|[^'"\n]*?from\s*)?['"]([^'"]+)['"]/g;
-  for (const match of source.matchAll(pattern)) {
-    const specifier = match[1];
-    if (specifier !== undefined) specifiers.push(specifier);
-  }
-  return specifiers;
+  const sourceFile = ts.createSourceFile(
+    'architecture-input.ts',
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  );
+
+  const recordStringLiteral = (value: ts.Node | undefined): void => {
+    if (value !== undefined && ts.isStringLiteralLike(value)) {
+      specifiers.push(value.text);
+    }
+  };
+  const visit = (node: ts.Node): void => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+      recordStringLiteral(node.moduleSpecifier);
+    } else if (
+      ts.isImportEqualsDeclaration(node) &&
+      ts.isExternalModuleReference(node.moduleReference)
+    ) {
+      recordStringLiteral(node.moduleReference.expression);
+    } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+      recordStringLiteral(node.arguments[0]);
+    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument)) {
+      recordStringLiteral(node.argument.literal);
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return Object.freeze(specifiers);
+}
+
+function resolveSourceModuleTarget(importer: string, specifier: string): string | undefined {
+  if (!specifier.startsWith('.')) return undefined;
+  return normalize(resolve(dirname(importer), specifier).replace(/\.(?:c|m)?js$/u, ''));
+}
+
+function isPathWithin(candidate: string, directory: string): boolean {
+  const relativePath = relative(directory, candidate);
+  return (
+    relativePath === '' ||
+    (relativePath !== '..' &&
+      !relativePath.startsWith(`..${pathSeparator}`) &&
+      !isAbsolute(relativePath))
+  );
 }
 
 function resolveDeclarationImport(importer: string, specifier: string): string | undefined {
@@ -307,6 +359,40 @@ describe('module architecture', () => {
     }
   });
 
+  it('keeps Agent Base CLI host loading private to the executable application', () => {
+    const cliSource = join(repositoryRoot, 'modules', 'agent-base', 'apps', 'cli', 'src');
+    const publicEntryPoint = readFileSync(join(cliSource, 'index.ts'), 'utf8');
+    const executableEntryPoint = readFileSync(join(cliSource, 'main.ts'), 'utf8');
+
+    expect(moduleSpecifiers(publicEntryPoint)).not.toContain('./host-loaders.js');
+    for (const privateHostLoader of [
+      'loadAgentBaseCliManagedDirectory',
+      'loadAgentBaseCliProvider',
+      'loadAgentBaseCliRuntime',
+      'loadAgentBaseCliSessionManager',
+      'readAgentBaseCliJsonDocument',
+    ]) {
+      expect(publicEntryPoint).not.toContain(privateHostLoader);
+      expect(executableEntryPoint).toContain(privateHostLoader);
+    }
+    expect(moduleSpecifiers(executableEntryPoint)).toContain('./host-loaders.js');
+  });
+
+  it('keeps cross-package Agent Base consumers on package-root public APIs', () => {
+    const modulesRoot = join(repositoryRoot, 'modules');
+    const deepImports: string[] = [];
+
+    for (const sourceFile of typeScriptFiles(modulesRoot)) {
+      for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
+        if (/^@ta-agent\/base-[^/]+\//u.test(specifier)) {
+          deepImports.push(`${normalize(relative(repositoryRoot, sourceFile))}: ${specifier}`);
+        }
+      }
+    }
+
+    expect(deepImports).toEqual([]);
+  });
+
   it('keeps the standalone Agent independent of the Pi adapter', () => {
     const standaloneRoot = join(
       repositoryRoot,
@@ -326,6 +412,147 @@ describe('module architecture', () => {
     );
   });
 
+  it('keeps Standalone as a profile consumer instead of a duplicate lifecycle owner', () => {
+    const standaloneSource = join(
+      repositoryRoot,
+      'modules',
+      'agent-base',
+      'packages',
+      'standalone-agent',
+      'src'
+    );
+    for (const removedFeature of ['managed-agent', 'managed-directory', 'managed-session']) {
+      expect(typeScriptFiles(join(standaloneSource, removedFeature))).toEqual([]);
+    }
+
+    const sourceText = typeScriptFiles(standaloneSource)
+      .map((sourceFile) => readFileSync(sourceFile, 'utf8'))
+      .join('\n');
+    for (const removedOwner of [
+      'ManagedStandaloneAgentRegistry',
+      'createManagedStandaloneAgentRegistry',
+      'createManagedStandaloneSessionService',
+      'createStandaloneAgentDirectory',
+      'createSharedSqliteStandaloneAgentRegistry',
+    ]) {
+      expect(sourceText).not.toContain(removedOwner);
+    }
+    for (const genericConsumer of [
+      'defineManagedAgentComposition',
+      'createAgentManagementService',
+      'createAgentRuntimeService',
+      'createSessionManagementService',
+    ]) {
+      expect(sourceText).toContain(genericConsumer);
+    }
+  });
+
+  it('extracts static, exported, dynamic, and type-only module references', () => {
+    const source = `
+      import value from './static.js';
+      import type { Contract } from './contract.js';
+      export * from './exported.js';
+      await import('./dynamic.js');
+      type InlineContract = import('./inline-contract.js').InlineContract;
+    `;
+
+    expect(moduleSpecifiers(source)).toEqual([
+      './static.js',
+      './contract.js',
+      './exported.js',
+      './dynamic.js',
+      './inline-contract.js',
+    ]);
+  });
+
+  it('keeps composition runtime and management as isolated peer features', () => {
+    const compositionSource = join(
+      repositoryRoot,
+      'modules',
+      'agent-base',
+      'packages',
+      'composition',
+      'src'
+    );
+    const rootEntries = readdirSync(compositionSource, { withFileTypes: true });
+    expect(
+      rootEntries
+        .filter((entry) => entry.isFile())
+        .map((entry) => entry.name)
+        .sort()
+    ).toEqual(['index.ts']);
+    const rootDirectories = rootEntries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+    expect(rootDirectories).toContain('runtime');
+    expect(
+      rootDirectories.every(
+        (directoryName) => directoryName === 'runtime' || directoryName === 'management'
+      )
+    ).toBe(true);
+
+    const rootSpecifiers = moduleSpecifiers(
+      readFileSync(join(compositionSource, 'index.ts'), 'utf8')
+    );
+    expect(rootSpecifiers).toContain('./runtime/index.js');
+    expect(
+      rootSpecifiers.every(
+        (specifier) => specifier === './runtime/index.js' || specifier === './management/index.js'
+      )
+    ).toBe(true);
+
+    const assertFeatureIsolation = (
+      featureName: 'runtime' | 'management',
+      forbiddenPeer: 'runtime' | 'management'
+    ) => {
+      const featureRoot = join(compositionSource, featureName);
+      if (!existsSync(featureRoot)) return;
+      const forbiddenPeerRoot = join(compositionSource, forbiddenPeer);
+      const packageRootIndex = join(compositionSource, 'index');
+
+      for (const sourceFile of typeScriptFiles(featureRoot)) {
+        for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
+          const relativeTarget = resolveSourceModuleTarget(sourceFile, specifier);
+          expect(
+            specifier === '@ta-agent/base-composition' ||
+              specifier.startsWith('@ta-agent/base-composition/') ||
+              relativeTarget === compositionSource ||
+              relativeTarget === packageRootIndex ||
+              (relativeTarget !== undefined && isPathWithin(relativeTarget, forbiddenPeerRoot)),
+            `${normalize(sourceFile)} must not import the composition root or ${forbiddenPeer}/`
+          ).toBe(false);
+        }
+      }
+    };
+
+    assertFeatureIsolation('runtime', 'management');
+    assertFeatureIsolation('management', 'runtime');
+
+    const managementRoot = join(compositionSource, 'management');
+    if (existsSync(managementRoot)) {
+      const forbiddenManagementImports = [
+        '@ta-agent/base-local-adapters',
+        '@ta-agent/base-pi',
+        '@ta-agent/base-standalone-agent',
+        'node:fs',
+        'node:path',
+        'node:sqlite',
+      ];
+      for (const sourceFile of typeScriptFiles(managementRoot)) {
+        for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
+          expect(
+            forbiddenManagementImports.some(
+              (forbiddenImport) =>
+                specifier === forbiddenImport || specifier.startsWith(`${forbiddenImport}/`)
+            ),
+            `${normalize(sourceFile)} must keep generic management storage- and runtime-neutral`
+          ).toBe(false);
+        }
+      }
+    }
+  });
+
   it('keeps composition public contracts free of Pi names and types', () => {
     const compositionSource = join(
       repositoryRoot,
@@ -336,12 +563,14 @@ describe('module architecture', () => {
       'src'
     );
     for (const publicContractFile of [
-      'index.ts',
-      'types.ts',
-      'provider-contracts.ts',
-      'deterministic-provider-contracts.ts',
+      join(compositionSource, 'index.ts'),
+      join(compositionSource, 'runtime', 'index.ts'),
+      join(compositionSource, 'runtime', 'types.ts'),
+      join(compositionSource, 'runtime', 'provider-contracts.ts'),
+      join(compositionSource, 'runtime', 'deterministic-provider-contracts.ts'),
+      ...typeScriptFiles(join(compositionSource, 'management')),
     ]) {
-      const source = readFileSync(join(compositionSource, publicContractFile), 'utf8');
+      const source = readFileSync(publicContractFile, 'utf8');
       expect(source).not.toContain('@ta-agent/base-pi');
       expect(source).not.toMatch(/\bPi[A-Z]/);
     }

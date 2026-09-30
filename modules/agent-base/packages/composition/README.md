@@ -1,6 +1,74 @@
 # `@ta-agent/base-composition`
 
-The official Agent Base runtime composition root.
+Agent Base application composition contracts and the official Standard runtime assembly.
+
+Production source is organized by feature boundary. The existing Standard single-Agent composition
+lives under `src/runtime/`; the package-root `src/index.ts` is only the stable public re-export
+boundary. Consumers continue to import `@ta-agent/base-composition` and must not deep-import feature
+internals. Runtime implementation remains self-contained: it does not import through the package
+root or depend on another composition feature's implementation.
+
+The package also exposes a storage-neutral application management composition contract through
+`defineManagedAgentComposition()`. Its immutable `ManagedAgentCompositionDefinition` groups Config
+codec, namespace allocation, Identity/Config authority, runtime-port creation, and raw-Agent
+materialization by responsibility. Definition creation is synchronous and zero-I/O: it validates
+and shallow-freezes framework-owned wiring records without invoking or recursively freezing
+caller-owned codecs, Ports, factories, or materializers.
+
+Generic runtime materialization receives only `{ identity, config, ports }` and must return the
+actual typed `Agent`. Its exact concrete Agent type is preserved, including product-owned typed
+members in addition to resources and the Operation Catalog; facade-shaped substitutes are rejected.
+Namespace handles never enter the materializer; the application-owned runtime Port factory is the
+explicit projection boundary for paths, database tenants, remote handles, and other product
+resources. This preserves custom Agent types without making generic management depend on the
+Standard runtime feature.
+
+An optional medium-independent Config Projection Port represents one-way publish/reconcile behavior
+and distinguishes `not-configured`, `current`, and `stale` states. Its `publish()` boundary receives
+an explicitly published namespace, as does `reconcile()`. Projection is therefore always a
+recoverable secondary view of an Agent that has already crossed its authoritative publication
+boundary. Optional out-of-band Session management is represented by the typed
+`SessionManagementCapability`; core Definitions do not assume that an Agent uses the standard
+Session domain. A Generic Agent may have no Session, use Session only inside its runtime, or expose a
+product-owned conversation model. Only Definitions that install the standard
+`SessionManagementPorts` contract can create `SessionManagementService`.
+
+`createSessionManagementService()` exposes active/retired listing, inspection, Turn pagination,
+retire/restore, and coordinated purge/recovery without creating an Agent runtime or reading Identity
+status, Agent Config, Projection, or provider credentials. Its port factory is scoped to one
+published namespace, may be synchronous or asynchronous, and runs independently for each method.
+Purge and recovery require the explicit Session + Request Journal maintenance Port and cannot
+silently degrade to Session-only success. A disabled Agent's published Session resources remain
+manageable. Definitions without this optional capability are rejected by TypeScript rather than by
+a runtime `undefined` branch.
+
+`createAgentManagementService()` consumes one Definition and exposes the storage-neutral static
+Agent lifecycle: create, inspect, deterministic list, typed Config update, unknown Config import,
+disable, and reactivate. Creation follows staged namespace allocation, authoritative Identity/Config
+initialization, atomic namespace publication, and optional Projection publication. A failure before
+namespace publication aborts the staged namespace. A Projection failure after publication returns a
+stable coordination error without rolling back the Agent; inspection and reconciliation provide the
+recovery path. Likewise, an authoritative Config or Identity update is never rolled back because the
+non-authoritative Projection later fails.
+
+Management methods use branded `AgentId` values after creation and return immutable snapshots with
+separate Identity, Config revision, and `not-configured | current | stale` Projection state. Config
+mutation uses revision CAS, while `importConfig()` is the explicit `unknown` codec-ingestion boundary.
+Namespace adapters report an atomic duplicate reservation through the stable
+`MANAGED_AGENT_NAMESPACE_ALREADY_EXISTS` contract; the Service exposes it as
+`MANAGED_AGENT_ALREADY_EXISTS` without relying on a racy resolve-before-stage precheck.
+The Service never creates runtime ports or materializes an Agent. Raw adapter failures are converted
+to safe management errors; stable Identity, Config validation, and CAS error identities remain
+recognizable without exposing their underlying causes.
+
+`createAgentRuntimeService()` is the separate generic boundary that opens a published managed Agent.
+Each `open(agentId)` resolves current Identity and Config authority, rejects disabled Agents, creates
+only that Agent's runtime ports, and returns the exact raw `Agent` produced by the injected
+materializer. Runtime port factories may be synchronous or asynchronous. The Service does not
+reconcile Projection, assume Standard Operation names, create an API facade, cache Agent instances,
+or hot-update Agents that a caller already owns. Every successful `open()` is an independent
+materialization; callers such as servers may retain and reuse the returned Agent under their own
+lifecycle policy.
 
 `composeAgent()` accepts Agent Base-owned Actor and Responsibility catalogs plus replaceable Session,
 Request Journal, Tool, OutputSink, Workflow/Step, and observability ports. It constructs and returns

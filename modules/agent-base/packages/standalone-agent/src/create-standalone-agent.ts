@@ -1,14 +1,9 @@
-import { createProviderAgentAPI } from '@ta-agent/base-composition';
 import { createSqliteSessionPersistence } from '@ta-agent/base-local-adapters';
-import { defineStandaloneAgentConfig } from './config.js';
-import { createStandaloneCredentialResolver } from './credential-resolver.js';
+import { defineStandaloneAgentBootstrapConfig } from './config.js';
 import { AgentBaseStandaloneError } from './errors.js';
 import { resolveStandaloneRuntimeSqliteTableNames } from './resources/sqlite-table-naming.js';
-import {
-  assertStandaloneRuntimeTimeoutAuthority,
-  resolveStandaloneRequestPolicy,
-  resolveStandaloneSessionCompactionPolicy,
-} from './runtime-policies.js';
+import { assertStandaloneRuntimeTimeoutAuthority } from './runtime-policies.js';
+import { materializeStandaloneAgentRuntime } from './runtime/materialize-standalone-agent.js';
 import type { CreateStandaloneAgentOptions, StandaloneAgent } from './types.js';
 
 export function createStandaloneAgent(
@@ -16,13 +11,13 @@ export function createStandaloneAgent(
   runtimeOptions: CreateStandaloneAgentOptions
 ): StandaloneAgent {
   assertStandaloneRuntimeTimeoutAuthority(runtimeOptions);
-  const config = defineStandaloneAgentConfig(input);
+  const config = defineStandaloneAgentBootstrapConfig(input);
   if (config.persistence.kind === 'memory' && runtimeOptions.sqlite !== undefined) {
     throw new AgentBaseStandaloneError(
       'Standalone SQLite table naming cannot be configured for Memory persistence.'
     );
   }
-  const sqliteOptions =
+  const ports =
     config.persistence.kind === 'sqlite'
       ? (() => {
           const tableNames = resolveStandaloneRuntimeSqliteTableNames(runtimeOptions.sqlite);
@@ -33,25 +28,11 @@ export function createStandaloneAgent(
           });
           return { session: persistence.session, requestJournal: persistence.requestJournal };
         })()
-      : {};
-  const credentialResolver =
-    config.credential === undefined
-      ? undefined
-      : createStandaloneCredentialResolver(config.credential, runtimeOptions);
-
-  return createProviderAgentAPI({
+      : undefined;
+  return materializeStandaloneAgentRuntime({
     identity: config.identity,
-    provider: {
-      config: config.provider.config,
-      transportLivenessPolicy: config.provider.transportLivenessPolicy,
-      ...(credentialResolver === undefined ? {} : { credentialResolver }),
-    },
-    ...sqliteOptions,
-    ...(runtimeOptions.stepOverrides === undefined
-      ? {}
-      : { stepOverrides: runtimeOptions.stepOverrides }),
-    requestPolicy: resolveStandaloneRequestPolicy(config.request, runtimeOptions.requestLimits),
-    sessionCompactionPolicy: resolveStandaloneSessionCompactionPolicy(config.sessionCompaction),
-    mainActor: config.mainActor,
+    config,
+    ...(ports === undefined ? {} : { ports }),
+    options: runtimeOptions,
   });
 }

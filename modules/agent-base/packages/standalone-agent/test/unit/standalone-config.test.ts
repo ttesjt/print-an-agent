@@ -5,11 +5,11 @@ import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import {
   AgentBaseStandaloneError,
-  createSharedSqliteStandaloneAgentRegistry,
+  createSharedSqliteStandaloneDefinition,
   createStandaloneAgent,
-  createStandaloneAgentDirectory,
-  defineStandaloneAgentConfig,
-  STANDALONE_AGENT_DEFINITION_CODEC,
+  createStandaloneDirectoryDefinition,
+  defineStandaloneAgentBootstrapConfig,
+  STANDALONE_AGENT_CONFIG_CODEC,
 } from '../../src/index.js';
 
 function validConfig(): Record<string, unknown> {
@@ -63,7 +63,7 @@ function expectStandaloneConfigInvalid(action: () => unknown): void {
 
 describe('standalone Agent Base configuration', () => {
   it('normalizes and freezes the closed versioned configuration', () => {
-    const config = defineStandaloneAgentConfig(validConfig());
+    const config = defineStandaloneAgentBootstrapConfig(validConfig());
 
     expect(config).toMatchObject({
       schemaVersion: 1,
@@ -113,7 +113,7 @@ describe('standalone Agent Base configuration', () => {
     delete input.request;
     delete input.sessionCompaction;
 
-    const config = defineStandaloneAgentConfig(input);
+    const config = defineStandaloneAgentBootstrapConfig(input);
     expect(config.provider.transportLivenessPolicy).toEqual({
       responseStartTimeoutMilliseconds: null,
       streamEventIdleTimeoutMilliseconds: null,
@@ -122,7 +122,7 @@ describe('standalone Agent Base configuration', () => {
     expect(config.request).toEqual({ timeoutMilliseconds: null });
     expect(config.sessionCompaction).toEqual({ timeoutMilliseconds: null });
 
-    const encoded = STANDALONE_AGENT_DEFINITION_CODEC.encode({
+    const encoded = STANDALONE_AGENT_CONFIG_CODEC.encode({
       provider: config.provider,
       ...(config.credential === undefined ? {} : { credential: config.credential }),
       mainActor: config.mainActor,
@@ -168,7 +168,7 @@ describe('standalone Agent Base configuration', () => {
       for (const apply of applyInvalidValue) {
         const input = validConfig();
         apply(input, value);
-        expectStandaloneConfigInvalid(() => defineStandaloneAgentConfig(input));
+        expectStandaloneConfigInvalid(() => defineStandaloneAgentBootstrapConfig(input));
       }
     }
   });
@@ -176,7 +176,7 @@ describe('standalone Agent Base configuration', () => {
   it('rejects unknown fields and accessors in durable timeout sections', () => {
     const unknown = validConfig();
     unknown.request = { timeoutMilliseconds: null, mode: 'soft' };
-    expectStandaloneConfigInvalid(() => defineStandaloneAgentConfig(unknown));
+    expectStandaloneConfigInvalid(() => defineStandaloneAgentBootstrapConfig(unknown));
 
     const accessor = validConfig();
     const request = {};
@@ -185,7 +185,7 @@ describe('standalone Agent Base configuration', () => {
       get: () => null,
     });
     accessor.request = request;
-    expectStandaloneConfigInvalid(() => defineStandaloneAgentConfig(accessor));
+    expectStandaloneConfigInvalid(() => defineStandaloneAgentBootstrapConfig(accessor));
   });
 
   it('uses durable configuration as the only Standalone timeout authority', () => {
@@ -226,8 +226,8 @@ describe('standalone Agent Base configuration', () => {
       databasePath: '/tmp/standalone-timeout-authority.sqlite',
     };
     expectStandaloneConfigInvalid(() => createStandaloneAgent(config, legacyOptions));
-    expectStandaloneConfigInvalid(() => createStandaloneAgentDirectory(directoryOptions));
-    expectStandaloneConfigInvalid(() => createSharedSqliteStandaloneAgentRegistry(sharedOptions));
+    expectStandaloneConfigInvalid(() => createStandaloneDirectoryDefinition(directoryOptions));
+    expectStandaloneConfigInvalid(() => createSharedSqliteStandaloneDefinition(sharedOptions));
 
     const limitsWithTimeout = { ...requestLimits, timeoutMilliseconds: 1 };
     expectStandaloneConfigInvalid(() =>
@@ -243,7 +243,7 @@ describe('standalone Agent Base configuration', () => {
     const provider = (input.provider as Record<string, unknown>).config as Record<string, unknown>;
     delete provider.compatibility;
 
-    expectStandaloneConfigInvalid(() => defineStandaloneAgentConfig(input));
+    expectStandaloneConfigInvalid(() => defineStandaloneAgentBootstrapConfig(input));
   });
 
   it('requires an explicit OpenAI-compatible reasoning capability declaration', () => {
@@ -251,7 +251,7 @@ describe('standalone Agent Base configuration', () => {
     const provider = (input.provider as Record<string, unknown>).config as Record<string, unknown>;
     delete provider.supportsReasoning;
 
-    expectStandaloneConfigInvalid(() => defineStandaloneAgentConfig(input));
+    expectStandaloneConfigInvalid(() => defineStandaloneAgentBootstrapConfig(input));
   });
 
   it.each([false, true])(
@@ -271,8 +271,8 @@ describe('standalone Agent Base configuration', () => {
         sessionCompaction: input.sessionCompaction,
       };
 
-      const canonical = STANDALONE_AGENT_DEFINITION_CODEC.decode(definition);
-      const encoded = STANDALONE_AGENT_DEFINITION_CODEC.encode(canonical);
+      const canonical = STANDALONE_AGENT_CONFIG_CODEC.decode(definition);
+      const encoded = STANDALONE_AGENT_CONFIG_CODEC.encode(canonical);
       expect(encoded).toMatchObject({
         provider: {
           config: { compatibility: { supportsDeveloperRole } },
@@ -285,7 +285,7 @@ describe('standalone Agent Base configuration', () => {
         request: { timeoutMilliseconds: 40_000 },
         sessionCompaction: { timeoutMilliseconds: 50_000 },
       });
-      expect(STANDALONE_AGENT_DEFINITION_CODEC.decode(encoded)).toMatchObject({
+      expect(STANDALONE_AGENT_CONFIG_CODEC.decode(encoded)).toMatchObject({
         provider: {
           config: { compatibility: { supportsDeveloperRole } },
           transportLivenessPolicy: {
@@ -304,7 +304,7 @@ describe('standalone Agent Base configuration', () => {
     const input = validConfig();
     input.provider = (input.provider as Record<string, unknown>).config;
 
-    expectStandaloneConfigInvalid(() => defineStandaloneAgentConfig(input));
+    expectStandaloneConfigInvalid(() => defineStandaloneAgentBootstrapConfig(input));
   });
 
   it.each([
@@ -357,7 +357,7 @@ describe('standalone Agent Base configuration', () => {
     ],
   ])('rejects invalid standalone input without widening the schema', (input, message) => {
     try {
-      defineStandaloneAgentConfig(input);
+      defineStandaloneAgentBootstrapConfig(input);
       throw new Error('Expected standalone configuration validation to fail.');
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(AgentBaseStandaloneError);

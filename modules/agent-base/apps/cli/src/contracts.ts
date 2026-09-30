@@ -3,7 +3,6 @@ export interface AgentBaseCliWriter {
 }
 
 export interface AgentBaseCliRuntime {
-  checkProvider(signal: AbortSignal): Promise<unknown>;
   run(
     input: Readonly<{
       message: string;
@@ -46,6 +45,10 @@ export interface AgentBaseCliRuntime {
   ): Promise<unknown>;
 }
 
+export interface AgentBaseCliProvider {
+  check(signal: AbortSignal): Promise<unknown>;
+}
+
 export type AgentBaseCliRuntimeLocator =
   | Readonly<{ kind: 'config'; configPath: string }>
   | Readonly<{ kind: 'managed'; rootDirectory: string; agentId: string }>;
@@ -58,9 +61,37 @@ export interface AgentBaseCliManagedDirectory {
   reactivate(agentId: string, expectedRevision: number): Promise<unknown>;
 }
 
+export interface AgentBaseCliSessionManager {
+  list(
+    input: Readonly<{
+      cursor?: Readonly<{ updatedAt: number; sessionId: string }>;
+      limit?: number;
+    }>
+  ): Promise<unknown>;
+  listRetired(
+    input: Readonly<{
+      cursor?: Readonly<{ retiredAt: number; sessionId: string }>;
+      limit?: number;
+    }>
+  ): Promise<unknown>;
+  inspect(sessionId: string): Promise<unknown>;
+  listTurns(
+    input: Readonly<{ sessionId: string; beforeTurnId?: string; limit?: number }>
+  ): Promise<unknown>;
+  retire(sessionId: string, expectedRevision: number): Promise<unknown>;
+  restore(sessionId: string, expectedRevision: number): Promise<unknown>;
+  purge(sessionId: string, expectedRevision: number): Promise<void>;
+  recover(sessionId: string, expectedExecutionRevision: number): Promise<unknown>;
+}
+
 export interface AgentBaseCliDependencies {
+  readonly loadProvider: (locator: AgentBaseCliRuntimeLocator) => Promise<AgentBaseCliProvider>;
   readonly loadRuntime: (locator: AgentBaseCliRuntimeLocator) => Promise<AgentBaseCliRuntime>;
   readonly loadManagedDirectory: (rootDirectory: string) => Promise<AgentBaseCliManagedDirectory>;
+  readonly loadSessionManager: (
+    rootDirectory: string,
+    agentId: string
+  ) => Promise<AgentBaseCliSessionManager>;
   readonly readJsonDocument: (path: string) => Promise<unknown>;
   readonly readStandardInput: (signal: AbortSignal) => Promise<string>;
   readonly standardOutput: AgentBaseCliWriter;

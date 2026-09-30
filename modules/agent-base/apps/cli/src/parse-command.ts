@@ -1,9 +1,20 @@
 import { AgentBaseCliError } from './errors.js';
 import type { AgentBaseCliRuntimeLocator } from './contracts.js';
-
-type OptionValues = ReadonlyMap<string, string | true>;
+import {
+  assertAllowedCliOptions,
+  optionalCliOption,
+  parseCliOptions,
+  requireCliOption,
+  requireSafeIntegerCliOption,
+  type CliOptionValues,
+} from './option-parser.js';
+import {
+  parseAgentBaseCliSessionLifecycleCommand,
+  type AgentBaseCliSessionLifecycleCommand,
+} from './session-lifecycle-command.js';
 
 export type AgentBaseCliCommand =
+  | AgentBaseCliSessionLifecycleCommand
   | Readonly<{ kind: 'help' }>
   | Readonly<{ kind: 'provider-check'; runtime: AgentBaseCliRuntimeLocator }>
   | Readonly<{
@@ -64,66 +75,16 @@ export type AgentBaseCliCommand =
       expectedRevision: number;
     }>;
 
-const BOOLEAN_OPTIONS = new Set(['message-stdin']);
+const RUN_BOOLEAN_OPTIONS = new Set(['message-stdin']);
 
-function parseOptions(tokens: readonly string[]): OptionValues {
-  const values = new Map<string, string | true>();
-  for (let index = 0; index < tokens.length; index += 1) {
-    const token = tokens[index];
-    if (token === undefined || !token.startsWith('--') || token.length === 2) {
-      throw new AgentBaseCliError('CLI_USAGE_INVALID', 'Command options must use --name syntax.');
-    }
-    const name = token.slice(2);
-    if (values.has(name)) {
-      throw new AgentBaseCliError('CLI_USAGE_INVALID', `Option --${name} cannot be repeated.`);
-    }
-    if (BOOLEAN_OPTIONS.has(name)) {
-      values.set(name, true);
-      continue;
-    }
-    const value = tokens[index + 1];
-    if (value === undefined || value.startsWith('--')) {
-      throw new AgentBaseCliError('CLI_USAGE_INVALID', `Option --${name} requires a value.`);
-    }
-    values.set(name, value);
-    index += 1;
-  }
-  return values;
+function parseRevision(options: CliOptionValues, minimum = 0): number {
+  return requireSafeIntegerCliOption(options, 'expected-revision', minimum);
 }
 
-function requireOption(options: OptionValues, name: string): string {
-  const value = options.get(name);
-  if (typeof value !== 'string' || value.length === 0) {
-    throw new AgentBaseCliError('CLI_USAGE_INVALID', `Option --${name} is required.`);
-  }
-  return value;
-}
-
-function optionalOption(options: OptionValues, name: string): string | undefined {
-  const value = options.get(name);
-  if (value === undefined) return undefined;
-  if (typeof value !== 'string' || value.length === 0) {
-    throw new AgentBaseCliError('CLI_USAGE_INVALID', `Option --${name} requires a value.`);
-  }
-  return value;
-}
-
-function parseRevision(options: OptionValues, minimum = 0): number {
-  const raw = requireOption(options, 'expected-revision');
-  const revision = Number(raw);
-  if (!Number.isSafeInteger(revision) || revision < minimum || String(revision) !== raw) {
-    throw new AgentBaseCliError(
-      'CLI_USAGE_INVALID',
-      `Option --expected-revision must be a safe integer greater than or equal to ${minimum}.`
-    );
-  }
-  return revision;
-}
-
-function parseRuntimeLocator(options: OptionValues): AgentBaseCliRuntimeLocator {
-  const configPath = optionalOption(options, 'config');
-  const rootDirectory = optionalOption(options, 'root');
-  const agentId = optionalOption(options, 'agent-id');
+function parseRuntimeLocator(options: CliOptionValues): AgentBaseCliRuntimeLocator {
+  const configPath = optionalCliOption(options, 'config');
+  const rootDirectory = optionalCliOption(options, 'root');
+  const agentId = optionalCliOption(options, 'agent-id');
   if (configPath !== undefined) {
     if (rootDirectory !== undefined || agentId !== undefined) {
       throw new AgentBaseCliError(
@@ -142,21 +103,14 @@ function parseRuntimeLocator(options: OptionValues): AgentBaseCliRuntimeLocator 
   return Object.freeze({ kind: 'managed', rootDirectory, agentId });
 }
 
-function assertAllowedOptions(options: OptionValues, allowed: readonly string[]): void {
-  const unexpected = [...options.keys()].find((name) => !allowed.includes(name));
-  if (unexpected !== undefined) {
-    throw new AgentBaseCliError('CLI_USAGE_INVALID', `Option --${unexpected} is not supported.`);
-  }
-}
-
 export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliCommand {
   if (argv.length === 0 || (argv.length === 1 && argv[0] === '--help')) {
     return Object.freeze({ kind: 'help' });
   }
   const [group, action, ...optionTokens] = argv;
   if (group === 'run') {
-    const options = parseOptions(argv.slice(1));
-    assertAllowedOptions(options, [
+    const options = parseCliOptions(argv.slice(1), RUN_BOOLEAN_OPTIONS);
+    assertAllowedCliOptions(options, [
       'config',
       'root',
       'agent-id',
@@ -165,7 +119,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
       'session-id',
       'idempotency-key',
     ]);
-    const message = optionalOption(options, 'message');
+    const message = optionalCliOption(options, 'message');
     const fromStandardInput = options.get('message-stdin') === true;
     if ((message === undefined) === !fromStandardInput) {
       throw new AgentBaseCliError(
@@ -181,8 +135,8 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
           ? ({ kind: 'stdin' } as const)
           : ({ kind: 'argument', value: message } as const),
     };
-    const sessionId = optionalOption(options, 'session-id');
-    const idempotencyKey = optionalOption(options, 'idempotency-key');
+    const sessionId = optionalCliOption(options, 'session-id');
+    const idempotencyKey = optionalCliOption(options, 'idempotency-key');
     return Object.freeze({
       ...base,
       ...(sessionId === undefined ? {} : { sessionId }),
@@ -190,66 +144,74 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     });
   }
 
-  const options = parseOptions(optionTokens);
+  if (group === 'session' && action === 'lifecycle') {
+    const [lifecycleAction, ...lifecycleOptionTokens] = optionTokens;
+    return parseAgentBaseCliSessionLifecycleCommand(lifecycleAction, lifecycleOptionTokens);
+  }
+
+  const options = parseCliOptions(optionTokens);
   if (group === 'agent') {
     if (action === 'create') {
-      assertAllowedOptions(options, ['root', 'manifest']);
+      assertAllowedCliOptions(options, ['root', 'manifest']);
       return Object.freeze({
         kind: 'agent-create',
-        rootDirectory: requireOption(options, 'root'),
-        manifestPath: requireOption(options, 'manifest'),
+        rootDirectory: requireCliOption(options, 'root'),
+        manifestPath: requireCliOption(options, 'manifest'),
       });
     }
     if (action === 'list') {
-      assertAllowedOptions(options, ['root']);
-      return Object.freeze({ kind: 'agent-list', rootDirectory: requireOption(options, 'root') });
+      assertAllowedCliOptions(options, ['root']);
+      return Object.freeze({
+        kind: 'agent-list',
+        rootDirectory: requireCliOption(options, 'root'),
+      });
     }
     if (action === 'inspect') {
-      assertAllowedOptions(options, ['root', 'agent-id']);
+      assertAllowedCliOptions(options, ['root', 'agent-id']);
       return Object.freeze({
         kind: 'agent-inspect',
-        rootDirectory: requireOption(options, 'root'),
-        agentId: requireOption(options, 'agent-id'),
+        rootDirectory: requireCliOption(options, 'root'),
+        agentId: requireCliOption(options, 'agent-id'),
       });
     }
     if (action === 'disable' || action === 'reactivate') {
-      assertAllowedOptions(options, ['root', 'agent-id', 'expected-revision']);
+      assertAllowedCliOptions(options, ['root', 'agent-id', 'expected-revision']);
       return Object.freeze({
         kind: action === 'disable' ? 'agent-disable' : 'agent-reactivate',
-        rootDirectory: requireOption(options, 'root'),
-        agentId: requireOption(options, 'agent-id'),
+        rootDirectory: requireCliOption(options, 'root'),
+        agentId: requireCliOption(options, 'agent-id'),
         expectedRevision: parseRevision(options, 1),
       });
     }
     throw new AgentBaseCliError('CLI_USAGE_INVALID', 'Unknown Agent lifecycle command.');
   }
   if (group === 'provider' && action === 'check') {
-    assertAllowedOptions(options, ['config', 'root', 'agent-id']);
+    assertAllowedCliOptions(options, ['config', 'root', 'agent-id']);
     return Object.freeze({ kind: 'provider-check', runtime: parseRuntimeLocator(options) });
   }
   if (group !== 'session') {
     throw new AgentBaseCliError('CLI_USAGE_INVALID', 'Unknown command.');
   }
   if (action === 'compact') {
-    assertAllowedOptions(options, ['config', 'root', 'agent-id', 'session-id', 'branch-id']);
-    const branchId = optionalOption(options, 'branch-id');
+    assertAllowedCliOptions(options, ['config', 'root', 'agent-id', 'session-id', 'branch-id']);
+    const branchId = optionalCliOption(options, 'branch-id');
     return Object.freeze({
       kind: 'session-compact' as const,
       runtime: parseRuntimeLocator(options),
-      sessionId: requireOption(options, 'session-id'),
+      sessionId: requireCliOption(options, 'session-id'),
       ...(branchId === undefined ? {} : { branchId }),
     });
   }
   if (action === 'inspect') {
-    assertAllowedOptions(options, ['config', 'root', 'agent-id', 'session-id']);
+    assertAllowedCliOptions(options, ['config', 'root', 'agent-id', 'session-id']);
     return Object.freeze({
       kind: 'session-inspect',
       runtime: parseRuntimeLocator(options),
-      sessionId: requireOption(options, 'session-id'),
+      sessionId: requireCliOption(options, 'session-id'),
     });
   }
   if (action === 'select') {
-    assertAllowedOptions(options, [
+    assertAllowedCliOptions(options, [
       'config',
       'root',
       'agent-id',
@@ -260,13 +222,13 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     return Object.freeze({
       kind: 'session-select',
       runtime: parseRuntimeLocator(options),
-      sessionId: requireOption(options, 'session-id'),
-      branchId: requireOption(options, 'branch-id'),
+      sessionId: requireCliOption(options, 'session-id'),
+      branchId: requireCliOption(options, 'branch-id'),
       expectedRevision: parseRevision(options),
     });
   }
   if (action === 'fork') {
-    assertAllowedOptions(options, [
+    assertAllowedCliOptions(options, [
       'config',
       'root',
       'agent-id',
@@ -276,19 +238,19 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
       'new-branch-id',
       'expected-revision',
     ]);
-    const newBranchId = optionalOption(options, 'new-branch-id');
+    const newBranchId = optionalCliOption(options, 'new-branch-id');
     return Object.freeze({
       kind: 'session-fork' as const,
       runtime: parseRuntimeLocator(options),
-      sessionId: requireOption(options, 'session-id'),
-      sourceBranchId: requireOption(options, 'source-branch-id'),
-      throughTurnId: requireOption(options, 'through-turn-id'),
+      sessionId: requireCliOption(options, 'session-id'),
+      sourceBranchId: requireCliOption(options, 'source-branch-id'),
+      throughTurnId: requireCliOption(options, 'through-turn-id'),
       expectedRevision: parseRevision(options),
       ...(newBranchId === undefined ? {} : { newBranchId }),
     });
   }
   if (action === 'rewind') {
-    assertAllowedOptions(options, [
+    assertAllowedCliOptions(options, [
       'config',
       'root',
       'agent-id',
@@ -297,12 +259,12 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
       'new-branch-id',
       'expected-revision',
     ]);
-    const newBranchId = optionalOption(options, 'new-branch-id');
+    const newBranchId = optionalCliOption(options, 'new-branch-id');
     return Object.freeze({
       kind: 'session-rewind' as const,
       runtime: parseRuntimeLocator(options),
-      sessionId: requireOption(options, 'session-id'),
-      throughTurnId: requireOption(options, 'through-turn-id'),
+      sessionId: requireCliOption(options, 'session-id'),
+      throughTurnId: requireCliOption(options, 'through-turn-id'),
       expectedRevision: parseRevision(options),
       ...(newBranchId === undefined ? {} : { newBranchId }),
     });

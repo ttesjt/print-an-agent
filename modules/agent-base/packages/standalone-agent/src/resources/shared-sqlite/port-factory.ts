@@ -4,21 +4,40 @@ import {
   createSqliteSessionPersistence,
 } from '@ta-agent/base-local-adapters';
 import type {
-  AgentResourceNamespace,
-  ManagedAgentResourcePortFactory,
-} from '../../managed-agent/contracts.js';
+  ManagedAgentAuthorityPortFactory,
+  ManagedAgentNamespace,
+  ManagedAgentNamespaceReference,
+  ManagedAgentRuntimePortFactory,
+  SessionManagementPortFactory,
+  SessionManagementPorts,
+} from '@ta-agent/base-composition';
+import type { StandaloneRuntimePorts } from '../../runtime/materialize-standalone-agent.js';
 import type { SharedSqliteAgentResourceNamespace } from './types.js';
 import type { ResolvedStandaloneManagedSqliteTableNames } from '../sqlite-table-naming.js';
 
-export function createSharedSqliteManagedAgentPortFactory(
+export interface SharedSqliteStandalonePortFactories {
+  readonly createAuthorityPorts: ManagedAgentAuthorityPortFactory<SharedSqliteAgentResourceNamespace>;
+  readonly createRuntimePorts: ManagedAgentRuntimePortFactory<
+    SharedSqliteAgentResourceNamespace,
+    StandaloneRuntimePorts
+  >;
+  readonly createSessionManagementPorts: SessionManagementPortFactory<
+    SharedSqliteAgentResourceNamespace,
+    SessionManagementPorts
+  >;
+}
+
+export function createSharedSqliteStandalonePortFactories(
   options: Readonly<{
     clock?: () => number;
     busyTimeoutMilliseconds?: number;
     tableNames: ResolvedStandaloneManagedSqliteTableNames;
   }>
-): ManagedAgentResourcePortFactory<SharedSqliteAgentResourceNamespace> {
+): SharedSqliteStandalonePortFactories {
   return Object.freeze({
-    createAuthorityPorts: (namespace: AgentResourceNamespace<SharedSqliteAgentResourceNamespace>) =>
+    createAuthorityPorts: (
+      namespace: ManagedAgentNamespaceReference<SharedSqliteAgentResourceNamespace>
+    ) =>
       Object.freeze({
         identityCatalog: new SqliteAgentIdentityCatalogAdapter({
           databasePath: namespace.handle.databasePath,
@@ -36,7 +55,7 @@ export function createSharedSqliteManagedAgentPortFactory(
           tableNames: options.tableNames.config,
         }),
       }),
-    createRuntimePorts: (namespace: AgentResourceNamespace<SharedSqliteAgentResourceNamespace>) => {
+    createRuntimePorts: (namespace: ManagedAgentNamespace<SharedSqliteAgentResourceNamespace>) => {
       const { session, requestJournal } = createSqliteSessionPersistence({
         databasePath: namespace.handle.databasePath,
         ...(options.clock === undefined ? {} : { clock: options.clock }),
@@ -47,6 +66,21 @@ export function createSharedSqliteManagedAgentPortFactory(
         requestJournal: { tableNames: options.tableNames.requestJournal },
       });
       return Object.freeze({ session, requestJournal });
+    },
+    createSessionManagementPorts: (
+      namespace: ManagedAgentNamespace<SharedSqliteAgentResourceNamespace>
+    ) => {
+      const { session, maintenance } = createSqliteSessionPersistence({
+        databasePath: namespace.handle.databasePath,
+        schemaMode: 'existing',
+        session: { tableNames: options.tableNames.session },
+        requestJournal: { tableNames: options.tableNames.requestJournal },
+        ...(options.clock === undefined ? {} : { clock: options.clock }),
+        ...(options.busyTimeoutMilliseconds === undefined
+          ? {}
+          : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
+      });
+      return Object.freeze({ session, maintenance });
     },
   });
 }

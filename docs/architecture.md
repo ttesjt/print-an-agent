@@ -1,6 +1,7 @@
 # Repository architecture
 
 - [Agent Base](../modules/agent-base/README.md) owns agent execution, Sessions, and composition.
+- [Agent UI](../modules/agent-ui/README.md) owns reusable interface components and reference applications.
 - [Model Workbench](../modules/model-workbench/README.md) owns model execution, training, and artifact management.
 
 Workspace libraries use the `@ta-agent/*` scope. Consumers declare dependencies in their own

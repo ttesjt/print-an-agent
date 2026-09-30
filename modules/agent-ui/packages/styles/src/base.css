@@ -1,0 +1,105 @@
+:where(html.ta-ui-document, body.ta-ui-document) {
+  min-block-size: 100%;
+  margin: 0;
+  background: var(--ta-ui-color-canvas);
+}
+
+:where(.ta-ui-root, .ta-ui-modal-surface),
+:where(.ta-ui-root *, .ta-ui-modal-surface *) {
+  box-sizing: border-box;
+}
+
+:where([data-ta-ui-theme]) {
+  color: var(--ta-ui-color-ink);
+}
+
+:where(.ta-ui-root, .ta-ui-modal-surface) {
+  color: var(--ta-ui-color-ink);
+  font-family: var(--ta-ui-font-sans);
+  font-size: var(--ta-ui-font-size-body);
+  line-height: var(--ta-ui-line-height-body);
+  text-rendering: optimizeLegibility;
+}
+
+:where(.ta-ui-root) {
+  min-block-size: 100dvh;
+  background: var(--ta-ui-color-canvas);
+}
+
+:where(
+  .ta-ui-root button,
+  .ta-ui-root input,
+  .ta-ui-root select,
+  .ta-ui-root textarea,
+  .ta-ui-modal-surface button,
+  .ta-ui-modal-surface input,
+  .ta-ui-modal-surface select,
+  .ta-ui-modal-surface textarea
+) {
+  color: inherit;
+  font: inherit;
+}
+
+:where(
+  .ta-ui-root h1,
+  .ta-ui-root h2,
+  .ta-ui-root h3,
+  .ta-ui-root p,
+  .ta-ui-root ul,
+  .ta-ui-root ol,
+  .ta-ui-modal-surface h1,
+  .ta-ui-modal-surface h2,
+  .ta-ui-modal-surface h3,
+  .ta-ui-modal-surface p,
+  .ta-ui-modal-surface ul,
+  .ta-ui-modal-surface ol
+) {
+  margin-block: 0;
+}
+
+:where(.ta-ui-root h1, .ta-ui-modal-surface h1) {
+  font-size: var(--ta-ui-font-size-title);
+  font-weight: var(--ta-ui-font-weight-strong);
+  line-height: var(--ta-ui-line-height-tight);
+}
+
+:where(.ta-ui-root h2, .ta-ui-root h3, .ta-ui-modal-surface h2, .ta-ui-modal-surface h3) {
+  font-size: var(--ta-ui-font-size-heading);
+  font-weight: var(--ta-ui-font-weight-strong);
+  line-height: var(--ta-ui-line-height-tight);
+}
+
+:where(.ta-ui-root p, .ta-ui-modal-surface p) {
+  color: var(--ta-ui-color-ink-muted);
+}
+
+:where(.ta-ui-root ::selection, .ta-ui-modal-surface ::selection) {
+  background: var(--ta-ui-color-selection);
+}
+
+:where(.ta-ui-root :focus-visible, .ta-ui-modal-surface :focus-visible) {
+  outline: var(--ta-ui-focus-width) solid var(--ta-ui-color-focus);
+  outline-offset: var(--ta-ui-focus-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(
+    .ta-ui-root *,
+    .ta-ui-root *::before,
+    .ta-ui-root *::after,
+    .ta-ui-modal-surface *,
+    .ta-ui-modal-surface *::before,
+    .ta-ui-modal-surface *::after
+  ) {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(.ta-ui-root :focus-visible, .ta-ui-modal-surface :focus-visible) {
+    outline-color: Highlight;
+  }
+}

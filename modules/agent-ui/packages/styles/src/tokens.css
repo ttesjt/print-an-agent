@@ -1,0 +1,181 @@
+:where(:root, [data-ta-ui-theme]) {
+  --ta-ui-font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --ta-ui-font-serif: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, serif;
+  --ta-ui-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --ta-ui-font-size-small: 0.8125rem;
+  --ta-ui-font-size-body: 0.9375rem;
+  --ta-ui-font-size-title: clamp(1.5rem, 1.25rem + 1vw, 2.25rem);
+  --ta-ui-font-size-heading: 1.125rem;
+  --ta-ui-font-weight-regular: 400;
+  --ta-ui-font-weight-medium: 500;
+  --ta-ui-font-weight-strong: 650;
+  --ta-ui-line-height-tight: 1.2;
+  --ta-ui-line-height-body: 1.55;
+  --ta-ui-letter-spacing-label: 0.04em;
+
+  --ta-ui-space-0: 0;
+  --ta-ui-space-1: 0.25rem;
+  --ta-ui-space-2: 0.5rem;
+  --ta-ui-space-3: 0.75rem;
+  --ta-ui-space-4: 1rem;
+  --ta-ui-space-5: 1.5rem;
+  --ta-ui-space-6: 2rem;
+  --ta-ui-space-7: 3rem;
+  --ta-ui-space-8: 4rem;
+
+  --ta-ui-size-control: 2.5rem;
+  --ta-ui-size-control-small: 2rem;
+  --ta-ui-size-control-large: 3rem;
+  --ta-ui-size-content-max: 80rem;
+  --ta-ui-size-sidebar: 17rem;
+  --ta-ui-size-inspector: 20rem;
+  --ta-ui-size-grid-item-min: 15rem;
+
+  --ta-ui-border-width: 1px;
+  --ta-ui-border-width-strong: 2px;
+  --ta-ui-radius-small: 0.375rem;
+  --ta-ui-radius-medium: 0.75rem;
+  --ta-ui-radius-large: 1rem;
+  --ta-ui-radius-round: 999rem;
+
+  --ta-ui-shadow-surface: 0 0.5rem 1.5rem rgb(42 39 32 / 8%);
+  --ta-ui-shadow-raised: 0 1rem 2.5rem rgb(42 39 32 / 14%);
+
+  --ta-ui-layer-base: 0;
+  --ta-ui-layer-raised: 10;
+  --ta-ui-layer-overlay: 100;
+  --ta-ui-layer-toast: 200;
+
+  --ta-ui-motion-fast: 120ms;
+  --ta-ui-motion-medium: 200ms;
+  --ta-ui-motion-slow: 320ms;
+  --ta-ui-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ta-ui-easing-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ta-ui-focus-width: 2px;
+  --ta-ui-focus-offset: 2px;
+}
+
+:where(:root, [data-ta-ui-theme='light'], [data-ta-ui-theme='system']) {
+  color-scheme: light;
+  --ta-ui-color-canvas: #f3f1ea;
+  --ta-ui-color-surface: #fbfaf6;
+  --ta-ui-color-surface-raised: #ffffff;
+  --ta-ui-color-surface-muted: #ebe8df;
+  --ta-ui-color-surface-inset: #e3e0d7;
+  --ta-ui-color-ink: #252a28;
+  --ta-ui-color-ink-muted: #686e69;
+  --ta-ui-color-ink-subtle: #818780;
+  --ta-ui-color-line: #cbc7bb;
+  --ta-ui-color-line-strong: #9d9a91;
+  --ta-ui-color-accent: #42645c;
+  --ta-ui-color-accent-hover: #34534c;
+  --ta-ui-color-accent-soft: #dce8e2;
+  --ta-ui-color-on-accent: #ffffff;
+  --ta-ui-color-positive: #35694d;
+  --ta-ui-color-positive-soft: #dce9e0;
+  --ta-ui-color-caution: #8a5a16;
+  --ta-ui-color-caution-soft: #f4e4c9;
+  --ta-ui-color-critical: #a13f3f;
+  --ta-ui-color-critical-hover: #823131;
+  --ta-ui-color-critical-soft: #f4dddd;
+  --ta-ui-color-on-critical: #ffffff;
+  --ta-ui-color-focus: #2f637a;
+  --ta-ui-color-selection: #c5dce6;
+  --ta-ui-color-scrim: rgb(20 24 22 / 48%);
+}
+
+:where([data-ta-ui-theme='dark']) {
+  color-scheme: dark;
+  --ta-ui-color-canvas: #171a18;
+  --ta-ui-color-surface: #202522;
+  --ta-ui-color-surface-raised: #282e2a;
+  --ta-ui-color-surface-muted: #292f2b;
+  --ta-ui-color-surface-inset: #121513;
+  --ta-ui-color-ink: #e8e4da;
+  --ta-ui-color-ink-muted: #abb0aa;
+  --ta-ui-color-ink-subtle: #8f968f;
+  --ta-ui-color-line: #414842;
+  --ta-ui-color-line-strong: #626b64;
+  --ta-ui-color-accent: #99b3a7;
+  --ta-ui-color-accent-hover: #b1c7bc;
+  --ta-ui-color-accent-soft: #2f453c;
+  --ta-ui-color-on-accent: #17201c;
+  --ta-ui-color-positive: #8bc6a2;
+  --ta-ui-color-positive-soft: #263d30;
+  --ta-ui-color-caution: #e0b06c;
+  --ta-ui-color-caution-soft: #4a3922;
+  --ta-ui-color-critical: #e79a98;
+  --ta-ui-color-critical-hover: #f0b3b1;
+  --ta-ui-color-critical-soft: #4a2b2b;
+  --ta-ui-color-on-critical: #231313;
+  --ta-ui-color-focus: #9cc1d1;
+  --ta-ui-color-selection: #294c5b;
+  --ta-ui-color-scrim: rgb(0 0 0 / 64%);
+  --ta-ui-shadow-surface: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+  --ta-ui-shadow-raised: 0 1rem 2.5rem rgb(0 0 0 / 28%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :where([data-ta-ui-theme='system']) {
+    color-scheme: dark;
+    --ta-ui-color-canvas: #171a18;
+    --ta-ui-color-surface: #202522;
+    --ta-ui-color-surface-raised: #282e2a;
+    --ta-ui-color-surface-muted: #292f2b;
+    --ta-ui-color-surface-inset: #121513;
+    --ta-ui-color-ink: #e8e4da;
+    --ta-ui-color-ink-muted: #abb0aa;
+    --ta-ui-color-ink-subtle: #8f968f;
+    --ta-ui-color-line: #414842;
+    --ta-ui-color-line-strong: #626b64;
+    --ta-ui-color-accent: #99b3a7;
+    --ta-ui-color-accent-hover: #b1c7bc;
+    --ta-ui-color-accent-soft: #2f453c;
+    --ta-ui-color-on-accent: #17201c;
+    --ta-ui-color-positive: #8bc6a2;
+    --ta-ui-color-positive-soft: #263d30;
+    --ta-ui-color-caution: #e0b06c;
+    --ta-ui-color-caution-soft: #4a3922;
+    --ta-ui-color-critical: #e79a98;
+    --ta-ui-color-critical-hover: #f0b3b1;
+    --ta-ui-color-critical-soft: #4a2b2b;
+    --ta-ui-color-on-critical: #231313;
+    --ta-ui-color-focus: #9cc1d1;
+    --ta-ui-color-selection: #294c5b;
+    --ta-ui-color-scrim: rgb(0 0 0 / 64%);
+    --ta-ui-shadow-surface: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+    --ta-ui-shadow-raised: 0 1rem 2.5rem rgb(0 0 0 / 28%);
+  }
+}
+
+@media (forced-colors: active) {
+  :where(:root, [data-ta-ui-theme]) {
+    --ta-ui-color-canvas: Canvas;
+    --ta-ui-color-surface: Canvas;
+    --ta-ui-color-surface-raised: Canvas;
+    --ta-ui-color-surface-muted: Canvas;
+    --ta-ui-color-surface-inset: Canvas;
+    --ta-ui-color-ink: CanvasText;
+    --ta-ui-color-ink-muted: CanvasText;
+    --ta-ui-color-ink-subtle: GrayText;
+    --ta-ui-color-line: CanvasText;
+    --ta-ui-color-line-strong: CanvasText;
+    --ta-ui-color-accent: LinkText;
+    --ta-ui-color-accent-hover: LinkText;
+    --ta-ui-color-accent-soft: Canvas;
+    --ta-ui-color-on-accent: Canvas;
+    --ta-ui-color-positive: CanvasText;
+    --ta-ui-color-positive-soft: Canvas;
+    --ta-ui-color-caution: CanvasText;
+    --ta-ui-color-caution-soft: Canvas;
+    --ta-ui-color-critical: CanvasText;
+    --ta-ui-color-critical-hover: CanvasText;
+    --ta-ui-color-critical-soft: Canvas;
+    --ta-ui-color-on-critical: Canvas;
+    --ta-ui-color-focus: Highlight;
+    --ta-ui-color-selection: Highlight;
+    --ta-ui-color-scrim: Canvas;
+    --ta-ui-shadow-surface: none;
+    --ta-ui-shadow-raised: none;
+  }
+}

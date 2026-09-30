@@ -1,0 +1,11 @@
+@layer ta-ui-tokens, ta-ui-base, ta-ui-layout, ta-ui-components;
+
+@import './tokens.css' layer(ta-ui-tokens);
+@import './base.css' layer(ta-ui-base);
+@import './layout.css' layer(ta-ui-layout);
+@import './components.css' layer(ta-ui-components);
+@import './actions.css' layer(ta-ui-components);
+@import './forms.css' layer(ta-ui-components);
+@import './feedback.css' layer(ta-ui-components);
+@import './overlays.css' layer(ta-ui-components);
+@import './navigation.css' layer(ta-ui-components);

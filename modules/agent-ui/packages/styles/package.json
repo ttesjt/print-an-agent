@@ -1,0 +1,46 @@
+{
+  "name": "@ta-agent/ui-styles",
+  "version": "0.1.0",
+  "description": "Optional default visual system for Agent UI semantic style hooks.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./default.css": "./src/default.css",
+    "./tokens.css": "./src/tokens.css",
+    "./base.css": "./src/base.css",
+    "./layout.css": "./src/layout.css",
+    "./components.css": "./src/components.css",
+    "./actions.css": "./src/actions.css",
+    "./forms.css": "./src/forms.css",
+    "./feedback.css": "./src/feedback.css",
+    "./overlays.css": "./src/overlays.css",
+    "./navigation.css": "./src/navigation.css"
+  },
+  "files": [
+    "src"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "clean": "rm -rf coverage *.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  }
+}

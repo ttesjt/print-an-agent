@@ -53,4 +53,22 @@ export const boundaryConfigs = Object.freeze([
       },
     ]),
   },
+  {
+    files: ['modules/agent-ui/packages/*/src/**/*.{ts,tsx}'],
+    rules: moduleRestrictions([
+      {
+        group: ['@ta-agent/base-*', '@ta-agent/workbench-*', '@ta-agent/self-learn-*'],
+        message: 'Reusable Agent UI packages must depend only on UI-owned contracts.',
+      },
+    ]),
+  },
+  {
+    files: ['modules/agent-ui/apps/*/src/**/*.{ts,tsx}'],
+    rules: moduleRestrictions([
+      {
+        group: ['@ta-agent/workbench-*', '@ta-agent/self-learn-*'],
+        message: 'Generic Agent UI applications must not depend on product-specific modules.',
+      },
+    ]),
+  },
 ]);

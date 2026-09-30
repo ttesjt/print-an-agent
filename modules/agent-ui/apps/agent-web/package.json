@@ -1,0 +1,44 @@
+{
+  "name": "@ta-agent/ui-agent-web",
+  "version": "0.1.0",
+  "description": "General-purpose Agent Web application composition root.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm run build:dependencies && tsc --noEmit && vite build",
+    "build:dependencies": "pnpm --filter @ta-agent/ui-contracts build && pnpm --filter @ta-agent/ui-react build",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "dev": "pnpm run build:dependencies && vite",
+    "test": "pnpm run build && vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "pnpm run build && vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ta-agent/ui-contracts": "workspace:*",
+    "@ta-agent/ui-react": "workspace:*",
+    "@ta-agent/ui-styles": "workspace:*",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "5.2.0",
+    "@vitest/coverage-v8": "catalog:",
+    "happy-dom": "20.14.5",
+    "typescript": "catalog:",
+    "vite": "7.3.2",
+    "vitest": "catalog:"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  }
+}

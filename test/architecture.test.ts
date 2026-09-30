@@ -24,12 +24,17 @@ const moduleRules = Object.freeze({
     packagePrefix: '@ta-agent/base-',
     forbiddenPrefixes: ['@ta-agent/workbench-', '@ta-agent/self-learn-'],
   },
+  'agent-ui': {
+    packagePrefix: '@ta-agent/ui-',
+    forbiddenPrefixes: ['@ta-agent/workbench-', '@ta-agent/self-learn-'],
+  },
 });
 
 type ModuleName = keyof typeof moduleRules;
 
 interface PackageManifest {
   readonly name?: string;
+  readonly scripts?: Readonly<Record<string, string>>;
   readonly dependencies?: Readonly<Record<string, string>>;
   readonly devDependencies?: Readonly<Record<string, string>>;
   readonly optionalDependencies?: Readonly<Record<string, string>>;
@@ -80,6 +85,19 @@ function declaredDependencies(manifest: PackageManifest): readonly string[] {
     ...Object.keys(manifest.optionalDependencies ?? {}),
     ...Object.keys(manifest.peerDependencies ?? {}),
   ];
+}
+
+function productionDependencies(manifest: PackageManifest): readonly string[] {
+  return [
+    ...new Set([
+      ...Object.keys(manifest.dependencies ?? {}),
+      ...Object.keys(manifest.optionalDependencies ?? {}),
+    ]),
+  ].sort();
+}
+
+function declaredPeerDependencies(manifest: PackageManifest): readonly string[] {
+  return Object.keys(manifest.peerDependencies ?? {}).sort();
 }
 
 function containsTestFile(directory: string): boolean {
@@ -216,6 +234,26 @@ function reachablePublicDeclarations(entryPoint: string): readonly string[] {
 describe('module architecture', () => {
   it('keeps product code out of the framework workspace', () => {
     expect(existsSync(join(repositoryRoot, 'modules', 'self-learn-agent'))).toBe(false);
+  });
+
+  it('recognizes static, side-effect, re-export, and dynamic module specifiers', () => {
+    expect(
+      [
+        ...moduleSpecifiers(`
+        import 'side-effect-package';
+        import value from 'default-package';
+        import type { Contract } from "type-package";
+        export { helper } from 're-export-package';
+        const lazyModule = import('dynamic-package');
+      `),
+      ].sort()
+    ).toEqual([
+      'default-package',
+      'dynamic-package',
+      're-export-package',
+      'side-effect-package',
+      'type-package',
+    ]);
   });
 
   for (const [moduleName, rule] of Object.entries(moduleRules) as Array<
@@ -391,6 +429,200 @@ describe('module architecture', () => {
     }
 
     expect(deepImports).toEqual([]);
+  });
+
+  it('keeps reusable Agent UI packages independent from domain runtimes', () => {
+    const packagesRoot = join(repositoryRoot, 'modules', 'agent-ui', 'packages');
+    for (const entry of readdirSync(packagesRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const packageRoot = join(packagesRoot, entry.name);
+      const manifestPath = join(packageRoot, 'package.json');
+      if (!existsSync(manifestPath)) continue;
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as PackageManifest;
+
+      for (const dependency of declaredDependencies(manifest)) {
+        expect(
+          ['@ta-agent/base-', '@ta-agent/workbench-', '@ta-agent/self-learn-'].some((prefix) =>
+            dependency.startsWith(prefix)
+          ),
+          `${manifest.name ?? entry.name} must not depend on a domain runtime`
+        ).toBe(false);
+      }
+
+      for (const sourceFile of typeScriptFiles(join(packageRoot, 'src'))) {
+        const source = readFileSync(sourceFile, 'utf8');
+        expect(source, `${normalize(sourceFile)} must consume UI-owned contracts`).not.toMatch(
+          /@ta-agent\/(?:base-|workbench-|self-learn-)/u
+        );
+      }
+    }
+  });
+
+  it('keeps reusable Agent UI package roles directed and store agnostic', () => {
+    const packagesRoot = join(repositoryRoot, 'modules', 'agent-ui', 'packages');
+    const packageManifest = (packageName: string) =>
+      JSON.parse(
+        readFileSync(join(packagesRoot, packageName, 'package.json'), 'utf8')
+      ) as PackageManifest;
+    const contractsManifest = packageManifest('contracts');
+    const reactManifest = packageManifest('react');
+    const stylesManifest = packageManifest('styles');
+
+    expect(productionDependencies(contractsManifest)).toEqual([]);
+    expect(declaredPeerDependencies(contractsManifest)).toEqual([]);
+    expect(
+      productionDependencies(reactManifest).filter(
+        (dependency) => dependency !== '@ta-agent/ui-contracts'
+      )
+    ).toEqual([]);
+    expect(declaredPeerDependencies(reactManifest)).toEqual(['react', 'react-dom']);
+    expect(productionDependencies(stylesManifest)).toEqual([]);
+    expect(declaredPeerDependencies(stylesManifest)).toEqual([]);
+
+    const contractsRoot = join(packagesRoot, 'contracts', 'src');
+    for (const sourceFile of typeScriptFiles(contractsRoot)) {
+      const source = readFileSync(sourceFile, 'utf8');
+      expect(extname(sourceFile), `${normalize(sourceFile)} must stay framework-neutral`).toBe(
+        '.ts'
+      );
+      expect(
+        moduleSpecifiers(source).filter(
+          (specifier) =>
+            specifier === 'react' ||
+            specifier.startsWith('react/') ||
+            specifier === 'zustand' ||
+            specifier.startsWith('zustand/')
+        ),
+        `${normalize(sourceFile)} must not depend on React or an application store`
+      ).toEqual([]);
+    }
+
+    const reactRoot = join(packagesRoot, 'react', 'src');
+    for (const sourceFile of typeScriptFiles(reactRoot)) {
+      const source = readFileSync(sourceFile, 'utf8');
+      expect(
+        moduleSpecifiers(source).filter(
+          (specifier) => specifier === 'zustand' || specifier.startsWith('zustand/')
+        ),
+        `${normalize(sourceFile)} must not depend on an application store`
+      ).toEqual([]);
+    }
+  });
+
+  it('keeps Agent UI application roles explicit and the Gallery on public package surfaces', () => {
+    const appsRoot = join(repositoryRoot, 'modules', 'agent-ui', 'apps');
+    const readAppManifest = (appName: string) =>
+      JSON.parse(readFileSync(join(appsRoot, appName, 'package.json'), 'utf8')) as PackageManifest;
+    const agentWebManifest = readAppManifest('agent-web');
+    const galleryManifest = readAppManifest('component-gallery');
+
+    expect(agentWebManifest.name).toBe('@ta-agent/ui-agent-web');
+    expect(galleryManifest.name).toBe('@ta-agent/ui-component-gallery');
+    expect(agentWebManifest.scripts?.dev).toBe('pnpm run build:dependencies && vite');
+    expect(galleryManifest.scripts?.dev).toBe('pnpm run build:dependencies && vite');
+    expect(productionDependencies(galleryManifest)).toEqual([
+      '@ta-agent/ui-react',
+      '@ta-agent/ui-styles',
+      'react',
+      'react-dom',
+    ]);
+    expect(
+      declaredDependencies(galleryManifest).filter((dependency) =>
+        ['@ta-agent/base-', '@ta-agent/workbench-', '@ta-agent/self-learn-'].some((prefix) =>
+          dependency.startsWith(prefix)
+        )
+      )
+    ).toEqual([]);
+
+    const gallerySourceRoot = join(appsRoot, 'component-gallery', 'src');
+    for (const sourceFile of typeScriptFiles(gallerySourceRoot)) {
+      const imports = moduleSpecifiers(readFileSync(sourceFile, 'utf8'));
+      expect(
+        imports.filter(
+          (specifier) =>
+            specifier.startsWith('@ta-agent/ui-') &&
+            !['@ta-agent/ui-react', '@ta-agent/ui-styles/default.css'].includes(specifier)
+        ),
+        `${normalize(sourceFile)} must use only documented public Agent UI exports`
+      ).toEqual([]);
+      expect(
+        imports.filter((specifier) =>
+          ['@ta-agent/base-', '@ta-agent/workbench-', '@ta-agent/self-learn-'].some((prefix) =>
+            specifier.startsWith(prefix)
+          )
+        ),
+        `${normalize(sourceFile)} must stay independent from domain runtimes`
+      ).toEqual([]);
+      for (const specifier of imports.filter((candidate) => candidate.startsWith('.'))) {
+        const resolvedImport = resolve(dirname(sourceFile), specifier);
+        const relativeImport = relative(gallerySourceRoot, resolvedImport);
+        expect(
+          relativeImport !== '..' &&
+            !relativeImport.startsWith(`..${pathSeparator}`) &&
+            !isAbsolute(relativeImport),
+          `${normalize(sourceFile)} must not escape the Gallery source root through ${specifier}`
+        ).toBe(true);
+      }
+    }
+
+    for (const cssFile of filesWithExtensions(gallerySourceRoot, new Set(['.css']))) {
+      expect(
+        readFileSync(cssFile, 'utf8'),
+        `${normalize(cssFile)} must not patch reusable component hooks`
+      ).not.toMatch(/\.ta-ui-(?!gallery-)/u);
+    }
+  });
+
+  it('keeps Agent UI React behavior independent from visual policy', () => {
+    const reactRoot = join(repositoryRoot, 'modules', 'agent-ui', 'packages', 'react');
+    const productionSource = join(reactRoot, 'src');
+    const sourceFiles = typeScriptFiles(productionSource);
+    const source = sourceFiles.map((path) => readFileSync(path, 'utf8')).join('\n');
+
+    expect(source).not.toMatch(/\bstyle\s*=\s*[{]/u);
+    expect(source).not.toMatch(/['"][^'"]+\.css['"]/u);
+    expect(
+      filesWithExtensions(productionSource, new Set(['.css', '.scss', '.sass', '.less']))
+    ).toEqual([]);
+
+    const styleRoot = join(repositoryRoot, 'modules', 'agent-ui', 'packages', 'styles', 'src');
+    const publicStyles = filesWithExtensions(styleRoot, new Set(['.css']))
+      .map((path) => readFileSync(path, 'utf8'))
+      .join('\n');
+    expect(source).toContain("'ta-ui-panel'");
+    for (const hook of [
+      'ta-ui-panel',
+      'ta-ui-button',
+      'ta-ui-icon-button',
+      'ta-ui-text-link',
+      'ta-ui-form-field',
+      'ta-ui-text-input',
+      'ta-ui-textarea',
+      'ta-ui-select',
+      'ta-ui-checkbox',
+      'ta-ui-switch',
+      'ta-ui-fieldset',
+      'ta-ui-badge',
+      'ta-ui-status',
+      'ta-ui-alert',
+      'ta-ui-inline-error',
+      'ta-ui-empty-state',
+      'ta-ui-spinner',
+      'ta-ui-skeleton',
+      'ta-ui-separator',
+      'ta-ui-modal-surface',
+      'ta-ui-dialog',
+      'ta-ui-drawer',
+      'ta-ui-tabs',
+      'ta-ui-tab-list',
+      'ta-ui-tab',
+      'ta-ui-tab-panel',
+      'ta-ui-disclosure',
+      'ta-ui-navigation-rail',
+    ]) {
+      expect(source, `${hook} must be published by React`).toContain(`'${hook}'`);
+      expect(publicStyles, `${hook} must be implemented by ui-styles`).toContain(`.${hook}`);
+    }
   });
 
   it('keeps the standalone Agent independent of the Pi adapter', () => {
@@ -709,3 +941,15 @@ describe('module architecture', () => {
     }
   });
 });
+
+function filesWithExtensions(
+  directory: string,
+  extensions: ReadonlySet<string>
+): readonly string[] {
+  if (!existsSync(directory)) return [];
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = join(directory, entry.name);
+    if (entry.isDirectory()) return filesWithExtensions(entryPath, extensions);
+    return entry.isFile() && extensions.has(extname(entry.name)) ? [entryPath] : [];
+  });
+}

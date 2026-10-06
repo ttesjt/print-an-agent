@@ -2,12 +2,16 @@ import {
   createAgentManagementService,
   createAgentRuntimeService,
   createSessionManagementService,
+  createSessionNavigationService,
+  type SessionNavigationCapability,
+  type SessionNavigationPorts,
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
 } from '@ta-agent/base-composition';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { parseSessionId } from '@ta-agent/base-session';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createSharedSqliteStandaloneDefinition,
@@ -44,13 +48,15 @@ async function verifyDefinition<TNamespaceHandle>(
     StandaloneRuntimePorts,
     StandaloneRawAgent,
     SessionManagementPorts
-  >,
+  > &
+    SessionNavigationCapability<TNamespaceHandle, SessionNavigationPorts>,
   expectedProjection: 'current' | 'not-configured',
   readEnvironmentVariable: ReturnType<typeof vi.fn>
 ): Promise<void> {
   const management = createAgentManagementService(definition);
   const runtime = createAgentRuntimeService(definition);
   const sessions = createSessionManagementService(definition);
+  const navigation = createSessionNavigationService(definition);
 
   const created = await management.create({
     identity: { id: 'bro' },
@@ -67,6 +73,12 @@ async function verifyDefinition<TNamespaceHandle>(
   await expect(sessions.list({ agentId: created.identity.identity.id })).resolves.toMatchObject({
     records: [],
   });
+  await expect(
+    navigation.inspect({
+      agentId: created.identity.identity.id,
+      sessionId: parseSessionId('missing-session'),
+    })
+  ).rejects.toMatchObject({ code: 'SESSION_NOT_FOUND' });
 }
 
 async function withTemporaryDirectory(action: (directory: string) => Promise<void>): Promise<void> {

@@ -8,7 +8,7 @@ import {
 } from '@ta-agent/base-local-adapters';
 import { describe, expect, it, vi } from 'vitest';
 import { FOREGROUND_AGENT_OPERATION_NAME, createDeterministicAgentAPI } from '../../src/index.js';
-import { createDefaultSessionNavigationStepOverrides } from '@ta-agent/base-session';
+import { executeSessionNavigation } from '@ta-agent/base-session';
 import { parseRequestIdempotencyKey } from '@ta-agent/base-request';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';
 
@@ -140,8 +140,22 @@ it.each(['compaction', 'navigation'] as const)(
     const persistence = createMemorySessionPersistence();
     const entered = Promise.withResolvers<void>();
     const resume = Promise.withResolvers<void>();
-    const commit = createDefaultSessionNavigationStepOverrides().commitSessionNavigation;
-    if (typeof commit !== 'function') throw new Error('Expected navigation Step');
+    const navigationSession = Object.freeze({
+      inspect: persistence.session.inspect.bind(persistence.session),
+      acquireSessionExecution: persistence.session.acquireSessionExecution.bind(
+        persistence.session
+      ),
+      releaseSessionExecution: persistence.session.releaseSessionExecution.bind(
+        persistence.session
+      ),
+      applyNavigation: async (
+        request: Parameters<typeof persistence.session.applyNavigation>[0]
+      ) => {
+        entered.resolve();
+        await resume.promise;
+        return persistence.session.applyNavigation(request);
+      },
+    });
     let sequence = 0;
     const api = createDeterministicAgentAPI({
       identity: { id: 'maintenance-owner' },
@@ -161,32 +175,31 @@ it.each(['compaction', 'navigation'] as const)(
           context.compactedContext = { role: 'context', text: 'summary', timestamp: 1 };
         },
       },
-      sessionNavigationStepOverrides: {
-        commitSessionNavigation: async (context) => {
-          if (context.command?.operation !== 'inspect') {
-            entered.resolve();
-            await resume.promise;
-          }
-          await commit(context);
-        },
-      },
     });
     const resolved = await persistence.session.resolve({ agentId: api.identity.id });
     const ref = { agentId: api.identity.id, sessionId: resolved.sessionId };
     for (let i = 0; i < 4; i++) await api.run({ sessionId: ref.sessionId, message: 'question' });
     const before = await persistence.session.inspectSession(ref);
-    await api.navigateSession({ sessionId: ref.sessionId, operation: 'inspect' });
+    await executeSessionNavigation({
+      agentId: api.identity.id,
+      navigation: { sessionId: ref.sessionId, operation: 'inspect' },
+      session: persistence.session,
+    });
     expect((await persistence.session.inspectSession(ref))?.execution.revision).toBe(
       before?.execution.revision
     );
     const running =
       operation === 'compaction'
         ? api.compactSession({ sessionId: ref.sessionId })
-        : api.navigateSession({
-            sessionId: ref.sessionId,
-            operation: 'select',
-            branchId: resolved.branchId,
-            expectedRevision: 4,
+        : executeSessionNavigation({
+            agentId: api.identity.id,
+            navigation: {
+              sessionId: ref.sessionId,
+              operation: 'select',
+              branchId: resolved.branchId,
+              expectedRevision: 4,
+            },
+            session: navigationSession,
           });
     const rejected = expect(running).rejects.toBeDefined();
     try {

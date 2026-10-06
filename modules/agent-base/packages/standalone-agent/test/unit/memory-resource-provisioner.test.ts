@@ -35,9 +35,11 @@ describe('Memory profile resource ownership', () => {
 
     const first = await resources.createSessionManagementPorts(published);
     const second = await resources.createSessionManagementPorts(published);
+    const navigation = await resources.createSessionNavigationPorts(published);
 
     expect(createMemorySessionPersistence).toHaveBeenCalledOnce();
     expect(first.session).toBe(second.session);
+    expect(navigation.session).toBe(first.session);
     expect(first.maintenance).toBe(second.maintenance);
     expect(resources.createAuthorityPorts(published)).toBe(authority);
     expect(clock).not.toHaveBeenCalled();
@@ -52,6 +54,10 @@ describe('Memory profile resource ownership', () => {
     expect(await resources.namespacePort.list()).toEqual([]);
     await expectNamespaceFailure(
       () => resources.createSessionManagementPorts({ ...staged, phase: 'published' }),
+      'STANDALONE_AGENT_STORAGE_INVALID'
+    );
+    await expectNamespaceFailure(
+      () => resources.createSessionNavigationPorts({ ...staged, phase: 'published' }),
       'STANDALONE_AGENT_STORAGE_INVALID'
     );
     await expectNamespaceFailure(
@@ -101,6 +107,10 @@ describe('Memory profile resource ownership', () => {
     expect(await resources.namespacePort.resolve(agentId)).toBe(published);
     await expectNamespaceFailure(
       () => resources.createSessionManagementPorts({ ...otherScope, phase: 'published' }),
+      'STANDALONE_AGENT_STORAGE_INVALID'
+    );
+    await expectNamespaceFailure(
+      () => resources.createSessionNavigationPorts({ ...otherScope, phase: 'published' }),
       'STANDALONE_AGENT_STORAGE_INVALID'
     );
     expect(createMemorySessionPersistence).not.toHaveBeenCalled();

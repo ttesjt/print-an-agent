@@ -1,3 +1,4 @@
+import type { AgentId } from '@ta-agent/base-identity';
 import type {
   InspectableSessionPort,
   SessionBranchId,
@@ -76,7 +77,21 @@ export type SessionNavigationOutcome =
       navigation: SessionNavigationSnapshot;
     }>
   | Readonly<{
-      status: 'selected' | 'forked' | 'rewound';
+      status: 'selected';
+      sessionId: string;
+      selectedBranchId: SessionBranchId;
+      affectedBranchId: SessionBranchId;
+      revision: number;
+    }>
+  | Readonly<{
+      status: 'forked';
+      sessionId: string;
+      selectedBranchId: SessionBranchId;
+      affectedBranchId: SessionBranchId;
+      revision: number;
+    }>
+  | Readonly<{
+      status: 'rewound';
       sessionId: string;
       selectedBranchId: SessionBranchId;
       affectedBranchId: SessionBranchId;
@@ -87,5 +102,21 @@ export interface SessionNavigationPort {
   applyNavigation(request: ApplySessionNavigationRequest): Promise<AppliedSessionNavigation>;
 }
 
+/** Minimal storage authority required by the complete navigation coordinator. */
+export type SessionNavigationCoordinatorPort = Pick<InspectableSessionPort, 'inspect'> &
+  SessionNavigationPort;
+
 export type NavigableSessionPort = InspectableSessionPort & SessionNavigationPort;
 export type NavigableCompactableSessionPort = NavigableSessionPort & SessionCompactionPort;
+
+/** Complete domain execution input; storage remains injected through the narrow Session port. */
+export interface SessionNavigationCoordinatorRequest {
+  readonly agentId: AgentId;
+  readonly navigation: NavigateSessionInput;
+  readonly session: SessionNavigationCoordinatorPort;
+}
+
+/** Per-call execution behavior; cancellation is not part of the persisted navigation command. */
+export interface SessionNavigationOperationOptions {
+  readonly signal?: AbortSignal;
+}

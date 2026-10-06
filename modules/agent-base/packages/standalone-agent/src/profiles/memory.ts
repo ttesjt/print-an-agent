@@ -1,5 +1,7 @@
 import {
   defineManagedAgentComposition,
+  type SessionNavigationCapability,
+  type SessionNavigationPorts,
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
 } from '@ta-agent/base-composition';
@@ -25,7 +27,8 @@ export type StandaloneMemoryDefinition = SessionManagedAgentCompositionDefinitio
   StandaloneRuntimePorts,
   StandaloneRawAgent,
   SessionManagementPorts
->;
+> &
+  SessionNavigationCapability<MemoryAgentResourceNamespace, SessionNavigationPorts>;
 
 /** Reuse this Definition across sibling Services to share one ephemeral provisioning scope. */
 export function createStandaloneMemoryDefinition(
@@ -45,5 +48,6 @@ export function createStandaloneMemoryDefinition(
         materializeStandaloneAgentRuntime({ identity, config, ports, options }),
     },
     sessionManagement: { createPorts: resources.createSessionManagementPorts },
+    sessionNavigation: { createPorts: resources.createSessionNavigationPorts },
   });
 }

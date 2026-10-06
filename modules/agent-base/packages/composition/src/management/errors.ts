@@ -28,7 +28,11 @@ export type AgentManagementOperation =
   | 'retire-session'
   | 'restore-session'
   | 'purge-session'
-  | 'recover-session';
+  | 'recover-session'
+  | 'inspect-session-navigation'
+  | 'select-session-branch'
+  | 'fork-session-branch'
+  | 'rewind-session-branch';
 
 export type AgentManagementErrorCode =
   | 'MANAGED_AGENT_REQUEST_INVALID'

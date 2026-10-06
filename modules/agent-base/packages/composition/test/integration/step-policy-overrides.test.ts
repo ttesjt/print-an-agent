@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createDeterministicAgentAPI } from '../../src/index.js';
 
 describe('composed Step policy overrides', () => {
-  it('retains default implementations and optional skips across all official Operations', async () => {
+  it('retains default implementations and optional skips across official runtime Operations', async () => {
     let sequence = 0;
     const agent = createDeterministicAgentAPI({
       identity: { id: 'policy-agent' },
@@ -14,9 +14,6 @@ describe('composed Step policy overrides', () => {
       },
       sessionCompactionStepOverrides: {
         buildCompactedContext: { cardinality: STEP_CARDINALITY.REPEATABLE },
-      },
-      sessionNavigationStepOverrides: {
-        inspectSessionNavigation: { cardinality: STEP_CARDINALITY.REPEATABLE },
       },
       provider: {
         responses: [
@@ -39,9 +36,6 @@ describe('composed Step policy overrides', () => {
     await expect(agent.compactSession({ sessionId: sessionId })).resolves.toMatchObject({
       status: 'compacted',
     });
-    await expect(
-      agent.navigateSession({ operation: 'inspect', sessionId: sessionId })
-    ).resolves.toMatchObject({ status: 'inspected' });
     expect(agent.inspectDeterministicProvider().callCount).toBe(5);
   });
 });

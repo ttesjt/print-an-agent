@@ -6,11 +6,11 @@ Agent from closed JSON, or open authoritative stored configuration by `--agent-i
 filesystem, SQLite, and Agent behavior remains delegated to `@ta-agent/base-standalone-agent`.
 
 The CLI exposes Agent create/list/inspect/disable/reactivate, provider readiness, one-shot or stdin
-request execution, Session compaction, Session inspect/select/fork/rewind Operations, and separate
-out-of-band Session lifecycle commands. Request text streams to stdout; metadata commands emit one
-JSON line. Lifecycle output is a safe projection containing IDs, display name, statuses, and
-revisions—not provider configuration or credentials. Error output contains stable codes rather than
-paths, provider, credential, prompt, or response data.
+request execution, the Session compaction runtime Operation, out-of-band Session
+inspect/select/fork/rewind, and separate Session lifecycle commands. Request text streams to stdout;
+metadata commands emit one JSON line. Lifecycle output is a safe projection containing IDs, display
+name, statuses, and revisions—not provider configuration or credentials. Error output contains
+stable codes rather than paths, provider, credential, prompt, or response data.
 
 Agent creation and runtime opening use the official profile Definition, provisioning and narrow
 Services. Provider checks use only the narrow provider Service: `--config` performs a preflight of
@@ -88,8 +88,9 @@ a new Session. When its response stream opens, the CLI emits one
 `{"type":"session-created","sessionId":"..."}` metadata line to stderr; assistant text remains
 on stdout. Use that returned ID with `--session-id` to continue a durable Session. An unknown ID
 fails rather than creating a named Session. `--idempotency-key` requires an existing durable
-Session ID. Session compact/inspect/select/fork/rewind likewise require a durable locator. Memory
-Sessions remain process-local and cannot be reopened by another CLI process.
+Session ID. Session compact/inspect/select/fork/rewind likewise require a durable locator. Compaction
+opens a runtime because it may invoke an Actor; navigation loads only the narrow Session Navigation
+Service. Memory Sessions remain process-local and cannot be reopened by another CLI process.
 
 Session lifecycle management is available only for the managed directory profile:
 
@@ -110,4 +111,5 @@ Definition to share resources with Session management. `--config` is process-loc
 not a reusable locator for these out-of-band commands.
 
 The embeddable command runner uses `loadAgentManager(storage)` for Agent lifecycle, `loadRuntime()`
-for runtime Operations, and `loadProvider()` for diagnostics. Node host loaders remain internal.
+for runtime Operations, `loadSessionNavigator()` for out-of-band navigation, and `loadProvider()`
+for diagnostics. Node host loaders remain internal.

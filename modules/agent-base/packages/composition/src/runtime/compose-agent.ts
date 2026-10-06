@@ -17,9 +17,7 @@ import {
 import {
   AgentSessionError,
   createDefaultSessionCompactionStepOverrides,
-  createDefaultSessionNavigationStepOverrides,
   createSessionCompactionWorkflow,
-  createSessionNavigationWorkflow,
   createShouldCompactSessionCondition,
   DEFAULT_SESSION_COMPACTION_POLICY,
   parseSessionBranchId,
@@ -27,7 +25,6 @@ import {
   validateSessionCompactionPolicy,
   type CompactSessionInput,
   type SessionCompactionAgentRunContext,
-  type SessionNavigationAgentRunContext,
 } from '@ta-agent/base-session';
 import {
   DEFAULT_TOOL_EXECUTION_POLICY,
@@ -54,7 +51,6 @@ const MAX_COMPACTION_INSTRUCTIONS_CHARACTERS = 16_384;
 
 export const FOREGROUND_AGENT_OPERATION_NAME = 'foreground';
 export const SESSION_COMPACTION_AGENT_OPERATION_NAME = 'compactSession';
-export const SESSION_NAVIGATION_AGENT_OPERATION_NAME = 'navigateSession';
 
 type NoCallableAgentOperations = Readonly<Record<never, never>>;
 
@@ -169,41 +165,6 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     ...(options.createRunId === undefined ? {} : { createRunId: options.createRunId }),
   });
 
-  const navigationResources = Object.freeze({ session });
-  const navigationWorkflow =
-    options.sessionNavigationWorkflow ??
-    createSessionNavigationWorkflow({
-      resources: navigationResources,
-      stepOverrides: mergeStepOverrides(
-        createDefaultSessionNavigationStepOverrides(),
-        options.sessionNavigationStepOverrides
-      ),
-      ...(options.createNavigationWorkflowRunId === undefined
-        ? {}
-        : { createRunId: options.createNavigationWorkflowRunId }),
-    });
-  const navigationOperation = defineAgentOperation<
-    typeof SESSION_NAVIGATION_AGENT_OPERATION_NAME,
-    'public',
-    Readonly<Record<string, never>>,
-    typeof navigationResources,
-    NoCallableAgentOperations,
-    SessionNavigationAgentRunContext
-  >({
-    name: SESSION_NAVIGATION_AGENT_OPERATION_NAME,
-    exposure: 'public',
-    config: Object.freeze({}),
-    resources: navigationResources,
-    workflowPlan: [navigationWorkflow],
-    createContext: (base): SessionNavigationAgentRunContext => ({
-      ...base,
-      resources: navigationResources,
-    }),
-    ...(options.createNavigationRunId === undefined
-      ? {}
-      : { createRunId: options.createNavigationRunId }),
-  });
-
   const compactionPolicy = validateSessionCompactionPolicy(
     options.sessionCompactionPolicy ?? DEFAULT_SESSION_COMPACTION_POLICY
   );
@@ -288,7 +249,6 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     operations: Object.freeze({
       [FOREGROUND_AGENT_OPERATION_NAME]: foregroundOperation,
       [SESSION_COMPACTION_AGENT_OPERATION_NAME]: compactionOperation,
-      [SESSION_NAVIGATION_AGENT_OPERATION_NAME]: navigationOperation,
     }),
     observability: Object.freeze({ ...options.observability, sink: traceSink }),
   });

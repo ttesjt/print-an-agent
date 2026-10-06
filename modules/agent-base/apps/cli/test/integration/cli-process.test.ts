@@ -561,11 +561,15 @@ describe('standalone Agent Base CLI process', () => {
     expect(JSON.stringify(server.requests()[1])).toContain('loopback response');
     expect(JSON.stringify(server.requests()[1])).toContain('second turn');
 
+    expect(
+      await runCli(['agent', 'disable', ...scope, '--expected-revision', '1']).completion
+    ).toMatchObject({ exitCode: 0, standardError: '' });
     const inspection = await runCli(['session', 'inspect', ...scope, '--session-id', sessionId])
       .completion;
     expect(inspection.exitCode).toBe(0);
     expect(inspection.standardError).toBe('');
     expect(inspection.standardOutput).toContain('"status":"inspected"');
+    expect(server.requests()).toHaveLength(2);
   });
 
   it('rejects durable --config before provisioning or provider work', async () => {

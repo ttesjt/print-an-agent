@@ -4,14 +4,17 @@ import {
   createStandaloneAgent,
   createStandaloneDirectoryManagementService,
   createStandaloneDirectoryRuntimeService,
+  createStandaloneDirectorySessionNavigationService,
   createStandaloneDirectorySessionService,
   createSharedSqliteStandaloneManagementService,
+  createSharedSqliteStandaloneSessionNavigationService,
   createSharedSqliteStandaloneRuntimeService,
   createStandaloneProviderService,
   defineStandaloneAgentBootstrapConfig,
   defineStandaloneAgentManifest,
   type StandaloneAgentManagementService,
   type StandaloneRawAgent,
+  type StandaloneSessionNavigationService,
   type StandaloneSessionManagementService,
 } from '@ta-agent/base-standalone-agent';
 import { AgentBaseCliError } from './errors.js';
@@ -20,6 +23,8 @@ import type {
   AgentBaseCliProvider,
   AgentBaseCliRuntime,
   AgentBaseCliRuntimeLocator,
+  AgentBaseCliManagedAgentLocator,
+  AgentBaseCliSessionNavigator,
   AgentBaseCliStorageLocator,
   AgentBaseCliSessionManager,
 } from './contracts.js';
@@ -65,16 +70,21 @@ function projectRuntime(agent: StandaloneRawAgent): AgentBaseCliRuntime {
         { signal: options.signal }
       ),
     compactSession: (input, signal) => agent.invoke('compactSession', input, { signal }),
-    inspectSession: (sessionId, signal) =>
-      agent.invoke('navigateSession', { sessionId, operation: 'inspect' }, { signal }),
-    selectSessionBranch: (input, signal) =>
-      agent.invoke('navigateSession', { ...input, operation: 'select' }, { signal }),
-    forkSessionBranch: (input, signal) =>
-      agent.invoke('navigateSession', { ...input, operation: 'fork' }, { signal }),
-    rewindSession: (input, signal) =>
-      agent.invoke('navigateSession', { ...input, operation: 'rewind' }, { signal }),
   };
   return Object.freeze(runtime);
+}
+
+function projectSessionNavigator(
+  service: StandaloneSessionNavigationService,
+  agentId: string
+): AgentBaseCliSessionNavigator {
+  const navigator: AgentBaseCliSessionNavigator = {
+    inspectSession: (sessionId, signal) => service.inspect({ agentId, sessionId }, { signal }),
+    selectSessionBranch: (input, signal) => service.select({ ...input, agentId }, { signal }),
+    forkSessionBranch: (input, signal) => service.fork({ ...input, agentId }, { signal }),
+    rewindSession: (input, signal) => service.rewind({ ...input, agentId }, { signal }),
+  };
+  return Object.freeze(navigator);
 }
 
 function projectProvider(
@@ -187,6 +197,20 @@ export async function loadAgentBaseCliRuntime(
           databasePath: locator.databasePath,
         });
   return projectRuntime(await runtime.open(locator.agentId));
+}
+
+export function loadAgentBaseCliSessionNavigator(
+  locator: AgentBaseCliManagedAgentLocator
+): Promise<AgentBaseCliSessionNavigator> {
+  const service =
+    locator.kind === 'directory'
+      ? createStandaloneDirectorySessionNavigationService({
+          rootDirectory: locator.rootDirectory,
+        })
+      : createSharedSqliteStandaloneSessionNavigationService({
+          databasePath: locator.databasePath,
+        });
+  return Promise.resolve(projectSessionNavigator(service, locator.agentId));
 }
 
 export async function loadAgentBaseCliProvider(

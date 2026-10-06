@@ -61,6 +61,7 @@ export {
   type NormalizedListSessionTurnsInput,
 } from './query/normalization.js';
 export type * from './navigation/contracts.js';
+export { executeSessionNavigation } from './navigation/coordinator.js';
 export {
   completedLineageBeforeTurn,
   completedLineageForBranch,

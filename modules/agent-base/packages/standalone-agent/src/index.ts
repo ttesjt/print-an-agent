@@ -11,10 +11,13 @@ export type { StandaloneProviderService } from './services/provider-service.js';
 export type { StandaloneAgentManagementService } from './services/management-service.js';
 export type { StandaloneAgentRuntimeService } from './services/runtime-service.js';
 export type * from './services/session-management-service.js';
+export { projectStandaloneSessionNavigationService } from './services/session-navigation-service.js';
+export type * from './services/session-navigation-service.js';
 export {
   createStandaloneDirectoryDefinition,
   createStandaloneDirectoryManagementService,
   createStandaloneDirectoryRuntimeService,
+  createStandaloneDirectorySessionNavigationService,
   createStandaloneDirectorySessionService,
 } from './profiles/directory.js';
 export type { StandaloneDirectoryDefinition } from './profiles/directory.js';
@@ -24,6 +27,7 @@ export {
   createSharedSqliteStandaloneDefinition,
   createSharedSqliteStandaloneManagementService,
   createSharedSqliteStandaloneRuntimeService,
+  createSharedSqliteStandaloneSessionNavigationService,
   createSharedSqliteStandaloneSessionService,
 } from './profiles/shared-sqlite.js';
 export type { SharedSqliteStandaloneDefinition } from './profiles/shared-sqlite.js';

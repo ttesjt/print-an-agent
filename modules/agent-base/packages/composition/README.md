@@ -64,12 +64,12 @@ does not recursively freeze injected factories or adapters. Capability interface
 intersection; adding one does not imply another or require overloads for every combination.
 
 Out-of-band Session management is represented by `SessionManagementCapability`; the independent
-`SessionNavigationCapability` reserves the corresponding navigation-port boundary without making
-it part of Session management. Core Definitions do not assume that an Agent uses the standard
-Session domain. A Generic Agent may have no Session, use Session only inside its runtime, or expose a
-product-owned conversation model. Only Definitions that install the standard
-`SessionManagementPorts` contract can create `SessionManagementService`. Projection remains an
-optional concern internal to Agent management coordination, not a capability-gated Service.
+`SessionNavigationCapability` owns the corresponding navigation-port boundary without making it
+part of Session management. Core Definitions do not assume that an Agent uses the standard Session
+domain. A Generic Agent may have no Session, use Session only inside its runtime, or expose a
+product-owned conversation model. Only Definitions that install the relevant standard Ports can
+create `SessionManagementService` or `SessionNavigationService`. Projection remains an optional
+concern internal to Agent management coordination, not a capability-gated Service.
 
 `createSessionManagementService()` exposes active/retired listing, inspection, Turn pagination,
 retire/restore, and coordinated purge/recovery without creating an Agent runtime or reading Identity
@@ -79,6 +79,16 @@ Purge and recovery require the explicit Session + Request Journal maintenance Po
 silently degrade to Session-only success. A disabled Agent's published Session resources remain
 manageable. Definitions without this optional capability are rejected by TypeScript rather than by
 a runtime `undefined` branch.
+
+`createSessionNavigationService()` exposes inspect/select/fork/non-destructive rewind directly over
+one published Agent namespace. Each call resolves the namespace and creates fresh scoped navigation
+Ports; it never materializes an Agent, reads provider credentials, or checks whether the Agent is
+enabled for future runtime admission. The Service delegates complete validation, execution
+admission, CAS mutation, and cleanup to the Session domain coordinator. Per-call cancellation can
+prevent work before the mutation boundary but does not pretend to interrupt adapter I/O after a
+commit begins. Retired Sessions remain inspectable while mutation admission retains the Session
+domain's `SESSION_RETIRED` failure. Session management and navigation are independent capabilities;
+installing either one never implies the other.
 
 `createAgentManagementService()` consumes one Definition and exposes the storage-neutral static
 Agent lifecycle: create, inspect, deterministic list, typed Config update, unknown Config import,
@@ -110,8 +120,9 @@ lifecycle policy.
 
 `composeAgent()` accepts Agent Base-owned Actor and Responsibility catalogs plus replaceable Session,
 Request Journal, Tool, OutputSink, Workflow/Step, and observability ports. It constructs and returns
-exactly one Agent owner with one Workflow Catalog and three public Operations: `foreground`,
-`compactSession`, and `navigateSession`. The returned value is the actual `Agent`, not another
+exactly one Agent owner with one Workflow Catalog and two public Operations: `foreground` and
+`compactSession`. Session navigation is an independent, optional management capability and does not
+require runtime materialization. The returned value is the actual `Agent`, not another
 runtime facade, and requires a resolvable `main` Actor.
 
 Products that need the same standard behavior plus product-owned resources and Operations use
@@ -124,7 +135,7 @@ definition for inspection and advanced definition-level composition; the guarded
 is the preferred product integration boundary.
 
 `createAgentAPI(agent)` is an optional transparent convenience projection. It exposes the wrapped
-`agent` plus named `run()`, `compactSession()`, and `navigateSession()` methods. Correctness does not
+`agent` plus named `run()` and `compactSession()` methods. Correctness does not
 depend on this layer: timeout mapping, input preparation, Session authority, and every other official
 Operation behavior execute through raw `agent.invoke()`.
 
@@ -148,8 +159,11 @@ Engine catalogs through `composeAgent()` directly and receive the raw Agent.
 The runtime exposes:
 
 - `run()` for the canonical Request Workflow and bounded provider/Tool loop;
-- `compactSession()` for an explicit replaceable compaction Workflow;
-- `navigateSession()` for inspect/select/fork/non-destructive rewind.
+- `compactSession()` for an explicit replaceable compaction Workflow.
+
+`createSessionNavigationService()` provides inspect/select/fork/non-destructive rewind for
+Definitions that explicitly install `SessionNavigationCapability`. It resolves scoped Session ports
+without opening an Agent runtime or reading provider credentials.
 
 The optional Agent API also exposes immutable `operationNames` and `workflowNames` inspection views.
 Each method call delegates directly to the wrapped Agent and creates a distinct Agent Run with its

@@ -92,13 +92,14 @@ correlated observability is available through an explicit metadata-only sink. Tr
 disabled by default. Session compaction is an explicit bounded Agent Operation: each invocation
 creates a Run that retains authoritative
 turns, persists a branch-scoped revisioned context projection, and supplies that projection plus the
-raw recent tail to later requests. Session navigation is a separate explicit Agent Operation supporting
-inspect, select, fork, and non-destructive rewind over append-only lineage. Automatic compaction
+raw recent tail to later requests. Session navigation is an optional out-of-band management
+capability supporting inspect, select, fork, and non-destructive rewind over append-only lineage; it
+does not materialize an Agent runtime or resolve provider credentials. Automatic compaction
 scheduling, branch merge/delete/retention, durable trace/credential storage, OAuth, and broader
 provider qualification remain deferred.
 
 For managed use, `@ta-agent/base-composition` provides the storage-neutral Definition and narrow
-Agent management, runtime-opening, and optional Session management Services.
+Agent management, runtime-opening, and independent optional Session management/navigation Services.
 `@ta-agent/base-standalone-agent` binds those contracts to concrete resource namespace publication,
 independently typed domain adapters, and optional manifest projection. The default managed profile
 uses one explicitly configured root, one directory, and one SQLite database per Agent; an

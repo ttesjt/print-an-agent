@@ -8,6 +8,8 @@ import {
   type ManagedAgentRuntimePortFactory,
   type SessionManagementPortFactory,
   type SessionManagementPorts,
+  type SessionNavigationPortFactory,
+  type SessionNavigationPorts,
   type StagedManagedAgentNamespace,
 } from '@ta-agent/base-composition';
 import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
@@ -45,6 +47,10 @@ interface MemoryStandaloneResourceProvisioner {
   readonly createSessionManagementPorts: SessionManagementPortFactory<
     MemoryAgentResourceNamespace,
     SessionManagementPorts
+  >;
+  readonly createSessionNavigationPorts: SessionNavigationPortFactory<
+    MemoryAgentResourceNamespace,
+    SessionNavigationPorts
   >;
 }
 
@@ -120,6 +126,12 @@ class MemoryResourceScope {
       return Object.freeze({ session, maintenance });
     };
 
+  readonly createSessionNavigationPorts: MemoryStandaloneResourceProvisioner['createSessionNavigationPorts'] =
+    (namespace) => {
+      const { session } = this.#persistence(namespace);
+      return Object.freeze({ session });
+    };
+
   #stage(
     agentIdInput: AgentId
   ): Promise<StagedManagedAgentNamespace<MemoryAgentResourceNamespace>> {
@@ -172,5 +184,6 @@ export function createMemoryStandaloneResourceProvisioner(
     createAuthorityPorts: scope.createAuthorityPorts,
     createRuntimePorts: scope.createRuntimePorts,
     createSessionManagementPorts: scope.createSessionManagementPorts,
+    createSessionNavigationPorts: scope.createSessionNavigationPorts,
   });
 }

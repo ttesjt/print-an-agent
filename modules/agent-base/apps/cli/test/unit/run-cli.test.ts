@@ -3,6 +3,7 @@ import { parseAgentBaseCliCommand, runAgentBaseCli } from '../../src/index.js';
 import type {
   AgentBaseCliDependencies,
   AgentBaseCliRuntime,
+  AgentBaseCliSessionNavigator,
   AgentBaseCliSessionManager,
   AgentBaseCliWriter,
 } from '../../src/index.js';
@@ -22,6 +23,14 @@ function runtime(overrides: Partial<AgentBaseCliRuntime> = {}): AgentBaseCliRunt
   return {
     run: (_input, options) => options.writeTextDelta('mock response'),
     compactSession: () => Promise.resolve({ status: 'skipped' }),
+    ...overrides,
+  };
+}
+
+function sessionNavigator(
+  overrides: Partial<AgentBaseCliSessionNavigator> = {}
+): AgentBaseCliSessionNavigator {
+  return {
     inspectSession: () => Promise.resolve({ status: 'inspected' }),
     selectSessionBranch: () => Promise.resolve({ status: 'selected' }),
     forkSessionBranch: () => Promise.resolve({ status: 'forked' }),
@@ -56,6 +65,7 @@ function dependencies(
   return {
     loadProvider: () => Promise.resolve({ check: () => Promise.resolve({ status: 'ready' }) }),
     loadRuntime: () => Promise.resolve(testRuntime),
+    loadSessionNavigator: () => Promise.resolve(sessionNavigator()),
     loadAgentManager: () =>
       Promise.resolve({
         create: () => Promise.resolve({ status: 'created' }),
@@ -417,31 +427,35 @@ describe('Agent Base CLI command contract', () => {
     expect(loadProvider).not.toHaveBeenCalled();
   });
 
-  it('routes every Session command to one matching Application API operation', async () => {
+  it('routes compaction through runtime and navigation through its out-of-band Service', async () => {
     const compactSession = vi.fn<AgentBaseCliRuntime['compactSession']>(() =>
       Promise.resolve({ status: 'compacted' })
     );
-    const inspectSession = vi.fn<AgentBaseCliRuntime['inspectSession']>(() =>
+    const inspectSession = vi.fn<AgentBaseCliSessionNavigator['inspectSession']>(() =>
       Promise.resolve({ status: 'inspected' })
     );
-    const selectSessionBranch = vi.fn<AgentBaseCliRuntime['selectSessionBranch']>(() =>
+    const selectSessionBranch = vi.fn<AgentBaseCliSessionNavigator['selectSessionBranch']>(() =>
       Promise.resolve({ status: 'selected' })
     );
-    const forkSessionBranch = vi.fn<AgentBaseCliRuntime['forkSessionBranch']>(() =>
+    const forkSessionBranch = vi.fn<AgentBaseCliSessionNavigator['forkSessionBranch']>(() =>
       Promise.resolve({ status: 'forked' })
     );
-    const rewindSession = vi.fn<AgentBaseCliRuntime['rewindSession']>(() =>
+    const rewindSession = vi.fn<AgentBaseCliSessionNavigator['rewindSession']>(() =>
       Promise.resolve({ status: 'rewound' })
     );
-    const deps = dependencies(
-      runtime({
-        compactSession,
-        inspectSession,
-        selectSessionBranch,
-        forkSessionBranch,
-        rewindSession,
-      })
+    const baseDependencies = dependencies(runtime({ compactSession }));
+    const loadRuntime = vi.fn(baseDependencies.loadRuntime);
+    const loadSessionNavigator = vi.fn(() =>
+      Promise.resolve(
+        sessionNavigator({
+          inspectSession,
+          selectSessionBranch,
+          forkSessionBranch,
+          rewindSession,
+        })
+      )
     );
+    const deps = { ...baseDependencies, loadRuntime, loadSessionNavigator };
     const durableScope = ['--root', '/agents', '--agent-id', 'bro'] as const;
 
     await runAgentBaseCli(
@@ -528,6 +542,13 @@ describe('Agent Base CLI command contract', () => {
       sessionId: 'session-1',
       throughTurnId: 'turn-2',
       expectedRevision: 5,
+    });
+    expect(loadRuntime).toHaveBeenCalledTimes(1);
+    expect(loadSessionNavigator).toHaveBeenCalledTimes(4);
+    expect(loadSessionNavigator).toHaveBeenCalledWith({
+      kind: 'directory',
+      rootDirectory: '/agents',
+      agentId: 'bro',
     });
   });
 

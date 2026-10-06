@@ -2,7 +2,10 @@ import {
   createAgentManagementService,
   createAgentRuntimeService,
   createSessionManagementService,
+  createSessionNavigationService,
   defineManagedAgentComposition,
+  type SessionNavigationCapability,
+  type SessionNavigationPorts,
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
 } from '@ta-agent/base-composition';
@@ -25,6 +28,10 @@ import {
   type StandaloneSessionManagementService,
 } from '../services/session-management-service.js';
 import {
+  projectStandaloneSessionNavigationService,
+  type StandaloneSessionNavigationService,
+} from '../services/session-navigation-service.js';
+import {
   materializeStandaloneAgentRuntime,
   type StandaloneRuntimePorts,
 } from '../runtime/materialize-standalone-agent.js';
@@ -32,6 +39,7 @@ import type {
   CreateSharedSqliteStandaloneProfileOptions,
   CreateSharedSqliteStandaloneManagementServiceOptions,
   CreateSharedSqliteStandaloneSessionServiceOptions,
+  CreateSharedSqliteStandaloneNavigationServiceOptions,
   StandaloneAgentConfig,
   StandaloneRawAgent,
 } from '../types.js';
@@ -42,7 +50,8 @@ export type SharedSqliteStandaloneDefinition = SessionManagedAgentCompositionDef
   StandaloneRuntimePorts,
   StandaloneRawAgent,
   SessionManagementPorts
->;
+> &
+  SessionNavigationCapability<SharedSqliteAgentResourceNamespace, SessionNavigationPorts>;
 
 export function createSharedSqliteStandaloneDefinition(
   options: CreateSharedSqliteStandaloneProfileOptions
@@ -80,6 +89,7 @@ export function createSharedSqliteStandaloneDefinition(
         }),
     },
     sessionManagement: { createPorts: ports.createSessionManagementPorts },
+    sessionNavigation: { createPorts: ports.createSessionNavigationPorts },
   });
 }
 
@@ -109,6 +119,19 @@ export function createSharedSqliteStandaloneSessionService(
 ): StandaloneSessionManagementService {
   return projectStandaloneSessionManagementService(
     createSessionManagementService(
+      createSharedSqliteStandaloneDefinition({
+        ...options,
+        readEnvironmentVariable: () => undefined,
+      })
+    )
+  );
+}
+
+export function createSharedSqliteStandaloneSessionNavigationService(
+  options: CreateSharedSqliteStandaloneNavigationServiceOptions
+): StandaloneSessionNavigationService {
+  return projectStandaloneSessionNavigationService(
+    createSessionNavigationService(
       createSharedSqliteStandaloneDefinition({
         ...options,
         readEnvironmentVariable: () => undefined,

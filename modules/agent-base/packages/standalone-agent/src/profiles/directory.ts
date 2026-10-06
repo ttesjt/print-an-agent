@@ -3,7 +3,10 @@ import {
   createAgentManagementService,
   createAgentRuntimeService,
   createSessionManagementService,
+  createSessionNavigationService,
   defineManagedAgentComposition,
+  type SessionNavigationCapability,
+  type SessionNavigationPorts,
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
 } from '@ta-agent/base-composition';
@@ -27,6 +30,10 @@ import {
   type StandaloneSessionManagementService,
 } from '../services/session-management-service.js';
 import {
+  projectStandaloneSessionNavigationService,
+  type StandaloneSessionNavigationService,
+} from '../services/session-navigation-service.js';
+import {
   materializeStandaloneAgentRuntime,
   type StandaloneRuntimePorts,
 } from '../runtime/materialize-standalone-agent.js';
@@ -34,6 +41,7 @@ import type {
   CreateStandaloneDirectoryProfileOptions,
   CreateStandaloneDirectoryManagementServiceOptions,
   CreateStandaloneDirectorySessionServiceOptions,
+  CreateStandaloneDirectoryNavigationServiceOptions,
   StandaloneAgentConfig,
   StandaloneRawAgent,
 } from '../types.js';
@@ -44,7 +52,8 @@ export type StandaloneDirectoryDefinition = SessionManagedAgentCompositionDefini
   StandaloneRuntimePorts,
   StandaloneRawAgent,
   SessionManagementPorts
->;
+> &
+  SessionNavigationCapability<FilesystemAgentResourceNamespace, SessionNavigationPorts>;
 
 export function createStandaloneDirectoryDefinition(
   options: CreateStandaloneDirectoryProfileOptions
@@ -80,6 +89,7 @@ export function createStandaloneDirectoryDefinition(
       port: createFilesystemStandaloneManifestProjection({ createTemporaryId }),
     },
     sessionManagement: { createPorts: ports.createSessionManagementPorts },
+    sessionNavigation: { createPorts: ports.createSessionNavigationPorts },
   });
 }
 
@@ -109,6 +119,19 @@ export function createStandaloneDirectorySessionService(
 ): StandaloneSessionManagementService {
   return projectStandaloneSessionManagementService(
     createSessionManagementService(
+      createStandaloneDirectoryDefinition({
+        ...options,
+        readEnvironmentVariable: () => undefined,
+      })
+    )
+  );
+}
+
+export function createStandaloneDirectorySessionNavigationService(
+  options: CreateStandaloneDirectoryNavigationServiceOptions
+): StandaloneSessionNavigationService {
+  return projectStandaloneSessionNavigationService(
+    createSessionNavigationService(
       createStandaloneDirectoryDefinition({
         ...options,
         readEnvironmentVariable: () => undefined,

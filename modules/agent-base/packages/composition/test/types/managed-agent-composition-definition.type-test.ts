@@ -14,6 +14,7 @@ import {
   createAgentManagementService,
   createAgentRuntimeService,
   createSessionManagementService,
+  createSessionNavigationService,
   defineManagedAgentComposition,
   type AgentConfigProjectionPort,
   type ManagedAgentAuthorityPorts,
@@ -32,6 +33,7 @@ import {
   type SessionManagementPorts,
   type SessionNavigationAgentCompositionDefinition,
   type SessionNavigationCapability,
+  type SessionNavigationPorts,
   type StagedManagedAgentNamespace,
 } from '../../src/index.js';
 
@@ -274,6 +276,9 @@ void runtimeService.open('managed-agent');
 
 // @ts-expect-error Core Definitions do not silently gain standard Session management.
 createSessionManagementService(definition);
+
+// @ts-expect-error Core Definitions do not silently gain standard Session navigation.
+createSessionNavigationService(definition);
 
 void management.inspect(managedAgentId);
 void management.updateConfig({
@@ -548,6 +553,12 @@ defineManagedAgentComposition({
 // @ts-expect-error A product-owned capability is not the standard Session management contract.
 createSessionManagementService(sessionDefinition);
 
+// @ts-expect-error Session management does not imply Session navigation.
+createSessionNavigationService(sessionDefinition);
+
+// @ts-expect-error Product-owned navigation ports are not the standard Session navigation contract.
+createSessionNavigationService(navigationDefinition);
+
 declare const sessionManagementPorts: SessionManagementPorts;
 const standardSessionDefinition = defineManagedAgentComposition({
   config: { codec },
@@ -578,6 +589,51 @@ void sessionRuntime;
 export type SessionCapabilityPreservesProductAgent = Expect<
   Equal<Awaited<typeof sessionRuntime>, ProductAgent>
 >;
+
+declare const sessionNavigationPorts: SessionNavigationPorts;
+const standardNavigationDefinition = defineManagedAgentComposition({
+  config: { codec },
+  namespace: { port: namespacePort },
+  authority: { createPorts: () => authorityPorts },
+  runtime: {
+    createPorts: (): RuntimePorts => ({ providerToken: 'provider' }),
+    materialize: () => rawAgent,
+  },
+  sessionNavigation: {
+    createPorts: (): SessionNavigationPorts => sessionNavigationPorts,
+  },
+});
+
+const navigationService = createSessionNavigationService(standardNavigationDefinition);
+void navigationService.inspect({ agentId: managedAgentId, sessionId: managedSessionId });
+
+// @ts-expect-error Session navigation accepts branded Agent IDs.
+void navigationService.inspect({ agentId: 'managed-agent', sessionId: managedSessionId });
+
+// @ts-expect-error Session navigation accepts branded Session IDs.
+void navigationService.inspect({ agentId: managedAgentId, sessionId: 'managed-session' });
+
+// @ts-expect-error Session navigation does not imply Session management.
+createSessionManagementService(standardNavigationDefinition);
+
+const standardBothCapabilitiesDefinition = defineManagedAgentComposition({
+  config: { codec },
+  namespace: { port: namespacePort },
+  authority: { createPorts: () => authorityPorts },
+  runtime: {
+    createPorts: (): RuntimePorts => ({ providerToken: 'provider' }),
+    materialize: () => rawAgent,
+  },
+  sessionManagement: {
+    createPorts: (): SessionManagementPorts => sessionManagementPorts,
+  },
+  sessionNavigation: {
+    createPorts: (): SessionNavigationPorts => sessionNavigationPorts,
+  },
+});
+
+createSessionManagementService(standardBothCapabilitiesDefinition);
+createSessionNavigationService(standardBothCapabilitiesDefinition);
 
 const asyncRuntimePortsDefinition = defineManagedAgentComposition({
   config: { codec },

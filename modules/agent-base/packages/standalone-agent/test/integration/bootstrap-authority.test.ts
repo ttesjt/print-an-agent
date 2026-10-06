@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createStandaloneAgent,
   createSharedSqliteStandaloneManagementService,
+  createSharedSqliteStandaloneSessionNavigationService,
   createSharedSqliteStandaloneRuntimeService,
   createSharedSqliteStandaloneSessionService,
 } from '../../src/index.js';
@@ -30,17 +31,17 @@ describe('authoritative Standalone bootstrap', () => {
     expect(first.resources.requestJournal).not.toBe(second.resources.requestJournal);
     const response = await createAgentAPI(first).run({ message: 'bootstrap' });
     await expect(
-      first.invoke('navigateSession', {
+      first.resources.session.inspect({
+        agentId: first.identity.id,
         sessionId: response.sessionId,
-        operation: 'inspect',
       })
-    ).resolves.toMatchObject({ status: 'inspected' });
+    ).resolves.toBeDefined();
     await expect(
-      second.invoke('navigateSession', {
+      second.resources.session.inspect({
+        agentId: second.identity.id,
         sessionId: response.sessionId,
-        operation: 'inspect',
       })
-    ).rejects.toMatchObject({ code: 'SESSION_NOT_FOUND' });
+    ).resolves.toBeUndefined();
   });
 
   it('creates SQLite authority once, opens by location, and changes Config only through CAS', async () => {
@@ -75,6 +76,10 @@ describe('authoritative Standalone bootstrap', () => {
         databasePath,
         sqlite: options.sqlite,
       });
+      const navigation = createSharedSqliteStandaloneSessionNavigationService({
+        databasePath,
+        sqlite: options.sqlite,
+      });
       await expect(
         createStandaloneAgent({ ...bootstrap, ...resourceProfileConfig('Replacement.') }, options)
       ).rejects.toMatchObject({ code: 'MANAGED_AGENT_ALREADY_EXISTS' });
@@ -82,14 +87,14 @@ describe('authoritative Standalone bootstrap', () => {
         revision: 1,
         value: { mainActor: { instructions: 'Original.' } },
       });
-      const reopened = await runtimes.open('bootstrap');
-      expect(reopened).not.toBe(first);
       await expect(
-        reopened.invoke('navigateSession', {
+        navigation.inspect({
+          agentId: 'bootstrap',
           sessionId: response.sessionId,
-          operation: 'inspect',
         })
       ).resolves.toMatchObject({ status: 'inspected' });
+      const reopened = await runtimes.open('bootstrap');
+      expect(reopened).not.toBe(first);
       expect(
         (await sessions.listTurns({ agentId: 'bootstrap', sessionId: response.sessionId }))?.records
       ).toHaveLength(1);

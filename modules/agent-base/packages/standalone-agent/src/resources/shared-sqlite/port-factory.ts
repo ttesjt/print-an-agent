@@ -1,6 +1,7 @@
 import {
   SqliteAgentConfigAdapter,
   SqliteAgentIdentityCatalogAdapter,
+  SqliteSessionAdapter,
   createSqliteSessionPersistence,
 } from '@ta-agent/base-local-adapters';
 import type {
@@ -11,6 +12,8 @@ import type {
   ManagedAgentRuntimeProvisioningInput,
   SessionManagementPortFactory,
   SessionManagementPorts,
+  SessionNavigationPortFactory,
+  SessionNavigationPorts,
 } from '@ta-agent/base-composition';
 import type { StandaloneRuntimePorts } from '../../runtime/materialize-standalone-agent.js';
 import type { StandaloneAgentConfig } from '../../types.js';
@@ -28,6 +31,10 @@ export interface SharedSqliteStandalonePortFactories {
     SharedSqliteAgentResourceNamespace,
     SessionManagementPorts
   >;
+  readonly createSessionNavigationPorts: SessionNavigationPortFactory<
+    SharedSqliteAgentResourceNamespace,
+    SessionNavigationPorts
+  >;
 }
 
 export function createSharedSqliteStandalonePortFactories(
@@ -37,6 +44,21 @@ export function createSharedSqliteStandalonePortFactories(
     tableNames: ResolvedStandaloneManagedSqliteTableNames;
   }>
 ): SharedSqliteStandalonePortFactories {
+  const createPersistence = (
+    namespace: ManagedAgentNamespace<SharedSqliteAgentResourceNamespace>,
+    schemaMode?: 'existing'
+  ) =>
+    createSqliteSessionPersistence({
+      databasePath: namespace.handle.databasePath,
+      ...(schemaMode === undefined ? {} : { schemaMode }),
+      session: { tableNames: options.tableNames.session },
+      requestJournal: { tableNames: options.tableNames.requestJournal },
+      ...(options.clock === undefined ? {} : { clock: options.clock }),
+      ...(options.busyTimeoutMilliseconds === undefined
+        ? {}
+        : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
+    });
+
   return Object.freeze({
     createAuthorityPorts: (
       namespace: ManagedAgentNamespaceReference<SharedSqliteAgentResourceNamespace>
@@ -64,31 +86,28 @@ export function createSharedSqliteStandalonePortFactories(
       StandaloneAgentConfig,
       SharedSqliteAgentResourceNamespace
     >) => {
-      const { session, requestJournal } = createSqliteSessionPersistence({
-        databasePath: namespace.handle.databasePath,
-        ...(options.clock === undefined ? {} : { clock: options.clock }),
-        ...(options.busyTimeoutMilliseconds === undefined
-          ? {}
-          : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
-        session: { tableNames: options.tableNames.session },
-        requestJournal: { tableNames: options.tableNames.requestJournal },
-      });
+      const { session, requestJournal } = createPersistence(namespace);
       return Object.freeze({ session, requestJournal });
     },
     createSessionManagementPorts: (
       namespace: ManagedAgentNamespace<SharedSqliteAgentResourceNamespace>
     ) => {
-      const { session, maintenance } = createSqliteSessionPersistence({
-        databasePath: namespace.handle.databasePath,
-        schemaMode: 'existing',
-        session: { tableNames: options.tableNames.session },
-        requestJournal: { tableNames: options.tableNames.requestJournal },
-        ...(options.clock === undefined ? {} : { clock: options.clock }),
-        ...(options.busyTimeoutMilliseconds === undefined
-          ? {}
-          : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
-      });
+      const { session, maintenance } = createPersistence(namespace, 'existing');
       return Object.freeze({ session, maintenance });
     },
+    createSessionNavigationPorts: (
+      namespace: ManagedAgentNamespace<SharedSqliteAgentResourceNamespace>
+    ) =>
+      Object.freeze({
+        session: new SqliteSessionAdapter({
+          databasePath: namespace.handle.databasePath,
+          schemaMode: 'existing',
+          tableNames: options.tableNames.session,
+          ...(options.clock === undefined ? {} : { clock: options.clock }),
+          ...(options.busyTimeoutMilliseconds === undefined
+            ? {}
+            : { busyTimeoutMilliseconds: options.busyTimeoutMilliseconds }),
+        }),
+      }),
   });
 }

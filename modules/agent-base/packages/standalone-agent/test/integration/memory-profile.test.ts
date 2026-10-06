@@ -2,6 +2,7 @@ import {
   createAgentManagementService,
   createAgentRuntimeService,
   createSessionManagementService,
+  createSessionNavigationService,
   defineManagedAgentComposition,
   type ManagedAgentAuthorityPorts,
 } from '@ta-agent/base-composition';
@@ -20,6 +21,7 @@ describe('Standalone Memory profile', () => {
     const agents = createAgentManagementService(definition);
     const runtimes = createAgentRuntimeService(definition);
     const sessions = createSessionManagementService(definition);
+    const navigation = createSessionNavigationService(definition);
     const created = await agents.create({
       identity: { id: 'alpha' },
       config: resourceProfileConfig(),
@@ -44,7 +46,7 @@ describe('Standalone Memory profile', () => {
       (await sessions.listTurns({ agentId, sessionId: response.sessionId }))?.records
     ).toHaveLength(1);
     await expect(
-      second.invoke('navigateSession', { sessionId: response.sessionId, operation: 'inspect' })
+      navigation.inspect({ agentId, sessionId: response.sessionId })
     ).resolves.toMatchObject({ status: 'inspected', navigation: { revision: 1 } });
 
     await agents.updateConfig({

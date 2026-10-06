@@ -33,6 +33,8 @@ export function createSessionNavigationWorkflow(
     stepDefinitions: createSessionNavigationStepDefinitions(),
     createContext: (base): SessionNavigationWorkflowContext => ({
       ...base,
+      agentId: base.agentRunContext.identity.id,
+      input: base.agentRunContext.input,
       resources: options.resources,
     }),
     applyResult: (agentRunContext, result) => {

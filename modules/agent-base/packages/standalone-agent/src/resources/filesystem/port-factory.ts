@@ -1,6 +1,7 @@
 import {
   SqliteAgentConfigAdapter,
   SqliteAgentIdentityCatalogAdapter,
+  SqliteSessionAdapter,
   createSqliteSessionPersistence,
 } from '@ta-agent/base-local-adapters';
 import type {
@@ -11,6 +12,8 @@ import type {
   ManagedAgentRuntimeProvisioningInput,
   SessionManagementPortFactory,
   SessionManagementPorts,
+  SessionNavigationPortFactory,
+  SessionNavigationPorts,
 } from '@ta-agent/base-composition';
 import type { StandaloneRuntimePorts } from '../../runtime/materialize-standalone-agent.js';
 import type { StandaloneAgentConfig } from '../../types.js';
@@ -28,6 +31,10 @@ export interface FilesystemStandalonePortFactories {
     FilesystemAgentResourceNamespace,
     SessionManagementPorts
   >;
+  readonly createSessionNavigationPorts: SessionNavigationPortFactory<
+    FilesystemAgentResourceNamespace,
+    SessionNavigationPorts
+  >;
 }
 
 export function createFilesystemStandalonePortFactories(
@@ -36,6 +43,18 @@ export function createFilesystemStandalonePortFactories(
     tableNames: ResolvedStandaloneManagedSqliteTableNames;
   }>
 ): FilesystemStandalonePortFactories {
+  const createPersistence = (
+    namespace: ManagedAgentNamespace<FilesystemAgentResourceNamespace>,
+    schemaMode?: 'existing'
+  ) =>
+    createSqliteSessionPersistence({
+      databasePath: namespace.handle.databasePath,
+      ...(schemaMode === undefined ? {} : { schemaMode }),
+      session: { tableNames: options.tableNames.session },
+      requestJournal: { tableNames: options.tableNames.requestJournal },
+      ...(options.clock === undefined ? {} : { clock: options.clock }),
+    });
+
   return Object.freeze({
     createAuthorityPorts: (
       namespace: ManagedAgentNamespaceReference<FilesystemAgentResourceNamespace>
@@ -57,25 +76,25 @@ export function createFilesystemStandalonePortFactories(
       StandaloneAgentConfig,
       FilesystemAgentResourceNamespace
     >) => {
-      const { session, requestJournal } = createSqliteSessionPersistence({
-        databasePath: namespace.handle.databasePath,
-        session: { tableNames: options.tableNames.session },
-        requestJournal: { tableNames: options.tableNames.requestJournal },
-        ...(options.clock === undefined ? {} : { clock: options.clock }),
-      });
+      const { session, requestJournal } = createPersistence(namespace);
       return Object.freeze({ session, requestJournal });
     },
     createSessionManagementPorts: (
       namespace: ManagedAgentNamespace<FilesystemAgentResourceNamespace>
     ) => {
-      const { session, maintenance } = createSqliteSessionPersistence({
-        databasePath: namespace.handle.databasePath,
-        schemaMode: 'existing',
-        session: { tableNames: options.tableNames.session },
-        requestJournal: { tableNames: options.tableNames.requestJournal },
-        ...(options.clock === undefined ? {} : { clock: options.clock }),
-      });
+      const { session, maintenance } = createPersistence(namespace, 'existing');
       return Object.freeze({ session, maintenance });
     },
+    createSessionNavigationPorts: (
+      namespace: ManagedAgentNamespace<FilesystemAgentResourceNamespace>
+    ) =>
+      Object.freeze({
+        session: new SqliteSessionAdapter({
+          databasePath: namespace.handle.databasePath,
+          schemaMode: 'existing',
+          tableNames: options.tableNames.session,
+          ...(options.clock === undefined ? {} : { clock: options.clock }),
+        }),
+      }),
   });
 }

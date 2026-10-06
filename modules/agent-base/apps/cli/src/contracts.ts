@@ -19,6 +19,9 @@ export interface AgentBaseCliRuntime {
     input: Readonly<{ sessionId: string; branchId?: string }>,
     signal: AbortSignal
   ): Promise<unknown>;
+}
+
+export interface AgentBaseCliSessionNavigator {
   inspectSession(sessionId: string, signal: AbortSignal): Promise<unknown>;
   selectSessionBranch(
     input: Readonly<{ sessionId: string; branchId: string; expectedRevision: number }>,
@@ -55,9 +58,9 @@ export type AgentBaseCliStorageLocator =
 
 export type AgentBaseCliRuntimeLocator =
   | Readonly<{ kind: 'config'; configPath: string }>
-  | AgentBaseCliDurableRuntimeLocator;
+  | AgentBaseCliManagedAgentLocator;
 
-export type AgentBaseCliDurableRuntimeLocator = AgentBaseCliStorageLocator &
+export type AgentBaseCliManagedAgentLocator = AgentBaseCliStorageLocator &
   Readonly<{ agentId: string }>;
 
 export interface AgentBaseCliAgentManager {
@@ -94,6 +97,9 @@ export interface AgentBaseCliSessionManager {
 export interface AgentBaseCliDependencies {
   readonly loadProvider: (locator: AgentBaseCliRuntimeLocator) => Promise<AgentBaseCliProvider>;
   readonly loadRuntime: (locator: AgentBaseCliRuntimeLocator) => Promise<AgentBaseCliRuntime>;
+  readonly loadSessionNavigator: (
+    locator: AgentBaseCliManagedAgentLocator
+  ) => Promise<AgentBaseCliSessionNavigator>;
   readonly loadAgentManager: (
     locator: AgentBaseCliStorageLocator
   ) => Promise<AgentBaseCliAgentManager>;

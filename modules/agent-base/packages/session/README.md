@@ -75,11 +75,21 @@ authority, and successful completion alone advances a branch head. `resolve()` c
 `beginTurn()` verifies that authority atomically, so a stale request cannot silently attach to a new
 selection. One active turn is allowed per branch.
 
-`navigateSession` is a public Agent Operation backed by an ordinary replaceable Workflow with
-independently replaceable validation,
-inspection, and commit Steps. It supports read-only inspection, selecting an existing branch,
-creating an unselected fork at a completed ancestor, and non-destructive rewind. Rewind creates and
-selects a child branch; it never moves a source head, reparents a turn, or deletes history.
+`executeSessionNavigation()` is the complete Session-owned navigation coordinator. It validates the
+closed command, inspects Session authority, acquires an execution lease when the adapter supports
+one, applies the adapter-owned CAS mutation, and releases admitted execution in `finally`-equivalent
+cleanup. It supports read-only inspection, selecting an existing branch, creating an unselected fork
+at a completed ancestor, and non-destructive rewind. Rewind creates and selects a child branch; it
+never moves a source head, reparents a turn, or deletes history. Cancellation can prevent a mutation
+before `applyNavigation()` begins; once adapter mutation starts, the coordinator waits for its real
+outcome and never reports a misleading cancelled result after a successful commit.
+
+The optional Session navigation Workflow remains available as a low-level building block for custom
+Agents that deliberately expose navigation as an Operation. Its default validation, inspection, and
+commit Steps delegate to the same package-internal domain phases as the coordinator, so the Workflow
+does not own a second navigation algorithm. Standard composition does not install it: ordinary
+navigation uses the out-of-band management Service and requires no Actor, provider, credential, Tool
+runtime, Agent trace, or materialized Agent.
 
 Raw completed turns remain authoritative through `loadHistory()`. Compactions are isolated per
 branch and store a revisioned projection through an exact completed ancestor. `loadContext()` then

@@ -1,6 +1,6 @@
 import { AgentBaseCliError } from './errors.js';
 import type {
-  AgentBaseCliDurableRuntimeLocator,
+  AgentBaseCliManagedAgentLocator,
   AgentBaseCliRuntimeLocator,
   AgentBaseCliStorageLocator,
 } from './contracts.js';
@@ -30,25 +30,25 @@ export type AgentBaseCliCommand =
     }>
   | Readonly<{
       kind: 'session-compact';
-      runtime: AgentBaseCliDurableRuntimeLocator;
+      runtime: AgentBaseCliManagedAgentLocator;
       sessionId: string;
       branchId?: string;
     }>
   | Readonly<{
       kind: 'session-inspect';
-      runtime: AgentBaseCliDurableRuntimeLocator;
+      agent: AgentBaseCliManagedAgentLocator;
       sessionId: string;
     }>
   | Readonly<{
       kind: 'session-select';
-      runtime: AgentBaseCliDurableRuntimeLocator;
+      agent: AgentBaseCliManagedAgentLocator;
       sessionId: string;
       branchId: string;
       expectedRevision: number;
     }>
   | Readonly<{
       kind: 'session-fork';
-      runtime: AgentBaseCliDurableRuntimeLocator;
+      agent: AgentBaseCliManagedAgentLocator;
       sessionId: string;
       sourceBranchId: string;
       throughTurnId: string;
@@ -57,7 +57,7 @@ export type AgentBaseCliCommand =
     }>
   | Readonly<{
       kind: 'session-rewind';
-      runtime: AgentBaseCliDurableRuntimeLocator;
+      agent: AgentBaseCliManagedAgentLocator;
       sessionId: string;
       throughTurnId: string;
       newBranchId?: string;
@@ -116,7 +116,7 @@ function parseStorageLocator(options: CliOptionValues): AgentBaseCliStorageLocat
     : Object.freeze({ kind: 'sqlite', databasePath });
 }
 
-function parseDurableRuntimeLocator(options: CliOptionValues): AgentBaseCliDurableRuntimeLocator {
+function parseManagedAgentLocator(options: CliOptionValues): AgentBaseCliManagedAgentLocator {
   const locator = parseRuntimeLocator(options);
   if (locator.kind === 'config') {
     throw new AgentBaseCliError(
@@ -236,7 +236,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     const branchId = optionalCliOption(options, 'branch-id');
     return Object.freeze({
       kind: 'session-compact' as const,
-      runtime: parseDurableRuntimeLocator(options),
+      runtime: parseManagedAgentLocator(options),
       sessionId: requireCliOption(options, 'session-id'),
       ...(branchId === undefined ? {} : { branchId }),
     });
@@ -245,7 +245,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     assertAllowedCliOptions(options, ['config', 'root', 'database-path', 'agent-id', 'session-id']);
     return Object.freeze({
       kind: 'session-inspect',
-      runtime: parseDurableRuntimeLocator(options),
+      agent: parseManagedAgentLocator(options),
       sessionId: requireCliOption(options, 'session-id'),
     });
   }
@@ -261,7 +261,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     ]);
     return Object.freeze({
       kind: 'session-select',
-      runtime: parseDurableRuntimeLocator(options),
+      agent: parseManagedAgentLocator(options),
       sessionId: requireCliOption(options, 'session-id'),
       branchId: requireCliOption(options, 'branch-id'),
       expectedRevision: parseRevision(options),
@@ -282,7 +282,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     const newBranchId = optionalCliOption(options, 'new-branch-id');
     return Object.freeze({
       kind: 'session-fork' as const,
-      runtime: parseDurableRuntimeLocator(options),
+      agent: parseManagedAgentLocator(options),
       sessionId: requireCliOption(options, 'session-id'),
       sourceBranchId: requireCliOption(options, 'source-branch-id'),
       throughTurnId: requireCliOption(options, 'through-turn-id'),
@@ -304,7 +304,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     const newBranchId = optionalCliOption(options, 'new-branch-id');
     return Object.freeze({
       kind: 'session-rewind' as const,
-      runtime: parseDurableRuntimeLocator(options),
+      agent: parseManagedAgentLocator(options),
       sessionId: requireCliOption(options, 'session-id'),
       throughTurnId: requireCliOption(options, 'through-turn-id'),
       expectedRevision: parseRevision(options),

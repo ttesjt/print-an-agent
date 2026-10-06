@@ -19,7 +19,6 @@ import {
   composeAgentWithExtensions,
   FOREGROUND_AGENT_OPERATION_NAME,
   SESSION_COMPACTION_AGENT_OPERATION_NAME,
-  SESSION_NAVIGATION_AGENT_OPERATION_NAME,
   type AgentCompositionExtensionFactory,
   type ComposeAgentOptions,
   type StandardAgentDefinition,
@@ -136,7 +135,6 @@ describe('Agent composition extensions', () => {
     expect(agent.operationNames).toEqual([
       FOREGROUND_AGENT_OPERATION_NAME,
       SESSION_COMPACTION_AGENT_OPERATION_NAME,
-      SESSION_NAVIGATION_AGENT_OPERATION_NAME,
       'inspectProduct',
     ]);
     expect(agent.workflowCatalog.names).toContain('inspectProduct');

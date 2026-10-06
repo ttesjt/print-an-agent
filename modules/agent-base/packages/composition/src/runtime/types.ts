@@ -8,15 +8,12 @@ import type {
 import type { AgentIdentityInput } from '@ta-agent/base-identity';
 import type { AgentTraceRuntimeOptions } from '@ta-agent/base-observability';
 import type {
-  NavigableCompactableSessionPort,
+  CompactableSessionPort,
   SessionCompactionAgentRunContext,
   SessionCompactionCondition,
   SessionCompactionPolicy,
   SessionCompactionStepName,
   SessionCompactionWorkflowContext,
-  SessionNavigationAgentRunContext,
-  SessionNavigationStepName,
-  SessionNavigationWorkflowContext,
 } from '@ta-agent/base-session';
 import type {
   DefaultRequestWorkflowContext,
@@ -45,7 +42,7 @@ export interface ComposeAgentOptions {
   readonly actorCatalog: ActorCatalogPort;
   readonly responsibilityCatalog: ResponsibilityCatalogPort;
   readonly mainActorId?: ActorId;
-  readonly session?: NavigableCompactableSessionPort;
+  readonly session?: CompactableSessionPort;
   readonly requestJournal?: RequestJournalPort;
   readonly instructionContributors?: readonly InstructionContributor[];
   readonly toolRegistry?: ToolRegistry;
@@ -70,13 +67,6 @@ export interface ComposeAgentOptions {
   readonly sessionCompactionWorkflow?: RunnableWorkflow<SessionCompactionAgentRunContext>;
   readonly createCompactionRunId?: () => string;
   readonly createCompactionWorkflowRunId?: () => string;
-  readonly sessionNavigationStepOverrides?: StepOverrides<
-    SessionNavigationStepName,
-    SessionNavigationWorkflowContext
-  >;
-  readonly sessionNavigationWorkflow?: RunnableWorkflow<SessionNavigationAgentRunContext>;
-  readonly createNavigationRunId?: () => string;
-  readonly createNavigationWorkflowRunId?: () => string;
 }
 
 export interface CreateDeterministicAgentAPIOptions extends Omit<

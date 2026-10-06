@@ -1,10 +1,12 @@
 import {
   createAgentRuntimeService,
   createSessionManagementService,
+  createSessionNavigationService,
   type ManagedAgentDefinitionConfig,
   type MaterializedManagedAgent,
 } from '@ta-agent/base-composition';
 import { parseAgentId } from '@ta-agent/base-identity';
+import { parseSessionId } from '@ta-agent/base-session';
 import {
   createStandaloneMemoryDefinition,
   type StandaloneAgentConfig,
@@ -19,6 +21,10 @@ const definition = createStandaloneMemoryDefinition({ readEnvironmentVariable: (
 const opened = createAgentRuntimeService(definition).open(parseAgentId('memory-agent'));
 void opened;
 void createSessionManagementService(definition).list({ agentId: parseAgentId('memory-agent') });
+void createSessionNavigationService(definition).inspect({
+  agentId: parseAgentId('memory-agent'),
+  sessionId: parseSessionId('memory-session'),
+});
 export type ConfigIsPreserved = Expect<
   Equal<ManagedAgentDefinitionConfig<typeof definition>, StandaloneAgentConfig>
 >;

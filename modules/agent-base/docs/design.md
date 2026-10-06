@@ -138,8 +138,9 @@ complete name establishes its scope:
 These concepts are not interchangeable. A managed runtime materializer may use the Standard
 `composeAgent()` path, a product extension, or the lower-level `createAgent()` path. Generic
 management requires only that it return the exact typed raw Agent; it does not require an
-intermediate `StandardAgentDefinition` or assume the Standard `foreground`, `compactSession`, and
-`navigateSession` Operation names.
+intermediate `StandardAgentDefinition` or assume the Standard `foreground` and `compactSession`
+Operation names. Session navigation is an optional out-of-band management capability, not a
+Standard raw Agent Operation.
 
 Projection is an optional, one-way secondary view of authoritative Identity and AgentConfig. The
 generic contract does not prescribe JSON, a file, a local filesystem, or any other external medium,
@@ -607,8 +608,8 @@ The current foundation contains:
   a deterministic faux profile, exact builtin provider/model binding, and explicit text-only
   OpenAI-compatible endpoints;
 - `@ta-agent/base-composition`: the official Standard Agent owner with public
-  foreground/navigation/compaction Operations plus storage-neutral Agent management, raw-runtime
-  opening, and optional out-of-band Session management Services;
+  foreground/compaction Operations plus storage-neutral Agent management, raw-runtime opening, and
+  independent optional out-of-band Session management/navigation Services;
 - `@ta-agent/base-standalone-agent`: authoritative Memory/shared-SQLite bootstrap plus canonical
   Memory, per-Agent directory, and shared-SQLite reference profiles consumed through narrow
   Services or raw Agents by the CLI and other hosts.
@@ -636,7 +637,8 @@ the Session ports alone or from sequential independent cleanup calls.
 
 Official Memory and SQLite adapters are lifecycle-qualified across admission, writes, Request
 Journal/replay, OutputSink finalization, compaction, navigation, purge, and recovery. Generic
-application composition exposes Session management only as an optional typed capability, and the
-Standalone profiles project it to host-facing string/JSON APIs. The CLI's managed-directory
-`session lifecycle` commands consume that projection without opening an Agent runtime or provider.
+application composition exposes Session management and navigation as independent optional typed
+capabilities, and the Standalone profiles project them to host-facing string/JSON APIs. The CLI's
+managed Session navigation and managed-directory `session lifecycle` commands consume those
+projections without opening an Agent runtime or provider.
 No lifecycle method is added to Agent, AgentAPI, Agent Operations, or Workflows.

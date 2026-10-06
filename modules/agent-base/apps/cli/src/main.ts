@@ -3,6 +3,7 @@ import {
   loadAgentBaseCliAgentManager,
   loadAgentBaseCliProvider,
   loadAgentBaseCliRuntime,
+  loadAgentBaseCliSessionNavigator,
   loadAgentBaseCliSessionManager,
   readAgentBaseCliJsonDocument,
 } from './host-loaders.js';
@@ -22,6 +23,7 @@ try {
   process.exitCode = await runAgentBaseCli(cliProcess.argv, {
     loadProvider: (locator) => loadAgentBaseCliProvider(locator, cliProcess.environment),
     loadRuntime: (locator) => loadAgentBaseCliRuntime(locator, cliProcess.environment),
+    loadSessionNavigator: loadAgentBaseCliSessionNavigator,
     loadAgentManager: loadAgentBaseCliAgentManager,
     loadSessionManager: loadAgentBaseCliSessionManager,
     readJsonDocument: readAgentBaseCliJsonDocument,

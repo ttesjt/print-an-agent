@@ -170,8 +170,8 @@ async function executeCommand(
     await writeJson(dependencies, outcome);
     return isCredentialUnavailable(outcome) ? 3 : 0;
   }
-  const runtime = await dependencies.loadRuntime(command.runtime);
   if (command.kind === 'run') {
+    const runtime = await dependencies.loadRuntime(command.runtime);
     const message =
       command.messageSource.kind === 'argument'
         ? command.messageSource.value
@@ -200,6 +200,7 @@ async function executeCommand(
     return 0;
   }
   if (command.kind === 'session-compact') {
+    const runtime = await dependencies.loadRuntime(command.runtime);
     await writeJson(
       dependencies,
       await runtime.compactSession(
@@ -212,14 +213,15 @@ async function executeCommand(
     );
     return 0;
   }
+  const navigation = await dependencies.loadSessionNavigator(command.agent);
   if (command.kind === 'session-inspect') {
-    await writeJson(dependencies, await runtime.inspectSession(command.sessionId, signal));
+    await writeJson(dependencies, await navigation.inspectSession(command.sessionId, signal));
     return 0;
   }
   if (command.kind === 'session-select') {
     await writeJson(
       dependencies,
-      await runtime.selectSessionBranch(
+      await navigation.selectSessionBranch(
         {
           sessionId: command.sessionId,
           branchId: command.branchId,
@@ -233,7 +235,7 @@ async function executeCommand(
   if (command.kind === 'session-fork') {
     await writeJson(
       dependencies,
-      await runtime.forkSessionBranch(
+      await navigation.forkSessionBranch(
         {
           sessionId: command.sessionId,
           sourceBranchId: command.sourceBranchId,
@@ -248,7 +250,7 @@ async function executeCommand(
   }
   await writeJson(
     dependencies,
-    await runtime.rewindSession(
+    await navigation.rewindSession(
       {
         sessionId: command.sessionId,
         throughTurnId: command.throughTurnId,

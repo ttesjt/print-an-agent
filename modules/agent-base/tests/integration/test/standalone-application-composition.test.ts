@@ -5,6 +5,7 @@ import {
   createAgentManagementService,
   createAgentRuntimeService,
   createSessionManagementService,
+  createSessionNavigationService,
 } from '@ta-agent/base-composition';
 import {
   defineAssistantModelMessage,
@@ -12,6 +13,7 @@ import {
 } from '@ta-agent/base-model';
 import {
   createSharedSqliteStandaloneManagementService,
+  createSharedSqliteStandaloneSessionNavigationService,
   createSharedSqliteStandaloneRuntimeService,
   createSharedSqliteStandaloneSessionService,
   createStandaloneAgent,
@@ -89,6 +91,7 @@ describe('public Standalone application composition entry points', () => {
     const management = createAgentManagementService(definition);
     const runtimes = createAgentRuntimeService(definition);
     const sessions = createSessionManagementService(definition);
+    const navigation = createSessionNavigationService(definition);
     const created = await management.create({
       identity: { id: 'memory-consumer' },
       config: defineStandaloneAgentConfig(standaloneConfig()),
@@ -100,6 +103,9 @@ describe('public Standalone application composition entry points', () => {
     expect(
       (await sessions.listTurns({ agentId, sessionId: response.sessionId }))?.records
     ).toHaveLength(1);
+    await expect(
+      navigation.inspect({ agentId, sessionId: response.sessionId })
+    ).resolves.toMatchObject({ status: 'inspected' });
     await management.updateConfig({
       agentId,
       expectedRevision: 1,
@@ -140,6 +146,10 @@ describe('public Standalone application composition entry points', () => {
         databasePath,
       });
       const sessions = createSharedSqliteStandaloneSessionService({ databasePath, sqlite });
+      const navigation = createSharedSqliteStandaloneSessionNavigationService({
+        databasePath,
+        sqlite,
+      });
 
       expect((await management.inspect('durable-consumer')).config.revision).toBe(1);
       expect(
@@ -150,11 +160,10 @@ describe('public Standalone application composition entry points', () => {
           })
         )?.records
       ).toHaveLength(1);
-      const reopened = await runtimes.open('durable-consumer');
       await expect(
-        reopened.invoke('navigateSession', {
+        navigation.inspect({
+          agentId: 'durable-consumer',
           sessionId: response.sessionId,
-          operation: 'inspect',
         })
       ).resolves.toMatchObject({ status: 'inspected' });
       await expect(createStandaloneAgent(bootstrap, options)).rejects.toMatchObject({

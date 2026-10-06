@@ -4,9 +4,9 @@ The official Standalone application profile for Agent Base.
 
 This package owns Standalone policy: stored Config vocabulary, provider and credential wiring,
 timeout policy, SQLite table naming, Memory/filesystem/shared-SQLite profiles, `agent.json` projection, and
-the Standard runtime materializer. Generic Agent lifecycle, runtime opening, and out-of-band Session
-management belong to `@ta-agent/base-composition`; Standalone consumes those services rather than
-reimplementing them.
+the Standard runtime materializer. Generic Agent lifecycle, runtime opening, out-of-band Session
+management, and Session navigation belong to `@ta-agent/base-composition`; Standalone consumes those
+services rather than reimplementing them.
 
 ## Config vocabulary
 
@@ -89,6 +89,7 @@ import {
   createAgentManagementService,
   createAgentRuntimeService,
   createSessionManagementService,
+  createSessionNavigationService,
 } from '@ta-agent/base-composition';
 import {
   createStandaloneMemoryDefinition,
@@ -101,6 +102,7 @@ const definition = createStandaloneMemoryDefinition({
 const agents = createAgentManagementService(definition);
 const runtimes = createAgentRuntimeService(definition);
 const sessions = createSessionManagementService(definition);
+const navigation = createSessionNavigationService(definition);
 const created = await agents.create({ identity, config: defineStandaloneAgentConfig(config) });
 const agent = await runtimes.open(created.identity.identity.id);
 const response = await agent.invoke('foreground', { message: 'hello' });
@@ -111,18 +113,20 @@ const history = await sessions.listTurns({
 ```
 
 The private Profile Resource Provisioner allocates namespaces, lazily supplies Identity/Config
-adapters, and lazily creates one complete coordinated Session/Request Journal/maintenance persistence
-per published Agent namespace. Runtime and Session-management Ports project that same persistence,
-including its queue and execution/recovery fences. New `open()` calls create fresh raw Agents, not
-new Session authority. Config updates do not change persistence identity. Separate profile setups
-never share state, even for identical Agent IDs; no module-global resources or runtime cache exist.
+adapters, and lazily creates one complete coordinated Session/Request Journal/maintenance
+persistence per published Agent namespace. Runtime, Session-management, and Session-navigation Ports
+project that same persistence, including its queue and execution/recovery fences. New `open()` calls
+create fresh raw Agents, not new Session authority. Config updates do not change persistence
+identity. Separate profile setups never share state, even for identical Agent IDs; no module-global
+resources or runtime cache exist.
 
 Staged Memory allocations are private and exclusively reserved until publication or abort. Failed
 initialization discards the allocation and its authority; a retry starts fresh. Published authority
 cannot be removed by a stale provisioning handle. There is no Config projection or crash durability.
 
 There are deliberately no independent Memory management/runtime/Session convenience factories that
-each silently create their own scope. Use the canonical Definition with narrow generic Services.
+each silently create their own scope. Use the canonical Definition with narrow generic Services;
+`projectStandaloneSessionNavigationService()` adds a plain-string host boundary when needed.
 Advanced Definitions may explicitly share its factories: provisioning scope, not Definition object
 reference identity, determines live resource sharing. Definition and Service construction creates
 no per-Agent adapters; each capability obtains resources when needed. Session management does not
@@ -152,6 +156,7 @@ Both durable profiles expose narrow convenience factories:
 import {
   createStandaloneDirectoryManagementService,
   createStandaloneDirectoryRuntimeService,
+  createStandaloneDirectorySessionNavigationService,
   createStandaloneDirectorySessionService,
 } from '@ta-agent/base-standalone-agent';
 
@@ -162,6 +167,7 @@ const runtime = createStandaloneDirectoryRuntimeService({
   readEnvironmentVariable: (name) => process.env[name],
 });
 const sessions = createStandaloneDirectorySessionService({ rootDirectory });
+const navigation = createStandaloneDirectorySessionNavigationService({ rootDirectory });
 
 const created = await agents.create({ identity, config });
 const agent = await runtime.open(created.identity.identity.id);
@@ -186,6 +192,13 @@ only the scoped Session-management ports for the selected published Agent namesp
 open an Agent runtime, resolve provider credentials, or require an active Agent identity. SQLite
 bootstrap creates a published namespace accessible through the same shared-SQLite Services. Memory
 consumers that need out-of-band management retain their canonical Definition/provisioning scope.
+
+The independent Standalone navigation factories expose plain-string `inspect`, `select`, `fork`, and
+non-destructive `rewind` inputs while delegating validation, execution admission, CAS, cancellation,
+and cleanup to the generic `SessionNavigationService`. They reopen only scoped Session persistence;
+they do not open a raw Agent or resolve runtime credentials. Directory and shared-SQLite factories
+can be recreated from stable storage location and table naming. Memory consumers retain one
+Definition so runtime, lifecycle, and navigation Services share the same ephemeral provisioner.
 
 All SQLite construction paths accept a host-level `tablePrefix` plus per-domain `tableNames`
 overrides. Names are resolved and collision-checked before storage initialization. They do not enter

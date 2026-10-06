@@ -9,10 +9,8 @@ import type {
   NavigateSessionInput,
   NavigableSessionPort,
   SessionNavigationOutcome,
-  ValidatedSessionNavigationCommand,
 } from '../contracts.js';
-import type { SessionId, SessionSnapshot } from '../../types.js';
-import type { SessionExecutionLease } from '../../lifecycle/execution.js';
+import type { SessionNavigationExecutionState } from '../coordinator-internal.js';
 import type { SessionNavigationStepName } from './names.js';
 
 export interface SessionNavigationResources {
@@ -27,16 +25,15 @@ export interface SessionNavigationAgentRunContext extends BaseAgentRunContext<
   readonly resources: SessionNavigationResources;
 }
 
-export interface SessionNavigationWorkflowContext extends BaseWorkflowContext<
-  SessionNavigationStepName,
-  SessionNavigationAgentRunContext,
-  SessionNavigationOutcome
-> {
+export interface SessionNavigationWorkflowContext
+  extends
+    BaseWorkflowContext<
+      SessionNavigationStepName,
+      SessionNavigationAgentRunContext,
+      SessionNavigationOutcome
+    >,
+    SessionNavigationExecutionState {
   readonly resources: SessionNavigationResources;
-  sessionId?: SessionId;
-  execution?: SessionExecutionLease;
-  command?: ValidatedSessionNavigationCommand;
-  snapshot?: SessionSnapshot;
 }
 
 export interface CreateSessionNavigationWorkflowOptions extends Omit<

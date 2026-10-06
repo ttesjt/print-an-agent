@@ -4,7 +4,6 @@ export {
   createStandardAgentDefinition,
   FOREGROUND_AGENT_OPERATION_NAME,
   SESSION_COMPACTION_AGENT_OPERATION_NAME,
-  SESSION_NAVIGATION_AGENT_OPERATION_NAME,
 } from './compose-agent.js';
 export type {
   AgentCompositionExtension,

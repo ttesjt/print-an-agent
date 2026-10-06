@@ -158,6 +158,9 @@ export type CreateStandaloneDirectoryManagementServiceOptions = Omit<
 export type CreateStandaloneDirectorySessionServiceOptions =
   CreateStandaloneDirectoryManagementServiceOptions;
 
+export type CreateStandaloneDirectoryNavigationServiceOptions =
+  CreateStandaloneDirectoryManagementServiceOptions;
+
 export interface CreateSharedSqliteStandaloneProfileOptions extends StandaloneRuntimeOptions {
   readonly databasePath: string;
   readonly clock?: () => number;
@@ -171,4 +174,7 @@ export type CreateSharedSqliteStandaloneManagementServiceOptions = Omit<
 >;
 
 export type CreateSharedSqliteStandaloneSessionServiceOptions =
+  CreateSharedSqliteStandaloneManagementServiceOptions;
+
+export type CreateSharedSqliteStandaloneNavigationServiceOptions =
   CreateSharedSqliteStandaloneManagementServiceOptions;

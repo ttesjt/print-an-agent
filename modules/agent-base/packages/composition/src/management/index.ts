@@ -2,6 +2,7 @@ export { defineManagedAgentComposition } from './definition.js';
 export { createAgentManagementService } from './agent-management-service.js';
 export { createAgentRuntimeService } from './agent-runtime-service.js';
 export { createSessionManagementService } from './session-management-service.js';
+export { createSessionNavigationService } from './session-navigation-service.js';
 export type {
   ManagedAgentCompositionDefinition,
   ManagedAgentCompositionDefinitionInput,

@@ -34,10 +34,10 @@ import {
 import {
   AgentSessionError,
   DEFAULT_SESSION_BRANCH_ID,
+  executeSessionNavigation,
   parseSessionBranchId,
   parseSessionId,
   SESSION_COMPACTION_WORKFLOW_NAME,
-  SESSION_NAVIGATION_WORKFLOW_NAME,
 } from '@ta-agent/base-session';
 import {
   AgentToolError,
@@ -51,7 +51,6 @@ import {
   createDeterministicAgentAPI,
   FOREGROUND_AGENT_OPERATION_NAME,
   SESSION_COMPACTION_AGENT_OPERATION_NAME,
-  SESSION_NAVIGATION_AGENT_OPERATION_NAME,
 } from '../../src/index.js';
 import {
   CancellingOutputSink,
@@ -143,18 +142,14 @@ describe('assembled Agent Base request path', () => {
     const sink = new LifecycleRecordingOutputSink();
 
     expect(agent.agent.identity).toBe(agent.identity);
+    expect(agent).not.toHaveProperty('navigateSession');
     expect(agent.agent.operationNames).toBe(agent.operationNames);
     expect(agent.agent.workflowCatalog.names).toBe(agent.workflowNames);
     expect(agent.operationNames).toEqual([
       FOREGROUND_AGENT_OPERATION_NAME,
       SESSION_COMPACTION_AGENT_OPERATION_NAME,
-      SESSION_NAVIGATION_AGENT_OPERATION_NAME,
     ]);
-    expect(agent.workflowNames).toEqual([
-      REQUEST_WORKFLOW_NAME,
-      SESSION_COMPACTION_WORKFLOW_NAME,
-      SESSION_NAVIGATION_WORKFLOW_NAME,
-    ]);
+    expect(agent.workflowNames).toEqual([REQUEST_WORKFLOW_NAME, SESSION_COMPACTION_WORKFLOW_NAME]);
 
     const response = await agent.run({
       message: 'PRIVATE_REQUEST_add two and three',
@@ -1177,14 +1172,12 @@ describe('assembled Agent Base request path', () => {
     expect(JSON.stringify(modelResponse)).not.toContain('foreground-1');
   });
 
-  it('navigates durable branches with branch-scoped context, replay, and tracing', async () => {
+  it('uses out-of-band navigation with branch-scoped runtime context and replay', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'ta-agent-navigation-'));
     const sessionDatabasePath = join(directory, 'session.sqlite');
     const journalDatabasePath = join(directory, 'request-journal.sqlite');
-    const trace = new MemoryAgentTraceAdapter({ maxEvents: 512 });
     const childBranchId = parseSessionBranchId('child');
     let requestSequence = 0;
-    let navigationSequence = 0;
     try {
       const firstSession = new SqliteSessionAdapter({
         databasePath: sessionDatabasePath,
@@ -1199,8 +1192,6 @@ describe('assembled Agent Base request path', () => {
         }),
         createRunId: () => `branch-request-${++requestSequence}`,
         createCompactionRunId: () => 'branch-compaction',
-        createNavigationRunId: () => `navigation-run-${++navigationSequence}`,
-        observability: { sink: trace, clock: () => 12 },
         provider: {
           responses: [
             { status: 'success', text: 'PRIVATE_MAIN_ANSWER_1' },
@@ -1225,21 +1216,26 @@ describe('assembled Agent Base request path', () => {
         });
       }
       await first.compactSession({ sessionId: sessionId });
-      const inspected = await first.navigateSession({
-        sessionId: sessionId,
-        operation: 'inspect',
+      const inspected = await executeSessionNavigation({
+        agentId: first.identity.id,
+        navigation: { sessionId: sessionId, operation: 'inspect' },
+        session: firstSession,
       });
       expect(inspected).toMatchObject({
         status: 'inspected',
         navigation: { revision: 4, selectedBranchId: DEFAULT_SESSION_BRANCH_ID },
       });
       await expect(
-        first.navigateSession({
-          sessionId: sessionId,
-          operation: 'rewind',
-          throughTurnId: 'branch-request-2',
-          newBranchId: childBranchId,
-          expectedRevision: 4,
+        executeSessionNavigation({
+          agentId: first.identity.id,
+          navigation: {
+            sessionId: sessionId,
+            operation: 'rewind',
+            throughTurnId: 'branch-request-2',
+            newBranchId: childBranchId,
+            expectedRevision: 4,
+          },
+          session: firstSession,
         })
       ).resolves.toEqual({
         status: 'rewound',
@@ -1263,11 +1259,15 @@ describe('assembled Agent Base request path', () => {
       expect(serializedChildRequest).not.toContain('PRIVATE_MAIN_ANSWER_4');
 
       await expect(
-        first.navigateSession({
-          sessionId: sessionId,
-          operation: 'select',
-          branchId: DEFAULT_SESSION_BRANCH_ID,
-          expectedRevision: 6,
+        executeSessionNavigation({
+          agentId: first.identity.id,
+          navigation: {
+            sessionId: sessionId,
+            operation: 'select',
+            branchId: DEFAULT_SESSION_BRANCH_ID,
+            expectedRevision: 6,
+          },
+          session: firstSession,
         })
       ).resolves.toMatchObject({
         status: 'selected',
@@ -1324,17 +1324,6 @@ describe('assembled Agent Base request path', () => {
         ],
       });
       expect(snapshot?.turns).toHaveLength(6);
-
-      const navigationEvents = [
-        ...trace.inspect({ agentRunId: 'navigation-run-2' }).events,
-        ...trace.inspect({ agentRunId: 'navigation-run-3' }).events,
-      ];
-      expect(
-        navigationEvents.filter((event) => event.type === 'session-navigation-applied')
-      ).toHaveLength(2);
-      const serializedNavigationTrace = JSON.stringify(navigationEvents);
-      expect(serializedNavigationTrace).toContain(childBranchId);
-      expect(serializedNavigationTrace).not.toContain('PRIVATE_');
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
@@ -1375,108 +1364,6 @@ describe('assembled Agent Base request path', () => {
       revision: 1,
     });
     expect(agent.inspectDeterministicProvider().callCount).toBe(4);
-  });
-
-  it('allows navigation leaf and complete Workflow replacement', async () => {
-    const leafReplacement = createDeterministicAgentAPI({
-      identity: { id: 'navigation-leaf-replacement' },
-      sessionNavigationStepOverrides: {
-        inspectSessionNavigation: (context) => {
-          if (context.sessionId === undefined) {
-            throw new AgentSessionError(
-              'SESSION_NAVIGATION_INVALID',
-              'Replacement requires a validated Session ID.'
-            );
-          }
-          context.result = Object.freeze({
-            status: 'inspected',
-            navigation: Object.freeze({
-              agentId: context.agentRunContext.identity.id,
-              sessionId: context.sessionId,
-              revision: 99,
-              selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
-              branches: Object.freeze([
-                Object.freeze({
-                  branchId: DEFAULT_SESSION_BRANCH_ID,
-                  createdAt: 1,
-                }),
-              ]),
-            }),
-          });
-          return Promise.resolve();
-        },
-      },
-      provider: { responses: [{ status: 'success', text: 'unused' }] },
-    });
-    await expect(
-      leafReplacement.navigateSession({ sessionId: 'virtual', operation: 'inspect' })
-    ).resolves.toMatchObject({
-      status: 'inspected',
-      navigation: { revision: 99 },
-    });
-
-    const replacementResult = Object.freeze({
-      status: 'inspected' as const,
-      navigation: Object.freeze({
-        agentId: leafReplacement.identity.id,
-        sessionId: parseSessionId('replacement'),
-        revision: 7,
-        selectedBranchId: DEFAULT_SESSION_BRANCH_ID,
-        branches: Object.freeze([
-          Object.freeze({ branchId: DEFAULT_SESSION_BRANCH_ID, createdAt: 1 }),
-        ]),
-      }),
-    });
-    const workflowReplacement = createDeterministicAgentAPI({
-      identity: { id: 'navigation-workflow-replacement' },
-      sessionNavigationWorkflow: {
-        name: SESSION_NAVIGATION_WORKFLOW_NAME,
-        run: () =>
-          Promise.resolve({
-            status: 'completed',
-            workflowName: SESSION_NAVIGATION_WORKFLOW_NAME,
-            workflowRunId: 'replacement-workflow-run',
-            result: replacementResult,
-            applyTo: (context) => {
-              context.output = replacementResult;
-              return Promise.resolve();
-            },
-          }),
-      },
-      provider: { responses: [{ status: 'success', text: 'unused' }] },
-    });
-    await expect(
-      workflowReplacement.navigateSession({ sessionId: 'missing', operation: 'inspect' })
-    ).resolves.toEqual(replacementResult);
-  });
-
-  it('commits no navigation mutation when its Agent Run is already cancelled', async () => {
-    const agent = createDeterministicAgentAPI({
-      identity: { id: 'navigation-cancellation' },
-      createRunId: () => 'navigation-base-request',
-      provider: { responses: [{ status: 'success', text: 'base' }] },
-    });
-    const { sessionId } = await agent.agent.resources.session.resolve({
-      agentId: agent.identity.id,
-    });
-    await agent.run({ message: 'base', sessionId: sessionId });
-    const controller = new AbortController();
-    controller.abort();
-
-    await expect(
-      agent.navigateSession(
-        {
-          sessionId: sessionId,
-          operation: 'select',
-          branchId: DEFAULT_SESSION_BRANCH_ID,
-          expectedRevision: 1,
-        },
-        { signal: controller.signal }
-      )
-    ).rejects.toBeDefined();
-    await expect(
-      agent.navigateSession({ sessionId: sessionId, operation: 'inspect' })
-    ).resolves.toMatchObject({ navigation: { revision: 1 } });
   });
 
   it('applies the assembled request timeout and reports it distinctly', async () => {

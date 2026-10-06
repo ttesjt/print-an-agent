@@ -1,6 +1,6 @@
 import type { AgentIdentity } from '@ta-agent/base-identity';
 import type { RequestJournalPort } from '@ta-agent/base-request';
-import type { NavigableCompactableSessionPort } from '@ta-agent/base-session';
+import type { CompactableSessionPort } from '@ta-agent/base-session';
 import {
   materializeStandaloneAgentRuntime,
   createStandaloneAgent,
@@ -11,7 +11,7 @@ import {
 
 declare const identity: AgentIdentity;
 declare const config: StandaloneAgentConfig;
-declare const session: NavigableCompactableSessionPort;
+declare const session: CompactableSessionPort;
 declare const requestJournal: RequestJournalPort;
 declare const options: StandaloneRuntimeOptions;
 
@@ -24,6 +24,9 @@ const raw: StandaloneRawAgent = materializeStandaloneAgentRuntime({
   options,
 });
 void raw.invoke('foreground', { message: 'typed raw Agent' });
+void raw.invoke('compactSession', { sessionId: 'session' });
+// @ts-expect-error Standalone runtime Ports do not imply navigation capability.
+void raw.resources.session.applyNavigation;
 // @ts-expect-error A raw Agent is not an AgentAPI facade.
 void raw.agent;
 const created: Promise<StandaloneRawAgent> = createStandaloneAgent({}, options);

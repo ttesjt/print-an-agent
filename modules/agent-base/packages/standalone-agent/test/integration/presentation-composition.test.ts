@@ -9,6 +9,8 @@ import { supportsSessionPresentation, parseTurnId } from '@ta-agent/base-session
 import { describe, expect, it } from 'vitest';
 import {
   createStandaloneAgent,
+  createStandaloneProviderService,
+  defineStandaloneAgentConfig,
   createStandaloneDirectoryDefinition,
   createSharedSqliteStandaloneDefinition,
   type StandaloneRuntimeOptions,
@@ -99,9 +101,9 @@ describe.each(['explicit', 'directory', 'shared-sqlite'] as const)(
             identity: { id: 'fixture' },
             config: definition,
           });
-        const directApi =
+        const bootstrapAgent =
           managedProfile === undefined
-            ? createStandaloneAgent(
+            ? await createStandaloneAgent(
                 {
                   schemaVersion: 1,
                   identity: { id: 'fixture' },
@@ -111,14 +113,19 @@ describe.each(['explicit', 'directory', 'shared-sqlite'] as const)(
                 options
               )
             : undefined;
-        const agent = directApi?.agent ?? (await managedProfile?.open('fixture'));
+        const agent = bootstrapAgent ?? (await managedProfile?.open('fixture'));
         if (agent === undefined) throw new Error('Expected a materialized Agent');
         const response = await agent.invoke('foreground', { message: 'hello' });
         expect(captures).toBe(1);
         expect(agent.operations.foreground.config.timeoutMilliseconds).toBe(120_000);
         expect(agent.operations.compactSession.config.timeoutMilliseconds).toBe(130_000);
-        if (directApi !== undefined) {
-          expect(directApi.inspectProvider().transportLivenessPolicy).toEqual({
+        if (bootstrapAgent !== undefined) {
+          expect(
+            createStandaloneProviderService(
+              defineStandaloneAgentConfig(definition),
+              options
+            ).inspect().transportLivenessPolicy
+          ).toEqual({
             responseStartTimeoutMilliseconds: 90_000,
             streamEventIdleTimeoutMilliseconds: 100_000,
           });

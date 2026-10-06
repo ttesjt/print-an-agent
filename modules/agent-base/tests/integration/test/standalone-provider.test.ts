@@ -4,7 +4,11 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { MemoryOutputSink } from '@ta-agent/base-local-adapters';
 import { AgentModelError } from '@ta-agent/base-model';
-import { createStandaloneAgent } from '@ta-agent/base-standalone-agent';
+import { createAgentAPI } from '@ta-agent/base-composition';
+import {
+  createStandaloneAgent,
+  createSharedSqliteStandaloneRuntimeService,
+} from '@ta-agent/base-standalone-agent';
 import { afterEach, describe, expect, it } from 'vitest';
 import { startLoopbackProvider, type LoopbackProvider } from './support/loopback-provider.js';
 
@@ -66,7 +70,7 @@ describe('public standalone provider consumer', () => {
       },
     } as const;
     const firstSink = new MemoryOutputSink();
-    const firstAgent = createStandaloneAgent(config, runtimeOptions);
+    const firstAgent = createAgentAPI(await createStandaloneAgent(config, runtimeOptions));
     const { sessionId } = await firstAgent.agent.resources.session.resolve({
       agentId: firstAgent.identity.id,
     });
@@ -78,7 +82,12 @@ describe('public standalone provider consumer', () => {
 
     const first = await firstAgent.run({ ...request, outputSink: firstSink });
     const replaySink = new MemoryOutputSink();
-    const reconstructedAgent = createStandaloneAgent(config, runtimeOptions);
+    const reconstructedAgent = createAgentAPI(
+      await createSharedSqliteStandaloneRuntimeService({
+        ...runtimeOptions,
+        databasePath: config.persistence.databasePath,
+      }).open(config.identity.id)
+    );
     const replay = await reconstructedAgent.run({ ...request, outputSink: replaySink });
 
     expect(first.message.text).toBe('ordinary response');
@@ -95,9 +104,6 @@ describe('public standalone provider consumer', () => {
       status: 'closed',
       response: { requestId: first.requestId },
     });
-    expect(JSON.stringify(reconstructedAgent.inspectProvider())).not.toContain(
-      'persist this request'
-    );
 
     const database = new DatabaseSync(config.persistence.databasePath);
     const tables = database
@@ -106,6 +112,12 @@ describe('public standalone provider consumer', () => {
       .map((row) => (row as { name: string }).name);
     database.close();
     expect(tables).toEqual([
+      'agent_config_schema',
+      'agent_configs',
+      'agent_identities',
+      'agent_identity_schema',
+      'agent_managed_namespace_schema',
+      'agent_managed_namespaces',
       'consumer_branches',
       'consumer_compactions',
       'consumer_request_meta',
@@ -120,7 +132,7 @@ describe('public standalone provider consumer', () => {
     const provider = await startLoopbackProvider([{ status: 'failure', statusCode: 503 }]);
     providers.push(provider);
     const sink = new MemoryOutputSink();
-    const agent = createStandaloneAgent(
+    const agent = await createStandaloneAgent(
       {
         schemaVersion: 1,
         identity: { id: 'failing-consumer' },
@@ -143,7 +155,9 @@ describe('public standalone provider consumer', () => {
       { readEnvironmentVariable: () => undefined }
     );
 
-    await expect(agent.run({ message: 'fail safely', outputSink: sink })).rejects.toEqual(
+    await expect(
+      agent.invoke('foreground', { message: 'fail safely', outputSink: sink })
+    ).rejects.toEqual(
       expect.objectContaining<Partial<AgentModelError>>({ code: 'MODEL_PROVIDER_FAILED' })
     );
     expect(sink.inspect()).toMatchObject({

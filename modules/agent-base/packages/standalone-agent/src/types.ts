@@ -5,8 +5,8 @@ import type {
 } from '@ta-agent/base-actor';
 import type {
   ComposeAgentOptions,
+  composeAgent,
   DefinedProviderConfig,
-  ProviderAgentAPI,
   ProviderConfigInput,
 } from '@ta-agent/base-composition';
 import type { AgentIdentity, AgentIdentityInput } from '@ta-agent/base-identity';
@@ -18,7 +18,6 @@ import type { RequestPolicy } from '@ta-agent/base-request';
 import type { SessionCompactionPolicy } from '@ta-agent/base-session';
 import type {
   StandaloneManagedSqliteTableNamingInput,
-  StandaloneRuntimeSqliteTableNamingInput,
   StandaloneSharedSqliteTableNamingInput,
 } from './resources/sqlite-table-naming.js';
 
@@ -107,11 +106,10 @@ export interface StandaloneRuntimeOptions extends StandaloneCredentialRuntimeOpt
 }
 
 export interface CreateStandaloneAgentOptions extends StandaloneRuntimeOptions {
-  readonly sqlite?: StandaloneRuntimeSqliteTableNamingInput;
+  readonly sqlite?: StandaloneSharedSqliteTableNamingInput;
 }
 
-export type StandaloneAgent = ProviderAgentAPI;
-export type StandaloneRawAgent = ProviderAgentAPI['agent'];
+export type StandaloneRawAgent = ReturnType<typeof composeAgent>;
 
 export interface StandaloneAgentConfigInput {
   readonly provider: StandaloneProviderConfigInput;
@@ -146,6 +144,10 @@ export interface CreateStandaloneDirectoryProfileOptions extends StandaloneRunti
   readonly clock?: () => number;
   readonly createTemporaryId?: () => string;
   readonly sqlite?: StandaloneManagedSqliteTableNamingInput;
+}
+
+export interface CreateStandaloneMemoryProfileOptions extends StandaloneRuntimeOptions {
+  readonly clock?: () => number;
 }
 
 export type CreateStandaloneDirectoryManagementServiceOptions = Omit<

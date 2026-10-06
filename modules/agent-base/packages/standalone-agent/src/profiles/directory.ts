@@ -13,7 +13,7 @@ import { createFilesystemAgentResourceNamespaceAdapter } from '../resources/file
 import { createFilesystemStandalonePortFactories } from '../resources/filesystem/port-factory.js';
 import type { FilesystemAgentResourceNamespace } from '../resources/filesystem/types.js';
 import { resolveStandaloneManagedSqliteTableNames } from '../resources/sqlite-table-naming.js';
-import { assertStandaloneRuntimeTimeoutAuthority } from '../runtime-policies.js';
+import { assertStandaloneRuntimeOptions } from '../runtime-policies.js';
 import {
   projectStandaloneAgentManagementService,
   type StandaloneAgentManagementService,
@@ -49,7 +49,7 @@ export type StandaloneDirectoryDefinition = SessionManagedAgentCompositionDefini
 export function createStandaloneDirectoryDefinition(
   options: CreateStandaloneDirectoryProfileOptions
 ): StandaloneDirectoryDefinition {
-  assertStandaloneRuntimeTimeoutAuthority(options);
+  assertStandaloneRuntimeOptions(options);
   const createTemporaryId = options.createTemporaryId ?? randomUUID;
   const tableNames = resolveStandaloneManagedSqliteTableNames(options.sqlite);
   const ports = createFilesystemStandalonePortFactories({
@@ -74,7 +74,7 @@ export function createStandaloneDirectoryDefinition(
           config,
           ports: runtimePorts,
           options,
-        }).agent,
+        }),
     },
     projection: {
       port: createFilesystemStandaloneManifestProjection({ createTemporaryId }),

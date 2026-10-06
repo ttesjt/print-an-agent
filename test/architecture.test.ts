@@ -366,7 +366,7 @@ describe('module architecture', () => {
 
     expect(moduleSpecifiers(publicEntryPoint)).not.toContain('./host-loaders.js');
     for (const privateHostLoader of [
-      'loadAgentBaseCliManagedDirectory',
+      'loadAgentBaseCliAgentManager',
       'loadAgentBaseCliProvider',
       'loadAgentBaseCliRuntime',
       'loadAgentBaseCliSessionManager',
@@ -410,6 +410,86 @@ describe('module architecture', () => {
     expect(containsTextInTypeScript(join(standaloneRoot, 'src'), '@earendil-works/pi-')).toBe(
       false
     );
+  });
+
+  it('keeps Agent Base composition independent of the Standalone profile', () => {
+    const compositionRoot = join(
+      repositoryRoot,
+      'modules',
+      'agent-base',
+      'packages',
+      'composition'
+    );
+    const manifest = JSON.parse(
+      readFileSync(join(compositionRoot, 'package.json'), 'utf8')
+    ) as PackageManifest;
+
+    expect(declaredDependencies(manifest)).not.toContain('@ta-agent/base-standalone-agent');
+    expect(
+      containsTextInTypeScript(join(compositionRoot, 'src'), '@ta-agent/base-standalone-agent')
+    ).toBe(false);
+  });
+
+  it('routes Standalone bootstrap through profiles and Services, not a second runtime assembly', () => {
+    const sourceRoot = join(
+      repositoryRoot,
+      'modules',
+      'agent-base',
+      'packages',
+      'standalone-agent',
+      'src'
+    );
+    const bootstrap = readFileSync(join(sourceRoot, 'create-standalone-agent.ts'), 'utf8');
+    const specifiers = moduleSpecifiers(bootstrap);
+    expect(specifiers).toContain('./profiles/memory.js');
+    expect(specifiers).toContain('./profiles/shared-sqlite.js');
+    expect(specifiers).not.toContain('@ta-agent/base-local-adapters');
+    // The runtime Ports type is allowed; bootstrap must not call the materializer itself.
+    expect(bootstrap).not.toContain('materializeStandaloneAgentRuntime');
+    expect(bootstrap).toContain('createAgentManagementService');
+    expect(bootstrap).toContain('createAgentRuntimeService');
+    const materializer = readFileSync(
+      join(sourceRoot, 'runtime', 'materialize-standalone-agent.ts'),
+      'utf8'
+    );
+    expect(moduleSpecifiers(materializer)).not.toContain('@ta-agent/base-local-adapters');
+    expect(materializer).not.toContain('createProviderAgentAPI');
+    expect(materializer).not.toContain('createAgentAPI');
+    expect(materializer).not.toContain('ports?:');
+  });
+
+  it('keeps Standalone runtime assembly singular and concrete adapters inside provisioning', () => {
+    const sourceRoot = join(
+      repositoryRoot,
+      'modules',
+      'agent-base',
+      'packages',
+      'standalone-agent',
+      'src'
+    );
+    const materializer = normalize(join(sourceRoot, 'runtime', 'materialize-standalone-agent.ts'));
+    const composeAgentOwners = typeScriptFiles(sourceRoot)
+      .filter((sourceFile) => /\bcomposeAgent\s*\(/u.test(readFileSync(sourceFile, 'utf8')))
+      .map(normalize);
+    expect(composeAgentOwners).toEqual([materializer]);
+
+    const resourcesRoot = join(sourceRoot, 'resources');
+    for (const sourceFile of typeScriptFiles(sourceRoot)) {
+      if (isPathWithin(sourceFile, resourcesRoot)) continue;
+      expect(
+        moduleSpecifiers(readFileSync(sourceFile, 'utf8')).some(
+          (specifier) => specifier === '@ta-agent/base-local-adapters'
+        ),
+        `${normalize(sourceFile)} must receive provisioned Ports instead of selecting local adapters`
+      ).toBe(false);
+    }
+
+    const publicEntryPoint = readFileSync(join(sourceRoot, 'index.ts'), 'utf8');
+    expect(publicEntryPoint).toContain('export { createStandaloneAgent }');
+    expect(publicEntryPoint).toContain('createStandaloneMemoryDefinition');
+    expect(publicEntryPoint).toContain('createStandaloneDirectoryDefinition');
+    expect(publicEntryPoint).toContain('createSharedSqliteStandaloneDefinition');
+    expect(publicEntryPoint).not.toContain('ResourceProvisioner');
   });
 
   it('keeps Standalone as a profile consumer instead of a duplicate lifecycle owner', () => {

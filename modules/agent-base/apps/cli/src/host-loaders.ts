@@ -5,6 +5,8 @@ import {
   createStandaloneDirectoryManagementService,
   createStandaloneDirectoryRuntimeService,
   createStandaloneDirectorySessionService,
+  createSharedSqliteStandaloneManagementService,
+  createSharedSqliteStandaloneRuntimeService,
   createStandaloneProviderService,
   defineStandaloneAgentBootstrapConfig,
   defineStandaloneAgentManifest,
@@ -14,10 +16,11 @@ import {
 } from '@ta-agent/base-standalone-agent';
 import { AgentBaseCliError } from './errors.js';
 import type {
-  AgentBaseCliManagedDirectory,
+  AgentBaseCliAgentManager,
   AgentBaseCliProvider,
   AgentBaseCliRuntime,
   AgentBaseCliRuntimeLocator,
+  AgentBaseCliStorageLocator,
   AgentBaseCliSessionManager,
 } from './contracts.js';
 
@@ -100,13 +103,10 @@ function safeManagedSnapshot(snapshot: ManagedSnapshot): Readonly<{
   });
 }
 
-export function loadAgentBaseCliManagedDirectory(
-  rootDirectory: string,
-  _environment: NodeJS.ProcessEnv
-): Promise<AgentBaseCliManagedDirectory> {
-  const management = createStandaloneDirectoryManagementService({
-    rootDirectory,
-  });
+export function loadAgentBaseCliAgentManager(
+  locator: AgentBaseCliStorageLocator
+): Promise<AgentBaseCliAgentManager> {
+  const management = createManagementService(locator);
   return Promise.resolve(
     Object.freeze({
       create: async (input: unknown) => {
@@ -169,16 +169,23 @@ export async function loadAgentBaseCliRuntime(
   environment: NodeJS.ProcessEnv
 ): Promise<AgentBaseCliRuntime> {
   if (locator.kind === 'config') {
-    const config = await readAgentBaseCliJsonDocument(locator.configPath);
-    const api = createStandaloneAgent(config, {
+    const config = await readMemoryBootstrap(locator.configPath);
+    const agent = await createStandaloneAgent(config, {
       readEnvironmentVariable: (name) => environment[name],
     });
-    return projectRuntime(api.agent);
+    return projectRuntime(agent);
   }
-  const runtime = createStandaloneDirectoryRuntimeService({
-    rootDirectory: locator.rootDirectory,
-    readEnvironmentVariable: (name) => environment[name],
-  });
+  const options = { readEnvironmentVariable: (name: string) => environment[name] };
+  const runtime =
+    locator.kind === 'directory'
+      ? createStandaloneDirectoryRuntimeService({
+          ...options,
+          rootDirectory: locator.rootDirectory,
+        })
+      : createSharedSqliteStandaloneRuntimeService({
+          ...options,
+          databasePath: locator.databasePath,
+        });
   return projectRuntime(await runtime.open(locator.agentId));
 }
 
@@ -188,15 +195,32 @@ export async function loadAgentBaseCliProvider(
 ): Promise<AgentBaseCliProvider> {
   const config =
     locator.kind === 'config'
-      ? defineStandaloneAgentBootstrapConfig(await readAgentBaseCliJsonDocument(locator.configPath))
-      : (
-          await createStandaloneDirectoryManagementService({
-            rootDirectory: locator.rootDirectory,
-          }).inspect(locator.agentId)
-        ).config.value;
+      ? await readMemoryBootstrap(locator.configPath)
+      : (await createManagementService(locator).inspect(locator.agentId)).config.value;
   return projectProvider(
     createStandaloneProviderService(config, {
       readEnvironmentVariable: (name) => environment[name],
     })
   );
+}
+
+function createManagementService(
+  locator: AgentBaseCliStorageLocator
+): StandaloneAgentManagementService {
+  return locator.kind === 'directory'
+    ? createStandaloneDirectoryManagementService({ rootDirectory: locator.rootDirectory })
+    : createSharedSqliteStandaloneManagementService({ databasePath: locator.databasePath });
+}
+
+async function readMemoryBootstrap(configPath: string) {
+  const config = defineStandaloneAgentBootstrapConfig(
+    await readAgentBaseCliJsonDocument(configPath)
+  );
+  if (config.persistence.kind !== 'memory') {
+    throw new AgentBaseCliError(
+      'CLI_USAGE_INVALID',
+      '--config requires Memory persistence. Create durable Agents from a manifest, then open by storage location and Agent ID.'
+    );
+  }
+  return config;
 }

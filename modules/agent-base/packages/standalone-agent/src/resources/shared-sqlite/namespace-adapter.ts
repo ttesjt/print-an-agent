@@ -215,7 +215,8 @@ function useDatabase<T>(
   }
   if (outcome.status === 'failure') {
     const operationError =
-      outcome.error instanceof AgentBaseStandaloneError
+      outcome.error instanceof AgentBaseStandaloneError ||
+      outcome.error instanceof ManagedAgentNamespaceError
         ? outcome.error
         : new AgentBaseStandaloneError(`Shared SQLite namespace operation "${operation}" failed.`, {
             code: 'STANDALONE_AGENT_STORAGE_FAILED',

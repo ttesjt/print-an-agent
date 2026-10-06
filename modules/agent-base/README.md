@@ -29,12 +29,13 @@ The module is intentionally split between:
 - domain/utility packages, which own contracts and behavior without selecting local persistence;
 - `@ta-agent/base-local-adapters`, which owns the official reusable in-process and SQLite
   implementations of those ports;
-- `@ta-agent/base-composition`, which returns the canonical composed Agent and optionally projects an
-  `AgentAPI` convenience layer;
-- `@ta-agent/base-standalone-agent`, which selects the current concrete reference-application
-  profile;
-- thin applications such as the CLI, which call the standalone Agent instead of composing another
-  runtime.
+- `@ta-agent/base-composition`, which owns the official Standard raw-Agent runtime composition plus
+  storage-neutral application management definitions and Services, and may project an `AgentAPI`
+  convenience layer;
+- `@ta-agent/base-standalone-agent`, which binds those generic contracts to the current concrete
+  reference-application bootstrap, directory, and shared-SQLite profiles;
+- thin applications such as the CLI, which call the Standalone Services or raw Agent instead of
+  composing another runtime or lifecycle owner.
 
 This module must not import Model Workbench or application runtimes. It does not own model
 training or application-specific policy.
@@ -62,8 +63,10 @@ Current foundation packages:
   implementations for generic Agent Base ports;
 - `@ta-agent/base-pi`: the isolated Pi `0.82.1` adapter with deterministic faux, builtin, and
   explicit OpenAI-compatible provider profiles;
-- `@ta-agent/base-composition`: the official raw Agent composition root and optional API template;
-- `@ta-agent/base-standalone-agent`: the current standalone reference Agent boundary;
+- `@ta-agent/base-composition`: the official Standard raw-Agent composition root, optional API
+  template, and storage-neutral Agent management/runtime/Session Service contracts;
+- `@ta-agent/base-standalone-agent`: the current standalone reference Agent bootstrap and concrete
+  managed-profile boundary;
 - `@ta-agent/base-cli`: the thin `agent-base` executable over the standalone Agent.
 
 The composition package offers a deterministic provider profile and a formal ordinary-provider
@@ -94,16 +97,19 @@ inspect, select, fork, and non-destructive rewind over append-only lineage. Auto
 scheduling, branch merge/delete/retention, durable trace/credential storage, OAuth, and broader
 provider qualification remain deferred.
 
-For standalone use, `@ta-agent/base-standalone-agent` exposes the explicit-config bootstrap and a
-storage-neutral managed lifecycle. Resource namespace publication, independently typed domain
-adapters, and optional manifest projection are separate composition boundaries. The default managed
-profile uses one explicitly configured root, one directory, and one SQLite database per Agent; an
+For managed use, `@ta-agent/base-composition` provides the storage-neutral Definition and narrow
+Agent management, runtime-opening, and optional Session management Services.
+`@ta-agent/base-standalone-agent` binds those contracts to concrete resource namespace publication,
+independently typed domain adapters, and optional manifest projection. The default managed profile
+uses one explicitly configured root, one directory, and one SQLite database per Agent; an
 alternative profile uses one shared SQLite database for multiple AgentId-isolated Agents and no
-manifest. Both support create/open/list, Config CAS update, and disable/reactivate without hard
-delete. In the filesystem profile, `agent.json` is a portable secret-free projection over SQLite
-authority. The CLI adds the matching filesystem lifecycle commands and can open managed Agents
-through explicit `--root` plus `--agent-id`. It does not select an implicit root, load executable
-adapters or Tools from configuration, persist credentials, or import Model Workbench or application runtimes.
+manifest. Both support create/open/list, Config CAS update, disable/reactivate, and out-of-band
+Session lifecycle management without hard-deleting Agents. In the filesystem profile, `agent.json`
+is a portable secret-free projection over SQLite authority. The CLI creates and opens durable Agents
+through either explicit `--root` or `--database-path` plus `--agent-id`; `--config` is limited to a
+fresh process-local Memory Session and cannot continue an existing Session. It does not select an
+implicit storage location, load executable adapters or Tools from configuration, persist
+credentials, or import Model Workbench or application runtimes.
 
 `tests/integration` is a private test-only workspace that compiles and executes Agent Base as an
 external package consumer. It imports only package entry points and exercises the raw Agent,

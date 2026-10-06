@@ -41,7 +41,7 @@ export async function openManagedAgentRuntime<TConfig, TNamespaceHandle, TRuntim
   const agentId = parseAgentId(agentIdInput);
   const namespace = await resolveManagedAgentNamespace('open', definition.namespace.port, agentId);
   const authorityPorts = createManagedAgentAuthorityPorts('open', definition, namespace);
-  const authority = await readManagedAgentAuthority(
+  const authority = await readManagedAgentAuthority<TConfig>(
     'open',
     agentId,
     authorityPorts,
@@ -53,7 +53,9 @@ export async function openManagedAgentRuntime<TConfig, TNamespaceHandle, TRuntim
 
   let runtimePorts: TRuntimePorts;
   try {
-    runtimePorts = await definition.runtime.createPorts(namespace);
+    runtimePorts = await definition.runtime.createPorts(
+      Object.freeze({ namespace, identity: authority.identity, config: authority.config })
+    );
   } catch {
     throw runtimeOpeningFailed();
   }

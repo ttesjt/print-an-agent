@@ -11,7 +11,7 @@ import { resolveStandaloneSharedSqliteTableNames } from '../resources/sqlite-tab
 import { createSharedSqliteAgentResourceNamespaceAdapter } from '../resources/shared-sqlite/namespace-adapter.js';
 import { createSharedSqliteStandalonePortFactories } from '../resources/shared-sqlite/port-factory.js';
 import type { SharedSqliteAgentResourceNamespace } from '../resources/shared-sqlite/types.js';
-import { assertStandaloneRuntimeTimeoutAuthority } from '../runtime-policies.js';
+import { assertStandaloneRuntimeOptions } from '../runtime-policies.js';
 import {
   projectStandaloneAgentManagementService,
   type StandaloneAgentManagementService,
@@ -47,7 +47,7 @@ export type SharedSqliteStandaloneDefinition = SessionManagedAgentCompositionDef
 export function createSharedSqliteStandaloneDefinition(
   options: CreateSharedSqliteStandaloneProfileOptions
 ): SharedSqliteStandaloneDefinition {
-  assertStandaloneRuntimeTimeoutAuthority(options);
+  assertStandaloneRuntimeOptions(options);
   const tableNames = resolveStandaloneSharedSqliteTableNames(options.sqlite);
   const busyTimeout =
     options.busyTimeoutMilliseconds === undefined
@@ -77,7 +77,7 @@ export function createSharedSqliteStandaloneDefinition(
           config,
           ports: runtimePorts,
           options,
-        }).agent,
+        }),
     },
     sessionManagement: { createPorts: ports.createSessionManagementPorts },
   });

@@ -385,6 +385,9 @@ importers:
       '@ta-agent/base-session':
         specifier: workspace:*
         version: link:../session
+      '@ta-agent/base-workflow':
+        specifier: workspace:*
+        version: link:../workflow
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

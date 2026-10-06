@@ -8,12 +8,24 @@ boundary. Consumers continue to import `@ta-agent/base-composition` and must not
 internals. Runtime implementation remains self-contained: it does not import through the package
 root or depend on another composition feature's implementation.
 
+`src/runtime/` and `src/management/` are isolated peer features. Runtime owns the official Standard
+Agent assembly. Management owns only storage-neutral application contracts and coordination over
+injected ports. Neither feature imports the other, management does not import local adapters or
+concrete storage, and the package as a whole does not depend on the Standalone profile. Repository
+architecture tests enforce these rules for static, exported, type-only, and dynamic imports.
+
 The package also exposes a storage-neutral application management composition contract through
 `defineManagedAgentComposition()`. Its immutable `ManagedAgentCompositionDefinition` groups Config
 codec, namespace allocation, Identity/Config authority, runtime-port creation, and raw-Agent
 materialization by responsibility. Definition creation is synchronous and zero-I/O: it validates
 and shallow-freezes framework-owned wiring records without invoking or recursively freezing
 caller-owned codecs, Ports, factories, or materializers.
+
+This application-level Definition is distinct from both the single-Agent `AgentDefinition` consumed
+by `createAgent()` and the durable, JSON-like `AgentConfig` decoded by its Config codec. `Definition`
+is a general code-contract suffix; the full name determines scope. Domain Services are narrow
+capability objects created from the shared Definition, Ports declare external capability boundaries,
+and injected Adapters implement those Ports.
 
 Generic runtime materialization receives only `{ identity, config, ports }` and must return the
 actual typed `Agent`. Its exact concrete Agent type is preserved, including product-owned typed
@@ -23,15 +35,41 @@ explicit projection boundary for paths, database tenants, remote handles, and ot
 resources. This preserves custom Agent types without making generic management depend on the
 Standard runtime feature.
 
+The runtime Port factory receives `ManagedAgentRuntimeProvisioningInput<TConfig, TNamespaceHandle>`:
+`{ namespace, identity, config }`, where Identity and Config are validated authoritative snapshots
+including their revisions. `open()` acquires authority ports and reads authority before requesting
+runtime ports. Provisioning and materialization use the same read result: the materializer receives
+`identity.identity` and `config.value` from those snapshots, without a second authority read. This
+does not promise an atomic snapshot across the two authorities. The provisioning input record is
+shallow-frozen; the framework does not acquire or recursively freeze profile-owned resource handles.
+
+Profile code still chooses adapter implementations and resource lifetime. A factory may use typed
+Config data and revisions for an explicit resource-generation policy, or ignore them entirely;
+Config does not select arbitrary code, and its revision does not automatically become the identity
+of persistent resources. Pure runtime assembly remains the materializer's responsibility. Other
+factories keep their narrower inputs: Session management needs a namespace, not Config or runtime
+resources. Services acquire required capabilities at the point of use rather than through a global
+upfront resource initialization phase.
+
 An optional medium-independent Config Projection Port represents one-way publish/reconcile behavior
 and distinguishes `not-configured`, `current`, and `stale` states. Its `publish()` boundary receives
 an explicitly published namespace, as does `reconcile()`. Projection is therefore always a
 recoverable secondary view of an Agent that has already crossed its authoritative publication
-boundary. Optional out-of-band Session management is represented by the typed
-`SessionManagementCapability`; core Definitions do not assume that an Agent uses the standard
+boundary. Optional out-of-band features are closed, independent typed capabilities rather than a
+dynamic registry. The Definition builder infers capability presence from actual own fields, rejects
+an explicitly `undefined` capability, validates each known wiring record, and shallow-freezes only
+the records it creates. Its type projection preserves required, optional, and absent capability
+fields through generic factory forwarding without re-evaluating the Core Definition constraints. It
+does not recursively freeze injected factories or adapters. Capability interfaces compose by
+intersection; adding one does not imply another or require overloads for every combination.
+
+Out-of-band Session management is represented by `SessionManagementCapability`; the independent
+`SessionNavigationCapability` reserves the corresponding navigation-port boundary without making
+it part of Session management. Core Definitions do not assume that an Agent uses the standard
 Session domain. A Generic Agent may have no Session, use Session only inside its runtime, or expose a
 product-owned conversation model. Only Definitions that install the standard
-`SessionManagementPorts` contract can create `SessionManagementService`.
+`SessionManagementPorts` contract can create `SessionManagementService`. Projection remains an
+optional concern internal to Agent management coordination, not a capability-gated Service.
 
 `createSessionManagementService()` exposes active/retired listing, inspection, Turn pagination,
 retire/restore, and coordinated purge/recovery without creating an Agent runtime or reading Identity
@@ -132,17 +170,21 @@ timeout-specific declaration, and the Agent runtime does not inspect arbitrary c
 The TypeScript Actor shortcuts on `createProviderAgentAPI()` and `createDeterministicAgentAPI()`
 also accept `mainActor.invocationPolicy`. Its deadline is independent from Request policy, applies
 only around the selected Actor's LLM invocation, and defaults to no automatic timeout. Products that
-inject catalogs through `composeAgent()` define the same policy directly on each Actor. Standalone
-durable JSON and managed manifests do not encode this host/runtime policy.
+inject catalogs through `composeAgent()` define the same policy directly on each Actor. Composition
+itself does not persist this policy. A concrete application profile may do so: the official
+Standalone Config stores Actor invocation policy as authoritative Agent configuration and projects
+it into this runtime contract when materializing the Agent.
 
 The ordinary provider shortcut also accepts
 `provider.transportLivenessPolicy.responseStartTimeoutMilliseconds` and
 `streamEventIdleTimeoutMilliseconds`. Both default to `null` and remain independent from Request and
 Actor invocation deadlines. The official composition forwards the policy to its internal provider
 adapter and exposes the normalized values through `inspectProvider()` without leaking Pi types.
-Standalone durable JSON and managed manifests do not encode this TypeScript host/runtime policy.
+Composition does not own durable provider configuration. The Standalone profile deliberately stores
+this liveness policy in its authoritative Config and supplies it during runtime materialization.
 
-Standalone configuration and concrete persistence selection belong to
-`@ta-agent/base-standalone-agent`. Agent directories, Identity lifecycle, managed Config persistence,
-automatic compaction scheduling, advanced branch lifecycle, provider failover, and product UX are
-not composition responsibilities.
+Generic Identity lifecycle and Config-authority coordination belong to `composition/management`.
+Concrete adapter selection, filesystem layout, SQLite schemas and table naming, Standalone Config
+fields, and credential binding belong to `@ta-agent/base-standalone-agent` or another injected
+profile. Automatic compaction scheduling, advanced branch lifecycle, provider failover, and product
+UX also remain outside Composition.

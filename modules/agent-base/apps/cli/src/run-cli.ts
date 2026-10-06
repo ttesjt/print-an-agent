@@ -7,18 +7,19 @@ import {
 } from './session-lifecycle-command.js';
 
 export const AGENT_BASE_CLI_USAGE = `Usage:
-  agent-base agent create --root <dir> --manifest <file>
-  agent-base agent list --root <dir>
-  agent-base agent inspect --root <dir> --agent-id <id>
-  agent-base agent disable --root <dir> --agent-id <id> --expected-revision <n>
-  agent-base agent reactivate --root <dir> --agent-id <id> --expected-revision <n>
-  agent-base provider check (--config <file> | --root <dir> --agent-id <id>)
-  agent-base run (--config <file> | --root <dir> --agent-id <id>) (--message <text> | --message-stdin) [--session-id <id>] [--idempotency-key <key>]
-  agent-base session compact (--config <file> | --root <dir> --agent-id <id>) --session-id <id> [--branch-id <id>]
-  agent-base session inspect (--config <file> | --root <dir> --agent-id <id>) --session-id <id>
-  agent-base session select (--config <file> | --root <dir> --agent-id <id>) --session-id <id> --branch-id <id> --expected-revision <n>
-  agent-base session fork (--config <file> | --root <dir> --agent-id <id>) --session-id <id> --source-branch-id <id> --through-turn-id <id> --expected-revision <n> [--new-branch-id <id>]
-  agent-base session rewind (--config <file> | --root <dir> --agent-id <id>) --session-id <id> --through-turn-id <id> --expected-revision <n> [--new-branch-id <id>]
+  agent-base agent create (--root <dir> | --database-path <file>) --manifest <file>
+  agent-base agent list (--root <dir> | --database-path <file>)
+  agent-base agent inspect (--root <dir> | --database-path <file>) --agent-id <id>
+  agent-base agent disable (--root <dir> | --database-path <file>) --agent-id <id> --expected-revision <n>
+  agent-base agent reactivate (--root <dir> | --database-path <file>) --agent-id <id> --expected-revision <n>
+  agent-base provider check (--config <memory-file> | (--root <dir> | --database-path <file>) --agent-id <id>)
+  agent-base run --config <memory-file> (--message <text> | --message-stdin)
+  agent-base run (--root <dir> | --database-path <file>) --agent-id <id> (--message <text> | --message-stdin) [--session-id <id>] [--idempotency-key <key>]
+  agent-base session compact (--root <dir> | --database-path <file>) --agent-id <id> --session-id <id> [--branch-id <id>]
+  agent-base session inspect (--root <dir> | --database-path <file>) --agent-id <id> --session-id <id>
+  agent-base session select (--root <dir> | --database-path <file>) --agent-id <id> --session-id <id> --branch-id <id> --expected-revision <n>
+  agent-base session fork (--root <dir> | --database-path <file>) --agent-id <id> --session-id <id> --source-branch-id <id> --through-turn-id <id> --expected-revision <n> [--new-branch-id <id>]
+  agent-base session rewind (--root <dir> | --database-path <file>) --agent-id <id> --session-id <id> --through-turn-id <id> --expected-revision <n> [--new-branch-id <id>]
   agent-base session lifecycle list --root <dir> --agent-id <id> [--limit <n>] [--cursor-updated-at <timestamp> --cursor-session-id <id>]
   agent-base session lifecycle list-retired --root <dir> --agent-id <id> [--limit <n>] [--cursor-retired-at <timestamp> --cursor-session-id <id>]
   agent-base session lifecycle inspect --root <dir> --agent-id <id> --session-id <id>
@@ -131,32 +132,32 @@ async function executeCommand(
     command.kind === 'agent-disable' ||
     command.kind === 'agent-reactivate'
   ) {
-    const directory = await dependencies.loadManagedDirectory(command.rootDirectory);
+    const manager = await dependencies.loadAgentManager(command.storage);
     if (command.kind === 'agent-create') {
       await writeJson(
         dependencies,
-        await directory.create(await dependencies.readJsonDocument(command.manifestPath))
+        await manager.create(await dependencies.readJsonDocument(command.manifestPath))
       );
       return 0;
     }
     if (command.kind === 'agent-list') {
-      await writeJson(dependencies, await directory.list());
+      await writeJson(dependencies, await manager.list());
       return 0;
     }
     if (command.kind === 'agent-inspect') {
-      await writeJson(dependencies, await directory.inspect(command.agentId));
+      await writeJson(dependencies, await manager.inspect(command.agentId));
       return 0;
     }
     if (command.kind === 'agent-disable') {
       await writeJson(
         dependencies,
-        await directory.disable(command.agentId, command.expectedRevision)
+        await manager.disable(command.agentId, command.expectedRevision)
       );
       return 0;
     }
     await writeJson(
       dependencies,
-      await directory.reactivate(command.agentId, command.expectedRevision)
+      await manager.reactivate(command.agentId, command.expectedRevision)
     );
     return 0;
   }

@@ -3,6 +3,8 @@ import type { RequestJournalPort } from '@ta-agent/base-request';
 import type { NavigableCompactableSessionPort } from '@ta-agent/base-session';
 import {
   materializeStandaloneAgentRuntime,
+  createStandaloneAgent,
+  type StandaloneRawAgent,
   type StandaloneAgentConfig,
   type StandaloneRuntimeOptions,
 } from '../../src/index.js';
@@ -13,13 +15,22 @@ declare const session: NavigableCompactableSessionPort;
 declare const requestJournal: RequestJournalPort;
 declare const options: StandaloneRuntimeOptions;
 
+// @ts-expect-error Standalone materialization cannot silently allocate Memory persistence.
 materializeStandaloneAgentRuntime({ identity, config, options });
-materializeStandaloneAgentRuntime({
+const raw: StandaloneRawAgent = materializeStandaloneAgentRuntime({
   identity,
   config,
   ports: { session, requestJournal },
   options,
 });
+void raw.invoke('foreground', { message: 'typed raw Agent' });
+// @ts-expect-error A raw Agent is not an AgentAPI facade.
+void raw.agent;
+const created: Promise<StandaloneRawAgent> = createStandaloneAgent({}, options);
+void created;
+// @ts-expect-error Bootstrap is asynchronous, not an already opened Agent.
+const synchronous: StandaloneRawAgent = createStandaloneAgent({}, options);
+void synchronous;
 
 materializeStandaloneAgentRuntime({
   identity,

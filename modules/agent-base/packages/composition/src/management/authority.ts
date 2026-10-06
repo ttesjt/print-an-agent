@@ -116,7 +116,10 @@ export async function readManagedAgentAuthority<TConfig>(
     adapter: ports.config,
   });
   if (resolved.revision === null) {
-    return authorityInvalid(operation, 'Managed Agent Config authority must be stored durably.');
+    return authorityInvalid(
+      operation,
+      'Managed Agent Config authority must have a stored revision.'
+    );
   }
   return authority(operation, identity, resolved.config, resolved.revision);
 }

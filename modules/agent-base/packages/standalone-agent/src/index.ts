@@ -18,6 +18,8 @@ export {
   createStandaloneDirectorySessionService,
 } from './profiles/directory.js';
 export type { StandaloneDirectoryDefinition } from './profiles/directory.js';
+export { createStandaloneMemoryDefinition } from './profiles/memory.js';
+export type { StandaloneMemoryDefinition } from './profiles/memory.js';
 export {
   createSharedSqliteStandaloneDefinition,
   createSharedSqliteStandaloneManagementService,

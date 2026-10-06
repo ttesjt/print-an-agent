@@ -18,6 +18,7 @@ import {
   type ManagedAgentRuntimeMaterializationInput,
   type ManagedAgentRuntimeMaterializer,
   type ManagedAgentRuntimePortFactory,
+  type ManagedAgentRuntimeProvisioningInput,
   type StagedManagedAgentNamespace,
 } from '../../src/index.js';
 
@@ -94,7 +95,11 @@ function createDefinition(
   createAuthorityPorts: (namespace: {
     readonly handle: TestNamespaceHandle;
   }) => ManagedAgentAuthorityPorts,
-  createRuntimePorts: ManagedAgentRuntimePortFactory<TestNamespaceHandle, TestRuntimePorts>,
+  createRuntimePorts: ManagedAgentRuntimePortFactory<
+    TestManagedAgentConfig,
+    TestNamespaceHandle,
+    TestRuntimePorts
+  >,
   materialize: ManagedAgentRuntimeMaterializer<TestManagedAgentConfig, TestRuntimePorts, TestAgent>,
   projectionPort?: AgentConfigProjectionPort<TestNamespaceHandle, TestManagedAgentConfig>
 ): ManagedAgentCompositionDefinition<
@@ -211,7 +216,12 @@ export function createManagedAgentFixture(options: { readonly projection?: boole
     return authority;
   };
   const createRuntimePorts = vi.fn(
-    (namespace: ManagedAgentNamespace<TestNamespaceHandle>): Promise<TestRuntimePorts> => {
+    ({
+      namespace,
+    }: ManagedAgentRuntimeProvisioningInput<
+      TestManagedAgentConfig,
+      TestNamespaceHandle
+    >): Promise<TestRuntimePorts> => {
       events.push(`runtime:ports:${String(namespace.handle.slot)}`);
       if (controls.runtimePortsFailure !== undefined) {
         return Promise.reject(controls.runtimePortsFailure);

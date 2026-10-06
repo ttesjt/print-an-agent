@@ -12,6 +12,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createSharedSqliteStandaloneDefinition,
   createStandaloneDirectoryDefinition,
+  createStandaloneMemoryDefinition,
   defineStandaloneAgentConfig,
   type StandaloneAgentConfigInput,
   type StandaloneAgentConfig,
@@ -78,6 +79,15 @@ async function withTemporaryDirectory(action: (directory: string) => Promise<voi
 }
 
 describe('Standalone managed profile Definitions', () => {
+  it('installs the same narrow Services over a shared Memory provisioning scope', async () => {
+    const readEnvironmentVariable = vi.fn(() => undefined);
+    await verifyDefinition(
+      createStandaloneMemoryDefinition({ readEnvironmentVariable }),
+      'not-configured',
+      readEnvironmentVariable
+    );
+  });
+
   it.each(['directory', 'shared-sqlite'] as const)(
     'installs narrow management, runtime, and Session Services for %s',
     async (profile) => {

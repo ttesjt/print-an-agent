@@ -36,7 +36,8 @@
     "@ta-agent/base-local-adapters": "workspace:*",
     "@ta-agent/base-model": "workspace:*",
     "@ta-agent/base-request": "workspace:*",
-    "@ta-agent/base-session": "workspace:*"
+    "@ta-agent/base-session": "workspace:*",
+    "@ta-agent/base-workflow": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

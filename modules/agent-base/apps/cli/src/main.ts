@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import {
-  loadAgentBaseCliManagedDirectory,
+  loadAgentBaseCliAgentManager,
   loadAgentBaseCliProvider,
   loadAgentBaseCliRuntime,
   loadAgentBaseCliSessionManager,
@@ -22,8 +22,7 @@ try {
   process.exitCode = await runAgentBaseCli(cliProcess.argv, {
     loadProvider: (locator) => loadAgentBaseCliProvider(locator, cliProcess.environment),
     loadRuntime: (locator) => loadAgentBaseCliRuntime(locator, cliProcess.environment),
-    loadManagedDirectory: (rootDirectory) =>
-      loadAgentBaseCliManagedDirectory(rootDirectory, cliProcess.environment),
+    loadAgentManager: loadAgentBaseCliAgentManager,
     loadSessionManager: loadAgentBaseCliSessionManager,
     readJsonDocument: readAgentBaseCliJsonDocument,
     readStandardInput: (signal) => readNodeStandardInput(cliProcess.standardInput, signal),

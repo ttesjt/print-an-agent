@@ -8,16 +8,19 @@ import type {
   ManagedAgentNamespace,
   ManagedAgentNamespaceReference,
   ManagedAgentRuntimePortFactory,
+  ManagedAgentRuntimeProvisioningInput,
   SessionManagementPortFactory,
   SessionManagementPorts,
 } from '@ta-agent/base-composition';
 import type { StandaloneRuntimePorts } from '../../runtime/materialize-standalone-agent.js';
+import type { StandaloneAgentConfig } from '../../types.js';
 import type { SharedSqliteAgentResourceNamespace } from './types.js';
 import type { ResolvedStandaloneManagedSqliteTableNames } from '../sqlite-table-naming.js';
 
 export interface SharedSqliteStandalonePortFactories {
   readonly createAuthorityPorts: ManagedAgentAuthorityPortFactory<SharedSqliteAgentResourceNamespace>;
   readonly createRuntimePorts: ManagedAgentRuntimePortFactory<
+    StandaloneAgentConfig,
     SharedSqliteAgentResourceNamespace,
     StandaloneRuntimePorts
   >;
@@ -55,7 +58,12 @@ export function createSharedSqliteStandalonePortFactories(
           tableNames: options.tableNames.config,
         }),
       }),
-    createRuntimePorts: (namespace: ManagedAgentNamespace<SharedSqliteAgentResourceNamespace>) => {
+    createRuntimePorts: ({
+      namespace,
+    }: ManagedAgentRuntimeProvisioningInput<
+      StandaloneAgentConfig,
+      SharedSqliteAgentResourceNamespace
+    >) => {
       const { session, requestJournal } = createSqliteSessionPersistence({
         databasePath: namespace.handle.databasePath,
         ...(options.clock === undefined ? {} : { clock: options.clock }),

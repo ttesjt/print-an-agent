@@ -1,38 +1,65 @@
-import { createSqliteSessionPersistence } from '@ta-agent/base-local-adapters';
+import {
+  createAgentManagementService,
+  createAgentRuntimeService,
+  type ManagedAgentCompositionDefinition,
+} from '@ta-agent/base-composition';
 import { defineStandaloneAgentBootstrapConfig } from './config.js';
 import { AgentBaseStandaloneError } from './errors.js';
-import { resolveStandaloneRuntimeSqliteTableNames } from './resources/sqlite-table-naming.js';
-import { assertStandaloneRuntimeTimeoutAuthority } from './runtime-policies.js';
-import { materializeStandaloneAgentRuntime } from './runtime/materialize-standalone-agent.js';
-import type { CreateStandaloneAgentOptions, StandaloneAgent } from './types.js';
+import { createStandaloneMemoryDefinition } from './profiles/memory.js';
+import { createSharedSqliteStandaloneDefinition } from './profiles/shared-sqlite.js';
+import { assertStandaloneRuntimeOptions } from './runtime-policies.js';
+import type {
+  CreateStandaloneAgentOptions,
+  StandaloneAgentBootstrapConfig,
+  StandaloneAgentConfig,
+  StandaloneRawAgent,
+} from './types.js';
+import type { StandaloneRuntimePorts } from './runtime/materialize-standalone-agent.js';
 
-export function createStandaloneAgent(
+async function createAndOpen<TNamespace>(
+  definition: ManagedAgentCompositionDefinition<
+    StandaloneAgentConfig,
+    TNamespace,
+    StandaloneRuntimePorts,
+    StandaloneRawAgent
+  >,
+  bootstrap: StandaloneAgentBootstrapConfig
+): Promise<StandaloneRawAgent> {
+  const { identity, provider, credential, mainActor, request, sessionCompaction } = bootstrap;
+  await createAgentManagementService(definition).create({
+    identity,
+    config: {
+      provider,
+      ...(credential === undefined ? {} : { credential }),
+      mainActor,
+      request,
+      sessionCompaction,
+    },
+  });
+  // Creation is committed. An open failure does not roll authority back; callers may open again.
+  return createAgentRuntimeService(definition).open(identity.id);
+}
+
+/** Initializes authority, then opens a raw Agent through the same canonical profile and Services. */
+export async function createStandaloneAgent(
   input: unknown,
   runtimeOptions: CreateStandaloneAgentOptions
-): StandaloneAgent {
-  assertStandaloneRuntimeTimeoutAuthority(runtimeOptions);
-  const config = defineStandaloneAgentBootstrapConfig(input);
-  if (config.persistence.kind === 'memory' && runtimeOptions.sqlite !== undefined) {
-    throw new AgentBaseStandaloneError(
-      'Standalone SQLite table naming cannot be configured for Memory persistence.'
-    );
+): Promise<StandaloneRawAgent> {
+  assertStandaloneRuntimeOptions(runtimeOptions);
+  const bootstrap = defineStandaloneAgentBootstrapConfig(input);
+  if (bootstrap.persistence.kind === 'memory') {
+    if (runtimeOptions.sqlite !== undefined) {
+      throw new AgentBaseStandaloneError(
+        'Standalone SQLite table naming cannot be configured for Memory persistence.'
+      );
+    }
+    return createAndOpen(createStandaloneMemoryDefinition(runtimeOptions), bootstrap);
   }
-  const ports =
-    config.persistence.kind === 'sqlite'
-      ? (() => {
-          const tableNames = resolveStandaloneRuntimeSqliteTableNames(runtimeOptions.sqlite);
-          const persistence = createSqliteSessionPersistence({
-            databasePath: config.persistence.databasePath,
-            session: { tableNames: tableNames.session },
-            requestJournal: { tableNames: tableNames.requestJournal },
-          });
-          return { session: persistence.session, requestJournal: persistence.requestJournal };
-        })()
-      : undefined;
-  return materializeStandaloneAgentRuntime({
-    identity: config.identity,
-    config,
-    ...(ports === undefined ? {} : { ports }),
-    options: runtimeOptions,
-  });
+  return createAndOpen(
+    createSharedSqliteStandaloneDefinition({
+      ...runtimeOptions,
+      databasePath: bootstrap.persistence.databasePath,
+    }),
+    bootstrap
+  );
 }

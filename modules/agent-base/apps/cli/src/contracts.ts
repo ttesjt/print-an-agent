@@ -49,11 +49,18 @@ export interface AgentBaseCliProvider {
   check(signal: AbortSignal): Promise<unknown>;
 }
 
+export type AgentBaseCliStorageLocator =
+  | Readonly<{ kind: 'directory'; rootDirectory: string }>
+  | Readonly<{ kind: 'sqlite'; databasePath: string }>;
+
 export type AgentBaseCliRuntimeLocator =
   | Readonly<{ kind: 'config'; configPath: string }>
-  | Readonly<{ kind: 'managed'; rootDirectory: string; agentId: string }>;
+  | AgentBaseCliDurableRuntimeLocator;
 
-export interface AgentBaseCliManagedDirectory {
+export type AgentBaseCliDurableRuntimeLocator = AgentBaseCliStorageLocator &
+  Readonly<{ agentId: string }>;
+
+export interface AgentBaseCliAgentManager {
   create(manifest: unknown): Promise<unknown>;
   list(): Promise<unknown>;
   inspect(agentId: string): Promise<unknown>;
@@ -87,7 +94,9 @@ export interface AgentBaseCliSessionManager {
 export interface AgentBaseCliDependencies {
   readonly loadProvider: (locator: AgentBaseCliRuntimeLocator) => Promise<AgentBaseCliProvider>;
   readonly loadRuntime: (locator: AgentBaseCliRuntimeLocator) => Promise<AgentBaseCliRuntime>;
-  readonly loadManagedDirectory: (rootDirectory: string) => Promise<AgentBaseCliManagedDirectory>;
+  readonly loadAgentManager: (
+    locator: AgentBaseCliStorageLocator
+  ) => Promise<AgentBaseCliAgentManager>;
   readonly loadSessionManager: (
     rootDirectory: string,
     agentId: string

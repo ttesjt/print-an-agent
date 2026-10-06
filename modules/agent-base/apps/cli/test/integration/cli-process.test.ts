@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -125,7 +125,10 @@ async function startLoopbackServer(hang = false): Promise<LoopbackServer> {
   return result;
 }
 
-async function createConfig(server: LoopbackServer): Promise<string> {
+async function createConfig(
+  server: LoopbackServer,
+  persistence: 'memory' | 'sqlite' = 'memory'
+): Promise<string> {
   const directory = await mkdtemp(join(tmpdir(), 'agent-base-cli-'));
   temporaryDirectories.push(directory);
   const configPath = join(directory, 'agent.json');
@@ -152,7 +155,10 @@ async function createConfig(server: LoopbackServer): Promise<string> {
           streamEventIdleTimeoutMilliseconds: null,
         },
       },
-      persistence: { kind: 'sqlite', databasePath: join(directory, 'agent.sqlite') },
+      persistence:
+        persistence === 'memory'
+          ? { kind: 'memory' }
+          : { kind: 'sqlite', databasePath: join(directory, 'agent.sqlite') },
       mainActor: {
         invocationConfig: { temperature: 0, maxOutputTokens: 128 },
         invocationPolicy: { timeoutMilliseconds: null },
@@ -490,15 +496,32 @@ describe('standalone Agent Base CLI process', () => {
 
   it('streams through Pi and preserves Session history and replay across processes', async () => {
     const server = await startLoopbackServer();
-    const configPath = await createConfig(server);
+    const managed = await createManagedManifest(server);
+    const databasePath = join(managed.rootDirectory, 'agents.sqlite');
+    const scope = ['--database-path', databasePath, '--agent-id', 'managed-agent'];
+    const creation = [
+      'agent',
+      'create',
+      '--database-path',
+      databasePath,
+      '--manifest',
+      managed.manifestPath,
+    ];
+    expect(await runCli(creation).completion).toMatchObject({ exitCode: 0, standardError: '' });
+    expect(server.requests()).toHaveLength(0);
+    expect(await runCli(creation).completion).toMatchObject({
+      exitCode: 1,
+      standardError: 'Agent Base command failed (MANAGED_AGENT_ALREADY_EXISTS).\n',
+    });
+    // The initialization document is no longer an authority or an input to everyday opens.
+    await writeFile(managed.manifestPath, '{"invalid":"changed after initialization"}');
 
-    const readiness = await runCli(['provider', 'check', '--config', configPath]).completion;
+    const readiness = await runCli(['provider', 'check', ...scope]).completion;
     expect(readiness.exitCode).toBe(0);
     expect(readiness.standardError).toBe('');
     expect(readiness.standardOutput).toContain('"status":"ready"');
 
-    const first = await runCli(['run', '--config', configPath, '--message', 'first turn'])
-      .completion;
+    const first = await runCli(['run', ...scope, '--message', 'first turn']).completion;
     const created: unknown = JSON.parse(first.standardError.trim());
     if (
       typeof created !== 'object' ||
@@ -511,8 +534,7 @@ describe('standalone Agent Base CLI process', () => {
     const sessionId = created.sessionId;
     const second = await runCli([
       'run',
-      '--config',
-      configPath,
+      ...scope,
       '--message',
       'second turn',
       '--session-id',
@@ -522,8 +544,7 @@ describe('standalone Agent Base CLI process', () => {
     ]).completion;
     const replay = await runCli([
       'run',
-      '--config',
-      configPath,
+      ...scope,
       '--message',
       'second turn',
       '--session-id',
@@ -540,17 +561,55 @@ describe('standalone Agent Base CLI process', () => {
     expect(JSON.stringify(server.requests()[1])).toContain('loopback response');
     expect(JSON.stringify(server.requests()[1])).toContain('second turn');
 
-    const inspection = await runCli([
-      'session',
-      'inspect',
-      '--config',
-      configPath,
-      '--session-id',
-      sessionId,
-    ]).completion;
+    const inspection = await runCli(['session', 'inspect', ...scope, '--session-id', sessionId])
+      .completion;
     expect(inspection.exitCode).toBe(0);
     expect(inspection.standardError).toBe('');
     expect(inspection.standardOutput).toContain('"status":"inspected"');
+  });
+
+  it('rejects durable --config before provisioning or provider work', async () => {
+    const server = await startLoopbackServer();
+    const configPath = await createConfig(server, 'sqlite');
+    for (const args of [
+      ['run', '--config', configPath, '--message', 'must not create'],
+      ['provider', 'check', '--config', configPath],
+    ]) {
+      expect(await runCli(args).completion).toMatchObject({
+        exitCode: 2,
+        standardOutput: '',
+        standardError: 'Agent Base CLI input rejected (CLI_USAGE_INVALID).\n',
+      });
+    }
+    await expect(access(join(configPath, '..', 'agent.sqlite'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+    expect(server.requests()).toHaveLength(0);
+  });
+
+  it('rejects existing-Session operations against an ephemeral Memory locator', async () => {
+    const server = await startLoopbackServer();
+    const configPath = await createConfig(server);
+    for (const args of [
+      ['run', '--config', configPath, '--message', 'continue', '--session-id', 'session-1'],
+      ['session', 'inspect', '--config', configPath, '--session-id', 'session-1'],
+    ]) {
+      expect(await runCli(args).completion).toMatchObject({
+        exitCode: 2,
+        standardOutput: '',
+        standardError: 'Agent Base CLI input rejected (CLI_USAGE_INVALID).\n',
+      });
+    }
+    expect(server.requests()).toHaveLength(0);
+  });
+
+  it('boots an ephemeral Memory Agent through the unified path', async () => {
+    const server = await startLoopbackServer();
+    const configPath = await createConfig(server);
+    expect(
+      await runCli(['run', '--config', configPath, '--message', 'memory']).completion
+    ).toMatchObject({ exitCode: 0, standardOutput: 'loopback response\n' });
+    expect(server.requests()).toHaveLength(1);
   });
 
   it('maps SIGINT cancellation to exit 130 while a real Pi request is pending', async () => {

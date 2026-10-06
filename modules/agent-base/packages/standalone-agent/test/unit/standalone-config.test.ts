@@ -7,6 +7,7 @@ import {
   AgentBaseStandaloneError,
   createSharedSqliteStandaloneDefinition,
   createStandaloneAgent,
+  createStandaloneProviderService,
   createStandaloneDirectoryDefinition,
   defineStandaloneAgentBootstrapConfig,
   STANDALONE_AGENT_CONFIG_CODEC,
@@ -188,7 +189,7 @@ describe('standalone Agent Base configuration', () => {
     expectStandaloneConfigInvalid(() => defineStandaloneAgentBootstrapConfig(accessor));
   });
 
-  it('uses durable configuration as the only Standalone timeout authority', () => {
+  it('uses authoritative configuration as the only Standalone timeout authority', async () => {
     const config = validConfig();
     const requestLimits = {
       maxMessageCharacters: 1_000,
@@ -198,17 +199,21 @@ describe('standalone Agent Base configuration', () => {
       maxModelTurns: 5,
       maxPendingInteractionEvents: 6,
     };
-    const agent = createStandaloneAgent(config, {
+    const agent = await createStandaloneAgent(config, {
       readEnvironmentVariable: () => undefined,
       requestLimits,
     });
 
-    expect(agent.agent.operations.foreground.config).toMatchObject({
+    expect(agent.operations.foreground.config).toMatchObject({
       maxMessageCharacters: 1_000,
       timeoutMilliseconds: 40_000,
     });
-    expect(agent.agent.operations.compactSession.config.timeoutMilliseconds).toBe(50_000);
-    expect(agent.inspectProvider().transportLivenessPolicy).toEqual({
+    expect(agent.operations.compactSession.config.timeoutMilliseconds).toBe(50_000);
+    expect(
+      createStandaloneProviderService(defineStandaloneAgentBootstrapConfig(config), {
+        readEnvironmentVariable: () => undefined,
+      }).inspect().transportLivenessPolicy
+    ).toEqual({
       responseStartTimeoutMilliseconds: 10_000,
       streamEventIdleTimeoutMilliseconds: 20_000,
     });
@@ -225,17 +230,19 @@ describe('standalone Agent Base configuration', () => {
       ...legacyOptions,
       databasePath: '/tmp/standalone-timeout-authority.sqlite',
     };
-    expectStandaloneConfigInvalid(() => createStandaloneAgent(config, legacyOptions));
+    await expect(createStandaloneAgent(config, legacyOptions)).rejects.toMatchObject({
+      code: 'STANDALONE_CONFIG_INVALID',
+    });
     expectStandaloneConfigInvalid(() => createStandaloneDirectoryDefinition(directoryOptions));
     expectStandaloneConfigInvalid(() => createSharedSqliteStandaloneDefinition(sharedOptions));
 
     const limitsWithTimeout = { ...requestLimits, timeoutMilliseconds: 1 };
-    expectStandaloneConfigInvalid(() =>
+    await expect(
       createStandaloneAgent(config, {
         readEnvironmentVariable: () => undefined,
         requestLimits: limitsWithTimeout,
       })
-    );
+    ).rejects.toMatchObject({ code: 'STANDALONE_CONFIG_INVALID' });
   });
 
   it('requires explicit OpenAI-compatible instruction-role compatibility', () => {
@@ -371,10 +378,10 @@ describe('standalone Agent Base configuration', () => {
     const directory = await mkdtemp(join(tmpdir(), 'standalone-agent-'));
     const environment = { TA_AGENT_TEST_API_KEY: 'PRIVATE_TEST_KEY' };
     try {
-      const memoryAgent = createStandaloneAgent(validConfig(), {
+      const memoryAgent = await createStandaloneAgent(validConfig(), {
         readEnvironmentVariable: (name) => environment[name as keyof typeof environment],
       });
-      const sqliteAgent = createStandaloneAgent(
+      const sqliteAgent = await createStandaloneAgent(
         {
           ...validConfig(),
           persistence: {
@@ -394,10 +401,18 @@ describe('standalone Agent Base configuration', () => {
         }
       );
 
-      await expect(memoryAgent.checkProviderReadiness()).resolves.toMatchObject({
+      await expect(
+        createStandaloneProviderService(defineStandaloneAgentBootstrapConfig(validConfig()), {
+          readEnvironmentVariable: (name) => environment[name as keyof typeof environment],
+        }).checkReadiness()
+      ).resolves.toMatchObject({
         status: 'ready',
       });
-      await expect(sqliteAgent.checkProviderReadiness()).resolves.toMatchObject({
+      await expect(
+        createStandaloneProviderService(defineStandaloneAgentBootstrapConfig(validConfig()), {
+          readEnvironmentVariable: () => undefined,
+        }).checkReadiness()
+      ).resolves.toMatchObject({
         status: 'credential-unavailable',
       });
       expect(memoryAgent.identity.id).toBe('standalone-agent');
@@ -412,6 +427,12 @@ describe('standalone Agent Base configuration', () => {
       expect(tables).toEqual([
         'conversations',
         'request_receipts',
+        'runtime_config_schema',
+        'runtime_configs',
+        'runtime_identities',
+        'runtime_identity_schema',
+        'runtime_managed_namespace_schema',
+        'runtime_managed_namespaces',
         'runtime_request_journal_schema',
         'runtime_session_branches',
         'runtime_session_compactions',
@@ -423,15 +444,15 @@ describe('standalone Agent Base configuration', () => {
     }
   });
 
-  it('rejects SQLite naming options for Memory persistence and cross-domain collisions', () => {
-    expectStandaloneConfigInvalid(() =>
+  it('rejects SQLite naming options for Memory persistence and cross-domain collisions', async () => {
+    await expect(
       createStandaloneAgent(validConfig(), {
         readEnvironmentVariable: () => undefined,
         sqlite: { tablePrefix: 'unused_' },
       })
-    );
+    ).rejects.toMatchObject({ code: 'STANDALONE_CONFIG_INVALID' });
 
-    expectStandaloneConfigInvalid(() =>
+    await expect(
       createStandaloneAgent(
         {
           ...validConfig(),
@@ -447,6 +468,6 @@ describe('standalone Agent Base configuration', () => {
           },
         }
       )
-    );
+    ).rejects.toMatchObject({ code: 'STANDALONE_CONFIG_INVALID' });
   });
 });

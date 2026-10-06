@@ -79,6 +79,7 @@ function createInputs() {
     reconcile: reconcileProjection,
   };
   const createSessionManagementPorts = vi.fn(() => ({ maintenance: true as const }));
+  const createSessionNavigationPorts = vi.fn(() => ({ navigation: true as const }));
 
   return {
     codec,
@@ -98,6 +99,7 @@ function createInputs() {
     publishProjection,
     reconcileProjection,
     createSessionManagementPorts,
+    createSessionNavigationPorts,
   };
 }
 
@@ -108,6 +110,8 @@ function defineInvalid(input: unknown): unknown {
 describe('defineManagedAgentComposition', () => {
   it('creates and shallow-freezes grouped wiring without invoking injected behavior', () => {
     const inputs = createInputs();
+    const sessionManagement = { createPorts: inputs.createSessionManagementPorts };
+    const sessionNavigation = { createPorts: inputs.createSessionNavigationPorts };
 
     const definition = defineManagedAgentComposition({
       config: { codec: inputs.codec },
@@ -118,7 +122,8 @@ describe('defineManagedAgentComposition', () => {
         materialize: inputs.materialize,
       },
       projection: { port: inputs.projectionPort },
-      sessionManagement: { createPorts: inputs.createSessionManagementPorts },
+      sessionManagement,
+      sessionNavigation,
     });
 
     expect(Object.isFrozen(definition)).toBe(true);
@@ -128,6 +133,7 @@ describe('defineManagedAgentComposition', () => {
     expect(Object.isFrozen(definition.runtime)).toBe(true);
     expect(Object.isFrozen(definition.projection)).toBe(true);
     expect(Object.isFrozen(definition.sessionManagement)).toBe(true);
+    expect(Object.isFrozen(definition.sessionNavigation)).toBe(true);
 
     expect(definition.config.codec).toBe(inputs.codec);
     expect(definition.namespace.port).toBe(inputs.namespacePort);
@@ -135,6 +141,10 @@ describe('defineManagedAgentComposition', () => {
     expect(Object.isFrozen(inputs.codec)).toBe(false);
     expect(Object.isFrozen(inputs.namespacePort)).toBe(false);
     expect(Object.isFrozen(inputs.projectionPort)).toBe(false);
+    expect(Object.isFrozen(sessionManagement)).toBe(false);
+    expect(Object.isFrozen(sessionNavigation)).toBe(false);
+    expect(definition.sessionManagement).not.toBe(sessionManagement);
+    expect(definition.sessionNavigation).not.toBe(sessionNavigation);
 
     expect(inputs.decode).not.toHaveBeenCalled();
     expect(inputs.encode).not.toHaveBeenCalled();
@@ -149,6 +159,7 @@ describe('defineManagedAgentComposition', () => {
     expect(inputs.publishProjection).not.toHaveBeenCalled();
     expect(inputs.reconcileProjection).not.toHaveBeenCalled();
     expect(inputs.createSessionManagementPorts).not.toHaveBeenCalled();
+    expect(inputs.createSessionNavigationPorts).not.toHaveBeenCalled();
   });
 
   it('omits optional capability records when they are not configured', () => {
@@ -166,6 +177,7 @@ describe('defineManagedAgentComposition', () => {
 
     expect(Object.hasOwn(definition, 'projection')).toBe(false);
     expect(Object.hasOwn(definition, 'sessionManagement')).toBe(false);
+    expect(Object.hasOwn(definition, 'sessionNavigation')).toBe(false);
   });
 
   it.each([
@@ -211,6 +223,20 @@ describe('defineManagedAgentComposition', () => {
         };
       },
       fieldPath: 'runtime.materialize',
+    },
+    {
+      label: 'explicit undefined capability',
+      mutate: (input: Record<string, unknown>) => {
+        input['sessionNavigation'] = undefined;
+      },
+      fieldPath: 'sessionNavigation',
+    },
+    {
+      label: 'invalid capability factory',
+      mutate: (input: Record<string, unknown>) => {
+        input['sessionNavigation'] = { createPorts: 'not-a-function' };
+      },
+      fieldPath: 'sessionNavigation.createPorts',
     },
   ])('rejects $label with a stable composition error', ({ mutate, fieldPath }) => {
     const inputs = createInputs();

@@ -56,7 +56,7 @@ function dependencies(
   return {
     loadProvider: () => Promise.resolve({ check: () => Promise.resolve({ status: 'ready' }) }),
     loadRuntime: () => Promise.resolve(testRuntime),
-    loadManagedDirectory: () =>
+    loadAgentManager: () =>
       Promise.resolve({
         create: () => Promise.resolve({ status: 'created' }),
         list: () => Promise.resolve([]),
@@ -74,6 +74,78 @@ function dependencies(
 }
 
 describe('Agent Base CLI command contract', () => {
+  it('separates durable initialization from location-only opens', () => {
+    expect(
+      parseAgentBaseCliCommand([
+        'agent',
+        'create',
+        '--database-path',
+        '/agents.sqlite',
+        '--manifest',
+        'initialize.json',
+      ])
+    ).toEqual({
+      kind: 'agent-create',
+      storage: { kind: 'sqlite', databasePath: '/agents.sqlite' },
+      manifestPath: 'initialize.json',
+    });
+    expect(
+      parseAgentBaseCliCommand([
+        'run',
+        '--database-path',
+        '/agents.sqlite',
+        '--agent-id',
+        'bro',
+        '--message',
+        'hello',
+      ])
+    ).toMatchObject({
+      kind: 'run',
+      runtime: { kind: 'sqlite', databasePath: '/agents.sqlite', agentId: 'bro' },
+    });
+    for (const args of [
+      [
+        'agent',
+        'create',
+        '--root',
+        '/agents',
+        '--database-path',
+        '/agents.sqlite',
+        '--manifest',
+        'init.json',
+      ],
+      ['run', '--config', 'init.json', '--database-path', '/agents.sqlite', '--message', 'hello'],
+      ['run', '--database-path', '/agents.sqlite', '--message', 'hello'],
+      ['agent', 'create', '--config', 'init.json'],
+    ])
+      expect(() => parseAgentBaseCliCommand(args)).toThrow();
+  });
+
+  it('routes SQLite creation to management without loading runtime or provider', async () => {
+    const deps = dependencies(runtime());
+    const manager = await deps.loadAgentManager({ kind: 'sqlite', databasePath: '/agents.sqlite' });
+    const loadAgentManager = vi.fn(() => Promise.resolve(manager));
+    const loadRuntime = vi.fn(deps.loadRuntime);
+    const loadProvider = vi.fn(deps.loadProvider);
+    expect(
+      await runAgentBaseCli(
+        ['agent', 'create', '--database-path', '/agents.sqlite', '--manifest', 'init.json'],
+        {
+          ...deps,
+          loadAgentManager,
+          loadRuntime,
+          loadProvider,
+        }
+      )
+    ).toBe(0);
+    expect(loadAgentManager).toHaveBeenCalledWith({
+      kind: 'sqlite',
+      databasePath: '/agents.sqlite',
+    });
+    expect(loadRuntime).not.toHaveBeenCalled();
+    expect(loadProvider).not.toHaveBeenCalled();
+  });
+
   it('reports a generated Session ID separately from assistant text', async () => {
     const deps = dependencies(
       runtime({
@@ -91,12 +163,21 @@ describe('Agent Base CLI command contract', () => {
       '{"type":"session-created","sessionId":"generated-session"}\n'
     );
   });
-  it('parses a bounded run command without provider-specific options', () => {
+  it('separates new Memory runs from bounded durable Session continuation', () => {
+    expect(
+      parseAgentBaseCliCommand(['run', '--config', 'agent.json', '--message', 'hello'])
+    ).toEqual({
+      kind: 'run',
+      runtime: { kind: 'config', configPath: 'agent.json' },
+      messageSource: { kind: 'argument', value: 'hello' },
+    });
     expect(
       parseAgentBaseCliCommand([
         'run',
-        '--config',
-        'agent.json',
+        '--root',
+        '/agents',
+        '--agent-id',
+        'bro',
         '--message',
         'hello',
         '--session-id',
@@ -106,7 +187,7 @@ describe('Agent Base CLI command contract', () => {
       ])
     ).toEqual({
       kind: 'run',
-      runtime: { kind: 'config', configPath: 'agent.json' },
+      runtime: { kind: 'directory', rootDirectory: '/agents', agentId: 'bro' },
       messageSource: { kind: 'argument', value: 'hello' },
       sessionId: 'session-1',
       idempotencyKey: 'request-1',
@@ -118,7 +199,7 @@ describe('Agent Base CLI command contract', () => {
       parseAgentBaseCliCommand(['provider', 'check', '--root', '/agents', '--agent-id', 'bro'])
     ).toEqual({
       kind: 'provider-check',
-      runtime: { kind: 'managed', rootDirectory: '/agents', agentId: 'bro' },
+      runtime: { kind: 'directory', rootDirectory: '/agents', agentId: 'bro' },
     });
     expect(
       parseAgentBaseCliCommand([
@@ -133,7 +214,7 @@ describe('Agent Base CLI command contract', () => {
       ])
     ).toEqual({
       kind: 'agent-disable',
-      rootDirectory: '/agents',
+      storage: { kind: 'directory', rootDirectory: '/agents' },
       agentId: 'bro',
       expectedRevision: 2,
     });
@@ -159,7 +240,7 @@ describe('Agent Base CLI command contract', () => {
     );
     const deps = {
       ...baseDependencies,
-      loadManagedDirectory: () =>
+      loadAgentManager: () =>
         Promise.resolve({
           create: () => Promise.resolve({}),
           list: () => Promise.resolve([]),
@@ -206,6 +287,70 @@ describe('Agent Base CLI command contract', () => {
     ).toThrow('not supported');
   });
 
+  it('rejects process-local Memory locators for existing Session operations', () => {
+    expect(() =>
+      parseAgentBaseCliCommand([
+        'run',
+        '--config',
+        'agent.json',
+        '--message',
+        'hello',
+        '--session-id',
+        'session-1',
+      ])
+    ).toThrow('must create a new Session');
+    expect(() =>
+      parseAgentBaseCliCommand([
+        'run',
+        '--config',
+        'agent.json',
+        '--message',
+        'hello',
+        '--idempotency-key',
+        'request-1',
+      ])
+    ).toThrow('must create a new Session');
+
+    const existingSessionCommands = [
+      ['compact', '--session-id', 'session-1'],
+      ['inspect', '--session-id', 'session-1'],
+      [
+        'select',
+        '--session-id',
+        'session-1',
+        '--branch-id',
+        'branch-1',
+        '--expected-revision',
+        '1',
+      ],
+      [
+        'fork',
+        '--session-id',
+        'session-1',
+        '--source-branch-id',
+        'branch-1',
+        '--through-turn-id',
+        'turn-1',
+        '--expected-revision',
+        '1',
+      ],
+      [
+        'rewind',
+        '--session-id',
+        'session-1',
+        '--through-turn-id',
+        'turn-1',
+        '--expected-revision',
+        '1',
+      ],
+    ] as const;
+    for (const args of existingSessionCommands) {
+      expect(() =>
+        parseAgentBaseCliCommand(['session', ...args, '--config', 'agent.json'])
+      ).toThrow('require --root or --database-path');
+    }
+  });
+
   it('streams request output and terminates successful output with one newline', async () => {
     const run = vi.fn<AgentBaseCliRuntime['run']>(async (_input, options) => {
       await options.writeTextDelta('first ');
@@ -216,7 +361,16 @@ describe('Agent Base CLI command contract', () => {
 
     await expect(
       runAgentBaseCli(
-        ['run', '--config', 'agent.json', '--message-stdin', '--session-id', 'session-1'],
+        [
+          'run',
+          '--root',
+          '/agents',
+          '--agent-id',
+          'bro',
+          '--message-stdin',
+          '--session-id',
+          'session-1',
+        ],
         deps
       )
     ).resolves.toBe(0);
@@ -288,13 +442,13 @@ describe('Agent Base CLI command contract', () => {
         rewindSession,
       })
     );
+    const durableScope = ['--root', '/agents', '--agent-id', 'bro'] as const;
 
     await runAgentBaseCli(
       [
         'session',
         'compact',
-        '--config',
-        'agent.json',
+        ...durableScope,
         '--session-id',
         'session-1',
         '--branch-id',
@@ -303,15 +457,14 @@ describe('Agent Base CLI command contract', () => {
       deps
     );
     await runAgentBaseCli(
-      ['session', 'inspect', '--config', 'agent.json', '--session-id', 'session-1'],
+      ['session', 'inspect', ...durableScope, '--session-id', 'session-1'],
       deps
     );
     await runAgentBaseCli(
       [
         'session',
         'select',
-        '--config',
-        'agent.json',
+        ...durableScope,
         '--session-id',
         'session-1',
         '--branch-id',
@@ -325,8 +478,7 @@ describe('Agent Base CLI command contract', () => {
       [
         'session',
         'fork',
-        '--config',
-        'agent.json',
+        ...durableScope,
         '--session-id',
         'session-1',
         '--source-branch-id',
@@ -344,8 +496,7 @@ describe('Agent Base CLI command contract', () => {
       [
         'session',
         'rewind',
-        '--config',
-        'agent.json',
+        ...durableScope,
         '--session-id',
         'session-1',
         '--through-turn-id',
@@ -496,13 +647,13 @@ describe('Agent Base CLI command contract', () => {
     const loadSessionManager = vi.fn(() => Promise.resolve(manager));
     const loadRuntime = vi.fn(baseDependencies.loadRuntime);
     const loadProvider = vi.fn(baseDependencies.loadProvider);
-    const loadManagedDirectory = vi.fn(baseDependencies.loadManagedDirectory);
+    const loadAgentManager = vi.fn(baseDependencies.loadAgentManager);
     const deps = {
       ...baseDependencies,
       loadSessionManager,
       loadRuntime,
       loadProvider,
-      loadManagedDirectory,
+      loadAgentManager,
     };
     const scope = ['--root', '/agents', '--agent-id', 'bro'] as const;
 
@@ -591,7 +742,7 @@ describe('Agent Base CLI command contract', () => {
     expect(purge).toHaveBeenCalledWith('session-1', 4);
     expect(loadRuntime).not.toHaveBeenCalled();
     expect(loadProvider).not.toHaveBeenCalled();
-    expect(loadManagedDirectory).not.toHaveBeenCalled();
+    expect(loadAgentManager).not.toHaveBeenCalled();
     expect(deps.standardOutput.output()).toContain(
       '{"status":"purged","agentId":"bro","sessionId":"session-1"}'
     );
@@ -611,7 +762,16 @@ describe('Agent Base CLI command contract', () => {
 
     await expect(
       runAgentBaseCli(
-        ['session', 'compact', '--config', 'agent.json', '--session-id', 'session-1'],
+        [
+          'session',
+          'compact',
+          '--root',
+          '/agents',
+          '--agent-id',
+          'bro',
+          '--session-id',
+          'session-1',
+        ],
         deps
       )
     ).resolves.toBe(1);

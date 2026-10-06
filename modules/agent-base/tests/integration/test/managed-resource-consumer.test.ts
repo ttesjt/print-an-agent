@@ -21,7 +21,6 @@ import {
   materializeStandaloneAgentRuntime,
   STANDALONE_AGENT_CONFIG_CODEC,
   type StandaloneAgentConfig,
-  type StandaloneRawAgent,
   type StandaloneRuntimePorts,
 } from '@ta-agent/base-standalone-agent';
 import { describe, expect, it } from 'vitest';
@@ -100,12 +99,7 @@ function createOpaqueResourceProfile(): Readonly<{
 describe('public managed resource consumer', () => {
   it('uses generic management plus the Standalone materializer over opaque resources', async () => {
     const profile = createOpaqueResourceProfile();
-    const definition = defineManagedAgentComposition<
-      StandaloneAgentConfig,
-      OpaqueNamespaceHandle,
-      StandaloneRuntimePorts,
-      StandaloneRawAgent
-    >({
+    const definition = defineManagedAgentComposition({
       config: { codec: STANDALONE_AGENT_CONFIG_CODEC },
       namespace: { port: profile.namespaces },
       authority: {
@@ -119,7 +113,7 @@ describe('public managed resource consumer', () => {
         },
       },
       runtime: {
-        createPorts: (namespace: ManagedAgentNamespace<OpaqueNamespaceHandle>) => {
+        createPorts: ({ namespace }) => {
           const resource = profile.resources.get(namespace.handle.token);
           if (resource === undefined) throw new Error('Opaque Agent resources are unavailable.');
           return Object.freeze({ session: resource.sessions, requestJournal: resource.journal });
@@ -137,7 +131,7 @@ describe('public managed resource consumer', () => {
             config,
             ports,
             options: { readEnvironmentVariable: () => undefined },
-          }).agent,
+          }),
       },
     });
     const management = createAgentManagementService(definition);

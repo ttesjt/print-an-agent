@@ -1,10 +1,24 @@
-import type { AgentIdentity } from '@ta-agent/base-identity';
+import type { AgentIdentity, AgentIdentitySnapshot } from '@ta-agent/base-identity';
 import type { Agent } from '@ta-agent/base-workflow';
+import type { ManagedAgentConfigSnapshot } from './agent-management.js';
 import type { ManagedAgentNamespace } from './namespace.js';
 
-/** Creates product-owned runtime ports from an already resolved namespace. */
-export type ManagedAgentRuntimePortFactory<TNamespaceHandle, TRuntimePorts> = (
-  namespace: ManagedAgentNamespace<TNamespaceHandle>
+/**
+ * Authoritative context for profile-owned runtime resource provisioning.
+ *
+ * These snapshots supply the values subsequently passed to materialization; they do not promise
+ * an atomic read across Identity and Config authorities. Revisions inform explicit profile policy,
+ * not automatic caching or the identity of persistent resources.
+ */
+export interface ManagedAgentRuntimeProvisioningInput<TConfig, TNamespaceHandle> {
+  readonly namespace: ManagedAgentNamespace<TNamespaceHandle>;
+  readonly identity: AgentIdentitySnapshot;
+  readonly config: ManagedAgentConfigSnapshot<TConfig>;
+}
+
+/** Creates or locates product-owned runtime ports after authority validation. */
+export type ManagedAgentRuntimePortFactory<TConfig, TNamespaceHandle, TRuntimePorts> = (
+  input: ManagedAgentRuntimeProvisioningInput<TConfig, TNamespaceHandle>
 ) => TRuntimePorts | Promise<TRuntimePorts>;
 
 /**

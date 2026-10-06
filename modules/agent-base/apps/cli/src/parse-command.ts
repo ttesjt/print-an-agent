@@ -1,5 +1,9 @@
 import { AgentBaseCliError } from './errors.js';
-import type { AgentBaseCliRuntimeLocator } from './contracts.js';
+import type {
+  AgentBaseCliDurableRuntimeLocator,
+  AgentBaseCliRuntimeLocator,
+  AgentBaseCliStorageLocator,
+} from './contracts.js';
 import {
   assertAllowedCliOptions,
   optionalCliOption,
@@ -26,25 +30,25 @@ export type AgentBaseCliCommand =
     }>
   | Readonly<{
       kind: 'session-compact';
-      runtime: AgentBaseCliRuntimeLocator;
+      runtime: AgentBaseCliDurableRuntimeLocator;
       sessionId: string;
       branchId?: string;
     }>
   | Readonly<{
       kind: 'session-inspect';
-      runtime: AgentBaseCliRuntimeLocator;
+      runtime: AgentBaseCliDurableRuntimeLocator;
       sessionId: string;
     }>
   | Readonly<{
       kind: 'session-select';
-      runtime: AgentBaseCliRuntimeLocator;
+      runtime: AgentBaseCliDurableRuntimeLocator;
       sessionId: string;
       branchId: string;
       expectedRevision: number;
     }>
   | Readonly<{
       kind: 'session-fork';
-      runtime: AgentBaseCliRuntimeLocator;
+      runtime: AgentBaseCliDurableRuntimeLocator;
       sessionId: string;
       sourceBranchId: string;
       throughTurnId: string;
@@ -53,24 +57,24 @@ export type AgentBaseCliCommand =
     }>
   | Readonly<{
       kind: 'session-rewind';
-      runtime: AgentBaseCliRuntimeLocator;
+      runtime: AgentBaseCliDurableRuntimeLocator;
       sessionId: string;
       throughTurnId: string;
       newBranchId?: string;
       expectedRevision: number;
     }>
-  | Readonly<{ kind: 'agent-create'; rootDirectory: string; manifestPath: string }>
-  | Readonly<{ kind: 'agent-list'; rootDirectory: string }>
-  | Readonly<{ kind: 'agent-inspect'; rootDirectory: string; agentId: string }>
+  | Readonly<{ kind: 'agent-create'; storage: AgentBaseCliStorageLocator; manifestPath: string }>
+  | Readonly<{ kind: 'agent-list'; storage: AgentBaseCliStorageLocator }>
+  | Readonly<{ kind: 'agent-inspect'; storage: AgentBaseCliStorageLocator; agentId: string }>
   | Readonly<{
       kind: 'agent-disable';
-      rootDirectory: string;
+      storage: AgentBaseCliStorageLocator;
       agentId: string;
       expectedRevision: number;
     }>
   | Readonly<{
       kind: 'agent-reactivate';
-      rootDirectory: string;
+      storage: AgentBaseCliStorageLocator;
       agentId: string;
       expectedRevision: number;
     }>;
@@ -83,24 +87,44 @@ function parseRevision(options: CliOptionValues, minimum = 0): number {
 
 function parseRuntimeLocator(options: CliOptionValues): AgentBaseCliRuntimeLocator {
   const configPath = optionalCliOption(options, 'config');
-  const rootDirectory = optionalCliOption(options, 'root');
-  const agentId = optionalCliOption(options, 'agent-id');
   if (configPath !== undefined) {
-    if (rootDirectory !== undefined || agentId !== undefined) {
+    if (['root', 'database-path', 'agent-id'].some((key) => options.has(key))) {
       throw new AgentBaseCliError(
         'CLI_USAGE_INVALID',
-        '--config cannot be combined with --root or --agent-id.'
+        '--config cannot be combined with a storage locator or --agent-id.'
       );
     }
     return Object.freeze({ kind: 'config', configPath });
   }
-  if (rootDirectory === undefined || agentId === undefined) {
+  return Object.freeze({
+    ...parseStorageLocator(options),
+    agentId: requireCliOption(options, 'agent-id'),
+  });
+}
+
+function parseStorageLocator(options: CliOptionValues): AgentBaseCliStorageLocator {
+  const rootDirectory = optionalCliOption(options, 'root');
+  const databasePath = optionalCliOption(options, 'database-path');
+  if ((rootDirectory === undefined) === (databasePath === undefined)) {
     throw new AgentBaseCliError(
       'CLI_USAGE_INVALID',
-      'Either --config or both --root and --agent-id are required.'
+      'Exactly one of --root or --database-path is required.'
     );
   }
-  return Object.freeze({ kind: 'managed', rootDirectory, agentId });
+  return databasePath === undefined
+    ? Object.freeze({ kind: 'directory', rootDirectory: requireCliOption(options, 'root') })
+    : Object.freeze({ kind: 'sqlite', databasePath });
+}
+
+function parseDurableRuntimeLocator(options: CliOptionValues): AgentBaseCliDurableRuntimeLocator {
+  const locator = parseRuntimeLocator(options);
+  if (locator.kind === 'config') {
+    throw new AgentBaseCliError(
+      'CLI_USAGE_INVALID',
+      'Existing Session commands require --root or --database-path with --agent-id.'
+    );
+  }
+  return locator;
 }
 
 export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliCommand {
@@ -113,6 +137,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     assertAllowedCliOptions(options, [
       'config',
       'root',
+      'database-path',
       'agent-id',
       'message',
       'message-stdin',
@@ -127,16 +152,23 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
         'Exactly one of --message or --message-stdin is required.'
       );
     }
+    const runtime = parseRuntimeLocator(options);
+    const sessionId = optionalCliOption(options, 'session-id');
+    const idempotencyKey = optionalCliOption(options, 'idempotency-key');
+    if (runtime.kind === 'config' && (sessionId !== undefined || idempotencyKey !== undefined)) {
+      throw new AgentBaseCliError(
+        'CLI_USAGE_INVALID',
+        'Memory --config runs must create a new Session and cannot specify replay identity.'
+      );
+    }
     const base = {
       kind: 'run' as const,
-      runtime: parseRuntimeLocator(options),
+      runtime,
       messageSource:
         message === undefined
           ? ({ kind: 'stdin' } as const)
           : ({ kind: 'argument', value: message } as const),
     };
-    const sessionId = optionalCliOption(options, 'session-id');
-    const idempotencyKey = optionalCliOption(options, 'idempotency-key');
     return Object.freeze({
       ...base,
       ...(sessionId === undefined ? {} : { sessionId }),
@@ -152,33 +184,33 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
   const options = parseCliOptions(optionTokens);
   if (group === 'agent') {
     if (action === 'create') {
-      assertAllowedCliOptions(options, ['root', 'manifest']);
+      assertAllowedCliOptions(options, ['root', 'database-path', 'manifest']);
       return Object.freeze({
         kind: 'agent-create',
-        rootDirectory: requireCliOption(options, 'root'),
+        storage: parseStorageLocator(options),
         manifestPath: requireCliOption(options, 'manifest'),
       });
     }
     if (action === 'list') {
-      assertAllowedCliOptions(options, ['root']);
+      assertAllowedCliOptions(options, ['root', 'database-path']);
       return Object.freeze({
         kind: 'agent-list',
-        rootDirectory: requireCliOption(options, 'root'),
+        storage: parseStorageLocator(options),
       });
     }
     if (action === 'inspect') {
-      assertAllowedCliOptions(options, ['root', 'agent-id']);
+      assertAllowedCliOptions(options, ['root', 'database-path', 'agent-id']);
       return Object.freeze({
         kind: 'agent-inspect',
-        rootDirectory: requireCliOption(options, 'root'),
+        storage: parseStorageLocator(options),
         agentId: requireCliOption(options, 'agent-id'),
       });
     }
     if (action === 'disable' || action === 'reactivate') {
-      assertAllowedCliOptions(options, ['root', 'agent-id', 'expected-revision']);
+      assertAllowedCliOptions(options, ['root', 'database-path', 'agent-id', 'expected-revision']);
       return Object.freeze({
         kind: action === 'disable' ? 'agent-disable' : 'agent-reactivate',
-        rootDirectory: requireCliOption(options, 'root'),
+        storage: parseStorageLocator(options),
         agentId: requireCliOption(options, 'agent-id'),
         expectedRevision: parseRevision(options, 1),
       });
@@ -186,27 +218,34 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     throw new AgentBaseCliError('CLI_USAGE_INVALID', 'Unknown Agent lifecycle command.');
   }
   if (group === 'provider' && action === 'check') {
-    assertAllowedCliOptions(options, ['config', 'root', 'agent-id']);
+    assertAllowedCliOptions(options, ['config', 'root', 'database-path', 'agent-id']);
     return Object.freeze({ kind: 'provider-check', runtime: parseRuntimeLocator(options) });
   }
   if (group !== 'session') {
     throw new AgentBaseCliError('CLI_USAGE_INVALID', 'Unknown command.');
   }
   if (action === 'compact') {
-    assertAllowedCliOptions(options, ['config', 'root', 'agent-id', 'session-id', 'branch-id']);
+    assertAllowedCliOptions(options, [
+      'config',
+      'root',
+      'database-path',
+      'agent-id',
+      'session-id',
+      'branch-id',
+    ]);
     const branchId = optionalCliOption(options, 'branch-id');
     return Object.freeze({
       kind: 'session-compact' as const,
-      runtime: parseRuntimeLocator(options),
+      runtime: parseDurableRuntimeLocator(options),
       sessionId: requireCliOption(options, 'session-id'),
       ...(branchId === undefined ? {} : { branchId }),
     });
   }
   if (action === 'inspect') {
-    assertAllowedCliOptions(options, ['config', 'root', 'agent-id', 'session-id']);
+    assertAllowedCliOptions(options, ['config', 'root', 'database-path', 'agent-id', 'session-id']);
     return Object.freeze({
       kind: 'session-inspect',
-      runtime: parseRuntimeLocator(options),
+      runtime: parseDurableRuntimeLocator(options),
       sessionId: requireCliOption(options, 'session-id'),
     });
   }
@@ -214,6 +253,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     assertAllowedCliOptions(options, [
       'config',
       'root',
+      'database-path',
       'agent-id',
       'session-id',
       'branch-id',
@@ -221,7 +261,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     ]);
     return Object.freeze({
       kind: 'session-select',
-      runtime: parseRuntimeLocator(options),
+      runtime: parseDurableRuntimeLocator(options),
       sessionId: requireCliOption(options, 'session-id'),
       branchId: requireCliOption(options, 'branch-id'),
       expectedRevision: parseRevision(options),
@@ -231,6 +271,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     assertAllowedCliOptions(options, [
       'config',
       'root',
+      'database-path',
       'agent-id',
       'session-id',
       'source-branch-id',
@@ -241,7 +282,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     const newBranchId = optionalCliOption(options, 'new-branch-id');
     return Object.freeze({
       kind: 'session-fork' as const,
-      runtime: parseRuntimeLocator(options),
+      runtime: parseDurableRuntimeLocator(options),
       sessionId: requireCliOption(options, 'session-id'),
       sourceBranchId: requireCliOption(options, 'source-branch-id'),
       throughTurnId: requireCliOption(options, 'through-turn-id'),
@@ -253,6 +294,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     assertAllowedCliOptions(options, [
       'config',
       'root',
+      'database-path',
       'agent-id',
       'session-id',
       'through-turn-id',
@@ -262,7 +304,7 @@ export function parseAgentBaseCliCommand(argv: readonly string[]): AgentBaseCliC
     const newBranchId = optionalCliOption(options, 'new-branch-id');
     return Object.freeze({
       kind: 'session-rewind' as const,
-      runtime: parseRuntimeLocator(options),
+      runtime: parseDurableRuntimeLocator(options),
       sessionId: requireCliOption(options, 'session-id'),
       throughTurnId: requireCliOption(options, 'through-turn-id'),
       expectedRevision: parseRevision(options),

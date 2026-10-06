@@ -46,35 +46,106 @@ Pi hooks may customize the inner model/tool loop. They do not define the complet
 Agent identity, resources, cross-session data, durable product transactions, background work, and
 post-turn policies remain visible Agent Base or product-level concerns.
 
-## Package and runtime model
+## Package, application, and runtime model
 
-Agent Base has three kinds of deliverables:
+Agent Base keeps low-level runtime construction, application management composition, concrete
+profiles, and process delivery separate:
 
 ```text
-utility and adapter packages
-  identity, workflow, config, resources, Pi adapters, storage adapters
+domain and adapter packages
+  identity, config, workflow, Session, Request, Pi and storage boundaries
                          │
                          ▼
-assembled agent package
-  one complete, self-contained composition with explicit defaults
+base-workflow
+  createAgent() primitive
+                         │
+                         ▼
+base-composition
+  runtime/                       management/
+  Standard single-Agent          ManagedAgentCompositionDefinition
+  runtime composition            + narrow Domain Services
+                         │
+                         ▼
+base-standalone-agent
+  concrete bootstrap, directory and shared-SQLite profiles
                          │
                          ▼
 applications and clients
-  CLI, API, or UI delivery shells that call the assembled agent
+  CLI, API, server or UI delivery
 ```
 
-Utility and adapter packages are libraries. They do not start listeners, own a process lifecycle,
-or silently choose product policy.
+Domain and adapter packages are passive libraries. They do not start listeners, own a process
+lifecycle, or silently choose product policy.
 
-The assembled agent package is the single composition root. Its ground-level `composeAgent()`
-selects adapters, supplies all required rules, and returns the actual Agent. Correct Operation
-behavior must not depend on another facade. The package may also provide a transparent `AgentAPI`
-template with named methods and safe inspection; that API explicitly exposes its wrapped Agent and
-is primarily useful to standalone or delivery layers.
+`composition/runtime` owns the official Standard single-Agent assembly. Its ground-level
+`composeAgent()` selects one coherent set of runtime resources and rules and returns the actual raw
+Agent. Correct Operation behavior must not depend on another facade. The optional transparent
+`AgentAPI` only projects named convenience methods and always exposes that same Agent.
 
-The Agent Base CLI depends on the standalone Agent API. It must not repeat or fork the composition.
-Framework consumers may use the raw composed Agent directly, and another product may define its own
-API projection from the same Agent primitives.
+`composition/management` is a peer feature, not a wrapper around the Standard runtime. One immutable
+`ManagedAgentCompositionDefinition` is the code-level source of truth for Config decoding,
+namespace publication, authority ports, runtime-port creation, runtime materialization, optional
+Projection, and optional out-of-band Session management. It does not perform I/O when defined.
+Callers create only the narrow Service they need; each Service method creates only its scoped ports,
+and only `AgentRuntimeService.open()` materializes a raw Agent.
+
+Runtime opening first acquires Identity/Config authority ports and validates their snapshots. The
+runtime Port factory then receives `{ namespace, identity, config }` with those typed snapshots
+and revisions. The materializer receives their exact Identity and Config values plus the resulting
+ports, without rereading authority or receiving namespace/revision metadata. This is one read result
+reused across provisioning and assembly, not a cross-authority atomic snapshot. Profile code decides
+whether Config affects resource generation; persistent authority is not implicitly keyed by Config
+revision. Other Services retain narrower dependencies and do not acquire authority ports unless
+their own operation needs them.
+
+The framework does not require an `AgentApplication` instance. A long-running host may retain an
+opened Agent or aggregate Services for convenience, but that host-owned object is neither a new
+authority nor a correctness dependency. `@ta-agent/base-standalone-agent` binds the generic
+Definition and Services to concrete profiles. The CLI consumes those narrow Standalone Services or
+the opened raw Agent and must not repeat their composition.
+
+Official profiles own resource provisioning. A Memory Definition captures an isolated scope that
+supplies one complete coordinated Session/Request Journal/maintenance persistence per Agent,
+shared by runtime and out-of-band consumers. Memory Identity/Config authorities are revisioned but
+ephemeral, not a runtime cache. Reopening Agents or updating Config does not replace their Session
+authority. Directory/shared-SQLite factories may reopen different adapter instances against the
+same durable authority. Live sharing depends on provisioning scope, not universal Definition object
+identity. No public resource manager or registry is required; ordinary consumers use the canonical
+Definition and narrow Services.
+
+Official Standalone bootstrap follows that same Definition/Service path: create namespace and
+Identity/Config authority, then open a raw Agent. Memory bootstrap owns a fresh ephemeral scope;
+SQLite bootstrap uses the shared-SQLite profile. Durable creation and opening are distinct:
+duplicate creation conflicts, opening reads existing authority, and Config replacement is an
+explicit revision-checked management operation. The Standalone materializer requires complete
+Session/Journal Ports and returns raw Agent; optional API facades are explicit caller choices.
+Lower-level runtime composition retains its independent defaults and hackable assembly surface.
+
+### Composition vocabulary
+
+`Definition` is a general code-contract suffix, not a concept owned by one architectural layer. The
+complete name establishes its scope:
+
+- `AgentDefinition` defines how `createAgent()` constructs one raw Agent from identity, resources,
+  Operations, and observability;
+- `ManagedAgentCompositionDefinition` defines how one Host/application family constructs and
+  connects Config, namespace, authority, runtime, Projection, and optional management capabilities;
+- `AgentConfig` is one Agent's durable, validated, normally JSON-like declaration. It contains no
+  Adapter instance, database connection, Step function, Engine object, or other executable code;
+- a Domain `Service` exposes a cohesive set of non-runtime application operations;
+- a `Port` is a capability boundary, while an Adapter is one concrete implementation of that Port.
+
+These concepts are not interchangeable. A managed runtime materializer may use the Standard
+`composeAgent()` path, a product extension, or the lower-level `createAgent()` path. Generic
+management requires only that it return the exact typed raw Agent; it does not require an
+intermediate `StandardAgentDefinition` or assume the Standard `foreground`, `compactSession`, and
+`navigateSession` Operation names.
+
+Projection is an optional, one-way secondary view of authoritative Identity and AgentConfig. The
+generic contract does not prescribe JSON, a file, a local filesystem, or any other external medium,
+and Projection never becomes an implicit reverse-write path. Explicit Config import still passes
+through the Definition's Config Codec and revision/CAS authority. Out-of-band Session management is
+likewise an optional typed capability rather than a hidden requirement of every Definition.
 
 ## Runtime hierarchy
 
@@ -503,8 +574,10 @@ They own any integration with Model Workbench.
 - Fail explicitly for missing, unknown, or illegally skipped Steps.
 - Put Pi behind adapters and reuse it aggressively.
 - Keep utility packages passive.
-- Keep exactly one composition root per assembled agent package.
-- Let applications host an assembled agent; do not let them redefine it.
+- Keep exactly one coherent composition owner for each assembled raw-Agent runtime path; do not
+  confuse that runtime rule with the separate application-management Definition.
+- Let applications host raw Agents and narrow Services; do not let delivery code redefine either
+  runtime composition or management authority.
 - Do not add abstraction until at least one concrete boundary needs it.
 
 ## Current implementation scope
@@ -533,11 +606,12 @@ The current foundation contains:
 - `@ta-agent/base-pi`: the isolated low-level Pi `0.82.1` loop adapter with one shared Actor runtime,
   a deterministic faux profile, exact builtin provider/model binding, and explicit text-only
   OpenAI-compatible endpoints;
-- `@ta-agent/base-composition`: one Agent owner with public foreground/navigation/compaction
-  Operations, bounded execution, deterministic and ordinary-provider shortcuts, streaming, and
-  supported adapter/Step/Workflow replacement;
-- `@ta-agent/base-standalone-agent`: explicit-config Memory/SQLite bootstrap plus the managed
-  per-Agent directory reference profile consumed by the CLI.
+- `@ta-agent/base-composition`: the official Standard Agent owner with public
+  foreground/navigation/compaction Operations plus storage-neutral Agent management, raw-runtime
+  opening, and optional out-of-band Session management Services;
+- `@ta-agent/base-standalone-agent`: authoritative Memory/shared-SQLite bootstrap plus canonical
+  Memory, per-Agent directory, and shared-SQLite reference profiles consumed through narrow
+  Services or raw Agents by the CLI and other hosts.
 
 The Workflow package accepts a product's already resolved typed config. It does not resolve or
 persist configuration itself. The composition architecture is formal, but memory persistence remains
@@ -560,9 +634,9 @@ Journal cleanup/recovery remain request-owned. A managed profile may compose an 
 Session-plus-Journal purge and continuously fenced recovery, but cannot claim those guarantees from
 the Session ports alone or from sequential independent cleanup calls.
 
-The lifecycle contracts are implemented, but the existing local adapters and runtime execution are
-not yet lifecycle-qualified. Their admission, every write, Request Journal/replay and OutputSink
-finalization must be integrated as one change before management can be exposed. Standalone will
-later compose an independent `ManagedStandaloneSessionService` via existing namespace/port factories;
-this does not add methods to Agent, AgentAPI or the Agent registry, nor define a Host/Application
-framework.
+Official Memory and SQLite adapters are lifecycle-qualified across admission, writes, Request
+Journal/replay, OutputSink finalization, compaction, navigation, purge, and recovery. Generic
+application composition exposes Session management only as an optional typed capability, and the
+Standalone profiles project it to host-facing string/JSON APIs. The CLI's managed-directory
+`session lifecycle` commands consume that projection without opening an Agent runtime or provider.
+No lifecycle method is added to Agent, AgentAPI, Agent Operations, or Workflows.

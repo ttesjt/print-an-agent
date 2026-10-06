@@ -1,8 +1,11 @@
 import {
+  createDefaultRequestStepOverrides,
+  createRequestStepDefinitions,
   DEFAULT_REQUEST_POLICY,
   validateRequestPolicy,
   type RequestPolicy,
 } from '@ta-agent/base-request';
+import { mergeStepOverrides, resolveStepRegistry } from '@ta-agent/base-workflow';
 import {
   DEFAULT_SESSION_COMPACTION_POLICY,
   validateSessionCompactionPolicy,
@@ -55,11 +58,34 @@ export function resolveStandaloneSessionCompactionPolicy(
   });
 }
 
-export function assertStandaloneRuntimeTimeoutAuthority(options: object): void {
-  if (Object.prototype.hasOwnProperty.call(options, 'requestPolicy')) {
-    throw new AgentBaseStandaloneError(
-      'Standalone Request timeout is owned by durable configuration; use requestLimits for host-owned non-timeout limits.'
+export function assertStandaloneRuntimeOptions(options: StandaloneRuntimeOptions): void {
+  try {
+    if (
+      typeof options !== 'object' ||
+      options === null ||
+      Array.isArray(options) ||
+      typeof options.readEnvironmentVariable !== 'function'
+    ) {
+      throw new AgentBaseStandaloneError(
+        'Standalone runtime options require a readEnvironmentVariable function.'
+      );
+    }
+    if (Object.prototype.hasOwnProperty.call(options, 'requestPolicy')) {
+      throw new AgentBaseStandaloneError(
+        'Standalone Request timeout is owned by authoritative configuration; use requestLimits for host-owned non-timeout limits.'
+      );
+    }
+    resolveStandaloneRequestPolicy(
+      { timeoutMilliseconds: DEFAULT_REQUEST_POLICY.timeoutMilliseconds },
+      options.requestLimits
     );
+    resolveStepRegistry(
+      createRequestStepDefinitions(),
+      mergeStepOverrides(createDefaultRequestStepOverrides(), options.stepOverrides)
+    );
+  } catch (cause: unknown) {
+    if (cause instanceof AgentBaseStandaloneError) throw cause;
+    throw new AgentBaseStandaloneError('Standalone runtime options are invalid.', { cause });
   }
 }
 

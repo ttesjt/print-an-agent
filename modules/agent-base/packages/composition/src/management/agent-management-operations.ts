@@ -82,7 +82,7 @@ async function inspectNamespace<TConfig, TNamespaceHandle, TRuntimePorts, TAgent
   namespace: ManagedAgentNamespace<TNamespaceHandle>
 ): Promise<ManagedAgentSnapshot<TConfig>> {
   const ports = createManagedAgentAuthorityPorts(operation, definition, namespace);
-  const authority = await readManagedAgentAuthority(
+  const authority = await readManagedAgentAuthority<TConfig>(
     operation,
     namespace.agentId,
     ports,
@@ -171,7 +171,7 @@ export async function updateManagedAgentConfig<TConfig, TNamespaceHandle, TRunti
     agentId
   );
   const ports = createManagedAgentAuthorityPorts(operation, definition, namespace);
-  const current = await readManagedAgentAuthority(
+  const current = await readManagedAgentAuthority<TConfig>(
     operation,
     agentId,
     ports,
@@ -188,7 +188,7 @@ export async function updateManagedAgentConfig<TConfig, TNamespaceHandle, TRunti
     throw new AgentManagementError(
       'MANAGED_AGENT_AUTHORITY_INVALID',
       operation,
-      'Managed Agent Config update did not produce a durable revision.'
+      'Managed Agent Config update did not produce a stored revision.'
     );
   }
   const authority = createManagedAgentAuthority(
@@ -236,7 +236,7 @@ export async function transitionManagedAgent<TConfig, TNamespaceHandle, TRuntime
     agentId
   );
   const ports = createManagedAgentAuthorityPorts(operation, definition, namespace);
-  const current = await readManagedAgentAuthority(
+  const current = await readManagedAgentAuthority<TConfig>(
     operation,
     agentId,
     ports,

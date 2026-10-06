@@ -8,7 +8,14 @@ import type {
   ManagedAgentRuntimePortFactory,
   RawManagedAgent,
 } from './contracts/runtime.js';
-import type { SessionManagementCapability } from './contracts/session-management.js';
+import type {
+  SessionManagementCapability,
+  SessionManagementPortFactory,
+} from './contracts/session-management.js';
+import type {
+  SessionNavigationCapability,
+  SessionNavigationPortFactory,
+} from './contracts/session-navigation.js';
 import { ManagedAgentCompositionError } from './errors.js';
 
 interface ManagedAgentCompositionDefinitionInputShape<
@@ -27,7 +34,7 @@ interface ManagedAgentCompositionDefinitionInputShape<
     createPorts: ManagedAgentAuthorityPortFactory<TNamespaceHandle>;
   }>;
   readonly runtime: Readonly<{
-    createPorts: ManagedAgentRuntimePortFactory<TNamespaceHandle, TRuntimePorts>;
+    createPorts: ManagedAgentRuntimePortFactory<TConfig, TNamespaceHandle, TRuntimePorts>;
     materialize: (
       input: ManagedAgentRuntimeMaterializationInput<TConfig, TRuntimePorts>
     ) => TAgent | Promise<TAgent>;
@@ -56,6 +63,15 @@ export type SessionManagedAgentCompositionDefinitionInput<
 > = ManagedAgentCompositionDefinitionInput<TConfig, TNamespaceHandle, TRuntimePorts, TAgent> &
   SessionManagementCapability<TNamespaceHandle, TSessionManagementPorts>;
 
+export type SessionNavigationAgentCompositionDefinitionInput<
+  TConfig,
+  TNamespaceHandle,
+  TRuntimePorts,
+  TAgent,
+  TSessionNavigationPorts,
+> = ManagedAgentCompositionDefinitionInput<TConfig, TNamespaceHandle, TRuntimePorts, TAgent> &
+  SessionNavigationCapability<TNamespaceHandle, TSessionNavigationPorts>;
+
 export interface ManagedAgentCompositionDefinition<
   TConfig,
   TNamespaceHandle,
@@ -72,7 +88,7 @@ export interface ManagedAgentCompositionDefinition<
     createPorts: ManagedAgentAuthorityPortFactory<TNamespaceHandle>;
   }>;
   readonly runtime: Readonly<{
-    createPorts: ManagedAgentRuntimePortFactory<TNamespaceHandle, TRuntimePorts>;
+    createPorts: ManagedAgentRuntimePortFactory<TConfig, TNamespaceHandle, TRuntimePorts>;
     materialize: ManagedAgentRuntimeMaterializer<TConfig, TRuntimePorts, TAgent>;
   }>;
   readonly projection?: Readonly<{
@@ -88,6 +104,39 @@ export type SessionManagedAgentCompositionDefinition<
   TSessionManagementPorts,
 > = ManagedAgentCompositionDefinition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent> &
   SessionManagementCapability<TNamespaceHandle, TSessionManagementPorts>;
+
+export type SessionNavigationAgentCompositionDefinition<
+  TConfig,
+  TNamespaceHandle,
+  TRuntimePorts,
+  TAgent,
+  TSessionNavigationPorts,
+> = ManagedAgentCompositionDefinition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent> &
+  SessionNavigationCapability<TNamespaceHandle, TSessionNavigationPorts>;
+
+/** Closed capability input vocabulary; capability combinations are inferred rather than enumerated. */
+export interface ManagedAgentCompositionCapabilitiesInput<TNamespaceHandle> {
+  readonly sessionManagement?: Readonly<{
+    createPorts: SessionManagementPortFactory<TNamespaceHandle, unknown>;
+  }>;
+  readonly sessionNavigation?: Readonly<{
+    createPorts: SessionNavigationPortFactory<TNamespaceHandle, unknown>;
+  }>;
+}
+
+type ManagedAgentCompositionCapabilityKey = keyof ManagedAgentCompositionCapabilitiesInput<unknown>;
+
+/**
+ * Preserve the caller's known capability fields without re-evaluating generic core constraints.
+ * Required, optional, and absent fields therefore retain their exact presence semantics.
+ */
+type ManagedAgentCompositionCapabilitiesFromInput<TInput> = Readonly<
+  Pick<TInput, Extract<keyof TInput, ManagedAgentCompositionCapabilityKey>>
+>;
+
+type RejectUnknownDefinitionFields<TAllowed, TInput> = Readonly<
+  Record<Exclude<keyof TInput, keyof TAllowed>, never>
+>;
 
 export type ManagedAgentDefinitionConfig<TDefinition> =
   TDefinition extends Readonly<{
@@ -216,25 +265,18 @@ export function defineManagedAgentComposition<
   TNamespaceHandle,
   TRuntimePorts,
   TAgent,
-  TSessionManagementPorts,
+  const TInput extends object,
 >(
-  input: SessionManagedAgentCompositionDefinitionInput<
-    TConfig,
-    TNamespaceHandle,
-    TRuntimePorts,
-    TAgent,
-    TSessionManagementPorts
-  >
-): SessionManagedAgentCompositionDefinition<
-  TConfig,
-  TNamespaceHandle,
-  TRuntimePorts,
-  TAgent,
-  TSessionManagementPorts
->;
-export function defineManagedAgentComposition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>(
-  input: ManagedAgentCompositionDefinitionInput<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>
-): ManagedAgentCompositionDefinition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>;
+  input: ManagedAgentCompositionDefinitionInput<TConfig, TNamespaceHandle, TRuntimePorts, TAgent> &
+    ManagedAgentCompositionCapabilitiesInput<TNamespaceHandle> &
+    TInput &
+    RejectUnknownDefinitionFields<
+      ManagedAgentCompositionDefinitionInput<TConfig, TNamespaceHandle, TRuntimePorts, TAgent> &
+        ManagedAgentCompositionCapabilitiesInput<TNamespaceHandle>,
+      TInput
+    >
+): ManagedAgentCompositionDefinition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent> &
+  ManagedAgentCompositionCapabilitiesFromInput<TInput>;
 export function defineManagedAgentComposition(input: unknown): unknown {
   const root = requireClosedRecord(input, 'definition', [
     'config',
@@ -243,6 +285,7 @@ export function defineManagedAgentComposition(input: unknown): unknown {
     'runtime',
     'projection',
     'sessionManagement',
+    'sessionNavigation',
   ]);
 
   const config = requireClosedRecord(requireDataProperty(root, 'config', 'config'), 'config', [
@@ -312,6 +355,23 @@ export function defineManagedAgentComposition(input: unknown): unknown {
     requireFunction(createSessionManagementPorts, 'sessionManagement.createPorts');
     definition.sessionManagement = Object.freeze({
       createPorts: createSessionManagementPorts,
+    });
+  }
+
+  if (Object.hasOwn(root, 'sessionNavigation')) {
+    const sessionNavigation = requireClosedRecord(
+      requireDataProperty(root, 'sessionNavigation', 'sessionNavigation'),
+      'sessionNavigation',
+      ['createPorts']
+    );
+    const createSessionNavigationPorts = requireDataProperty(
+      sessionNavigation,
+      'createPorts',
+      'sessionNavigation.createPorts'
+    );
+    requireFunction(createSessionNavigationPorts, 'sessionNavigation.createPorts');
+    definition.sessionNavigation = Object.freeze({
+      createPorts: createSessionNavigationPorts,
     });
   }
 

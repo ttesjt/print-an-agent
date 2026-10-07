@@ -1,0 +1,60 @@
+# Composing an Agent Web application
+
+```text
+Browser public components + optional stylesheet
+    → application-owned controllers and narrow UI ports
+    → validated HTTP commands / ordered NDJSON interaction stream
+    → Node application adapter
+    → one managed Agent Base Definition
+        → Identity / Config authority
+        → Session management and navigation services
+        → materialized Agent and foreground Operation
+```
+
+The Node backend factory is app-owned, not a new exported framework package. It can receive any
+Actor Engine, explicit tool registry and safe tool labels, plus Memory or directory persistence:
+
+```ts
+const ports = createAgentBaseWebPorts({
+  engine: hostEngine,
+  persistence: { kind: 'directory', rootDirectory: '/absolute/path/to/agents' },
+});
+const host = await startLocalAgentWebServer({ ports });
+// The host owner awaits host.close() during shutdown.
+```
+
+The browser receives only safe DTOs. `App` accepts the application's typed `AgentWebPorts`
+composition, so another host may replace all adapters. `BrowserAgentWeb` adds URL selection and
+the default entry chooses localhost ports; it is not a second domain owner. No reusable component
+imports these controllers or the Node adapter. The browser's hash contains only Agent/Session IDs,
+never provider configuration or credentials. Navigation history changes selection without
+remounting the application or cancelling an unrelated persisted conversation.
+
+The editable config is a small application schema: instructions and response style. It is not an
+arbitrary JSON editor or a mirror of the provider config. The private host selects Engine/provider,
+tools, credentials and transport policy. Config updates affect subsequent runtime materialization;
+they do not change an in-flight Engine call.
+
+## Reusing components independently
+
+Import structure and behavior from `@ta-agent/ui-react`. Import
+`@ta-agent/ui-styles/default.css` separately if desired. Consumers may omit styles entirely, or
+override tokens/classes without changing component behavior. Components neither import a theme
+nor know the Agent Web port/store/transport shape. The Gallery's separate `consumer.html` entry
+demonstrates the same interactive Notes composition with no stylesheet, the default stylesheet,
+and an application-owned token override. It is a qualification fixture, not a template generator.
+
+## Runtime and recovery guarantees
+
+- Persisted conversations own independent history, draft, interaction and cancellation state.
+  Selection only changes the visible target. Unpersisted drafts remain foreground-owned.
+- Revision conflicts reconcile authoritative details and catalogs. Transport failure is projected
+  safely with retry; malformed responses never become domain state.
+- Awaited stream consumption retains order/backpressure. Success comes from the committed Session
+  Turn, not from optimistic UI state. Request replay reconstructs saved reasoning blocks.
+- Cancellation is cooperative. If commit I/O has already begun, history reconciliation determines
+  the durable result; cancellation does not imply rollback or globally exactly-once draft creation.
+- Tool presentation is live safe status/label data. Reopened history does not reconstruct tool
+  records because the public Session authority does not persist them.
+
+See [backend boundaries](./backend-boundary.md) and [host deployment limits](./local-host.md).

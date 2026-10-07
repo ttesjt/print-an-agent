@@ -208,6 +208,50 @@ describe('Agent UI Component Gallery', () => {
     expect(navigation?.querySelector('[data-slot="navigation-rail"]')).not.toBeNull();
   });
 
+  it('exhibits Agent catalog, configuration, details, and lifecycle states', () => {
+    const container = renderStaticGallery();
+    const agents = container.querySelector('#agent-management');
+
+    expect(agents?.querySelectorAll('[data-slot="agent-catalog"]')).toHaveLength(4);
+    expect(agents?.querySelector('[data-slot="agent-list"]')).not.toBeNull();
+    expect(agents?.querySelector('[data-selected="true"]')).not.toBeNull();
+    expect(agents?.querySelector('[data-working="true"]')).not.toBeNull();
+    expect(agents?.querySelector('[data-slot="agent-details"]')).not.toBeNull();
+    expect(agents?.querySelectorAll('[data-slot="agent-config-form"]')).toHaveLength(2);
+    expect(agents?.querySelector('[data-tone="caution"]')).not.toBeNull();
+    expect(agents?.querySelectorAll('[data-slot="agent-lifecycle-actions"]')).toHaveLength(2);
+  });
+
+  it('exhibits Session catalog, details, branch navigation, and lifecycle capabilities', () => {
+    const container = renderStaticGallery();
+    const sessions = container.querySelector('#session-management');
+
+    expect(sessions?.querySelectorAll('[data-slot="session-catalog"]')).toHaveLength(3);
+    expect(sessions?.querySelector('[data-slot="session-list"]')).not.toBeNull();
+    expect(sessions?.querySelector('[data-slot="session-details"]')).not.toBeNull();
+    expect(sessions?.querySelectorAll('[data-slot="session-branch-item"]')).toHaveLength(2);
+    expect(sessions?.querySelectorAll('[data-slot="session-lifecycle-actions"]')).toHaveLength(2);
+  });
+
+  it('exhibits completed, streaming, failed, reasoning, tool, and composer conversation states', () => {
+    const conversation = renderStaticGallery().querySelector('#conversation');
+
+    expect(conversation?.querySelectorAll('[data-slot="conversation-turn"]')).toHaveLength(3);
+    expect(valuesOf(conversation, '[data-slot="conversation-turn"]', 'data-state')).toEqual([
+      'completed',
+      'failed',
+      'streaming',
+    ]);
+    expect(conversation?.querySelectorAll('[data-slot="reasoning-block"]')).toHaveLength(4);
+    expect(conversation?.querySelectorAll('[data-slot="tool-activity"]')).toHaveLength(3);
+    expect(
+      conversation?.querySelector('[data-slot="tool-activity"][data-status="interrupted"]')
+        ?.textContent
+    ).toContain('Interrupted');
+    expect(conversation?.querySelectorAll('[data-slot="conversation-composer"]')).toHaveLength(2);
+    expect(conversation?.textContent).toContain('Partial output is not a completed turn.');
+  });
+
   it('opens nested modal Dialogs through the public Gallery surface', () => {
     const { container } = renderGallery();
 
@@ -241,10 +285,10 @@ describe('Agent UI Component Gallery', () => {
   it('bundles the public default stylesheet and isolated Gallery visual policy', () => {
     const publicRoot = join(import.meta.dirname, '../../dist/public');
     const assetsRoot = join(publicRoot, 'assets');
-    const cssAsset = readdirSync(assetsRoot).find((name) => name.endsWith('.css'));
+    const cssAssets = readdirSync(assetsRoot).filter((name) => name.endsWith('.css'));
 
-    expect(cssAsset).toBeDefined();
-    const css = readFileSync(join(assetsRoot, cssAsset ?? ''), 'utf8');
+    expect(cssAssets.length).toBeGreaterThan(0);
+    const css = cssAssets.map((name) => readFileSync(join(assetsRoot, name), 'utf8')).join('\n');
     expect(css).toContain('--ta-ui-color-canvas');
     expect(css).toContain('.ta-ui-panel');
     expect(css).toContain('.ta-ui-app-shell');
@@ -253,9 +297,14 @@ describe('Agent UI Component Gallery', () => {
     expect(css).toContain('.ta-ui-alert');
     expect(css).toContain('.ta-ui-modal-surface');
     expect(css).toContain('.ta-ui-navigation-rail');
+    expect(css).toContain('.ta-ui-agent-catalog');
+    expect(css).toContain('.ta-ui-conversation-turn');
     expect(css).toContain('.ta-ui-gallery-root');
     expect(css).toContain('[data-ta-ui-theme]');
     expect(css).toContain('color:var(--ta-ui-color-ink)');
+    const consumer = readFileSync(join(publicRoot, 'consumer.html'), 'utf8');
+    expect(consumer).not.toContain('rel="stylesheet"');
+    expect(consumer).toContain('type="module"');
     expect(readFileSync(join(publicRoot, 'index.html'), 'utf8')).toContain(
       'Agent UI Component Gallery'
     );

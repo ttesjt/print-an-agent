@@ -3,14 +3,15 @@ import '@ta-agent/ui-styles/default.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { createDeterministicAgentCatalog } from './adapters/deterministic-agent-catalog.js';
-import { App } from './app.js';
+import { BrowserAgentWeb, createBrowserComposition } from './application/browser-composition.js';
 
 const root = document.querySelector<HTMLElement>('#root');
 if (root === null) throw new Error('Agent Web root is missing.');
 
+const composition = createBrowserComposition(window.location.href);
+
 createRoot(root).render(
   <StrictMode>
-    <App agentCatalog={createDeterministicAgentCatalog()} />
+    <BrowserAgentWeb ports={composition.ports} profileLabel={composition.label} />
   </StrictMode>
 );

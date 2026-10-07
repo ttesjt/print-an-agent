@@ -1,138 +1,239 @@
-import type { AgentCatalogPort, AgentSummary } from '@ta-agent/ui-contracts';
 import {
+  AgentCatalog,
+  AgentCreateDialog,
+  AgentLifecycleActions,
   Alert,
   AppShell,
   AppShellHeader,
   AppShellInspector,
   AppShellMain,
   AppShellSidebar,
+  Button,
   Cluster,
-  EmptyState,
-  Grid,
-  Panel,
-  PanelBody,
-  PanelFooter,
-  PanelHeader,
+  DisableAgentDialog,
+  Select,
   Stack,
-  Status,
 } from '@ta-agent/ui-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { useApplicationTheme } from './application/theme-preference.js';
+import type { WorkspaceLocation } from './application/workspace-location.js';
+
+import { useAgentManagement } from './agent/use-agent-management.js';
+import type { DemoAgentConfig } from './application/demo-agent-config.js';
+import type { AgentWebPorts } from './application/ports.js';
+import { AgentWorkspace, DemoConfigFields } from './components/agent-workspace.js';
+import { useConversationManagement } from './conversation/use-conversation-management.js';
+import { SessionSidebar, SessionWorkspace } from './session/session-management-panels.js';
+import { useSessionManagement } from './session/use-session-management.js';
 
 export interface AppProps {
-  readonly agentCatalog: AgentCatalogPort;
+  readonly ports: AgentWebPorts<DemoAgentConfig>;
+  readonly profileLabel?: string;
+  readonly requestedLocation?: WorkspaceLocation;
+  readonly onLocationChange?: (location: WorkspaceLocation) => void;
 }
 
-type AgentCatalogState =
-  | Readonly<{ status: 'loading' }>
-  | Readonly<{ status: 'ready'; agents: readonly AgentSummary[] }>
-  | Readonly<{ status: 'failed' }>;
+const STATUS_LABELS = Object.freeze({ active: 'Active', disabled: 'Disabled' });
 
-export function App({ agentCatalog }: AppProps) {
-  const [catalogState, setCatalogState] = useState<AgentCatalogState>({ status: 'loading' });
-
+export function App({
+  ports,
+  profileLabel = 'Agent application',
+  requestedLocation,
+  onLocationChange,
+}: AppProps) {
+  const { theme, setTheme } = useApplicationTheme();
+  const agents = useAgentManagement(ports.agents, requestedLocation);
+  const sessions = useSessionManagement(agents.selectedAgentId, ports.sessions, requestedLocation);
+  const previousLocationAgent = useRef(agents.selectedAgentId);
   useEffect(() => {
-    const controller = new AbortController();
-    const load = async () => {
-      try {
-        const agents = await agentCatalog.listAgents({ signal: controller.signal });
-        if (!controller.signal.aborted) setCatalogState({ status: 'ready', agents });
-      } catch {
-        if (!controller.signal.aborted) setCatalogState({ status: 'failed' });
-      }
-    };
-    void load();
-    return () => controller.abort();
-  }, [agentCatalog]);
+    if (previousLocationAgent.current !== agents.selectedAgentId) {
+      previousLocationAgent.current = agents.selectedAgentId;
+      return;
+    }
+    if (
+      sessions.selectionState.status === 'ready' &&
+      sessions.selectionState.details.agentId !== agents.selectedAgentId
+    )
+      return;
+    onLocationChange?.({
+      ...(agents.selectedAgentId === undefined ? {} : { agentId: agents.selectedAgentId }),
+      ...(sessions.selectedSessionId === undefined
+        ? {}
+        : { sessionId: sessions.selectedSessionId }),
+    });
+  }, [
+    agents.selectedAgentId,
+    sessions.selectedSessionId,
+    sessions.selectionState,
+    onLocationChange,
+  ]);
+  const conversation = useConversationManagement({
+    agentId: agents.selectedAgentId,
+    management: ports.conversations,
+    onConversationCommitted: sessions.synchronizeConversationCommit,
+    onNavigationChanged: sessions.reconcileSession,
+    sessionState: sessions.selectionState,
+  });
+  const workingAgentIds = unique([...agents.workingAgentIds, ...conversation.workingAgentIds]);
 
   return (
-    <AppShell className="ta-ui-root">
-      <AppShellHeader>
-        <Cluster justify="between" space="small">
-          <strong>Agent Web</strong>
-          <span>Visual and layout foundations</span>
-        </Cluster>
-      </AppShellHeader>
+    <>
+      <AppShell className="ta-ui-root">
+        <AppShellHeader>
+          <Cluster justify="between" space="medium">
+            <strong>Agent Web</strong>
+            <Cluster space="small">
+              <span>{profileLabel}</span>
+              <Select
+                aria-label="Theme"
+                value={theme}
+                onChange={(event) => {
+                  const value = event.currentTarget.value;
+                  if (value === 'light' || value === 'dark' || value === 'system') setTheme(value);
+                }}
+              >
+                <option value="system">System theme</option>
+                <option value="light">Light theme</option>
+                <option value="dark">Dark theme</option>
+              </Select>
+            </Cluster>
+          </Cluster>
+        </AppShellHeader>
 
-      <AppShellSidebar aria-labelledby="agent-catalog-title">
-        <Stack space="small">
-          <h2 id="agent-catalog-title">Agents</h2>
-          <AgentCatalog state={catalogState} />
-        </Stack>
-      </AppShellSidebar>
+        <AppShellSidebar aria-labelledby="agent-catalog-title">
+          <Stack space="large">
+            <Stack space="small">
+              <h2 id="agent-catalog-title">Agents</h2>
+              <AgentCatalog
+                createAction={
+                  <Button onClick={() => agents.setCreateOpen(true)}>Create Agent</Button>
+                }
+                emptyDescription="Create an Agent to begin."
+                emptyTitle="No Agents are available."
+                loadingLabel="Loading Agents…"
+                onRetry={agents.refreshCatalog}
+                onSelectAgent={agents.selectAgent}
+                retryLabel="Retry"
+                selectedAgentId={agents.selectedAgentId}
+                state={agents.catalogState}
+                statusLabels={STATUS_LABELS}
+                workingAgentIds={workingAgentIds}
+                workingLabel="Working"
+              />
+            </Stack>
+            <SessionSidebar
+              agentSelected={agents.selectedAgentId !== undefined}
+              controller={sessions}
+              workingConversationSessionIds={conversation.workingSessionIds}
+            />
+          </Stack>
+        </AppShellSidebar>
 
-      <AppShellMain>
-        <Stack space="large">
-          <Panel aria-labelledby="agent-web-title" variant="raised">
-            <PanelHeader>
-              <h1 id="agent-web-title">Composable Agent interfaces</h1>
-              <p>Structure and visual policy remain independently replaceable.</p>
-            </PanelHeader>
-            <PanelBody>
-              <p>
-                This walking skeleton consumes a UI-owned port, unstyled React layout primitives,
-                and an explicitly imported default stylesheet.
-              </p>
-            </PanelBody>
-            <PanelFooter>
-              <p>Resize the viewport to verify stable reading order and responsive reflow.</p>
-            </PanelFooter>
-          </Panel>
+        <AppShellMain>
+          <Stack space="large">
+            <AgentWorkspace
+              configConflict={agents.configConflict}
+              configDirty={agents.configDirty}
+              configDraft={agents.configDraft}
+              configError={agents.configError}
+              configFieldErrors={agents.configFieldErrors}
+              onReloadConfig={() => void agents.reloadConfig()}
+              onResetConfig={agents.resetConfig}
+              onSaveConfig={() => void agents.saveConfig()}
+              selectionState={agents.selectionState}
+              setConfigDraft={agents.setConfigDraft}
+              working={agents.configWorking}
+            />
+            <SessionWorkspace
+              conversation={conversation}
+              controller={sessions}
+              interactionAllowed={
+                agents.selectionState.status === 'ready' &&
+                agents.selectionState.snapshot.details.status === 'active'
+              }
+            />
+          </Stack>
+        </AppShellMain>
 
-          <Grid columns="two">
-            <Panel variant="muted">
-              <PanelHeader>
-                <h2>Global visual language</h2>
-              </PanelHeader>
-              <PanelBody>
-                <p>Semantic tokens define themes, typography, spacing, and accessible states.</p>
-              </PanelBody>
-            </Panel>
-            <Panel variant="muted">
-              <PanelHeader>
-                <h2>Stable layout semantics</h2>
-              </PanelHeader>
-              <PanelBody>
-                <p>Responsive CSS changes layout without changing or hiding semantic regions.</p>
-              </PanelBody>
-            </Panel>
-          </Grid>
-        </Stack>
-      </AppShellMain>
+        <AppShellInspector aria-labelledby="agent-lifecycle-title">
+          <Stack space="medium">
+            <h2 id="agent-lifecycle-title">Lifecycle</h2>
+            {agents.selected === undefined ? (
+              <p>Select an Agent to inspect its lifecycle.</p>
+            ) : (
+              <AgentLifecycleActions
+                disableLabel="Disable Agent"
+                onReactivate={() => void agents.changeLifecycle('active')}
+                onRequestDisable={() => agents.setDisableOpen(true)}
+                pending={agents.lifecycleWorking}
+                reactivateLabel="Reactivate Agent"
+                status={agents.selected.details.status}
+              />
+            )}
+            {agents.lifecycleConflict !== undefined && (
+              <Alert announcement="assertive" tone="caution">
+                <span>{agents.lifecycleConflict}</span>
+                <Button
+                  appearance="outline"
+                  onClick={() => void agents.reloadLifecycle()}
+                  pending={agents.lifecycleWorking}
+                  size="small"
+                  tone="neutral"
+                >
+                  Reload current lifecycle
+                </Button>
+              </Alert>
+            )}
+            {agents.lifecycleError !== undefined && (
+              <Alert announcement="assertive" tone="critical">
+                {agents.lifecycleError}
+              </Alert>
+            )}
+          </Stack>
+        </AppShellInspector>
+      </AppShell>
 
-      <AppShellInspector aria-labelledby="foundation-title">
-        <Stack space="small">
-          <h2 id="foundation-title">Foundation</h2>
-          <p>Theme: system</p>
-          <p>Stylesheet: optional default</p>
-          <p>Backend: deterministic port</p>
-        </Stack>
-      </AppShellInspector>
-    </AppShell>
+      <AgentCreateDialog
+        cancelLabel="Cancel"
+        configFields={
+          <DemoConfigFields
+            config={agents.createConfig}
+            fieldErrors={agents.createConfigErrors}
+            onChange={agents.setCreateConfig}
+            prefix="create"
+          />
+        }
+        description="Create an immutable Agent identity and its initial configuration."
+        error={agents.createError}
+        fieldErrors={agents.createIdentityErrors}
+        identity={agents.createIdentity}
+        labels={{ agentId: 'Agent ID', displayName: 'Display name' }}
+        onIdentityChange={agents.setCreateIdentity}
+        onOpenChange={agents.setCreateOpen}
+        onSubmit={() => void agents.createAgent()}
+        open={agents.createOpen}
+        pending={agents.createPending}
+        submitLabel="Create Agent"
+        title="Create Agent"
+      />
+
+      {agents.selected !== undefined && (
+        <DisableAgentDialog
+          cancelLabel="Cancel"
+          confirmLabel="Disable Agent"
+          description={`Disable ${agents.selected.details.displayName}? Existing records remain available.`}
+          error={agents.lifecycleConflict ?? agents.lifecycleError}
+          onConfirm={() => void agents.changeLifecycle('disabled')}
+          onOpenChange={agents.setDisableOpen}
+          open={agents.disableOpen}
+          pending={agents.lifecycleWorking}
+          title="Disable Agent"
+        />
+      )}
+    </>
   );
 }
 
-function AgentCatalog({ state }: Readonly<{ state: AgentCatalogState }>) {
-  if (state.status === 'loading') {
-    return <Status announcement="polite">Loading Agents…</Status>;
-  }
-  if (state.status === 'failed') {
-    return (
-      <Alert announcement="assertive" tone="critical">
-        Agents could not be loaded.
-      </Alert>
-    );
-  }
-  if (state.agents.length === 0) {
-    return <EmptyState title="No Agents are available." />;
-  }
-  return (
-    <ul className="ta-ui-record-list" aria-label="Agents">
-      {state.agents.map((agent) => (
-        <li className="ta-ui-record-list__item" key={agent.agentId}>
-          <span>{agent.displayName}</span>
-          <span className="ta-ui-record-list__status">{agent.status}</span>
-        </li>
-      ))}
-    </ul>
-  );
+function unique(values: readonly string[]): readonly string[] {
+  return Object.freeze([...new Set(values)]);
 }

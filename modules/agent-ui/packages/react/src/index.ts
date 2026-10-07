@@ -16,6 +16,93 @@ export type {
   PanelProps,
   PanelVariant,
 } from './components/panel.js';
+export { DataList, DataListItem } from './components/data-list.js';
+export type { DataListItemProps, DataListProps } from './components/data-list.js';
+export { ConversationComposer } from './conversation/conversation-composer.js';
+export type {
+  ConversationComposerProps,
+  ConversationComposerState,
+} from './conversation/conversation-composer.js';
+export { ConversationScrollRegion } from './conversation/conversation-scroll-region.js';
+export type { ConversationScrollRegionProps } from './conversation/conversation-scroll-region.js';
+export { ConversationTimeline } from './conversation/conversation-timeline.js';
+export type { ConversationTimelineProps } from './conversation/conversation-timeline.js';
+export { ConversationTurn } from './conversation/conversation-turn.js';
+export type {
+  ConversationTurnLabels,
+  ConversationTurnProps,
+  ConversationTurnState,
+} from './conversation/conversation-turn.js';
+export { AssistantMessage, UserMessage } from './conversation/messages.js';
+export type { AssistantMessageProps, UserMessageProps } from './conversation/messages.js';
+export { ReasoningBlock } from './conversation/reasoning-block.js';
+export type { ReasoningBlockProps, ReasoningBlockState } from './conversation/reasoning-block.js';
+export { ToolActivity } from './conversation/tool-activity.js';
+export type {
+  ToolActivityPresentationStatus,
+  ToolActivityProps,
+  ToolActivityStatusLabels,
+} from './conversation/tool-activity.js';
+export { AgentCatalog, AgentList, AgentListItem, AgentStatusBadge } from './agent/agent-catalog.js';
+export type {
+  AgentCatalogProps,
+  AgentCatalogState,
+  AgentListItemProps,
+  AgentListProps,
+  AgentStatusBadgeProps,
+  AgentStatusLabels,
+} from './agent/agent-catalog.js';
+export { AgentDetailsView } from './agent/agent-details.js';
+export type { AgentDetailsProps } from './agent/agent-details.js';
+export { AgentConfigForm, AgentCreateDialog, ConfigSection } from './agent/agent-forms.js';
+export type {
+  AgentConfigFormProps,
+  AgentCreateDialogProps,
+  AgentIdentityFieldErrors,
+  ConfigSectionProps,
+} from './agent/agent-forms.js';
+export { AgentLifecycleActions, DisableAgentDialog } from './agent/agent-lifecycle.js';
+export type {
+  AgentLifecycleActionsProps,
+  DisableAgentDialogProps,
+} from './agent/agent-lifecycle.js';
+export {
+  SessionCatalog,
+  SessionList,
+  SessionListItem,
+  SessionStatusBadge,
+} from './session/session-catalog.js';
+export type {
+  SessionCatalogProps,
+  SessionCatalogState,
+  SessionListItemProps,
+  SessionListProps,
+  SessionStatusBadgeProps,
+  SessionStatusLabels,
+} from './session/session-catalog.js';
+export { SessionDetailsView } from './session/session-details.js';
+export type { SessionDetailsViewProps } from './session/session-details.js';
+export {
+  PurgeSessionDialog,
+  RenameSessionDialog,
+  RetireSessionDialog,
+  SessionLifecycleActions,
+} from './session/session-actions.js';
+export type {
+  RenameSessionDialogProps,
+  SessionConfirmationDialogProps,
+  SessionLifecycleActionsProps,
+} from './session/session-actions.js';
+export {
+  SessionBranchItem,
+  SessionBranchList,
+  SessionNavigationView,
+} from './session/session-navigation.js';
+export type {
+  SessionBranchItemProps,
+  SessionBranchListProps,
+  SessionNavigationViewProps,
+} from './session/session-navigation.js';
 export {
   Alert,
   Badge,

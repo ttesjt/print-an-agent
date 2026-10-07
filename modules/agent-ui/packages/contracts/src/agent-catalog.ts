@@ -1,15 +1,18 @@
-export type AgentLifecycleStatus = 'active' | 'disabled';
-
-export interface AgentSummary {
-  readonly agentId: string;
-  readonly displayName: string;
-  readonly status: AgentLifecycleStatus;
-}
+import type { AgentManagementResult, AgentSnapshot, AgentSummary } from './agent-types.js';
 
 export interface ListAgentsOptions {
   readonly signal?: AbortSignal;
 }
 
 export interface AgentCatalogPort {
-  listAgents(options?: ListAgentsOptions): Promise<readonly AgentSummary[]>;
+  listAgents(options?: ListAgentsOptions): Promise<AgentManagementResult<readonly AgentSummary[]>>;
+}
+
+export interface InspectAgentInput {
+  readonly agentId: string;
+  readonly signal?: AbortSignal;
+}
+
+export interface AgentInspectionPort<Config> {
+  inspectAgent(input: InspectAgentInput): Promise<AgentManagementResult<AgentSnapshot<Config>>>;
 }

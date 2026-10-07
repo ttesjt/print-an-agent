@@ -1,0 +1,159 @@
+import {
+  composeAgent,
+  defineManagedAgentComposition,
+  createAgentManagementService,
+  createAgentRuntimeService,
+  createSessionManagementService,
+  createSessionNavigationService,
+  type ManagedAgentAuthorityPortFactory,
+  type ManagedAgentNamespacePort,
+  type ManagedAgentNamespace,
+  type ManagedAgentRuntimeMaterializationInput,
+  type ManagedAgentRuntimeProvisioningInput,
+  AgentManagementError,
+} from '@ta-agent/base-composition';
+import {
+  createActorCatalog,
+  createResponsibilityCatalog,
+  BUILT_IN_RESPONSIBILITIES,
+  MAIN_ACTOR_ID,
+  FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
+  type ActorEngine,
+} from '@ta-agent/base-actor';
+import {
+  createMemorySessionPersistence,
+  createSqliteSessionPersistence,
+  type CoordinatedSessionPersistence,
+} from '@ta-agent/base-local-adapters';
+import {
+  createStandaloneMemoryDefinition,
+  createStandaloneDirectoryDefinition,
+} from '@ta-agent/base-standalone-agent';
+import type { AgentId } from '@ta-agent/base-identity';
+import type { ToolRegistry } from '@ta-agent/base-tool';
+import type { DemoAgentConfig } from '../../application/demo-agent-config.js';
+import { WEB_AGENT_CONFIG_CODEC } from './config.js';
+import { presentationStepOverrides } from './stream-sink.js';
+
+export interface WebBackendOptions {
+  readonly engine: ActorEngine;
+  readonly persistence:
+    | Readonly<{ kind: 'memory' }>
+    | Readonly<{ kind: 'directory'; rootDirectory: string }>;
+  readonly tools?: ToolRegistry;
+  readonly toolLabels?: Readonly<Record<string, string>>;
+}
+
+export function createWebBackendServices(options: WebBackendOptions) {
+  if (options.persistence.kind === 'directory') {
+    const profile = createStandaloneDirectoryDefinition({
+      rootDirectory: options.persistence.rootDirectory,
+      readEnvironmentVariable: () => undefined,
+    });
+    return assembleServices(
+      profile.namespace.port,
+      profile.authority.createPorts,
+      (namespace) =>
+        createSqliteSessionPersistence({ databasePath: namespace.handle.databasePath }),
+      options
+    );
+  }
+  const profile = createStandaloneMemoryDefinition({ readEnvironmentVariable: () => undefined });
+  const persistence = new Map<AgentId, CoordinatedSessionPersistence>();
+  return assembleServices(
+    profile.namespace.port,
+    profile.authority.createPorts,
+    (namespace) => {
+      let scoped = persistence.get(namespace.agentId);
+      if (scoped === undefined) {
+        scoped = createMemorySessionPersistence();
+        persistence.set(namespace.agentId, scoped);
+      }
+      return scoped;
+    },
+    options
+  );
+}
+
+function assembleServices<Handle>(
+  namespace: ManagedAgentNamespacePort<Handle>,
+  authority: ManagedAgentAuthorityPortFactory<Handle>,
+  persistence: (namespace: ManagedAgentNamespace<Handle>) => CoordinatedSessionPersistence,
+  options: WebBackendOptions
+) {
+  const toolNames = options.tools?.list().map((tool) => tool.name) ?? [];
+  const materialize = ({
+    identity,
+    config,
+    ports,
+  }: ManagedAgentRuntimeMaterializationInput<DemoAgentConfig, CoordinatedSessionPersistence>) =>
+    composeAgent({
+      identity,
+      actorCatalog: createActorCatalog({
+        engines: [options.engine],
+        actors: [
+          {
+            id: MAIN_ACTOR_ID,
+            engineId: options.engine.id,
+            instructions: `${config.instructions}\nResponse style: ${config.responseStyle}.`,
+            allowedTools: toolNames,
+          },
+        ],
+      }),
+      responsibilityCatalog: createResponsibilityCatalog({
+        responsibilities: BUILT_IN_RESPONSIBILITIES.map((definition) => ({
+          ...definition,
+          allowedTools: definition.id === FOREGROUND_INTERACTION_RESPONSIBILITY_ID ? toolNames : [],
+        })),
+      }),
+      session: ports.session,
+      requestJournal: ports.requestJournal,
+      stepOverrides: presentationStepOverrides(),
+      ...(options.tools === undefined
+        ? {}
+        : {
+            toolRegistry: options.tools,
+            productToolAllowList: toolNames,
+            runtimeToolAllowList: toolNames,
+          }),
+    });
+  const definition = defineManagedAgentComposition({
+    config: { codec: WEB_AGENT_CONFIG_CODEC },
+    namespace: { port: namespace },
+    authority: { createPorts: authority },
+    runtime: {
+      createPorts: ({
+        namespace: scoped,
+      }: ManagedAgentRuntimeProvisioningInput<DemoAgentConfig, Handle>) => persistence(scoped),
+      materialize,
+    },
+    sessionManagement: {
+      createPorts: (scoped: ManagedAgentNamespace<Handle>) => persistence(scoped),
+    },
+    sessionNavigation: {
+      createPorts: (scoped: ManagedAgentNamespace<Handle>) => ({
+        session: persistence(scoped).session,
+      }),
+    },
+  });
+  const sessionFor = async (agentId: AgentId) => {
+    const scoped = await namespace.resolve(agentId);
+    if (scoped === undefined)
+      throw new AgentManagementError(
+        'MANAGED_AGENT_NOT_FOUND',
+        'inspect',
+        'Agent namespace does not exist.'
+      );
+    return persistence(scoped).session;
+  };
+  return Object.freeze({
+    agents: createAgentManagementService(definition),
+    runtime: createAgentRuntimeService(definition),
+    sessions: createSessionManagementService(definition),
+    navigation: createSessionNavigationService(definition),
+    sessionFor,
+    toolLabels: options.toolLabels ?? {},
+  });
+}
+
+export type WebBackendServices = ReturnType<typeof createWebBackendServices>;

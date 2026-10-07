@@ -15,7 +15,7 @@ ui-styles ─────────┬── agent-web
                    └── component-gallery
 ```
 
-`agent-web` may later wire an Agent Base backend. That integration does not grant reusable UI
+`agent-web` owns its Node-side Agent Base backend adapter. That integration does not grant reusable UI
 packages permission to import Agent Base runtime types. `component-gallery` uses only public package
 exports and deterministic examples; it does not connect to Agent Base or another domain runtime.
 
@@ -56,11 +56,19 @@ Applications own routing, transport, backend adapters, credentials, persistence 
 application-wide state orchestration. Reusable packages do not reach into an application through
 relative imports or global service locators.
 
+Agent Web groups the narrow public UI ports it consumes at its application composition boundary.
+This structural grouping is not a new universal adapter contract: controllers still depend on
+capability-specific methods, and another application may group or implement the ports differently.
+Persisted conversation state is owned by a stable Agent/Session/branch key rather than by current
+selection. Selection is a view projection; it does not cancel work owned by another persisted
+target. Unpersisted drafts are the deliberate exception because they have no navigable Session
+identity and remain foreground-owned until a successful interaction creates one.
+
 ## Application roles
 
 `apps/` contains independently startable, buildable, or deployable composition roots.
 
-`@ta-agent/ui-agent-web` is the general-purpose Agent Web application. It is the future owner of the
+`@ta-agent/ui-agent-web` is the general-purpose Agent Web application. It owns the
 Agent runtime adapter, lifecycle and Session orchestration, conversation transport, routing, and
 application-wide state.
 
@@ -93,6 +101,22 @@ Contracts follow these rules:
 
 Exact feature contracts are introduced with their first real consumer. The contracts package does
 not accumulate speculative Agent, Session, or conversation schemas ahead of implementation.
+
+Conversation history and interaction streams are browser presentation contracts, not copies of an
+Actor Engine or provider protocol. The application adapter is responsible for validating external
+events, preserving their order, applying backpressure, and projecting them into safe text,
+model-turn reasoning blocks, and tool activity. Tool presentation contains only adapter-approved
+labels, summaries, and display details; raw arguments, results, traces, credentials, and provider
+payloads are outside the UI contract.
+
+A successful terminal interaction contains the canonical completed Turn and must agree with the
+presentation events already accepted by the application. Failed or cancelled partial output may
+remain visible in the current application view with an explicit incomplete state, but is not
+silently promoted to a completed history Turn. Conversation components render these projections;
+they do not invoke ports or become the history authority. History loading or failure is a boundary
+state beside visible live/partial Turns, not a replacement for them. A tool still reported as
+pending when its parent interaction fails or is cancelled is presented as interrupted; this derived
+UI state does not rewrite or invent a backend tool-lifecycle event.
 
 The current reusable capability scope and ownership map is maintained in
 [capability-map.md](./capability-map.md). The map plans capability ownership; it does not create a
@@ -141,3 +165,6 @@ defaults.
 The built-in Agent lifecycle capability presents disable/reactivate and does not assume hard
 deletion. Session purge may be presented only when an application explicitly supplies that
 capability; its absence must not be treated as an error or inferred from another Session operation.
+Turn-level fork and rewind are likewise optional capabilities. Their default semantics are
+non-destructive branch creation guarded by the Session navigation revision; they do not delete or
+rewrite existing history.

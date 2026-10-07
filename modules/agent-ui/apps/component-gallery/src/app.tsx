@@ -2,13 +2,16 @@ import { Button, Cluster, Stack, TextLink } from '@ta-agent/ui-react';
 import { useState } from 'react';
 
 import { ActionsGallery } from './gallery/actions-gallery.js';
+import { AgentManagementGallery } from './gallery/agent-management-gallery.js';
 import { AppShellGallery } from './gallery/app-shell-gallery.js';
+import { ConversationGallery } from './gallery/conversation-gallery.js';
 import { FeedbackGallery } from './gallery/feedback-gallery.js';
 import { FormsGallery } from './gallery/forms-gallery.js';
 import { LayoutGallery } from './gallery/layout-gallery.js';
 import { NavigationGallery } from './gallery/navigation-gallery.js';
 import { OverlayGallery } from './gallery/overlay-gallery.js';
 import { PanelGallery } from './gallery/panel-gallery.js';
+import { SessionManagementGallery } from './gallery/session-management-gallery.js';
 import { ThemeGallery } from './gallery/theme-gallery.js';
 
 type ThemeMode = 'dark' | 'light' | 'system';
@@ -63,6 +66,12 @@ export function App() {
               <TextLink href="#feedback">Feedback</TextLink>
               <TextLink href="#overlays">Overlays</TextLink>
               <TextLink href="#navigation">Navigation</TextLink>
+              <TextLink href="#agent-management">Agent management</TextLink>
+              <TextLink href="#session-management">Session management</TextLink>
+              <TextLink href="#conversation">Conversation</TextLink>
+              <TextLink href="/consumer.html?styles=none">Unstyled consumer</TextLink>
+              <TextLink href="/consumer.html?styles=default">Default-style consumer</TextLink>
+              <TextLink href="/consumer.html?styles=custom">Custom-style consumer</TextLink>
             </Cluster>
           </nav>
         </Stack>
@@ -79,6 +88,9 @@ export function App() {
           <FeedbackGallery />
           <OverlayGallery />
           <NavigationGallery />
+          <AgentManagementGallery />
+          <SessionManagementGallery />
+          <ConversationGallery />
         </Stack>
       </main>
     </div>

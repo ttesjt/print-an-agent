@@ -23,6 +23,9 @@ import '@ta-agent/ui-styles/forms.css';
 import '@ta-agent/ui-styles/feedback.css';
 import '@ta-agent/ui-styles/overlays.css';
 import '@ta-agent/ui-styles/navigation.css';
+import '@ta-agent/ui-styles/agent-management.css';
+import '@ta-agent/ui-styles/session-management.css';
+import '@ta-agent/ui-styles/conversation.css';
 ```
 
 Set `data-ta-ui-theme="light"`, `"dark"`, or `"system"` on the document root or an embedded theme
@@ -36,6 +39,7 @@ typography, form-control inheritance, text resets, focus treatment, reduced moti
 behavior even when it is no longer a descendant of `.ta-ui-root`.
 
 The default cascade order is `tokens -> base -> layout -> components`. Actions, forms, feedback,
-overlays, navigation, and the general component stylesheet all occupy the public components layer.
+overlays, navigation, Agent management, Session management, conversation presentation, and the
+general component stylesheet all occupy the public components layer.
 Consumer styles loaded afterward can override semantic hooks or any `--ta-ui-*` token without
 changing component behavior.

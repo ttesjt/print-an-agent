@@ -9,3 +9,6 @@
 @import './feedback.css' layer(ta-ui-components);
 @import './overlays.css' layer(ta-ui-components);
 @import './navigation.css' layer(ta-ui-components);
+@import './agent-management.css' layer(ta-ui-components);
+@import './session-management.css' layer(ta-ui-components);
+@import './conversation.css' layer(ta-ui-components);

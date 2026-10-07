@@ -5,5 +5,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist/public',
+    target: 'es2022',
+    rollupOptions: { input: ['index.html', 'consumer.html'] },
   },
 });

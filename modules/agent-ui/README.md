@@ -33,9 +33,16 @@ See [the architecture contract](./docs/architecture.md) for package and componen
 
 `apps/` contains independently started, built, or deployed application composition roots.
 
-`apps/agent-web` is the complete Agent application surface. It will own Agent lifecycle, Session
-management, conversation interaction, routing, application-wide state, backend transport, and the
-adapter to an Agent runtime. Its current deterministic adapter remains a walking skeleton.
+`apps/agent-web` is a runnable local Agent application. Its Node host maps public Agent Base APIs
+to validated HTTP/NDJSON UI ports; its browser owns routing, theme preference, application state,
+Agent/Session management, paged history, text/reasoning/tool delivery, cancellation and branching.
+The default host uses an explicitly offline Engine with real directory/SQLite persistence. An
+ordinary provider can be provisioned privately on the host. Deterministic browser fixtures remain
+available only through explicit `?mode=deterministic` selection.
+
+See [local host setup](./apps/agent-web/docs/local-host.md),
+[application composition](./apps/agent-web/docs/composition.md), and
+[integration boundaries and limits](./apps/agent-web/docs/backend-boundary.md).
 
 `apps/component-gallery` is a deterministic developer application for reviewing component states,
 themes, responsive layout, accessibility, and semantic DOM. It has no backend or formal business

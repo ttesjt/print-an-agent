@@ -1,0 +1,91 @@
+import type { ConversationUserMessage } from '@ta-agent/ui-contracts';
+import type { ComponentPropsWithRef, ReactNode } from 'react';
+
+import { joinStyleHooks } from '../internal/style-hooks.js';
+
+type NativeMessageProps = Omit<ComponentPropsWithRef<'section'>, 'children' | 'style'>;
+
+interface ConversationMessageProps extends NativeMessageProps {
+  readonly formatTimestamp?: (timestamp: string) => ReactNode;
+  readonly label: ReactNode;
+  readonly style?: never;
+}
+
+export interface UserMessageProps extends ConversationMessageProps {
+  readonly message: ConversationUserMessage;
+}
+
+export function UserMessage({
+  className,
+  formatTimestamp,
+  label,
+  message,
+  ...props
+}: UserMessageProps) {
+  return (
+    <section
+      {...props}
+      className={joinStyleHooks('ta-ui-conversation-message', className)}
+      data-role="user"
+      data-slot="user-message"
+    >
+      <MessageHeader
+        label={label}
+        timestamp={message.timestamp}
+        {...(formatTimestamp === undefined ? {} : { formatTimestamp })}
+      />
+      <p className="ta-ui-conversation-message__content">{message.text}</p>
+    </section>
+  );
+}
+
+export interface AssistantMessageProps extends ConversationMessageProps {
+  readonly text: string;
+  readonly timestamp?: string;
+}
+
+export function AssistantMessage({
+  className,
+  formatTimestamp,
+  label,
+  text,
+  timestamp,
+  ...props
+}: AssistantMessageProps) {
+  return (
+    <section
+      {...props}
+      className={joinStyleHooks('ta-ui-conversation-message', className)}
+      data-role="assistant"
+      data-slot="assistant-message"
+    >
+      <MessageHeader
+        label={label}
+        {...(formatTimestamp === undefined ? {} : { formatTimestamp })}
+        {...(timestamp === undefined ? {} : { timestamp })}
+      />
+      <p className="ta-ui-conversation-message__content">{text}</p>
+    </section>
+  );
+}
+
+function MessageHeader({
+  formatTimestamp,
+  label,
+  timestamp,
+}: Readonly<{
+  formatTimestamp?: (timestamp: string) => ReactNode;
+  label: ReactNode;
+  timestamp?: string;
+}>) {
+  return (
+    <header className="ta-ui-conversation-message__header">
+      <strong>{label}</strong>
+      {timestamp === undefined ? null : (
+        <time dateTime={timestamp}>
+          {formatTimestamp === undefined ? timestamp : formatTimestamp(timestamp)}
+        </time>
+      )}
+    </header>
+  );
+}

@@ -492,6 +492,36 @@ importers:
 
   modules/agent-ui/apps/agent-web:
     dependencies:
+      '@ta-agent/base-actor':
+        specifier: workspace:*
+        version: link:../../../agent-base/packages/actor
+      '@ta-agent/base-composition':
+        specifier: workspace:*
+        version: link:../../../agent-base/packages/composition
+      '@ta-agent/base-config':
+        specifier: workspace:*
+        version: link:../../../agent-base/packages/config
+      '@ta-agent/base-identity':
+        specifier: workspace:*
+        version: link:../../../agent-base/packages/identity
+      '@ta-agent/base-local-adapters':
+        specifier: workspace:*
+        version: link:../../../agent-base/packages/local-adapters
+      '@ta-agent/base-model':
+        specifier: workspace:*
+        version: link:../../../agent-base/packages/model
+      '@ta-agent/base-request':
+        specifier: workspace:*
+        version: link:../../../agent-base/packages/request
+      '@ta-agent/base-session':
+        specifier: workspace:*
+        version: link:../../../agent-base/packages/session
+      '@ta-agent/base-standalone-agent':
+        specifier: workspace:*
+        version: link:../../../agent-base/packages/standalone-agent
+      '@ta-agent/base-tool':
+        specifier: workspace:*
+        version: link:../../../agent-base/packages/tool
       '@ta-agent/ui-contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -592,6 +622,10 @@ importers:
         version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
 
   modules/agent-ui/packages/react:
+    dependencies:
+      '@ta-agent/ui-contracts':
+        specifier: workspace:*
+        version: link:../contracts
     devDependencies:
       '@types/react':
         specifier: 19.3.0

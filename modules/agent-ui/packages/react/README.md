@@ -20,6 +20,12 @@ The package includes:
   scroll-lock cleanup;
 - local navigation primitives (`Tabs`, `Disclosure`, and `NavigationRail`) that own keyboard and
   ARIA behavior without owning routes or application selection.
+- controlled Agent catalog, details, create/configuration forms, and explicit lifecycle capability
+  presentation built on browser-safe UI contracts.
+- controlled Session catalog, details, rename/lifecycle confirmations, and branch-selection
+  presentation built on narrow browser-safe Session contracts.
+- Conversation timeline, user/assistant messages, model-turn reasoning disclosures, sanitized tool
+  activity, IME-safe Composer controls, and user-scroll-preserving live output.
 
 Components preserve native props, events, browser state, and React 19 refs. They do not install a
 form library, validation authority, icon set, router, or application state. `Button` pending state
@@ -59,3 +65,34 @@ tab remains keyboard reachable without changing the application-owned selected v
 uses native `details`/`summary` behavior and supports controlled or uncontrolled open state;
 `onToggle` is observational rather than a cancellation boundary. Navigation Rail is structural only
 and does not infer a router, current route, or Agent/Session selection.
+
+Agent components never call ports directly. Applications own loading, selection, mutation,
+reconciliation, and cancellation, then pass view models, presentation states, and callbacks into
+the components. `AgentCreateDialog` owns only form structure; application-specific configuration
+fields enter through a slot. `AgentConfigForm` presents dirty, pending, invalid, error, and revision
+conflict states without parsing a configuration payload or choosing a merge policy. Disable and
+reactivate actions appear only when the corresponding callback capability is installed. Hard
+deletion is not part of the built-in lifecycle.
+
+Lifecycle status values remain machine-readable state only. Applications provide the visible status
+labels, and `AgentDetailsView` delegates timestamp formatting to its caller, so reusable components
+do not establish product copy, locale, or timezone policy.
+
+Session components follow the same ownership boundary: they never invoke Session ports, own cursor
+pagination, or infer lifecycle/navigation authority. Applications supply localized labels,
+timestamp/metadata formatters, current selection, working state, and only the action callbacks that
+are actually installed. Purge is therefore visible only when an application provides that optional
+capability. A new-conversation draft remains application state until a successful interaction
+creates a persisted Session. A working Session item cannot restart its own selection. Branch
+selection is single-flight: the selected branch is not actionable, and all branch actions are
+disabled while one selection is pending.
+
+Conversation components remain port-free controlled presentation. The application supplies ordered
+history and live state, cancellation, pagination, and optional turn actions. Reasoning remains
+separate from assistant text and retains one block per model turn. Tool details are assumed to be an
+already sanitized browser projection. A pending tool in a failed or cancelled parent Turn is
+presented as interrupted without changing its source lifecycle value. Timeline loading and failure
+feedback remains visible alongside any live or partial Turns. Composer submits Enter, preserves
+Shift+Enter and IME composition, and exposes cancellation only while an interaction is active. The
+scroll region follows new output only while the reader remains near the end; otherwise it preserves
+position and exposes an explicit jump-to-latest command.

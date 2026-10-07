@@ -458,6 +458,35 @@ describe('module architecture', () => {
     }
   });
 
+  it('contains Agent Web backend integration within its Node application boundary', () => {
+    const appSource = join(repositoryRoot, 'modules', 'agent-ui', 'apps', 'agent-web', 'src');
+    for (const file of typeScriptFiles(appSource)) {
+      const source = readFileSync(file, 'utf8');
+      const isNode = normalize(relative(appSource, file)).startsWith('node/');
+      for (const specifier of moduleSpecifiers(source)) {
+        if (!isNode) {
+          expect(specifier, `${normalize(file)} must remain browser-safe`).not.toMatch(
+            /^(?:node:|@ta-agent\/base-|@earendil-works\/pi-)/u
+          );
+          if (specifier.startsWith('.')) {
+            const resolvedImport = resolve(dirname(file), specifier);
+            const relativeImport = relative(appSource, resolvedImport);
+            expect(
+              relativeImport !== '..' &&
+                !relativeImport.startsWith(`..${pathSeparator}`) &&
+                !isAbsolute(relativeImport),
+              `${normalize(file)} must use public package exports`
+            ).toBe(true);
+            expect(normalize(relativeImport)).not.toMatch(/^node\//u);
+          }
+        }
+        expect(specifier).not.toMatch(/^@ta-agent\/base-[^/]+\//u);
+        expect(specifier).not.toBe('@ta-agent/base-observability');
+        expect(specifier).not.toBe('node:sqlite');
+      }
+    }
+  });
+
   it('keeps reusable Agent UI package roles directed and store agnostic', () => {
     const packagesRoot = join(repositoryRoot, 'modules', 'agent-ui', 'packages');
     const packageManifest = (packageName: string) =>
@@ -533,6 +562,22 @@ describe('module architecture', () => {
         )
       )
     ).toEqual([]);
+
+    const agentWebSourceRoot = join(appsRoot, 'agent-web', 'src');
+    for (const sourceFile of typeScriptFiles(agentWebSourceRoot).filter(
+      (candidate) =>
+        !normalize(relative(agentWebSourceRoot, candidate)).startsWith('adapters/') &&
+        !['main.tsx', 'application/browser-composition.tsx'].includes(
+          normalize(relative(agentWebSourceRoot, candidate))
+        )
+    )) {
+      expect(
+        moduleSpecifiers(readFileSync(sourceFile, 'utf8')).filter((specifier) =>
+          specifier.includes('/adapters/')
+        ),
+        `${normalize(sourceFile)} must depend on application ports, not deterministic adapters`
+      ).toEqual([]);
+    }
 
     const gallerySourceRoot = join(appsRoot, 'component-gallery', 'src');
     for (const sourceFile of typeScriptFiles(gallerySourceRoot)) {
@@ -619,6 +664,21 @@ describe('module architecture', () => {
       'ta-ui-tab-panel',
       'ta-ui-disclosure',
       'ta-ui-navigation-rail',
+      'ta-ui-data-list',
+      'ta-ui-agent-catalog',
+      'ta-ui-agent-list',
+      'ta-ui-agent-details',
+      'ta-ui-agent-create-form',
+      'ta-ui-agent-config-form',
+      'ta-ui-config-section',
+      'ta-ui-agent-lifecycle-actions',
+      'ta-ui-session-catalog',
+      'ta-ui-session-list',
+      'ta-ui-session-details',
+      'ta-ui-session-navigation',
+      'ta-ui-session-branch-list',
+      'ta-ui-session-rename-form',
+      'ta-ui-session-lifecycle-actions',
     ]) {
       expect(source, `${hook} must be published by React`).toContain(`'${hook}'`);
       expect(publicStyles, `${hook} must be implemented by ui-styles`).toContain(`.${hook}`);

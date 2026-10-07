@@ -14,7 +14,10 @@
     "./forms.css": "./src/forms.css",
     "./feedback.css": "./src/feedback.css",
     "./overlays.css": "./src/overlays.css",
-    "./navigation.css": "./src/navigation.css"
+    "./navigation.css": "./src/navigation.css",
+    "./agent-management.css": "./src/agent-management.css",
+    "./session-management.css": "./src/session-management.css",
+    "./conversation.css": "./src/conversation.css"
   },
   "files": [
     "src"

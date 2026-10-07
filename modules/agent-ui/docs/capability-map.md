@@ -21,8 +21,8 @@ States:
 | Button and icon button   | Native behavior, variants, disabled/pending semantics            | Action authority and pending state            | Implemented |
 | Form field and controls  | Label/error relationships, native input behavior, style hooks    | Validation rules, values, and submission      | Implemented |
 | Status and feedback      | Loading, error, empty, notice, and badge presentation            | Produce safe messages and recovery actions    | Implemented |
-| Data display             | Section, label/value, timestamp, and identifier presentation     | Select and normalize displayed data           | Planned     |
-| Theme control            | Accessible theme selection behavior                              | Persistence and initial preference policy     | Planned     |
+| Data display             | Section, label/value, timestamp, and identifier presentation     | Select and normalize displayed data           | Implemented |
+| Theme control            | Accessible native selection control                              | Persistence and initial preference policy     | Implemented |
 
 ## Overlay and navigation primitives
 
@@ -38,47 +38,53 @@ States:
 
 ## Agent management
 
-| Capability          | Reusable UI responsibility                                      | Application responsibility                               | State    |
-| ------------------- | --------------------------------------------------------------- | -------------------------------------------------------- | -------- |
-| Agent list          | List/empty/selected/working presentation and callbacks          | Catalog port, loading, refresh, and selection authority  | Planned  |
-| Agent summary       | Identity, lifecycle, metadata, and safe diagnostic presentation | Map backend records into view models                     | Planned  |
-| Agent creation      | Identity/config form shell and application-defined field slots  | Config schema, validation, defaults, and command adapter | Planned  |
-| Agent configuration | Config sections, pending/error/conflict presentation            | Revision authority, codecs, and save command             | Planned  |
-| Disable/reactivate  | Lifecycle actions and confirmation presentation                 | Install lifecycle capability and reconcile authority     | Planned  |
-| Hard deletion       | None; built-in lifecycle does not assume deletion               | Product-specific capability and UI                       | Deferred |
+| Capability          | Reusable UI responsibility                                      | Application responsibility                               | State       |
+| ------------------- | --------------------------------------------------------------- | -------------------------------------------------------- | ----------- |
+| Agent list          | List/empty/selected/working presentation and callbacks          | Catalog port, loading, refresh, and selection authority  | Implemented |
+| Agent summary       | Identity, lifecycle, metadata, and safe diagnostic presentation | Map backend records into view models                     | Implemented |
+| Agent creation      | Identity/config form shell and application-defined field slots  | Config schema, validation, defaults, and command adapter | Implemented |
+| Agent configuration | Config sections, pending/error/conflict presentation            | Revision authority, codecs, and save command             | Implemented |
+| Disable/reactivate  | Lifecycle actions and confirmation presentation                 | Install lifecycle capability and reconcile authority     | Implemented |
+| Hard deletion       | None; built-in lifecycle does not assume deletion               | Product-specific capability and UI                       | Deferred    |
 
 ## Session management
 
-| Capability         | Reusable UI responsibility                                             | Application responsibility                           | State    |
-| ------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------- | -------- |
-| Session list       | Active/retired records, empty/loading-more states, selection callbacks | Query ports, cursor ownership, and selected Session  | Planned  |
-| Draft conversation | Distinguish an unsaved conversation from a persisted Session           | Draft identity and first-submit binding              | Planned  |
-| Rename             | Form and pending/error presentation                                    | Command authority and reconciliation                 | Planned  |
-| Retire/restore     | Lifecycle action presentation                                          | Install narrow capabilities and refresh authority    | Planned  |
-| Purge              | Destructive confirmation and unavailable-capability behavior           | Explicitly install purge capability                  | Planned  |
-| Branch/navigation  | Branch history, active branch, and navigation actions                  | Navigation query/command adapter                     | Planned  |
-| Compaction         | Status/action presentation                                             | Install compaction capability and expose safe status | Deferred |
+| Capability         | Reusable UI responsibility                                             | Application responsibility                           | State       |
+| ------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------- | ----------- |
+| Session list       | Active/retired records, empty/loading-more states, selection callbacks | Query ports, cursor ownership, and selected Session  | Implemented |
+| Draft conversation | Distinguish an unsaved conversation from a persisted Session           | Draft identity and first-submit binding              | Implemented |
+| Rename             | Form and pending/error presentation                                    | Command authority and reconciliation                 | Implemented |
+| Retire/restore     | Lifecycle action presentation                                          | Install narrow capabilities and refresh authority    | Implemented |
+| Purge              | Destructive confirmation and unavailable-capability behavior           | Explicitly install purge capability                  | Implemented |
+| Branch/navigation  | Branch history, selection, and optional turn-level fork/rewind actions | Navigation and branch-mutation adapters              | Implemented |
+| Compaction         | Status/action presentation                                             | Install compaction capability and expose safe status | Deferred    |
 
 ## Conversation and model activity
 
-| Capability              | Reusable UI responsibility                          | Application responsibility                                | State   |
-| ----------------------- | --------------------------------------------------- | --------------------------------------------------------- | ------- |
-| Transcript              | Ordered turns and empty/loading/failure states      | History query, pagination, and normalization              | Planned |
-| User/assistant messages | Semantic message presentation and metadata slots    | Supply safe content and provenance projection             | Planned |
-| Reasoning blocks        | Live/saved presentation with model-turn boundaries  | Stream events and persisted presentation records          | Planned |
-| Composer                | Draft input, IME-safe submit, send/cancel controls  | Readiness, command execution, and cancellation            | Planned |
-| Streaming state         | Ordered delta and terminal-state presentation       | Transport, validation, reconnect policy, and backpressure | Planned |
-| Tool activity           | Tool call/result status and expandable safe details | Normalize tool events and redact result data              | Planned |
-| Conversation scrolling  | Follow-output and user-scroll preservation          | Conversation identity and content revisions               | Planned |
+| Capability              | Reusable UI responsibility                          | Application responsibility                                | State       |
+| ----------------------- | --------------------------------------------------- | --------------------------------------------------------- | ----------- |
+| Transcript              | Ordered turns and empty/loading/failure states      | History query, pagination, and normalization              | Implemented |
+| User/assistant messages | Semantic message presentation and metadata slots    | Supply safe content and provenance projection             | Implemented |
+| Reasoning blocks        | Live/saved presentation with model-turn boundaries  | Stream events and persisted presentation records          | Implemented |
+| Composer                | Draft input, IME-safe submit, send/cancel controls  | Readiness, command execution, and cancellation            | Implemented |
+| Streaming state         | Ordered delta and terminal-state presentation       | Transport, validation, reconnect policy, and backpressure | Implemented |
+| Tool activity           | Tool call/result status and expandable safe details | Normalize tool events and redact result data              | Implemented |
+| Conversation scrolling  | Follow-output and user-scroll preservation          | Conversation identity and content revisions               | Implemented |
 
 ## Application composition
 
-| Capability              | Reusable UI responsibility                                     | Application responsibility                                   | State    |
-| ----------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ | -------- |
-| Selection orchestration | Reusable logic only after demonstrated cross-application value | Agent/Session selection authority and routing                | Planned  |
-| Concurrent interactions | Present independent lifecycle state                            | Scope operations, cancellation, and stale-result suppression | Planned  |
-| Error projection        | Render stable UI-safe errors and recovery actions              | Map/redact backend and transport failures                    | Planned  |
-| Backend adapter         | Define the narrow ports it must satisfy                        | Map public backend APIs into UI contracts                    | Planned  |
-| Runtime validation      | Optional transport-neutral codecs when justified               | Validate every external transport boundary                   | Planned  |
-| HTTP/stream transport   | None                                                           | Protocol, server, security, and credential policy            | Planned  |
-| Host/filesystem setup   | Generic form primitives only                                   | Product/application-specific implementation                  | Deferred |
+| Capability              | Reusable UI responsibility                                     | Application responsibility                                   | State       |
+| ----------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ | ----------- |
+| Selection orchestration | Reusable logic only after demonstrated cross-application value | Agent/Session selection authority and routing                | Implemented |
+| Concurrent interactions | Present independent lifecycle state                            | Scope operations, cancellation, and stale-result suppression | Implemented |
+| Error projection        | Render stable UI-safe errors and recovery actions              | Map/redact backend and transport failures                    | Implemented |
+| Backend adapter         | Define the narrow ports it must satisfy                        | Map public backend APIs into UI contracts                    | Implemented |
+| Runtime validation      | Optional transport-neutral codecs when justified               | Validate every external transport boundary                   | Implemented |
+| HTTP/stream transport   | None                                                           | Protocol, server, security, and credential policy            | Implemented |
+| Host/filesystem setup   | Generic form primitives only                                   | Product/application-specific implementation                  | Deferred    |
+
+Application capabilities marked Implemented live in Agent Web, not reusable packages. Tool
+presentation is live-only at its current Agent Base boundary; persisted reasoning is restored
+separately. Compaction and Agent display-name mutation remain deferred pending an explicit public
+authority/consumer. Agent identity is immutable. Remote authentication, durable stream reconnect
+and deployment control are not claimed by this local application.

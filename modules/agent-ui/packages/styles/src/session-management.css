@@ -1,0 +1,135 @@
+:where(.ta-ui-session-catalog) {
+  display: grid;
+  gap: var(--ta-ui-space-3);
+}
+
+:where(.ta-ui-session-catalog__loading, .ta-ui-session-catalog__error) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ta-ui-space-3);
+}
+
+:where(.ta-ui-session-list, .ta-ui-session-branch-list) {
+  display: grid;
+  gap: var(--ta-ui-space-2);
+  padding: 0;
+  list-style: none;
+}
+
+:where(.ta-ui-session-list__button, .ta-ui-session-branch-list__button) {
+  inline-size: 100%;
+  min-block-size: var(--ta-ui-size-control);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ta-ui-space-3);
+  padding: var(--ta-ui-space-3) var(--ta-ui-space-4);
+  border: var(--ta-ui-border-width) solid transparent;
+  border-radius: var(--ta-ui-radius-small);
+  background: var(--ta-ui-color-surface);
+  color: var(--ta-ui-color-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+:where(.ta-ui-session-list__button:hover, .ta-ui-session-branch-list__button:hover) {
+  border-color: var(--ta-ui-color-line-strong);
+  background: var(--ta-ui-color-surface-muted);
+}
+
+:where(.ta-ui-session-list__button:disabled, .ta-ui-session-branch-list__button:disabled) {
+  cursor: default;
+}
+
+:where(
+  .ta-ui-session-list__button:focus-visible,
+  .ta-ui-session-branch-list__button:focus-visible
+) {
+  outline: var(--ta-ui-focus-width) solid var(--ta-ui-color-focus);
+  outline-offset: var(--ta-ui-focus-offset);
+}
+
+:where(
+  .ta-ui-session-list__item[data-selected='true'] .ta-ui-session-list__button,
+  .ta-ui-session-branch-list__item[data-selected='true'] .ta-ui-session-branch-list__button
+) {
+  border-color: var(--ta-ui-color-accent);
+  background: var(--ta-ui-color-accent-soft);
+}
+
+:where(.ta-ui-session-list__content, .ta-ui-session-branch-list__button > span:first-child) {
+  min-inline-size: 0;
+  display: grid;
+  gap: var(--ta-ui-space-1);
+}
+
+:where(.ta-ui-session-list__title, .ta-ui-session-branch-list__label) {
+  overflow: hidden;
+  font-weight: var(--ta-ui-font-weight-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:where(
+  .ta-ui-session-list__metadata,
+  .ta-ui-session-branch-list__description,
+  .ta-ui-session-details__id
+) {
+  overflow-wrap: anywhere;
+  color: var(--ta-ui-color-ink-muted);
+  font-size: var(--ta-ui-font-size-small);
+}
+
+:where(.ta-ui-session-details__id) {
+  font-family: var(--ta-ui-font-mono);
+}
+
+:where(.ta-ui-session-list__working) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ta-ui-space-2);
+}
+
+:where(.ta-ui-session-details__header) {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--ta-ui-space-4);
+}
+
+:where(.ta-ui-session-navigation) {
+  display: grid;
+  gap: var(--ta-ui-space-3);
+  padding: var(--ta-ui-space-5);
+  border: var(--ta-ui-border-width) solid var(--ta-ui-color-line);
+  border-radius: var(--ta-ui-radius-medium);
+  background: var(--ta-ui-color-surface);
+}
+
+:where(.ta-ui-session-branch-list__button:disabled) {
+  cursor: default;
+  opacity: 1;
+}
+
+:where(.ta-ui-session-rename-form, .ta-ui-session-lifecycle-actions) {
+  min-inline-size: 0;
+}
+
+@media (max-width: 40rem) {
+  :where(.ta-ui-session-details__header) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(
+    .ta-ui-session-list__button,
+    .ta-ui-session-branch-list__button,
+    .ta-ui-session-navigation
+  ) {
+    border-color: CanvasText;
+  }
+}

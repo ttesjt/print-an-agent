@@ -17,12 +17,18 @@ describe('default Agent UI styles', () => {
     expect(source).toContain("@import './feedback.css' layer(ta-ui-components);");
     expect(source).toContain("@import './overlays.css' layer(ta-ui-components);");
     expect(source).toContain("@import './navigation.css' layer(ta-ui-components);");
+    expect(source).toContain("@import './agent-management.css' layer(ta-ui-components);");
+    expect(source).toContain("@import './session-management.css' layer(ta-ui-components);");
+    expect(source).toContain("@import './conversation.css' layer(ta-ui-components);");
     expect(manifest).toContain('"./layout.css"');
     expect(manifest).toContain('"./actions.css"');
     expect(manifest).toContain('"./forms.css"');
     expect(manifest).toContain('"./feedback.css"');
     expect(manifest).toContain('"./overlays.css"');
     expect(manifest).toContain('"./navigation.css"');
+    expect(manifest).toContain('"./agent-management.css"');
+    expect(manifest).toContain('"./session-management.css"');
+    expect(manifest).toContain('"./conversation.css"');
   });
 
   it('defines semantic visual scales and explicit theme modes', () => {
@@ -126,6 +132,61 @@ describe('default Agent UI styles', () => {
     }
     expect(navigation).toContain("[data-orientation='vertical']");
     expect(navigation).toContain("[data-selected='true']");
+  });
+
+  it('styles Agent management exclusively through stable semantic hooks', () => {
+    const agents = readStyle('agent-management.css');
+
+    for (const hook of [
+      '.ta-ui-agent-catalog',
+      '.ta-ui-agent-list',
+      '.ta-ui-agent-details',
+      '.ta-ui-data-list',
+      '.ta-ui-agent-create-form',
+      '.ta-ui-agent-config-form',
+      '.ta-ui-config-section',
+    ]) {
+      expect(agents).toContain(hook);
+    }
+    expect(agents).toContain("[data-selected='true']");
+    expect(agents).toContain("[data-dirty='true']");
+    expect(agents).toContain('@media (forced-colors: active)');
+  });
+
+  it('styles Session management exclusively through stable semantic hooks', () => {
+    const sessions = readStyle('session-management.css');
+
+    for (const hook of [
+      '.ta-ui-session-catalog',
+      '.ta-ui-session-list',
+      '.ta-ui-session-details',
+      '.ta-ui-session-navigation',
+      '.ta-ui-session-branch-list',
+      '.ta-ui-session-lifecycle-actions',
+      '.ta-ui-session-rename-form',
+    ]) {
+      expect(sessions).toContain(hook);
+    }
+    expect(sessions).toContain("[data-selected='true']");
+    expect(sessions).toContain('@media (forced-colors: active)');
+  });
+
+  it('styles Conversation presentation exclusively through stable semantic hooks', () => {
+    const conversation = readStyle('conversation.css');
+
+    for (const hook of [
+      '.ta-ui-conversation-scroll-region',
+      '.ta-ui-conversation-timeline',
+      '.ta-ui-conversation-turn',
+      '.ta-ui-conversation-message',
+      '.ta-ui-reasoning-block',
+      '.ta-ui-tool-activity',
+      '.ta-ui-conversation-composer',
+    ]) {
+      expect(conversation).toContain(hook);
+    }
+    expect(conversation).toContain("[data-state='streaming']");
+    expect(conversation).toContain('@media (forced-colors: active)');
   });
 
   it('provides focus, reduced-motion, and forced-colors behavior', () => {

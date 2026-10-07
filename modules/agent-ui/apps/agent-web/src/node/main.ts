@@ -1,8 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { createAgentBaseWebPorts } from './agent-base/backend.js';
-import { loadWebProviderRuntime } from './host.js';
-import { createOfflineWebEngine } from './offline-engine.js';
 import { startLocalAgentWebServer } from './transport/http-server.js';
 
 async function main() {
@@ -13,7 +11,7 @@ async function main() {
     const value = args[index + 1];
     if (
       name === undefined ||
-      !['--port', '--root', '--provider'].includes(name) ||
+      !['--port', '--root'].includes(name) ||
       value === undefined ||
       fields.has(name)
     )
@@ -22,13 +20,8 @@ async function main() {
   }
   const port = Number(fields.get('--port') ?? '4174');
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error('Invalid port.');
-  const filename = fields.get('--provider');
-  const engine =
-    filename === undefined
-      ? createOfflineWebEngine()
-      : (await loadWebProviderRuntime(filename)).actorEngine;
   const ports = createAgentBaseWebPorts({
-    engine,
+    readEnvironmentVariable: (name) => process.env[name],
     persistence: {
       kind: 'directory',
       rootDirectory: resolve(fields.get('--root') ?? 'temp/agent-web'),
@@ -40,9 +33,7 @@ async function main() {
     publicDirectory: fileURLToPath(new URL('../../public/', import.meta.url)),
     allowedOrigins: ['http://localhost:5173', 'http://127.0.0.1:5173'],
   });
-  console.info(
-    `Agent Web: ${host.origin} (${filename === undefined ? 'explicit offline Engine' : 'host-configured provider'})`
-  );
+  console.info(`Agent Web: ${host.origin} (per-Agent model configuration)`);
   const shutdown = () => {
     void host.close().catch(() => {
       console.error('Local host shutdown failed.');

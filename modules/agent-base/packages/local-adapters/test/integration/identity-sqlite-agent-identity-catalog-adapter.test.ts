@@ -77,14 +77,19 @@ describe('SqliteAgentIdentityCatalogAdapter durability', () => {
       const identity = defineAgentIdentity({ id: 'durable-agent', displayName: 'Durable Agent' });
       await first.create({ identity });
       await first.transition({ agentId: identity.id, status: 'disabled', expectedRevision: 1 });
+      await first.rename({
+        agentId: identity.id,
+        displayName: 'Renamed durable Agent',
+        expectedRevision: 2,
+      });
 
       const reopened = new SqliteAgentIdentityCatalogAdapter({
         databasePath: temporary.databasePath,
       });
       await expect(reopened.read(identity.id)).resolves.toMatchObject({
-        identity,
+        identity: { id: identity.id, displayName: 'Renamed durable Agent' },
         status: 'disabled',
-        revision: 2,
+        revision: 3,
       });
     } finally {
       temporary.dispose();

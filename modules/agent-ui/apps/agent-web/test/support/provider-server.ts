@@ -2,8 +2,15 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 
 /** Deterministic wire fixture, parsed by the real Pi provider implementation. */
-export async function providerServer() {
+export async function providerServer(
+  options: Readonly<{
+    tools?: boolean;
+    responseText?: string;
+    beforeResponse?: () => Promise<void>;
+  }> = {}
+) {
   const requests: unknown[] = [];
+  const authorization: (string | undefined)[] = [];
   const server = createServer((request, response) => {
     void (async () => {
       const chunks: Buffer[] = [];
@@ -13,6 +20,8 @@ export async function providerServer() {
         chunks.push(chunk);
       }
       requests.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown);
+      authorization.push(request.headers.authorization);
+      await options.beforeResponse?.();
       response.writeHead(200, { 'Content-Type': 'text/event-stream' });
       const delta = (data: unknown, finishReason: string | null = null) =>
         response.write(
@@ -22,7 +31,7 @@ export async function providerServer() {
         role: 'assistant',
         reasoning_content: requests.length === 1 ? 'Before tool' : 'After tool',
       });
-      if (requests.length === 1) {
+      if (requests.length === 1 && options.tools !== false) {
         delta({
           tool_calls: [
             {
@@ -35,7 +44,7 @@ export async function providerServer() {
         });
         delta({}, 'tool_calls');
       } else {
-        delta({ content: 'Final answer' });
+        delta({ content: options.responseText ?? 'Final answer' });
         delta({}, 'stop');
       }
       response.end('data: [DONE]\n\n');
@@ -48,6 +57,7 @@ export async function providerServer() {
   return {
     baseUrl: `http://127.0.0.1:${address.port}/v1`,
     requests,
+    authorization,
     close: () =>
       new Promise<void>((resolve, reject) => {
         server.close((error) => (error === undefined ? resolve() : reject(error)));

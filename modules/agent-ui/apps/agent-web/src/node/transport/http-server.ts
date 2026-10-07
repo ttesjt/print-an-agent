@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { once } from 'node:events';
 import type { AgentWebPorts } from '../../application/ports.js';
-import type { DemoAgentConfig } from '../../application/demo-agent-config.js';
+import type { AgentWebConfig } from '../../application/agent-config.js';
 import { commandName, commands } from '../../transport/commands.js';
 import { fail, object, text, TransportProtocolError } from '../../transport/decoder.js';
 import { WEB_TRANSPORT_LIMITS } from '../../transport/limits.js';
@@ -9,7 +9,7 @@ import { interactionEvent, interactionInput } from '../../transport/schemas.js';
 import { serveStatic } from './static.js';
 
 export interface LocalServerOptions {
-  readonly ports: AgentWebPorts<DemoAgentConfig>;
+  readonly ports: AgentWebPorts<AgentWebConfig>;
   readonly port?: number;
   readonly publicDirectory?: string;
   /** Explicit trusted browser origins, for a same-machine Vite dev proxy. No wildcard CORS. */

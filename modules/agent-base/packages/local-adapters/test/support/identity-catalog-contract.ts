@@ -5,6 +5,7 @@ import {
   listAgentIdentities,
   reactivateAgentIdentity,
   readAgentIdentity,
+  renameAgentIdentity,
   type AgentIdentityCatalogPort,
   type AgentIdentityError,
 } from '@ta-agent/base-identity';
@@ -27,6 +28,40 @@ export function defineIdentityCatalogContract(
   createFixture: () => IdentityCatalogFixture
 ): void {
   describe(`${name} Identity Catalog contract`, () => {
+    it('renames with CAS without changing identity, lifecycle, or creation time', async () => {
+      const fixture = createFixture();
+      try {
+        const identity = defineAgentIdentity({ id: 'named', displayName: 'Original' });
+        const created = await createAgentIdentity({ identity, catalog: fixture.catalog });
+        await disableAgentIdentity({
+          agentId: identity.id,
+          catalog: fixture.catalog,
+          expectedRevision: 1,
+        });
+        const request = { agentId: identity.id, catalog: fixture.catalog, expectedRevision: 2 };
+        const outcomes = await Promise.allSettled([
+          renameAgentIdentity({ ...request, displayName: 'New name' }),
+          renameAgentIdentity({ ...request, displayName: 'Racing name' }),
+        ]);
+        expect(outcomes.filter((outcome) => outcome.status === 'fulfilled')).toHaveLength(1);
+        const current = await readAgentIdentity({ agentId: identity.id, catalog: fixture.catalog });
+        expect(current).toMatchObject({
+          identity: { id: identity.id },
+          status: 'disabled',
+          revision: 3,
+          createdAt: created.createdAt,
+        });
+        expect(['New name', 'Racing name']).toContain(current.identity.displayName);
+        await expect(
+          renameAgentIdentity({ ...request, expectedRevision: 3, displayName: '   ' })
+        ).rejects.toMatchObject({ code: 'AGENT_DISPLAY_NAME_INVALID' });
+        expect(
+          (await readAgentIdentity({ agentId: identity.id, catalog: fixture.catalog })).revision
+        ).toBe(3);
+      } finally {
+        fixture.dispose?.();
+      }
+    });
     it('creates, reads, and lists isolated identities in stable order', async () => {
       const fixture = createFixture();
       try {

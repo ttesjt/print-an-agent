@@ -1,5 +1,6 @@
 import {
   AgentIdentityError,
+  defineAgentIdentity,
   defineAgentIdentitySnapshot,
   isAgentIdentityStatus,
   parseAgentId,
@@ -8,6 +9,7 @@ import {
   type AgentIdentitySnapshot,
   type CreateAgentIdentityRequest,
   type TransitionAgentIdentityRequest,
+  type RenameAgentIdentityRequest,
 } from '@ta-agent/base-identity';
 
 export interface MemoryAgentIdentityCatalogAdapterOptions {
@@ -77,6 +79,28 @@ export class MemoryAgentIdentityCatalogAdapter implements AgentIdentityCatalogPo
           .map(cloneSnapshot)
       )
     );
+  }
+
+  rename(request: RenameAgentIdentityRequest): Promise<AgentIdentitySnapshot> {
+    const identity = defineAgentIdentity({ id: request.agentId, displayName: request.displayName });
+    const current = this.#snapshots.get(identity.id);
+    if (current === undefined) {
+      throw new AgentIdentityError('AGENT_IDENTITY_NOT_FOUND', 'Agent Identity does not exist.');
+    }
+    if (current.revision !== request.expectedRevision) {
+      throw new AgentIdentityError(
+        'AGENT_IDENTITY_REVISION_CONFLICT',
+        'Identity revision changed.'
+      );
+    }
+    const updated = defineAgentIdentitySnapshot({
+      ...current,
+      identity,
+      revision: current.revision + 1,
+      updatedAt: readClock(this.#clock),
+    });
+    this.#snapshots.set(identity.id, updated);
+    return Promise.resolve(cloneSnapshot(updated));
   }
 
   transition(request: TransitionAgentIdentityRequest): Promise<AgentIdentitySnapshot> {

@@ -11,8 +11,7 @@ import { commands } from '../../src/transport/commands.js';
 import { interactionEvent } from '../../src/transport/schemas.js';
 import { WEB_TRANSPORT_LIMITS } from '../../src/transport/limits.js';
 import { providerServer } from '../support/provider-server.js';
-import { hostConfig } from '../support/host-config.js';
-import { loadWebProviderRuntime } from '../../src/node/host.js';
+import { engineConfig, providerConfig } from '../support/agent-config.js';
 import {
   createSubmittingInteraction,
   reduceInteractionEvent,
@@ -22,7 +21,7 @@ const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
   await Promise.all(cleanup.splice(0).map((close) => close()));
 });
-const config = { instructions: 'Help safely.', responseStyle: 'balanced' as const };
+const config = engineConfig();
 function value<T>(
   result: { status: 'succeeded'; value: T } | { status: 'failed'; failure: unknown }
 ): T {
@@ -44,6 +43,43 @@ function collect(events: ConversationInteractionEvent[]) {
 }
 
 describe('local HTTP and NDJSON transport', () => {
+  it('renames only Agent identity through HTTP with CAS, preserving config and Session', async () => {
+    const { ports } = await host();
+    const original = value(
+      await ports.agents.createAgent({
+        identity: { agentId: 'name', displayName: 'Before' },
+        config,
+      })
+    );
+    const events: ConversationInteractionEvent[] = [];
+    await ports.conversations.streamInteraction(
+      { agentId: 'name', interactionId: 'rename-session', message: 'Hello' },
+      collect(events)
+    );
+    const renamed = value(
+      await ports.agents.renameAgent({
+        agentId: 'name',
+        displayName: 'After',
+        expectedRevision: original.details.identityRevision,
+      })
+    );
+    expect(renamed.agentId).toBe('name');
+    expect(renamed.displayName).toBe('After');
+    const conflict = await ports.agents.renameAgent({
+      agentId: 'name',
+      displayName: 'Stale',
+      expectedRevision: original.details.identityRevision,
+    });
+    expect(conflict).toMatchObject({ status: 'failed', failure: { code: 'revision-conflict' } });
+    expect(value(await ports.agents.inspectAgent({ agentId: 'name' })).config).toEqual(
+      original.config
+    );
+    expect(
+      value(await ports.sessions.listSessions({ agentId: 'name', status: 'active' })).records
+    ).toHaveLength(1);
+    expect(value(await ports.agents.listAgents())[0]?.displayName).toBe('After');
+  });
+
   it('round-trips actual authority, history, revisions, branching and lifecycle', async () => {
     const { ports } = await host();
     const created = value(
@@ -187,7 +223,7 @@ describe('local HTTP and NDJSON transport', () => {
     value(
       await ports.agents.createAgent({
         identity: { agentId: 'cancel', displayName: 'Cancel' },
-        config,
+        config: engineConfig(engine.id),
       })
     );
     const controller = new AbortController();
@@ -319,18 +355,6 @@ describe('local HTTP and NDJSON transport', () => {
   it('runs real Pi parser, multi-turn tool loop and readable reasoning through localhost transport', async () => {
     const fixture = await providerServer();
     cleanup.push(fixture.close);
-    const file = await hostConfig({
-      config: {
-        kind: 'openai-compatible',
-        reference: { provider: 'local-fixture', model: 'fixture', baseUrl: fixture.baseUrl },
-        contextWindowTokens: 4096,
-        maxOutputTokens: 256,
-        supportsReasoning: true,
-        compatibility: { supportsDeveloperRole: false },
-      },
-    });
-    cleanup.push(file.close);
-    const runtime = await loadWebProviderRuntime(file.filename);
     const tools = createToolRegistry([
       defineTool({
         name: 'lookup',
@@ -340,7 +364,6 @@ describe('local HTTP and NDJSON transport', () => {
       }),
     ]);
     const backend = createAgentBaseWebPorts({
-      engine: runtime.actorEngine,
       persistence: { kind: 'memory' },
       tools,
       toolLabels: { lookup: 'Safe lookup' },
@@ -351,7 +374,7 @@ describe('local HTTP and NDJSON transport', () => {
     value(
       await ports.agents.createAgent({
         identity: { agentId: 'pi', displayName: 'Pi-backed' },
-        config,
+        config: providerConfig(fixture.baseUrl),
       })
     );
     const events: ConversationInteractionEvent[] = [];

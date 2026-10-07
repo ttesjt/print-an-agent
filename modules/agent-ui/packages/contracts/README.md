@@ -29,6 +29,6 @@ arguments/results, traces, credentials, or provider payloads through this contra
 Non-cancellation outcomes use `AgentManagementResult`. Its failures are browser-safe projections
 for validation, conflicts, missing records, unavailable capabilities, and operation failure.
 Cancellation continues to use the caller's `AbortSignal` and rejects the operation instead of being
-misrepresented as a domain failure. Agent identity currently supports creation and lifecycle only:
-an Agent ID is immutable, and display-name mutation is intentionally outside this contract until a
-backend authority supports it.
+misrepresented as a domain failure. Agent ID is immutable. Applications with a real metadata
+authority may install the optional `AgentMetadataPort` for CAS display-name changes; this does not
+change config or Session identity and is not a requirement on every backend.

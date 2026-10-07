@@ -6,6 +6,7 @@ import {
   disableAgentIdentity,
   listAgentIdentities,
   readAgentIdentity,
+  renameAgentIdentity,
   type AgentIdentityCatalogPort,
   type AgentIdentitySnapshot,
 } from '../../src/index.js';
@@ -35,6 +36,25 @@ function snapshot(id: string, revision = 1): AgentIdentitySnapshot {
 }
 
 describe('Agent Identity lifecycle', () => {
+  it('rejects unsupported metadata capability and untruthful rename results', async () => {
+    const options = {
+      agentId: defineAgentIdentity({ id: 'bro' }).id,
+      expectedRevision: 1,
+      displayName: 'Brother',
+    };
+    await expect(
+      renameAgentIdentity({ ...options, catalog: createCatalogStub({}) })
+    ).rejects.toMatchObject({ code: 'AGENT_IDENTITY_METADATA_UNSUPPORTED' });
+    await expect(
+      renameAgentIdentity({
+        ...options,
+        catalog: createCatalogStub({
+          read: () => Promise.resolve(snapshot('bro')),
+          rename: () => Promise.resolve(snapshot('bro', 2)),
+        }),
+      })
+    ).rejects.toMatchObject({ code: 'AGENT_IDENTITY_ADAPTER_RESULT_INVALID' });
+  });
   it('passes creation authority to the catalog and validates its result', async () => {
     const identity = defineAgentIdentity({ id: 'bro' });
     const requests: unknown[] = [];

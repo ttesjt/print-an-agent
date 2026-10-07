@@ -20,6 +20,7 @@ export type AgentManagementOperation =
   | 'import-config'
   | 'disable'
   | 'reactivate'
+  | 'rename'
   | 'open'
   | 'list-sessions'
   | 'list-retired-sessions'

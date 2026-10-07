@@ -23,6 +23,10 @@ export interface TransitionManagedAgentRequest {
   readonly expectedIdentityRevision: number;
 }
 
+export interface RenameManagedAgentRequest extends TransitionManagedAgentRequest {
+  readonly displayName: string;
+}
+
 export interface ManagedAgentConfigSnapshot<TConfig> {
   readonly value: TConfig;
   readonly revision: number;
@@ -44,4 +48,5 @@ export interface AgentManagementService<TConfig> {
   importConfig(request: ImportManagedAgentConfigRequest): Promise<ManagedAgentSnapshot<TConfig>>;
   disable(request: TransitionManagedAgentRequest): Promise<ManagedAgentSnapshot<TConfig>>;
   reactivate(request: TransitionManagedAgentRequest): Promise<ManagedAgentSnapshot<TConfig>>;
+  rename(request: RenameManagedAgentRequest): Promise<ManagedAgentSnapshot<TConfig>>;
 }

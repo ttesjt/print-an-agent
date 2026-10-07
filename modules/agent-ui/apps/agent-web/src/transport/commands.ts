@@ -1,5 +1,5 @@
 import type { AgentWebPorts } from '../application/ports.js';
-import type { DemoAgentConfig } from '../application/demo-agent-config.js';
+import type { AgentWebConfig } from '../application/agent-config.js';
 import {
   array,
   integer,
@@ -12,8 +12,9 @@ import {
   type Decoder,
 } from './decoder.js';
 import * as s from './schemas.js';
+import { AgentConfigValidationError } from '../application/agent-config-validation.js';
 
-type Ports = AgentWebPorts<DemoAgentConfig>;
+type Ports = AgentWebPorts<AgentWebConfig>;
 function command<Input, Output>(
   input: Decoder<Input>,
   output: Decoder<Output>,
@@ -22,8 +23,21 @@ function command<Input, Output>(
   return Object.freeze({
     input,
     output,
-    run: async (ports: Ports, value: unknown, signal: AbortSignal) =>
-      output.decode(await invoke(ports, input.decode(value), signal)),
+    run: async (ports: Ports, value: unknown, signal: AbortSignal) => {
+      try {
+        return output.decode(await invoke(ports, input.decode(value), signal));
+      } catch (error) {
+        if (!(error instanceof AgentConfigValidationError)) throw error;
+        return output.decode({
+          status: 'failed',
+          failure: {
+            code: 'validation-failed',
+            message: error.message,
+            fieldErrors: error.fieldErrors,
+          },
+        });
+      }
+    },
   });
 }
 const agentId = object({ agentId: s.id });
@@ -37,6 +51,19 @@ const m = <T>(value: Decoder<T>) => s.result(value, s.sessionFailure);
 
 /** Closed application RPC vocabulary; schemas are the same on both sides of transport. */
 export const commands = Object.freeze({
+  renameAgent: command(
+    object({ agentId: s.id, displayName: text(256, 1), expectedRevision: s.revision }),
+    a(s.agentDetails),
+    (p, i, signal) => p.agents.renameAgent({ ...i, signal })
+  ),
+  inspectModel: command(agentId, a(s.modelStatus), (p, i, signal) =>
+    p.agents.inspectModel({ ...i, signal })
+  ),
+  testModelConnection: command(
+    object({ agentId: s.id, expectedRevision: s.revision }),
+    a(s.modelConnection),
+    (p, i, signal) => p.agents.testModelConnection({ ...i, signal })
+  ),
   listAgents: command(object({}), a(array(s.agentSummary)), (p, i, signal) =>
     p.agents.listAgents({ ...i, signal })
   ),

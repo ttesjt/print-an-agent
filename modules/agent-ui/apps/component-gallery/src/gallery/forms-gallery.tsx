@@ -53,6 +53,21 @@ export function FormsGallery() {
                   </Select>
                 )}
               </FormField>
+              <FormField
+                label="Numeric value"
+                description="Native number input; application owns parsing and validation."
+              >
+                {(controlProps) => (
+                  <TextInput
+                    {...controlProps}
+                    type="number"
+                    defaultValue={0.2}
+                    min={0}
+                    max={2}
+                    step={0.1}
+                  />
+                )}
+              </FormField>
             </Stack>
           </PanelBody>
         </Panel>

@@ -10,6 +10,7 @@ export type {
   UpdateAgentConfigInput,
 } from './agent-configuration.js';
 export type { AgentCreationPort, CreateAgentInput } from './agent-creation.js';
+export type { AgentMetadataPort, RenameAgentInput } from './agent-metadata.js';
 export type { AgentLifecyclePort, ChangeAgentLifecycleInput } from './agent-lifecycle.js';
 export type {
   AgentConfigSnapshot,

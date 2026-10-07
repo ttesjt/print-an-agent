@@ -12,12 +12,15 @@ import { createHttpAgentWebPorts } from '../../src/adapters/http-agent-web-ports
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { createOfflineWebEngine } from '../../src/node/offline-engine.js';
 import { startLocalAgentWebServer } from '../../src/node/transport/http-server.js';
+import { engineConfig } from '../support/agent-config.js';
+import { domEnvironment } from '../support/dom-environment.js';
 
 const roots: Root[] = [];
 const hosts: (() => Promise<void>)[] = [];
 const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
 beforeAll(() => {
   actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+  domEnvironment().setWindowSize({ width: 1280, height: 900 });
 });
 afterAll(() => {
   delete actEnvironment.IS_REACT_ACT_ENVIRONMENT;
@@ -37,7 +40,11 @@ function mount(ports = createBrowserComposition('http://localhost/?mode=determin
   document.body.append(container);
   const root = createRoot(container);
   roots.push(root);
-  act(() => root.render(<BrowserAgentWeb ports={ports} profileLabel="Qualification" />));
+  act(() =>
+    root.render(
+      <BrowserAgentWeb ports={ports} profileLabel="Qualification" creationConfig={engineConfig()} />
+    )
+  );
   return root;
 }
 function click(label: string, scope: ParentNode = document) {
@@ -48,7 +55,8 @@ function click(label: string, scope: ParentNode = document) {
   act(() => element.click());
 }
 function input(label: string, value: string) {
-  const field = [...document.querySelectorAll('label')].find(
+  const scope = document.querySelector('dialog[open]') ?? document;
+  const field = [...scope.querySelectorAll('label')].find(
     (entry) => entry.textContent?.replace(/\*/gu, '').trim() === label
   );
   const element =
@@ -72,24 +80,6 @@ async function until(check: () => boolean) {
     if (check()) return;
   }
   throw new Error(`UI did not settle: ${document.body.textContent ?? ''}`);
-}
-function isDOMEnvironment(value: unknown): value is {
-  setURL: (url: string) => void;
-  waitUntilComplete: () => Promise<void>;
-} {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'setURL' in value &&
-    typeof value.setURL === 'function' &&
-    'waitUntilComplete' in value &&
-    typeof value.waitUntilComplete === 'function'
-  );
-}
-function domEnvironment() {
-  if (!('happyDOM' in window) || !isDOMEnvironment(window.happyDOM))
-    throw new Error('Expected a DOM integration environment');
-  return window.happyDOM;
 }
 
 describe('browser application composition', () => {
@@ -121,12 +111,17 @@ describe('browser application composition', () => {
     click('Create Agent');
     input('Agent ID', 'browser');
     input('Display name', 'Browser Agent');
-    const dialog = document.querySelector('dialog');
+    const dialog = document.querySelector('dialog[open]');
     if (dialog === null) throw new Error('Missing create dialog');
     click('Create Agent', dialog);
     await until(() => document.querySelector('[data-slot="agent-details"]') !== null);
     click('New');
     input('Message', 'Hello from UI');
+    await until(() =>
+      [...document.querySelectorAll('button')].some(
+        (button) => button.textContent?.trim() === 'Send' && !button.disabled
+      )
+    );
     click('Send');
     await until(() => document.body.textContent?.includes('Offline reply: Hello from UI') === true);
     expect(document.body.textContent).toContain('Thinking · model turn 1');
@@ -141,6 +136,7 @@ describe('browser application composition', () => {
     root = mount(ports);
     await until(() => document.body.textContent?.includes('Offline reply: Hello from UI') === true);
     expect(window.location.hash).toBe(savedHash);
+    click('Agent Profile');
     input('Instructions', 'Updated browser instructions');
     click('Save configuration');
     await until(() =>
@@ -153,15 +149,24 @@ describe('browser application composition', () => {
       if (updated.status !== 'succeeded') throw new Error('Config was not saved');
       expect(updated.value.value.instructions).toBe('Updated browser instructions');
     });
+    click('Conversation');
+    click('Session details');
     click('Rename');
     input('Session title', 'Recovered conversation');
     click('Rename Session');
     await until(() => document.body.textContent?.includes('Recovered conversation') === true);
     expect(window.location.hash).toBe(savedHash);
+    click('Agent Profile');
     click('Disable Agent');
     const disableDialog = document.querySelector('dialog[open]');
     if (disableDialog === null) throw new Error('Missing disable dialog');
     click('Disable Agent', disableDialog);
+    await until(
+      () =>
+        document.querySelector('[data-slot="agent-details"]')?.textContent?.includes('Disabled') ===
+        true
+    );
+    click('Conversation');
     await until(
       () =>
         document
@@ -169,7 +174,15 @@ describe('browser application composition', () => {
           ?.getAttribute('data-state') === 'disabled'
     );
     expect(document.body.textContent).toContain('Offline reply: Hello from UI');
+    click('Agent Profile');
     click('Reactivate Agent');
+    await until(
+      () =>
+        document
+          .querySelector('[data-slot="agent-details"]')
+          ?.textContent?.includes('StatusActive') === true
+    );
+    click('Conversation');
     await until(
       () =>
         document
@@ -237,7 +250,7 @@ describe('browser application composition', () => {
     mount();
     await until(() => document.body.textContent?.includes('Research Assistant') === true);
     act(() => {
-      window.history.pushState(null, '', '/#agent=review-assistant');
+      window.history.pushState(null, '', '/#agent=review-assistant&view=settings');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     await until(
@@ -247,7 +260,7 @@ describe('browser application composition', () => {
           ?.textContent?.includes('review-assistant') === true
     );
     act(() => {
-      window.history.pushState(null, '', '/#agent=research-assistant');
+      window.history.pushState(null, '', '/#agent=research-assistant&view=settings');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     await until(
@@ -276,5 +289,143 @@ describe('browser application composition', () => {
       'createAgentBaseWebPorts',
     ])
       expect(script).not.toContain(privateMarker);
+  });
+
+  it('separates Profile from conversation and New immediately exposes a focused composer', async () => {
+    mount();
+    await until(
+      () =>
+        document.querySelector('[data-slot="conversation-composer"][data-state="idle"]') !== null
+    );
+    expect(document.querySelector('#settings-instructions')).toBeNull();
+    click('Agent Profile');
+    expect(document.querySelector('#settings-instructions')).not.toBeNull();
+    expect(document.querySelector('[data-slot="conversation-composer"]')).toBeNull();
+    expect(window.location.hash).toContain('view=settings');
+    click('New');
+    await until(() => document.activeElement?.getAttribute('aria-label') === 'Message');
+    expect(window.location.hash).toContain('view=conversation');
+    expect(document.querySelector('#settings-instructions')).toBeNull();
+    expect(document.querySelector('[data-slot="app-shell-inspector"]')).toBeNull();
+    expect(document.querySelector('[data-session-draft]')).not.toBeNull();
+  });
+
+  it('guards unsaved configuration and reconciles a rejected browser navigation', async () => {
+    mount();
+    await until(
+      () =>
+        document.querySelector('[data-slot="conversation-composer"][data-state="idle"]') !== null
+    );
+    click('Agent Profile');
+    input('Instructions', 'Unsaved edits');
+    const beforeUnload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(true);
+    click('New');
+    expect(document.querySelector('dialog[open]')?.textContent).toContain('Unsaved Agent changes');
+    click('Keep editing');
+    expect(document.querySelector<HTMLTextAreaElement>('#settings-instructions')?.value).toBe(
+      'Unsaved edits'
+    );
+    const originalHash = window.location.hash;
+    act(() => {
+      window.history.pushState(null, '', '/#agent=review-assistant&view=settings');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await until(
+      () =>
+        document.querySelector('dialog[open]')?.textContent?.includes('Unsaved Agent changes') ===
+        true
+    );
+    click('Keep editing');
+    expect(window.location.hash).toBe(originalHash);
+    expect(document.querySelector('[data-slot="agent-details"]')?.textContent).toContain(
+      'research-assistant'
+    );
+    click('New');
+    click('Discard and continue');
+    await until(() => document.querySelector('[data-slot="conversation-composer"]') !== null);
+    click('Agent Profile');
+    expect(document.querySelector<HTMLTextAreaElement>('#settings-instructions')?.value).toBe(
+      'Research carefully and cite evidence.'
+    );
+  });
+
+  it('renames Agent metadata with CAS and reloads a conflict without altering ID/config', async () => {
+    const fixtures = createBrowserComposition('http://localhost/?mode=deterministic').ports;
+    mount(fixtures);
+    await until(
+      () =>
+        document.querySelector('[data-slot="conversation-composer"][data-state="idle"]') !== null
+    );
+    click('Agent Profile');
+    input('Display name', 'Renamed research');
+    click('Save display name');
+    await until(
+      () =>
+        document
+          .querySelector('[data-slot="app-shell-header"]')
+          ?.textContent?.includes('Renamed research') === true
+    );
+    const inspected = await fixtures.agents.inspectAgent({ agentId: 'research-assistant' });
+    if (inspected.status !== 'succeeded') throw new Error('Missing Agent');
+    expect(inspected.value.details.agentId).toBe('research-assistant');
+    expect(inspected.value.config.revision).toBe('revision-1');
+    await fixtures.agents.renameAgent({
+      agentId: 'research-assistant',
+      displayName: 'External name',
+      expectedRevision: inspected.value.details.identityRevision,
+    });
+    input('Display name', 'Stale local name');
+    click('Save display name');
+    await until(
+      () =>
+        document.querySelector('main')?.textContent?.includes('Reload current identity') === true
+    );
+    click('Reload current identity');
+    await until(
+      () =>
+        document.querySelector<HTMLInputElement>('#profile-display-name')?.value === 'External name'
+    );
+    expect(document.querySelector('#settings-instructions')).not.toBeNull();
+  });
+
+  it('discards unsaved edits when an external same-Agent route is accepted', async () => {
+    window.history.replaceState(null, '', '/#view=settings');
+    mount();
+    await until(() => document.querySelector('#settings-instructions') !== null);
+    input('Instructions', 'Never saved');
+    input('Display name', 'Never saved name');
+    act(() => {
+      window.history.pushState(null, '', '/#agent=research-assistant&view=conversation');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await until(() => document.querySelector('dialog[open]') !== null);
+    click('Discard and continue');
+    await until(() => document.querySelector('[data-slot="conversation-composer"]') !== null);
+    click('Agent Profile');
+    expect(document.querySelector<HTMLTextAreaElement>('#settings-instructions')?.value).toBe(
+      'Research carefully and cite evidence.'
+    );
+    expect(document.querySelector<HTMLInputElement>('#profile-display-name')?.value).toBe(
+      'Research Assistant'
+    );
+  });
+
+  it('uses a modal Drawer for narrow Session details without taking Composer layout space', async () => {
+    const setSize = (width: number) => domEnvironment().setWindowSize({ width, height: 844 });
+    setSize(390);
+    try {
+      mount();
+      await until(() => document.querySelector('[data-slot="conversation-composer"]') !== null);
+      click('Session details');
+      expect(document.querySelector('dialog[data-slot="drawer"][open]')).not.toBeNull();
+      expect(document.querySelector('[data-slot="app-shell-inspector"]')).toBeNull();
+      click('Close Session details');
+      await until(() => document.querySelector('dialog[data-slot="drawer"][open]') === null);
+      expect(document.querySelector('[data-slot="conversation-composer"]')).not.toBeNull();
+    } finally {
+      act(() => setSize(1280));
+    }
   });
 });

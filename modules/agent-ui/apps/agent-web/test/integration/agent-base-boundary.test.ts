@@ -7,6 +7,7 @@ import { defineActorEngine } from '@ta-agent/base-actor';
 import type { ConversationInteractionEvent } from '@ta-agent/ui-contracts';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { createOfflineWebEngine } from '../../src/node/offline-engine.js';
+import { engineConfig } from '../support/agent-config.js';
 
 function value<T>(
   result: { status: 'succeeded'; value: T } | { status: 'failed'; failure: unknown }
@@ -14,7 +15,7 @@ function value<T>(
   if (result.status === 'failed') throw new Error(JSON.stringify(result.failure));
   return result.value;
 }
-const config = { instructions: 'Be helpful.', responseStyle: 'balanced' as const };
+const config = engineConfig();
 
 describe('Agent Base public boundary qualification', () => {
   it.each(['memory', 'directory'] as const)(
@@ -186,7 +187,7 @@ describe('Agent Base public boundary qualification', () => {
     value(
       await ports.agents.createAgent({
         identity: { agentId: 'multi', displayName: 'Multi' },
-        config,
+        config: engineConfig(engine.id),
       })
     );
     const events: ConversationInteractionEvent[] = [];

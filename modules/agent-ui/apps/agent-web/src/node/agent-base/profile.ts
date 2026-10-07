@@ -31,12 +31,15 @@ import {
 } from '@ta-agent/base-standalone-agent';
 import type { AgentId } from '@ta-agent/base-identity';
 import type { ToolRegistry } from '@ta-agent/base-tool';
-import type { DemoAgentConfig } from '../../application/demo-agent-config.js';
+import type { AgentWebConfig } from '../../application/agent-config.js';
 import { WEB_AGENT_CONFIG_CODEC } from './config.js';
 import { presentationStepOverrides } from './stream-sink.js';
+import { createWebModelRuntime, actorInvocation } from './model-runtime.js';
+import { DEFAULT_REQUEST_POLICY } from '@ta-agent/base-request';
 
 export interface WebBackendOptions {
-  readonly engine: ActorEngine;
+  readonly engine?: ActorEngine;
+  readonly readEnvironmentVariable?: (name: string) => string | undefined;
   readonly persistence:
     | Readonly<{ kind: 'memory' }>
     | Readonly<{ kind: 'directory'; rootDirectory: string }>;
@@ -86,16 +89,19 @@ function assembleServices<Handle>(
     identity,
     config,
     ports,
-  }: ManagedAgentRuntimeMaterializationInput<DemoAgentConfig, CoordinatedSessionPersistence>) =>
-    composeAgent({
+  }: ManagedAgentRuntimeMaterializationInput<AgentWebConfig, CoordinatedSessionPersistence>) => {
+    const { engine } = createWebModelRuntime(config, options);
+    return composeAgent({
       identity,
       actorCatalog: createActorCatalog({
-        engines: [options.engine],
+        engines: [engine],
         actors: [
           {
             id: MAIN_ACTOR_ID,
-            engineId: options.engine.id,
+            engineId: engine.id,
             instructions: `${config.instructions}\nResponse style: ${config.responseStyle}.`,
+            invocationConfig: actorInvocation(config),
+            invocationPolicy: { timeoutMilliseconds: config.execution.actorTimeoutMilliseconds },
             allowedTools: toolNames,
           },
         ],
@@ -109,6 +115,10 @@ function assembleServices<Handle>(
       session: ports.session,
       requestJournal: ports.requestJournal,
       stepOverrides: presentationStepOverrides(),
+      requestPolicy: {
+        ...DEFAULT_REQUEST_POLICY,
+        timeoutMilliseconds: config.execution.requestTimeoutMilliseconds,
+      },
       ...(options.tools === undefined
         ? {}
         : {
@@ -117,6 +127,7 @@ function assembleServices<Handle>(
             runtimeToolAllowList: toolNames,
           }),
     });
+  };
   const definition = defineManagedAgentComposition({
     config: { codec: WEB_AGENT_CONFIG_CODEC },
     namespace: { port: namespace },
@@ -124,7 +135,7 @@ function assembleServices<Handle>(
     runtime: {
       createPorts: ({
         namespace: scoped,
-      }: ManagedAgentRuntimeProvisioningInput<DemoAgentConfig, Handle>) => persistence(scoped),
+      }: ManagedAgentRuntimeProvisioningInput<AgentWebConfig, Handle>) => persistence(scoped),
       materialize,
     },
     sessionManagement: {
@@ -153,6 +164,7 @@ function assembleServices<Handle>(
     navigation: createSessionNavigationService(definition),
     sessionFor,
     toolLabels: options.toolLabels ?? {},
+    modelHost: options,
   });
 }
 

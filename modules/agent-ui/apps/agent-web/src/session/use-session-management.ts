@@ -125,6 +125,8 @@ export function useSessionManagement(
       return;
     consumedLocation.current = requestedLocation;
     selectSession(requestedLocation.sessionId);
+    if (requestedLocation.view === 'conversation' && requestedLocation.sessionId === undefined)
+      setSelectionState({ status: 'draft' });
   }, [agentId, requestedLocation, selectSession]);
 
   useEffect(() => {

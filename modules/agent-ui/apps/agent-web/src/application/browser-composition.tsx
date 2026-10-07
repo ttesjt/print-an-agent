@@ -10,7 +10,7 @@ import {
   type WorkspaceLocation,
 } from './workspace-location.js';
 import type { AgentWebPorts } from './ports.js';
-import type { DemoAgentConfig } from './demo-agent-config.js';
+import { DEFAULT_AGENT_CONFIG, type AgentWebConfig } from './agent-config.js';
 
 export function createBrowserComposition(url: string) {
   const mode = new URL(url).searchParams.get('mode') ?? 'local';
@@ -19,6 +19,10 @@ export function createBrowserComposition(url: string) {
   const sessions = createDeterministicSessionManagement();
   return {
     label: 'Deterministic fixtures',
+    creationConfig: {
+      ...DEFAULT_AGENT_CONFIG,
+      model: { kind: 'engine' as const, engineId: 'agent-web.offline' },
+    },
     ports: {
       agents: createDeterministicAgentManagement(),
       sessions,
@@ -31,7 +35,12 @@ export function createBrowserComposition(url: string) {
 export function BrowserAgentWeb({
   ports,
   profileLabel,
-}: Readonly<{ ports: AgentWebPorts<DemoAgentConfig>; profileLabel: string }>) {
+  creationConfig,
+}: Readonly<{
+  ports: AgentWebPorts<AgentWebConfig>;
+  profileLabel: string;
+  creationConfig?: AgentWebConfig;
+}>) {
   const [requestedLocation, setRequestedLocation] = useState<WorkspaceLocation | undefined>(() =>
     window.location.hash === '' ? undefined : safeLocation()
   );
@@ -49,17 +58,20 @@ export function BrowserAgentWeb({
     };
   }, []);
   const selected = useCallback(
-    (location: WorkspaceLocation) => {
+    (location: WorkspaceLocation, options?: Readonly<{ replace?: boolean }>) => {
       if (
         pending.current &&
-        (location.agentId !== requestedLocation?.agentId ||
-          location.sessionId !== requestedLocation?.sessionId)
+        !options?.replace &&
+        ((requestedLocation?.agentId !== undefined &&
+          location.agentId !== requestedLocation.agentId) ||
+          location.sessionId !== requestedLocation?.sessionId ||
+          location.view !== (requestedLocation?.view ?? 'conversation'))
       )
         return;
       pending.current = false;
       const hash = workspaceHash(location);
       if (window.location.hash !== hash)
-        window.history.pushState(
+        window.history[options?.replace ? 'replaceState' : 'pushState'](
           null,
           '',
           `${window.location.pathname}${window.location.search}${hash}`
@@ -71,6 +83,7 @@ export function BrowserAgentWeb({
     <App
       ports={ports}
       profileLabel={profileLabel}
+      {...(creationConfig === undefined ? {} : { creationConfig })}
       {...(requestedLocation === undefined ? {} : { requestedLocation })}
       onLocationChange={selected}
     />

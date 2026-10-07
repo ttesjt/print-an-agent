@@ -1,5 +1,6 @@
 import type { ConversationInteractionEvent } from '@ta-agent/ui-contracts';
-import type { DemoAgentConfig } from '../application/demo-agent-config.js';
+import type { AgentWebConfig } from '../application/agent-config.js';
+import { AGENT_CONFIG_DECODER } from '../application/agent-config-validation.js';
 import {
   array,
   integer,
@@ -21,10 +22,18 @@ const timestamp: Decoder<string> = {
     return value;
   },
 };
-export const config: Decoder<DemoAgentConfig> = object({
-  instructions: text(16_384, 1),
-  responseStyle: union(literal('balanced'), literal('concise')),
+export const config: Decoder<AgentWebConfig> = AGENT_CONFIG_DECODER;
+export const modelStatus = object({
+  revision,
+  status: union(
+    literal('unconfigured'),
+    literal('configured'),
+    literal('credential-unavailable'),
+    literal('engine')
+  ),
+  label: text(512, 1),
 });
+export const modelConnection = object({ revision, checkedAt: timestamp });
 const summaryFields = {
   agentId: id,
   displayName: text(256, 1),

@@ -15,25 +15,26 @@ import {
   Textarea,
 } from '@ta-agent/ui-react';
 
-import type { DemoAgentConfig } from '../application/demo-agent-config.js';
+import type { AgentConfigFieldErrors, AgentWebConfig } from '../application/agent-config.js';
+import { ModelConfigurationFields } from './model-configuration-fields.js';
 
 export type AgentSelectionState =
   | Readonly<{ status: 'failed'; error: string }>
   | Readonly<{ status: 'idle' }>
   | Readonly<{ status: 'loading' }>
-  | Readonly<{ status: 'ready'; snapshot: AgentSnapshot<DemoAgentConfig> }>;
+  | Readonly<{ status: 'ready'; snapshot: AgentSnapshot<AgentWebConfig> }>;
 
 export interface AgentWorkspaceProps {
   readonly configConflict: string | undefined;
   readonly configDirty: boolean;
-  readonly configDraft: DemoAgentConfig;
+  readonly configDraft: AgentWebConfig;
   readonly configError: string | undefined;
-  readonly configFieldErrors: DemoConfigFieldErrors;
+  readonly configFieldErrors: AgentConfigFieldErrors;
   readonly onReloadConfig: () => void;
   readonly onResetConfig: () => void;
   readonly onSaveConfig: () => void;
   readonly selectionState: AgentSelectionState;
-  readonly setConfigDraft: (config: DemoAgentConfig) => void;
+  readonly setConfigDraft: (config: AgentWebConfig) => void;
   readonly working: boolean;
 }
 
@@ -96,7 +97,7 @@ export function AgentWorkspace({
             }
             dirty={configDirty}
             error={configError}
-            invalid={configConflict !== undefined || configFieldErrors.instructions !== undefined}
+            invalid={configConflict !== undefined || Object.keys(configFieldErrors).length > 0}
             onReset={onResetConfig}
             onSubmit={onSaveConfig}
             pending={working}
@@ -106,7 +107,7 @@ export function AgentWorkspace({
               description="These fields are supplied by the Agent Web application."
               title="Interaction"
             >
-              <DemoConfigFields
+              <AgentConfigurationFields
                 config={configDraft}
                 fieldErrors={configFieldErrors}
                 onChange={setConfigDraft}
@@ -120,19 +121,25 @@ export function AgentWorkspace({
   );
 }
 
-export function DemoConfigFields({
+export function AgentConfigurationFields({
   config,
   fieldErrors = {},
   onChange,
   prefix,
 }: Readonly<{
-  config: DemoAgentConfig;
-  fieldErrors?: DemoConfigFieldErrors;
-  onChange: (config: DemoAgentConfig) => void;
+  config: AgentWebConfig;
+  fieldErrors?: AgentConfigFieldErrors;
+  onChange: (config: AgentWebConfig) => void;
   prefix: string;
 }>) {
   return (
     <Stack space="medium">
+      <ModelConfigurationFields
+        config={config}
+        fieldErrors={fieldErrors}
+        onChange={onChange}
+        prefix={prefix}
+      />
       <FormField
         controlId={`${prefix}-instructions`}
         error={fieldErrors.instructions}
@@ -167,10 +174,6 @@ export function DemoConfigFields({
       </FormField>
     </Stack>
   );
-}
-
-export interface DemoConfigFieldErrors {
-  readonly instructions?: string;
 }
 
 function formatTimestamp(timestamp: string) {

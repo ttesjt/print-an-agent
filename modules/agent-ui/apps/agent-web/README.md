@@ -11,7 +11,7 @@ The default browser composition installs validated localhost HTTP/NDJSON ports a
 optional default stylesheet explicitly. The Node host connects these ports to public Agent Base
 services and an actual Agent, with directory/SQLite or injected Memory persistence. Provider
 provisioning and credentials stay on the host. The Agent adapter implements
-catalog, inspect, create, configuration revision checks, disable, and reactivate. The Session adapter
+catalog, inspect, create, CAS display-name updates, configuration revision checks, disable, and reactivate. The Session adapter
 implements paginated active/retired catalogs, inspection, rename, retire/restore, optional purge,
 and branch selection. The conversation adapter implements paged history, ordered streaming text and
 model-turn reasoning, sanitized tool presentation, cancellation, successful Turn commit, and
@@ -67,9 +67,18 @@ does not publish successful history or commit callbacks when a port rejects afte
 Transport failure does not prove that the backend rolled back: authoritative history must still be
 reconciled after an interrupted connection.
 
-The composition uses the public App Shell and layout primitives with a stable semantic order:
-header, sidebar, main, then inspector. Default responsive CSS reflows those regions without hiding
-or reordering them.
+Conversation and Agent Profile are separate URL-restorable views. Profile owns model settings,
+display name, config and lifecycle; Conversation owns the transcript and Composer. “New” goes directly
+to a fresh conversation and focuses its Composer. Unsaved Profile edits require explicit discard
+before selection/view changes, including browser navigation. Already submitted work is not treated
+as an unsaved edit; stale-result guards still apply.
+
+The application has a viewport-bounded shell: transcript, navigation and optional Session inspector
+scroll independently while the Composer remains reachable. It uses stable DOM reading order:
+header, sidebar, main, then inspector. Responsive CSS does not silently hide or reorder regions;
+navigation and Session details can be toggled explicitly.
+Session details use the existing modal Drawer on narrow layouts, leaving conversation layout space
+intact; wider layouts use the inspector region.
 
 Run the bounded Web build and qualification with:
 
@@ -84,8 +93,8 @@ pnpm --filter @ta-agent/ui-agent-web build
 pnpm --filter @ta-agent/ui-agent-web serve --root /absolute/path/to/agents
 ```
 
-Open `http://127.0.0.1:4174`. The default Engine is an offline demonstration, not a model
-prediction. For provider provisioning and a separate Vite development server, see
+Open `http://127.0.0.1:4174`. Create an Agent and configure its model connection in the UI.
+There is no implicit offline Engine or global provider file. For credentials and a separate Vite development server, see
 [local host setup](./docs/local-host.md). `dev` alone starts the frontend, not the backend.
 
 Agent and Session selection are restored from the URL; branch selection remains a revision-guarded

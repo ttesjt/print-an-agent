@@ -23,3 +23,9 @@ personality semantics.
 
 Official Memory and SQLite implementations live in `@ta-agent/base-local-adapters`. Consumers may
 use those local implementations or provide any catalog adapter that satisfies this package's port.
+
+`renameAgentIdentity()` changes only `displayName`, using the Identity revision for CAS. It preserves
+the ID, lifecycle and creation timestamp. Catalog `rename` is an optional metadata capability;
+unsupported custom catalogs return `AGENT_IDENTITY_METADATA_UNSUPPORTED`. Official Memory/SQLite
+adapters support it. Managed composition exposes the same authority through `service.rename()` and
+reconciles projections without materializing an Agent or changing Config/Session resources.

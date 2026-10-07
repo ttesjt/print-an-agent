@@ -7,15 +7,16 @@ the Node adapter or provider credentials.
 One app-owned managed composition Definition coordinates namespace, Identity/Config authority,
 runtime ports, Session management and Session navigation. The official Standalone profile supplies
 namespace and authority provisioning; it does not dictate this application's config codec or
-materializer. Agent Web stores its typed instructions/response-style config in the authority,
-not a Standalone provider manifest. The host injects Engine, tools and safe tool labels.
+materializer. Agent Web stores its typed model/Actor/execution config in the authority,
+not a Standalone provider manifest. The host injects a secret resolver, tools and safe tool labels.
 
 Memory state is scoped to one backend instance. Directory state is one Agent directory/database,
 and can be reopened by another instance. Both profiles use coordinated official Session/Journal
 persistence; no SQL statements or storage internals are embedded in the web adapter.
 
 Navigation goes through the standalone Session Navigation service, not an invented Agent
-Operation. Metadata rename uses the injected public Session port. Revision tokens remain opaque
+Operation. Session metadata rename uses the injected public Session port. Agent display-name updates
+use the generic managed Identity metadata service with optional catalog capability and CAS. Revision tokens remain opaque
 strings in the browser and are validated at the application mapping boundary.
 
 The replaceable request dispatch Step projects model-turn ordinals and safe tool status while
@@ -45,8 +46,8 @@ client must reconcile authoritative history. No default wall-clock deadline is i
 - Persisted-target requests use interaction IDs as Request Journal idempotency keys. A new draft
   has no Session identity; retry after a lost new-session response requires reconciliation rather
   than a promise of global exactly-once creation.
-- Display-name mutation and compaction controls are not offered by this application boundary.
-  Agent ID is immutable; a future display-name feature must use a real public authority contract.
+- Compaction controls are not offered by this application boundary.
+  Agent ID is immutable; display-name edits change only Identity metadata, not config or Session.
 
 The qualification tests exercise Memory and directory/SQLite profiles through the same public UI
 ports, including revisions, reasoning history, branching, lifecycle, coordinated purge and safe

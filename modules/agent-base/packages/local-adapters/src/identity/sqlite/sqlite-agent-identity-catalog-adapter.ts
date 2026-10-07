@@ -1,5 +1,6 @@
 import {
   AgentIdentityError,
+  defineAgentIdentity,
   defineAgentIdentitySnapshot,
   isAgentIdentityStatus,
   parseAgentId,
@@ -8,6 +9,7 @@ import {
   type AgentIdentitySnapshot,
   type CreateAgentIdentityRequest,
   type TransitionAgentIdentityRequest,
+  type RenameAgentIdentityRequest,
 } from '@ta-agent/base-identity';
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import {
@@ -132,6 +134,51 @@ export class SqliteAgentIdentityCatalogAdapter implements AgentIdentityCatalogPo
         )
       )
     );
+  }
+
+  rename(request: RenameAgentIdentityRequest): Promise<AgentIdentitySnapshot> {
+    return Promise.resolve().then(() => {
+      const identity = defineAgentIdentity({
+        id: request.agentId,
+        displayName: request.displayName,
+      });
+      return this.#useDatabase('rename identity', (database) =>
+        runIdentityTransaction(database, () => {
+          const row = this.#select(database, identity.id);
+          if (row === undefined) {
+            throw new AgentIdentityError(
+              'AGENT_IDENTITY_NOT_FOUND',
+              'Agent Identity does not exist.'
+            );
+          }
+          if (decodeSnapshot(row).revision !== request.expectedRevision) {
+            throw new AgentIdentityError(
+              'AGENT_IDENTITY_REVISION_CONFLICT',
+              'Identity revision changed.'
+            );
+          }
+          const result = database
+            .prepare(
+              `UPDATE ${quoteSqliteIdentifier(this.#tableNames.identities)}
+           SET display_name = ?, revision = revision + 1, updated_at = ?
+           WHERE agent_id = ? AND revision = ?`
+            )
+            .run(
+              identity.displayName,
+              readIdentityClock(this.#clock),
+              identity.id,
+              request.expectedRevision
+            );
+          if (result.changes !== 1) {
+            throw new AgentIdentityError(
+              'AGENT_IDENTITY_REVISION_CONFLICT',
+              'Identity revision changed.'
+            );
+          }
+          return decodeSnapshot(this.#requireRow(database, identity.id));
+        })
+      );
+    });
   }
 
   transition(request: TransitionAgentIdentityRequest): Promise<AgentIdentitySnapshot> {

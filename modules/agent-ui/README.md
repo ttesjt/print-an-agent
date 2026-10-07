@@ -36,8 +36,8 @@ See [the architecture contract](./docs/architecture.md) for package and componen
 `apps/agent-web` is a runnable local Agent application. Its Node host maps public Agent Base APIs
 to validated HTTP/NDJSON UI ports; its browser owns routing, theme preference, application state,
 Agent/Session management, paged history, text/reasoning/tool delivery, cancellation and branching.
-The default host uses an explicitly offline Engine with real directory/SQLite persistence. An
-ordinary provider can be provisioned privately on the host. Deterministic browser fixtures remain
+The default host uses real directory/SQLite persistence and per-Agent UI model configuration.
+Credentials remain in the host environment. Deterministic browser fixtures remain
 available only through explicit `?mode=deterministic` selection.
 
 See [local host setup](./apps/agent-web/docs/local-host.md),

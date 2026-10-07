@@ -5,7 +5,7 @@ import type {
   SessionDetails,
   SessionNavigationSnapshot as WebNavigation,
 } from '@ta-agent/ui-contracts';
-import type { DemoAgentConfig } from '../../application/demo-agent-config.js';
+import type { AgentWebConfig } from '../../application/agent-config.js';
 
 export function revision(value: string): number {
   if (!/^(0|[1-9][0-9]*)$/u.test(value) || !Number.isSafeInteger(Number(value)))
@@ -14,8 +14,8 @@ export function revision(value: string): number {
 }
 
 export function projectAgent(
-  snapshot: ManagedAgentSnapshot<DemoAgentConfig>
-): AgentSnapshot<DemoAgentConfig> {
+  snapshot: ManagedAgentSnapshot<AgentWebConfig>
+): AgentSnapshot<AgentWebConfig> {
   const identity = snapshot.identity;
   return {
     details: {

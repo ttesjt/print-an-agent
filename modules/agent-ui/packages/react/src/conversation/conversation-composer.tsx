@@ -1,4 +1,4 @@
-import type { ComponentPropsWithRef, FormEvent, KeyboardEvent, ReactNode } from 'react';
+import type { ComponentPropsWithRef, FormEvent, KeyboardEvent, ReactNode, Ref } from 'react';
 
 import { Button } from '../actions/button.js';
 import { Textarea } from '../forms/controls.js';
@@ -19,6 +19,7 @@ type NativeConversationComposerProps = Omit<
 export interface ConversationComposerProps extends NativeConversationComposerProps {
   readonly cancelLabel: ReactNode;
   readonly inputLabel: string;
+  readonly inputRef?: Ref<HTMLTextAreaElement>;
   readonly onCancel?: () => void;
   readonly onSubmit: () => void;
   readonly onValueChange: (value: string) => void;
@@ -33,6 +34,7 @@ export function ConversationComposer({
   cancelLabel,
   className,
   inputLabel,
+  inputRef,
   onCancel,
   onSubmit,
   onValueChange,
@@ -68,6 +70,7 @@ export function ConversationComposer({
       <label className="ta-ui-conversation-composer__label">
         <span>{inputLabel}</span>
         <Textarea
+          ref={inputRef}
           aria-label={inputLabel}
           disabled={disabled || active}
           onChange={(event) => onValueChange(event.currentTarget.value)}

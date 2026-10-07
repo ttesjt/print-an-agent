@@ -5,6 +5,35 @@ import { createAgentManagementService } from '../../src/index.js';
 import { createManagedAgentFixture } from '../support/managed-agent-management.js';
 
 describe('Agent Management Service authority mutations', () => {
+  it('renames metadata through identity CAS and preserves Config and namespace', async () => {
+    const fixture = createManagedAgentFixture();
+    const service = createAgentManagementService(fixture.definition);
+    const agentId = parseAgentId('alpha');
+    await service.create({ identity: { id: agentId }, config: { label: 'unchanged' } });
+    const renamed = await service.rename({
+      agentId,
+      expectedIdentityRevision: 1,
+      displayName: 'Alpha renamed',
+    });
+    expect(renamed).toMatchObject({
+      identity: {
+        identity: { id: agentId, displayName: 'Alpha renamed' },
+        revision: 2,
+        status: 'active',
+      },
+      config: { revision: 1, value: { label: 'unchanged' } },
+    });
+    await expect(
+      service.rename({ agentId, expectedIdentityRevision: 1, displayName: 'Stale' })
+    ).rejects.toMatchObject({ code: 'AGENT_IDENTITY_REVISION_CONFLICT' });
+    expect(fixture.materialize).not.toHaveBeenCalled();
+    fixture.controls.projectionReconcileFailure = new Error('private projection');
+    await expect(
+      service.rename({ agentId, expectedIdentityRevision: 2, displayName: 'Committed' })
+    ).rejects.toMatchObject({ code: 'MANAGED_AGENT_PROJECTION_FAILED' });
+    fixture.controls.projectionReconcileFailure = undefined;
+    expect((await service.inspect(agentId)).identity.identity.displayName).toBe('Committed');
+  });
   it('updates typed Config with CAS and preserves a committed update across Projection failure', async () => {
     const fixture = createManagedAgentFixture();
     const service = createAgentManagementService(fixture.definition);

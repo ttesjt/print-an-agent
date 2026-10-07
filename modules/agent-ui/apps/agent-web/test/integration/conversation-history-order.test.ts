@@ -7,6 +7,7 @@ import type { ConversationInteractionEvent, ConversationTurn } from '@ta-agent/u
 import { describe, expect, it, vi } from 'vitest';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { createOfflineWebEngine } from '../../src/node/offline-engine.js';
+import { engineConfig } from '../support/agent-config.js';
 
 function value<T>(
   result: { status: 'succeeded'; value: T } | { status: 'failed'; failure: unknown }
@@ -40,7 +41,7 @@ describe('persisted conversation causal pagination', () => {
         value(
           await ports.agents.createAgent({
             identity: { agentId: 'order', displayName: 'Order' },
-            config: { instructions: 'Be helpful.', responseStyle: 'balanced' },
+            config: engineConfig(),
           })
         );
         const seed: ConversationInteractionEvent[] = [];

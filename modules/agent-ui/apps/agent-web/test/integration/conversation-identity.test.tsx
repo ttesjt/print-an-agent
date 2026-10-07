@@ -7,6 +7,7 @@ import { act } from 'react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { createOfflineWebEngine } from '../../src/node/offline-engine.js';
+import { engineConfig } from '../support/agent-config.js';
 import {
   cleanupConversationControllers,
   flushConversation,
@@ -44,7 +45,7 @@ describe('logical interaction identity', () => {
     value(
       await ports.agents.createAgent({
         identity: { agentId: 'identity', displayName: 'Identity' },
-        config: { instructions: 'Be helpful.', responseStyle: 'balanced' },
+        config: engineConfig(),
       })
     );
     const seed: ConversationInteractionEvent[] = [];

@@ -26,10 +26,14 @@ export function SessionSidebar({
   agentSelected,
   controller,
   workingConversationSessionIds,
+  onNew,
+  onSelectSession,
 }: Readonly<{
   agentSelected: boolean;
   controller: SessionManagementController;
   workingConversationSessionIds: readonly string[];
+  onNew?: () => void;
+  onSelectSession?: (sessionId: string) => void;
 }>) {
   const workingSessionIds = unique([
     ...workingConversationSessionIds,
@@ -41,7 +45,7 @@ export function SessionSidebar({
         <h2>Sessions</h2>
         <Button
           disabled={!agentSelected}
-          onClick={controller.createDraft}
+          onClick={onNew ?? controller.createDraft}
           size="small"
           tone="accent"
         >
@@ -87,7 +91,7 @@ export function SessionSidebar({
         loadingLabel="Loading Sessions…"
         onLoadMore={() => void controller.loadMore()}
         onRetry={controller.refreshCatalog}
-        onSelectSession={controller.selectSession}
+        onSelectSession={onSelectSession ?? controller.selectSession}
         retryLabel="Retry"
         state={controller.catalogState}
         statusLabels={STATUS_LABELS}
@@ -106,10 +110,12 @@ export function SessionWorkspace({
   conversation,
   controller,
   interactionAllowed,
+  focusRequest = 0,
 }: Readonly<{
   conversation: ConversationManagementController;
   controller: SessionManagementController;
   interactionAllowed: boolean;
+  focusRequest?: number;
 }>) {
   const state = controller.selectionState;
   if (state.status === 'idle') {
@@ -117,24 +123,18 @@ export function SessionWorkspace({
   }
   if (state.status === 'draft') {
     return (
-      <Stack space="large">
-        <Panel data-session-draft>
-          <PanelHeader>
-            <h2>New conversation</h2>
-          </PanelHeader>
-          <PanelBody>
-            <p>
-              This draft has no Session identity yet. The first successful interaction will create
-              the persisted Session.
-            </p>
-          </PanelBody>
-        </Panel>
+      <div className="ta-ui-agent-web-conversation-page" data-session-draft>
+        <header>
+          <h1>New conversation</h1>
+          <p>This draft has no Session identity yet. Send a message to create it.</p>
+        </header>
         <ConversationWorkspace
           controller={conversation}
           sessionState={state}
           interactionAllowed={interactionAllowed}
+          focusRequest={focusRequest}
         />
-      </Stack>
+      </div>
     );
   }
   if (state.status === 'loading') {
@@ -156,6 +156,25 @@ export function SessionWorkspace({
     );
   }
 
+  return (
+    <div className="ta-ui-agent-web-conversation-page">
+      <header>
+        <h1>{state.details.title ?? 'Untitled Session'}</h1>
+      </header>
+      <ConversationWorkspace
+        controller={conversation}
+        sessionState={state}
+        interactionAllowed={interactionAllowed}
+      />
+    </div>
+  );
+}
+
+export function SessionInspector({
+  controller,
+}: Readonly<{ controller: SessionManagementController }>) {
+  const state = controller.selectionState;
+  if (state.status !== 'ready') return <Status>Select a saved Session to see its details.</Status>;
   const title = state.details.title ?? 'Untitled Session';
   const working = controller.workingSessionId === state.details.sessionId;
   return (
@@ -184,12 +203,6 @@ export function SessionWorkspace({
         session={state.details}
         statusLabels={STATUS_LABELS}
         title={title}
-      />
-
-      <ConversationWorkspace
-        controller={conversation}
-        sessionState={state}
-        interactionAllowed={interactionAllowed}
       />
 
       <SessionNavigationView

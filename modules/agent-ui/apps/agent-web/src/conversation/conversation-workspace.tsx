@@ -15,7 +15,7 @@ import {
   type ConversationComposerState,
   type ConversationTurnLabels,
 } from '@ta-agent/ui-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import type { SessionSelectionState } from '../session/use-session-management.js';
 import { historyTurns } from './conversation-history-state.js';
@@ -52,11 +52,17 @@ export function ConversationWorkspace({
   controller,
   sessionState,
   interactionAllowed,
+  focusRequest = 0,
 }: Readonly<{
   controller: ConversationManagementController;
   sessionState: SessionSelectionState;
   interactionAllowed: boolean;
+  focusRequest?: number;
 }>) {
+  const composer = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (interactionAllowed && focusRequest > 0) composer.current?.focus();
+  }, [focusRequest, interactionAllowed]);
   const [rewindTurnId, setRewindTurnId] = useState<string>();
   const history = controller.historyState;
   const active = controller.activeInteraction;
@@ -100,7 +106,7 @@ export function ConversationWorkspace({
   ].join(':');
 
   return (
-    <Stack space="medium">
+    <Stack space="medium" className="ta-ui-agent-web-conversation">
       <ConversationScrollRegion
         aria-label="Conversation"
         contentRevision={contentRevision}
@@ -195,6 +201,7 @@ export function ConversationWorkspace({
         <Status>This Agent is not ready for a new response.</Status>
       ) : null}
       <ConversationComposer
+        inputRef={composer}
         cancelLabel="Cancel response"
         inputLabel="Message"
         onCancel={controller.cancel}

@@ -4,11 +4,12 @@ import type {
   StartConversationInteractionInput,
 } from '@ta-agent/ui-contracts';
 import type { AgentWebPorts } from '../application/ports.js';
-import type { DemoAgentConfig } from '../application/demo-agent-config.js';
+import type { AgentWebConfig } from '../application/agent-config.js';
 import { commands, type CommandName } from '../transport/commands.js';
 import { TransportProtocolError, fail, type Decoder } from '../transport/decoder.js';
 import { WEB_TRANSPORT_LIMITS } from '../transport/limits.js';
 import { interactionEvent, interactionInput } from '../transport/schemas.js';
+import { AgentConfigValidationError } from '../application/agent-config-validation.js';
 
 export interface HttpAgentWebOptions {
   /** Relative same-origin URL in browsers; an absolute URL is useful for Node qualification. */
@@ -18,7 +19,7 @@ export interface HttpAgentWebOptions {
 
 export function createHttpAgentWebPorts(
   options: HttpAgentWebOptions = {}
-): AgentWebPorts<DemoAgentConfig> {
+): AgentWebPorts<AgentWebConfig> {
   const fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
   const baseUrl = (options.baseUrl ?? '/api').replace(/\/$/u, '');
   const rpc = async <T>(
@@ -28,8 +29,8 @@ export function createHttpAgentWebPorts(
   ): Promise<T> => {
     const { signal, ...payload } = input;
     signal?.throwIfAborted();
-    const normalized = commands[name].input.decode(payload);
     try {
+      const normalized = commands[name].input.decode(payload);
       const response = await fetch(`${baseUrl}/commands`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,6 +44,15 @@ export function createHttpAgentWebPorts(
       );
     } catch (error) {
       signal?.throwIfAborted();
+      if (error instanceof AgentConfigValidationError)
+        return output.decode({
+          status: 'failed',
+          failure: {
+            code: 'validation-failed',
+            message: error.message,
+            fieldErrors: error.fieldErrors,
+          },
+        });
       return output.decode({
         status: 'failed',
         failure: {
@@ -58,6 +68,10 @@ export function createHttpAgentWebPorts(
   };
   return {
     agents: {
+      renameAgent: (input) => rpc('renameAgent', input, commands.renameAgent.output),
+      inspectModel: (i) => rpc('inspectModel', i, commands.inspectModel.output),
+      testModelConnection: (i) =>
+        rpc('testModelConnection', i, commands.testModelConnection.output),
       listAgents: (i = {}) => rpc('listAgents', i, commands.listAgents.output),
       inspectAgent: (i) => rpc('inspectAgent', i, commands.inspectAgent.output),
       readAgentConfig: (i) => rpc('readAgentConfig', i, commands.readAgentConfig.output),

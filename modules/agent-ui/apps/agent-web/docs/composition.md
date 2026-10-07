@@ -16,7 +16,7 @@ Actor Engine, explicit tool registry and safe tool labels, plus Memory or direct
 
 ```ts
 const ports = createAgentBaseWebPorts({
-  engine: hostEngine,
+  readEnvironmentVariable: (name) => process.env[name],
   persistence: { kind: 'directory', rootDirectory: '/absolute/path/to/agents' },
 });
 const host = await startLocalAgentWebServer({ ports });
@@ -26,14 +26,19 @@ const host = await startLocalAgentWebServer({ ports });
 The browser receives only safe DTOs. `App` accepts the application's typed `AgentWebPorts`
 composition, so another host may replace all adapters. `BrowserAgentWeb` adds URL selection and
 the default entry chooses localhost ports; it is not a second domain owner. No reusable component
-imports these controllers or the Node adapter. The browser's hash contains only Agent/Session IDs,
+imports these controllers or the Node adapter. The browser's hash contains only view and Agent/Session IDs,
 never provider configuration or credentials. Navigation history changes selection without
 remounting the application or cancelling an unrelated persisted conversation.
+An omitted Agent ID selects the current or first available catalog Agent. `view=settings` restores
+Profile, while `view=conversation` restores chat. Unknown fields, duplicate IDs and a Session without
+an Agent are rejected. Unsaved Profile edits are guarded before applying external location changes;
+rejecting navigation restores the previously applied URL without appending history.
 
-The editable config is a small application schema: instructions and response style. It is not an
-arbitrary JSON editor or a mirror of the provider config. The private host selects Engine/provider,
-tools, credentials and transport policy. Config updates affect subsequent runtime materialization;
-they do not change an in-flight Engine call.
+The editable config is a closed, typed application schema: per-Agent provider target/capability,
+credential reference/environment binding, Actor instructions/generation and execution policy.
+It is not an arbitrary JSON editor or executable adapter loader. The host owns the secret resolver
+and tool implementations. An explicitly installed custom Engine can be bound by ID in qualification
+profiles; it is never a fallback. Config updates affect subsequent materialization, not in-flight calls.
 
 ## Reusing components independently
 

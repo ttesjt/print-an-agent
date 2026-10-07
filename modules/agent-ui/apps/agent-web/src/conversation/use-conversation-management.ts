@@ -508,6 +508,11 @@ export function useConversationManagement(input: {
     branchMutationError: currentEntry?.branchMutationError,
     branchMutationTurnId: currentEntry?.branchMutationTurnId,
     cancel,
+    discardDraft: () => {
+      if (target?.kind !== 'draft' || targetKey === undefined) return;
+      abortTarget(targetKey, 'New conversation draft was discarded.');
+      updateEntry(targetKey, target, () => createEntry(target));
+    },
     composerValue: currentEntry?.composerValue ?? '',
     forkFromTurn: (turnId: string) => mutateBranch('fork', turnId),
     historyState: historyStateForSelection(sessionState, currentEntry?.historyState),

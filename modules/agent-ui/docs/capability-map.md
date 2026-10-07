@@ -38,14 +38,15 @@ States:
 
 ## Agent management
 
-| Capability          | Reusable UI responsibility                                      | Application responsibility                               | State       |
-| ------------------- | --------------------------------------------------------------- | -------------------------------------------------------- | ----------- |
-| Agent list          | List/empty/selected/working presentation and callbacks          | Catalog port, loading, refresh, and selection authority  | Implemented |
-| Agent summary       | Identity, lifecycle, metadata, and safe diagnostic presentation | Map backend records into view models                     | Implemented |
-| Agent creation      | Identity/config form shell and application-defined field slots  | Config schema, validation, defaults, and command adapter | Implemented |
-| Agent configuration | Config sections, pending/error/conflict presentation            | Revision authority, codecs, and save command             | Implemented |
-| Disable/reactivate  | Lifecycle actions and confirmation presentation                 | Install lifecycle capability and reconcile authority     | Implemented |
-| Hard deletion       | None; built-in lifecycle does not assume deletion               | Product-specific capability and UI                       | Deferred    |
+| Capability           | Reusable UI responsibility                                      | Application responsibility                                    | State       |
+| -------------------- | --------------------------------------------------------------- | ------------------------------------------------------------- | ----------- |
+| Agent list           | List/empty/selected/working presentation and callbacks          | Catalog port, loading, refresh, and selection authority       | Implemented |
+| Agent summary        | Identity, lifecycle, metadata, and safe diagnostic presentation | Map backend records into view models                          | Implemented |
+| Agent creation       | Identity/config form shell and application-defined field slots  | Config schema, validation, defaults, and command adapter      | Implemented |
+| Agent configuration  | Config sections, pending/error/conflict presentation            | Revision authority, codecs, and save command                  | Implemented |
+| Display-name editing | Native field/form primitives; optional metadata port            | Immutable ID, CAS authority, validation and conflict recovery | Implemented |
+| Disable/reactivate   | Lifecycle actions and confirmation presentation                 | Install lifecycle capability and reconcile authority          | Implemented |
+| Hard deletion        | None; built-in lifecycle does not assume deletion               | Product-specific capability and UI                            | Deferred    |
 
 ## Session management
 
@@ -85,6 +86,7 @@ States:
 
 Application capabilities marked Implemented live in Agent Web, not reusable packages. Tool
 presentation is live-only at its current Agent Base boundary; persisted reasoning is restored
-separately. Compaction and Agent display-name mutation remain deferred pending an explicit public
-authority/consumer. Agent identity is immutable. Remote authentication, durable stream reconnect
+separately. Compaction remains deferred pending an explicit public authority/consumer. Agent ID is
+immutable; display-name updates use the optional metadata capability with revision checks.
+Remote authentication, durable stream reconnect
 and deployment control are not claimed by this local application.

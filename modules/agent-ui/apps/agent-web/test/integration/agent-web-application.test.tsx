@@ -19,6 +19,8 @@ import {
   type DeterministicSessionManagement,
 } from '../../src/adapters/deterministic-session-management.js';
 import { App } from '../../src/app.js';
+import { DEFAULT_AGENT_CONFIG } from '../../src/application/agent-config.js';
+import { domEnvironment } from '../support/dom-environment.js';
 
 const mountedRoots = new Set<Root>();
 const actEnvironment = globalThis as typeof globalThis & {
@@ -27,6 +29,7 @@ const actEnvironment = globalThis as typeof globalThis & {
 
 beforeAll(() => {
   actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+  domEnvironment().setWindowSize({ width: 1280, height: 900 });
 });
 
 afterEach(() => {
@@ -53,11 +56,11 @@ describe('Agent Web deterministic composition', () => {
       />
     );
 
-    expect(markup).toContain('class="ta-ui-app-shell ta-ui-root"');
+    expect(markup).toContain('class="ta-ui-app-shell ta-ui-root ta-ui-agent-web-shell"');
     expect(markup).toContain('class="ta-ui-app-shell__header"');
     expect(markup).toContain('class="ta-ui-app-shell__sidebar"');
     expect(markup).toContain('class="ta-ui-app-shell__main"');
-    expect(markup).toContain('class="ta-ui-app-shell__inspector"');
+    expect(markup).not.toContain('class="ta-ui-app-shell__inspector"');
     expect(markup).toContain('Loading Agents…');
     expect(markup).not.toContain('style=');
   });
@@ -95,6 +98,8 @@ describe('Agent Web deterministic composition', () => {
     expect(view.container.textContent).toContain('Evidence review');
     clickButtonContaining(view.container, 'Evidence review');
     await flushReact();
+
+    clickButton(view.container, 'Session details');
 
     expect(view.container.querySelector('[data-slot="session-details"]')).not.toBeNull();
     expect(view.container.querySelectorAll('[data-slot="session-branch-item"]')).toHaveLength(2);
@@ -203,14 +208,14 @@ describe('Agent Web deterministic composition', () => {
     clickButtonContaining(view.container, 'Review Assistant');
     await flushReact();
 
-    expect(view.container.querySelector('[data-slot="agent-details"]')?.textContent).toContain(
+    expect(view.container.querySelector('[data-slot="app-shell-header"]')?.textContent).toContain(
       'Review Assistant'
     );
     expect(view.container.textContent).toContain('Change review');
 
     pendingInspection.resolve();
     await flushReact();
-    expect(view.container.querySelector('[data-slot="agent-details"]')?.textContent).toContain(
+    expect(view.container.querySelector('[data-slot="app-shell-header"]')?.textContent).toContain(
       'Review Assistant'
     );
     expect(view.container.querySelector('[data-slot="session-details"]')).toBeNull();
@@ -331,6 +336,7 @@ describe('Agent Web deterministic composition', () => {
     const callsBeforeRetry = listCalls;
     clickButton(view.container, 'Retry loading Session');
     await flushReact();
+    clickButton(view.container, 'Session details');
 
     expect(view.container.querySelector('[data-slot="session-details"]')?.textContent).toContain(
       'Evidence review'
@@ -346,14 +352,22 @@ describe('Agent Web deterministic composition', () => {
 
     const updated = await management.updateAgentConfig({
       agentId: inspected.value.details.agentId,
-      config: { instructions: 'Updated instructions.', responseStyle: 'concise' },
+      config: {
+        ...DEFAULT_AGENT_CONFIG,
+        instructions: 'Updated instructions.',
+        responseStyle: 'concise',
+      },
       expectedRevision: inspected.value.config.revision,
     });
     expect(updated.status).toBe('succeeded');
 
     const staleUpdate = await management.updateAgentConfig({
       agentId: inspected.value.details.agentId,
-      config: { instructions: 'Stale instructions.', responseStyle: 'balanced' },
+      config: {
+        ...DEFAULT_AGENT_CONFIG,
+        instructions: 'Stale instructions.',
+        responseStyle: 'balanced',
+      },
       expectedRevision: inspected.value.config.revision,
     });
     expect(staleUpdate).toEqual({
@@ -386,7 +400,11 @@ describe('Agent Web deterministic composition', () => {
   it('creates a new immutable identity and lists its safe projection', async () => {
     const management = createDeterministicAgentManagement();
     const created = await management.createAgent({
-      config: { instructions: 'Test the system.', responseStyle: 'balanced' },
+      config: {
+        ...DEFAULT_AGENT_CONFIG,
+        instructions: 'Test the system.',
+        responseStyle: 'balanced',
+      },
       identity: { agentId: 'test-assistant', displayName: 'Test Assistant' },
     });
     expect(created.status).toBe('succeeded');
@@ -419,7 +437,11 @@ describe('Agent Web deterministic composition', () => {
     if (initial.status === 'failed') return;
     await management.updateAgentConfig({
       agentId: 'research-assistant',
-      config: { instructions: 'Authoritative instructions.', responseStyle: 'balanced' },
+      config: {
+        ...DEFAULT_AGENT_CONFIG,
+        instructions: 'Authoritative instructions.',
+        responseStyle: 'balanced',
+      },
       expectedRevision: initial.value.config.revision,
     });
 
@@ -474,6 +496,42 @@ describe('Agent Web deterministic composition', () => {
       status: 'succeeded',
       value: { details: { identityRevision: 'revision-3', status: 'active' } },
     });
+  });
+
+  it('preserves newer draft edits while adopting the saved authoritative revision', async () => {
+    const base = createDeterministicAgentManagement();
+    const pending = createDeferred<void>();
+    const management: DeterministicAgentManagement = {
+      ...base,
+      updateAgentConfig: async (input) => {
+        await pending.promise;
+        return base.updateAgentConfig(input);
+      },
+    };
+    const view = renderApp(management);
+    await flushReact();
+    const instructions =
+      view.container.querySelector<HTMLTextAreaElement>('#settings-instructions');
+    changeValue(instructions, 'Submitted configuration.');
+    clickButton(view.container, 'Save configuration');
+    changeValue(instructions, 'Newer unsaved configuration.');
+    pending.resolve();
+    await flushReact();
+    expect(instructions?.value).toBe('Newer unsaved configuration.');
+    expect(
+      view.container.querySelector('[data-slot="agent-config-form"]')?.getAttribute('data-dirty')
+    ).toBe('true');
+    const saved = await management.readAgentConfig({ agentId: 'research-assistant' });
+    expect(saved).toMatchObject({
+      status: 'succeeded',
+      value: { revision: 'revision-2', value: { instructions: 'Submitted configuration.' } },
+    });
+    clickButton(view.container, 'Discard changes');
+    await flushReact();
+    expect(instructions?.value).toBe('Submitted configuration.');
+    expect(
+      view.container.querySelector('[data-slot="agent-config-form"]')?.hasAttribute('data-dirty')
+    ).toBe(false);
   });
 
   it('does not let a delayed mutation replace a newer Agent selection', async () => {
@@ -556,7 +614,7 @@ describe('Agent Web deterministic composition', () => {
         .querySelector<HTMLTextAreaElement>('#settings-instructions')
         ?.getAttribute('aria-invalid')
     ).toBe('true');
-    expect(view.container.textContent).toContain('Instructions are required.');
+    expect(view.container.textContent).toContain('Enter a valid instructions.');
 
     clickButton(view.container, 'Disable Agent');
     const dialog = document.querySelector<HTMLDialogElement>('dialog[data-slot="dialog"]');
@@ -647,6 +705,7 @@ describe('Agent Web deterministic composition', () => {
     await flushReact();
 
     expect(view.container.querySelector('[data-session-draft]')).toBeNull();
+    clickButton(view.container, 'Session details');
     expect(view.container.querySelector('[data-slot="session-details"]')?.textContent).toContain(
       'A new topic'
     );
@@ -958,7 +1017,7 @@ describe('Agent Web deterministic composition', () => {
     clickButtonContaining(view.container, 'Review Assistant');
     await flushReact();
     expect(aborted).toBe(false);
-    expect(view.container.querySelector('[data-slot="agent-details"]')?.textContent).toContain(
+    expect(view.container.querySelector('[data-slot="app-shell-header"]')?.textContent).toContain(
       'Review Assistant'
     );
     expect(view.container.textContent).not.toContain('Partial reasoning');
@@ -1352,6 +1411,7 @@ function renderApp(
   act(() =>
     root.render(
       <App
+        requestedLocation={{ agentId: 'research-assistant', view: 'settings' }}
         ports={{
           agents: agentManagement,
           conversations: conversationManagement,
@@ -1406,6 +1466,8 @@ async function selectEvidenceReview(container: ParentNode) {
   await flushReact();
   clickButtonContaining(container, 'Evidence review');
   await flushReact();
+  if (container.querySelector('[data-slot="app-shell-inspector"]') === null)
+    clickButton(container, 'Session details');
 }
 
 function createDeferred<Value>() {

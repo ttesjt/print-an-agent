@@ -2,9 +2,12 @@ import type { ComponentPropsWithRef } from 'react';
 
 import { joinStyleHooks } from '../internal/style-hooks.js';
 
-export type TextInputType = 'email' | 'password' | 'search' | 'tel' | 'text' | 'url';
+export type TextInputType = 'email' | 'number' | 'password' | 'search' | 'tel' | 'text' | 'url';
 
-type NativeTextInputProps = Omit<ComponentPropsWithRef<'input'>, 'style' | 'type'>;
+type NativeTextInputProps = Omit<
+  ComponentPropsWithRef<'input'>,
+  'style' | 'type' | 'children' | 'dangerouslySetInnerHTML'
+>;
 
 export interface TextInputProps extends NativeTextInputProps {
   readonly style?: never;
@@ -94,7 +97,10 @@ export function Select({
   );
 }
 
-type NativeCheckboxProps = Omit<ComponentPropsWithRef<'input'>, 'style' | 'type'>;
+type NativeCheckboxProps = Omit<
+  ComponentPropsWithRef<'input'>,
+  'style' | 'type' | 'children' | 'dangerouslySetInnerHTML'
+>;
 
 export interface CheckboxProps extends NativeCheckboxProps {
   readonly style?: never;
@@ -113,7 +119,10 @@ export function Checkbox({ className, disabled = false, ...props }: CheckboxProp
   );
 }
 
-type NativeSwitchProps = Omit<ComponentPropsWithRef<'input'>, 'role' | 'style' | 'type'>;
+type NativeSwitchProps = Omit<
+  ComponentPropsWithRef<'input'>,
+  'role' | 'style' | 'type' | 'children' | 'dangerouslySetInnerHTML'
+>;
 
 export interface SwitchProps extends NativeSwitchProps {
   readonly style?: never;

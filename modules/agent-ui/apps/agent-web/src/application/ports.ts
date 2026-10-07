@@ -4,6 +4,7 @@ import type {
   AgentCreationPort,
   AgentInspectionPort,
   AgentLifecyclePort,
+  AgentMetadataPort,
   ConversationHistoryPort,
   ConversationInteractionPort,
   SessionBranchMutationPort,
@@ -13,7 +14,9 @@ import type {
   SessionMetadataPort,
   SessionNavigationPort,
   SessionPurgePort,
+  AgentManagementResult,
 } from '@ta-agent/ui-contracts';
+import type { AgentModelStatus } from './agent-config.js';
 
 /** Application-owned grouping of the narrow Agent management capabilities used by Agent Web. */
 export interface AgentManagementPort<Config>
@@ -22,7 +25,15 @@ export interface AgentManagementPort<Config>
     AgentConfigurationPort<Config>,
     AgentCreationPort<Config>,
     AgentInspectionPort<Config>,
-    AgentLifecyclePort {}
+    AgentLifecyclePort,
+    AgentMetadataPort {
+  inspectModel(
+    input: Readonly<{ agentId: string; signal?: AbortSignal }>
+  ): Promise<AgentManagementResult<AgentModelStatus>>;
+  testModelConnection(
+    input: Readonly<{ agentId: string; expectedRevision: string; signal?: AbortSignal }>
+  ): Promise<AgentManagementResult<Readonly<{ revision: string; checkedAt: string }>>>;
+}
 
 /** Application-owned grouping of Session capabilities. It does not prescribe one backend. */
 export interface SessionManagementPort

@@ -1,4 +1,4 @@
-import { createRef } from 'react';
+import { createRef, type ComponentProps } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
@@ -25,6 +25,24 @@ afterEach(cleanupReactRoots);
 afterAll(disableReactActEnvironment);
 
 describe('form controls', () => {
+  it('keeps native void inputs child-free at the public type boundary', () => {
+    type MissingChildren<T> = 'children' extends keyof T ? false : true;
+    const input: MissingChildren<ComponentProps<typeof TextInput>> = true;
+    const checkbox: MissingChildren<ComponentProps<typeof Checkbox>> = true;
+    const toggle: MissingChildren<ComponentProps<typeof Switch>> = true;
+    expect([input, checkbox, toggle]).toEqual([true, true, true]);
+  });
+  it('supports native numeric constraints without owning numeric parsing or form state', () => {
+    const markup = renderToStaticMarkup(
+      <TextInput type="number" min={0} max={2} step={0.1} defaultValue={0.2} />
+    );
+    expect(markup).toContain('type="number"');
+    expect(markup).toContain('min="0"');
+    expect(markup).toContain('max="2"');
+    expect(markup).toContain('step="0.1"');
+    expect(markup).not.toContain('style=');
+  });
+
   it('preserves native controlled, uncontrolled, readonly, and disabled attributes', () => {
     const markup = renderToStaticMarkup(
       <form>

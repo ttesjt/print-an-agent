@@ -8,6 +8,7 @@ export {
 } from './catalog/lifecycle.js';
 export { defineAgentIdentitySnapshot, isAgentIdentityStatus } from './catalog/snapshot.js';
 export { AgentIdentityError } from './types/errors.js';
+export { renameAgentIdentity } from './catalog/metadata.js';
 export type * from './catalog/contracts.js';
 export type {
   AgentId,

@@ -13,14 +13,19 @@ import type {
 } from '@ta-agent/ui-contracts';
 
 import type { AgentManagementPort } from '../application/ports.js';
-import type { DemoAgentConfig } from '../application/demo-agent-config.js';
+import type { AgentWebConfig } from '../application/agent-config.js';
+import { DEFAULT_AGENT_CONFIG } from '../application/agent-config.js';
+import {
+  AgentConfigValidationError,
+  defineAgentWebConfig,
+} from '../application/agent-config-validation.js';
 
-export type { DemoAgentConfig, DemoResponseStyle } from '../application/demo-agent-config.js';
+export type { AgentWebConfig, AgentResponseStyle } from '../application/agent-config.js';
 
-export type DeterministicAgentManagement = AgentManagementPort<DemoAgentConfig>;
+export type DeterministicAgentManagement = AgentManagementPort<AgentWebConfig>;
 
 interface MutableAgentRecord {
-  config: DemoAgentConfig;
+  config: AgentWebConfig;
   configRevision: number;
   createdAt: string;
   displayName: string;
@@ -37,6 +42,8 @@ export function createDeterministicAgentManagement(): DeterministicAgentManageme
       'research-assistant',
       {
         config: {
+          ...DEFAULT_AGENT_CONFIG,
+          model: { kind: 'engine', engineId: 'agent-web.offline' },
           instructions: 'Research carefully and cite evidence.',
           responseStyle: 'balanced',
         },
@@ -51,7 +58,12 @@ export function createDeterministicAgentManagement(): DeterministicAgentManageme
     [
       'review-assistant',
       {
-        config: { instructions: 'Review changes for correctness.', responseStyle: 'concise' },
+        config: {
+          ...DEFAULT_AGENT_CONFIG,
+          model: { kind: 'engine', engineId: 'agent-web.offline' },
+          instructions: 'Review changes for correctness.',
+          responseStyle: 'concise',
+        },
         configRevision: 1,
         createdAt: new Date(INITIAL_TIME + 1_000).toISOString(),
         displayName: 'Review Assistant',
@@ -64,8 +76,53 @@ export function createDeterministicAgentManagement(): DeterministicAgentManageme
   let logicalClock = 2;
   const now = () => new Date(INITIAL_TIME + logicalClock++ * 1_000).toISOString();
 
-  return Object.freeze({
-    createAgent: (input: CreateAgentInput<DemoAgentConfig>) =>
+  const management: DeterministicAgentManagement = {
+    renameAgent: (input) =>
+      defer(() => {
+        input.signal?.throwIfAborted();
+        const record = records.get(input.agentId);
+        if (record === undefined) return failed('not-found', 'Agent not found.');
+        if (revision(record.identityRevision) !== input.expectedRevision)
+          return conflict(
+            revision(record.identityRevision),
+            'Agent identity changed. Reload current identity.'
+          );
+        if (input.displayName.trim().length === 0)
+          return {
+            status: 'failed',
+            failure: {
+              code: 'validation-failed',
+              message: 'Display name is required.',
+              fieldErrors: [{ field: 'displayName', message: 'Enter a display name.' }],
+            },
+          };
+        record.displayName = input.displayName;
+        record.identityRevision++;
+        record.updatedAt = now();
+        return succeeded(details(input.agentId, record));
+      }),
+    inspectModel: (input) =>
+      defer(() => {
+        const inspected = inspect(records, input);
+        if (inspected.status === 'failed') return inspected;
+        return succeeded({
+          revision: inspected.value.config.revision,
+          status:
+            inspected.value.config.value.model.kind === 'unconfigured'
+              ? ('unconfigured' as const)
+              : ('engine' as const),
+          label: 'Explicit deterministic demonstration',
+        });
+      }),
+    testModelConnection: (input) =>
+      defer(() => {
+        input.signal?.throwIfAborted();
+        return failed(
+          'unavailable',
+          'Connection testing is not available in deterministic fixture mode.'
+        );
+      }),
+    createAgent: (input: CreateAgentInput<AgentWebConfig>) =>
       defer(() => {
         input.signal?.throwIfAborted();
         const validation = validateCreation(input);
@@ -93,9 +150,10 @@ export function createDeterministicAgentManagement(): DeterministicAgentManageme
     reactivateAgent: (input: ChangeAgentLifecycleInput) =>
       defer(() => changeLifecycle(records, input, 'active', now)),
     readAgentConfig: (input: ReadAgentConfigInput) => defer(() => readConfig(records, input)),
-    updateAgentConfig: (input: UpdateAgentConfigInput<DemoAgentConfig>) =>
+    updateAgentConfig: (input: UpdateAgentConfigInput<AgentWebConfig>) =>
       defer(() => updateConfig(records, input)),
-  });
+  };
+  return Object.freeze(management);
 }
 
 function defer<Value>(operation: () => Value): Promise<Value> {
@@ -116,7 +174,7 @@ function list(
 function inspect(
   records: ReadonlyMap<string, MutableAgentRecord>,
   input: InspectAgentInput
-): AgentManagementResult<AgentSnapshot<DemoAgentConfig>> {
+): AgentManagementResult<AgentSnapshot<AgentWebConfig>> {
   input.signal?.throwIfAborted();
   const record = records.get(input.agentId);
   return record === undefined
@@ -134,7 +192,7 @@ function readConfig(records: ReadonlyMap<string, MutableAgentRecord>, input: Rea
 
 function updateConfig(
   records: Map<string, MutableAgentRecord>,
-  input: UpdateAgentConfigInput<DemoAgentConfig>
+  input: UpdateAgentConfigInput<AgentWebConfig>
 ) {
   input.signal?.throwIfAborted();
   const record = records.get(input.agentId);
@@ -177,8 +235,8 @@ function changeLifecycle(
 }
 
 function validateCreation(
-  input: CreateAgentInput<DemoAgentConfig>
-): AgentManagementResult<AgentSnapshot<DemoAgentConfig>> | undefined {
+  input: CreateAgentInput<AgentWebConfig>
+): AgentManagementResult<AgentSnapshot<AgentWebConfig>> | undefined {
   const fieldErrors = [
     ...(input.identity.agentId.trim().length === 0
       ? [{ field: 'agentId', message: 'Agent ID is required.' }]
@@ -193,10 +251,14 @@ function validateCreation(
     : undefined;
 }
 
-function validateConfig(config: DemoAgentConfig) {
-  return config.instructions.trim().length === 0
-    ? Object.freeze([{ field: 'instructions', message: 'Instructions are required.' }])
-    : Object.freeze([]);
+function validateConfig(config: AgentWebConfig) {
+  try {
+    defineAgentWebConfig(config);
+    return [];
+  } catch (error) {
+    if (error instanceof AgentConfigValidationError) return error.fieldErrors;
+    throw error;
+  }
 }
 
 function summary(agentId: string, record: MutableAgentRecord): AgentSummary {
@@ -233,8 +295,8 @@ function revision(value: number): AgentRevision {
   return `revision-${String(value)}`;
 }
 
-function freezeConfig(config: DemoAgentConfig): DemoAgentConfig {
-  return Object.freeze({ instructions: config.instructions, responseStyle: config.responseStyle });
+function freezeConfig(config: AgentWebConfig): AgentWebConfig {
+  return defineAgentWebConfig(config);
 }
 
 function succeeded<Value>(value: Value): AgentManagementResult<Value> {

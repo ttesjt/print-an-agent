@@ -3,11 +3,14 @@ import type {
   AgentIdentityDraft,
   AgentManagementFailure,
   AgentSummary,
+  AgentDetails,
 } from '@ta-agent/ui-contracts';
 import type { AgentIdentityFieldErrors } from '@ta-agent/ui-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { DemoAgentConfig } from '../application/demo-agent-config.js';
+import type { AgentConfigFieldErrors, AgentWebConfig } from '../application/agent-config.js';
+import { DEFAULT_AGENT_CONFIG } from '../application/agent-config.js';
+import { sameAgentConfig } from '../application/agent-config-equality.js';
 import type { AgentManagementPort } from '../application/ports.js';
 import type { WorkspaceLocation } from '../application/workspace-location.js';
 import type { AgentSelectionState } from '../components/agent-workspace.js';
@@ -17,19 +20,13 @@ export type AgentCatalogState =
   | Readonly<{ status: 'loading' }>
   | Readonly<{ status: 'ready'; agents: readonly AgentSummary[] }>;
 
-export interface DemoConfigFieldErrors {
-  readonly instructions?: string;
-}
-
 const EMPTY_IDENTITY: AgentIdentityDraft = Object.freeze({ agentId: '', displayName: '' });
-const DEFAULT_CONFIG: DemoAgentConfig = Object.freeze({
-  instructions: 'Help the user clearly and accurately.',
-  responseStyle: 'balanced',
-});
+const DEFAULT_CONFIG = DEFAULT_AGENT_CONFIG;
 
 export function useAgentManagement(
-  management: AgentManagementPort<DemoAgentConfig>,
-  requestedLocation?: WorkspaceLocation
+  management: AgentManagementPort<AgentWebConfig>,
+  requestedLocation?: WorkspaceLocation,
+  creationConfig = DEFAULT_CONFIG
 ) {
   const consumedLocation = useRef<WorkspaceLocation | undefined>(undefined);
   const [catalogState, setCatalogState] = useState<AgentCatalogState>({ status: 'loading' });
@@ -39,17 +36,17 @@ export function useAgentManagement(
   const [configPendingAgentId, setConfigPendingAgentId] = useState<string>();
   const [lifecyclePendingAgentId, setLifecyclePendingAgentId] = useState<string>();
   const [configError, setConfigError] = useState<string>();
-  const [configFieldErrors, setConfigFieldErrors] = useState<DemoConfigFieldErrors>({});
+  const [configFieldErrors, setConfigFieldErrors] = useState<AgentConfigFieldErrors>({});
   const [lifecycleError, setLifecycleError] = useState<string>();
   const [lifecycleConflict, setLifecycleConflict] = useState<string>();
   const [createOpen, setCreateOpenState] = useState(false);
   const [createIdentity, setCreateIdentity] = useState<AgentIdentityDraft>(EMPTY_IDENTITY);
-  const [createConfig, setCreateConfig] = useState<DemoAgentConfig>(DEFAULT_CONFIG);
+  const [createConfig, setCreateConfig] = useState<AgentWebConfig>(creationConfig);
   const [createPending, setCreatePending] = useState(false);
   const [createError, setCreateError] = useState<string>();
   const [createIdentityErrors, setCreateIdentityErrors] = useState<AgentIdentityFieldErrors>({});
-  const [createConfigErrors, setCreateConfigErrors] = useState<DemoConfigFieldErrors>({});
-  const [configDraft, setConfigDraftState] = useState<DemoAgentConfig>(DEFAULT_CONFIG);
+  const [createConfigErrors, setCreateConfigErrors] = useState<AgentConfigFieldErrors>({});
+  const [configDraft, setConfigDraftState] = useState<AgentWebConfig>(DEFAULT_CONFIG);
   const [configConflict, setConfigConflict] = useState<string>();
   const [disableOpen, setDisableOpen] = useState(false);
   const selectedAgentIdRef = useRef<string | undefined>(undefined);
@@ -71,8 +68,10 @@ export function useAgentManagement(
     )
       return;
     consumedLocation.current = requestedLocation;
-    selectAgent(requestedLocation.agentId);
-  }, [catalogState.status, requestedLocation, selectAgent]);
+    selectAgent(
+      requestedLocation.agentId ?? chooseSelection(selectedAgentIdRef.current, catalogState.agents)
+    );
+  }, [catalogState, requestedLocation, selectAgent]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -160,9 +159,10 @@ export function useAgentManagement(
       }
       setCreateOpenState(false);
       setCreateIdentity(EMPTY_IDENTITY);
-      setCreateConfig(DEFAULT_CONFIG);
+      setCreateConfig(creationConfig);
       selectAgent(result.value.details.agentId);
       refreshCatalog();
+      return result.value.details.agentId;
     } catch (error) {
       if (!controller.signal.aborted && createOperationRef.current === controller) {
         setCreateError(errorMessage(error, 'The Agent could not be created.'));
@@ -179,6 +179,7 @@ export function useAgentManagement(
     if (selectionState.status !== 'ready') return;
     const selected = selectionState.snapshot;
     const agentId = selected.details.agentId;
+    const submittedConfig = configDraft;
     const controller = replaceOperation(configOperationRef);
     setConfigPendingAgentId(agentId);
     setConfigError(undefined);
@@ -187,7 +188,7 @@ export function useAgentManagement(
     try {
       const result = await management.updateAgentConfig({
         agentId,
-        config: configDraft,
+        config: submittedConfig,
         expectedRevision: selected.config.revision,
         signal: controller.signal,
       });
@@ -205,6 +206,9 @@ export function useAgentManagement(
       }
       refreshCatalog();
       if (selectedAgentIdRef.current === agentId) {
+        setConfigDraftState((current) =>
+          current === submittedConfig ? result.value.value : current
+        );
         setSelectionState((current) =>
           current.status === 'ready' && current.snapshot.details.agentId === agentId
             ? {
@@ -373,7 +377,7 @@ export function useAgentManagement(
     catalogState,
     changeLifecycle,
     configConflict,
-    configDirty: selected !== undefined && !sameConfig(configDraft, selected.config.value),
+    configDirty: selected !== undefined && !sameAgentConfig(configDraft, selected.config.value),
     configDraft,
     configError,
     configFieldErrors,
@@ -391,6 +395,15 @@ export function useAgentManagement(
     lifecycleError,
     lifecycleWorking: lifecyclePendingAgentId === selectedAgentId,
     refreshCatalog,
+    updateMetadata: (details: AgentDetails) => {
+      if (selectedAgentIdRef.current === details.agentId)
+        setSelectionState((current) =>
+          current.status === 'ready' && current.snapshot.details.agentId === details.agentId
+            ? { ...current, snapshot: { ...current.snapshot, details } }
+            : current
+        );
+      refreshCatalog();
+    },
     reloadConfig,
     reloadLifecycle,
     resetConfig: () => {
@@ -404,12 +417,12 @@ export function useAgentManagement(
     selected,
     selectedAgentId,
     selectionState,
-    setConfigDraft: (config: DemoAgentConfig) => {
+    setConfigDraft: (config: AgentWebConfig) => {
       setConfigDraftState(config);
       setConfigFieldErrors({});
       setConfigError(undefined);
     },
-    setCreateConfig: (config: DemoAgentConfig) => {
+    setCreateConfig: (config: AgentWebConfig) => {
       setCreateConfig(config);
       setCreateConfigErrors({});
       setCreateError(undefined);
@@ -440,15 +453,11 @@ function chooseSelection(current: string | undefined, agents: readonly AgentSumm
   return agents[0]?.agentId;
 }
 
-function sameConfig(left: DemoAgentConfig, right: DemoAgentConfig) {
-  return left.instructions === right.instructions && left.responseStyle === right.responseStyle;
-}
-
 function handleConfigFailure(
   failure: AgentManagementFailure,
   setConflict: (message: string | undefined) => void,
   setError: (message: string | undefined) => void,
-  setFieldErrors: (errors: DemoConfigFieldErrors) => void
+  setFieldErrors: (errors: AgentConfigFieldErrors) => void
 ) {
   if (failure.code === 'revision-conflict') {
     setConflict(failure.message);
@@ -463,14 +472,15 @@ function handleConfigFailure(
 function groupFieldErrors(fieldErrors: readonly AgentFieldError[]) {
   let agentId: string | undefined;
   let displayName: string | undefined;
-  let instructions: string | undefined;
+  const config: Record<string, string> = {};
   for (const error of fieldErrors) {
     if (error.field === 'agentId') agentId = error.message;
     if (error.field === 'displayName') displayName = error.message;
-    if (error.field === 'instructions') instructions = error.message;
+    if (error.field !== 'agentId' && error.field !== 'displayName')
+      config[error.field] = error.message;
   }
   return {
-    config: Object.freeze({ ...(instructions === undefined ? {} : { instructions }) }),
+    config: Object.freeze(config),
     identity: Object.freeze({
       ...(agentId === undefined ? {} : { agentId }),
       ...(displayName === undefined ? {} : { displayName }),

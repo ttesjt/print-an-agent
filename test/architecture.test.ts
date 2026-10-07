@@ -463,6 +463,11 @@ describe('module architecture', () => {
     for (const file of typeScriptFiles(appSource)) {
       const source = readFileSync(file, 'utf8');
       const isNode = normalize(relative(appSource, file)).startsWith('node/');
+      if (!isNode)
+        expect(
+          source,
+          `${normalize(file)} must not read server credentials or build-time environment values`
+        ).not.toMatch(/\bprocess\.env\b|\bimport\.meta\.env\b/u);
       for (const specifier of moduleSpecifiers(source)) {
         if (!isNode) {
           expect(specifier, `${normalize(file)} must remain browser-safe`).not.toMatch(
@@ -485,6 +490,20 @@ describe('module architecture', () => {
         expect(specifier).not.toBe('node:sqlite');
       }
     }
+  });
+
+  it('keeps Agent Web provider selection out of the root/port CLI and deterministic Engines opt-in', () => {
+    const appSource = join(repositoryRoot, 'modules', 'agent-ui', 'apps', 'agent-web', 'src');
+    const host = readFileSync(join(appSource, 'node', 'main.ts'), 'utf8');
+    expect(host).toContain('--root');
+    expect(host).toContain('--port');
+    expect(host).not.toContain('--provider');
+    expect(host).not.toContain('createOfflineWebEngine');
+    expect(moduleSpecifiers(host)).not.toContain('./host.js');
+    expect(existsSync(join(appSource, 'node', 'host.ts'))).toBe(false);
+    const browser = readFileSync(join(appSource, 'application', 'browser-composition.tsx'), 'utf8');
+    expect(browser).toContain("mode === 'local'");
+    expect(browser).toContain("mode !== 'deterministic'");
   });
 
   it('keeps reusable Agent UI package roles directed and store agnostic', () => {

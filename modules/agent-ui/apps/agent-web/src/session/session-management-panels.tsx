@@ -8,7 +8,6 @@ import {
   PurgeSessionDialog,
   RenameSessionDialog,
   RetireSessionDialog,
-  SessionCatalog,
   SessionDetailsView,
   SessionLifecycleActions,
   SessionNavigationView,
@@ -19,6 +18,7 @@ import {
 import { ConversationWorkspace } from '../conversation/conversation-workspace.js';
 import type { ConversationManagementController } from '../conversation/use-conversation-management.js';
 import type { SessionManagementController } from './use-session-management.js';
+import { ConversationSessionCatalog } from './conversation-session-catalog.js';
 
 const STATUS_LABELS = Object.freeze({ active: 'Active', retired: 'Retired' });
 
@@ -26,12 +26,18 @@ export function SessionSidebar({
   agentSelected,
   controller,
   workingConversationSessionIds,
+  submittedDrafts = [],
+  sessionListKey = (id: string) => id,
+  onSelectDraft,
   onNew,
   onSelectSession,
 }: Readonly<{
   agentSelected: boolean;
   controller: SessionManagementController;
   workingConversationSessionIds: readonly string[];
+  submittedDrafts?: ConversationManagementController['submittedDrafts'];
+  sessionListKey?: (sessionId: string) => string;
+  onSelectDraft?: (draftId: string) => void;
   onNew?: () => void;
   onSelectSession?: (sessionId: string) => void;
 }>) {
@@ -72,35 +78,25 @@ export function SessionSidebar({
           Retired
         </Button>
       </Cluster>
-      <SessionCatalog
-        emptyDescription={
-          agentSelected
-            ? controller.lifecycleFilter === 'active'
-              ? 'Start a new conversation to create one.'
-              : 'Retired Sessions remain readable until permanently deleted.'
-            : 'Select an Agent first.'
-        }
-        disabledSessionIds={
-          controller.workingSessionId === undefined ? [] : [controller.workingSessionId]
-        }
-        emptyTitle={
-          agentSelected ? `No ${controller.lifecycleFilter} Sessions.` : 'No Agent selected.'
-        }
-        formatMetadata={(session) => `${String(session.turnCount)} turns`}
-        loadMoreLabel="Load more Sessions"
-        loadingLabel="Loading Sessions…"
-        onLoadMore={() => void controller.loadMore()}
-        onRetry={controller.refreshCatalog}
+      {agentSelected &&
+      controller.selectionState.status === 'draft' &&
+      !submittedDrafts.some(
+        (draft) =>
+          controller.selectionState.status === 'draft' &&
+          draft.draftId === controller.selectionState.draftId
+      ) ? (
+        <div className="ta-ui-agent-web-draft-session" data-session-draft-entry aria-current="page">
+          New conversation
+        </div>
+      ) : null}
+      <ConversationSessionCatalog
+        agentSelected={agentSelected}
+        controller={controller}
+        onSelectDraft={onSelectDraft}
         onSelectSession={onSelectSession ?? controller.selectSession}
-        retryLabel="Retry"
-        state={controller.catalogState}
-        statusLabels={STATUS_LABELS}
-        untitledLabel="Untitled Session"
+        sessionListKey={sessionListKey}
+        submittedDrafts={controller.lifecycleFilter === 'active' ? submittedDrafts : []}
         workingSessionIds={workingSessionIds}
-        workingLabel="Working"
-        {...(controller.selectedSessionId === undefined
-          ? {}
-          : { selectedSessionId: controller.selectedSessionId })}
       />
     </Stack>
   );
@@ -124,9 +120,10 @@ export function SessionWorkspace({
   if (state.status === 'draft') {
     return (
       <div className="ta-ui-agent-web-conversation-page" data-session-draft>
-        <header>
-          <h1>New conversation</h1>
-          <p>This draft has no Session identity yet. Send a message to create it.</p>
+        <header className="ta-ui-conversation-heading">
+          <h1>
+            {conversation.activeInteraction === undefined ? 'New conversation' : 'Untitled Session'}
+          </h1>
         </header>
         <ConversationWorkspace
           controller={conversation}
@@ -158,7 +155,7 @@ export function SessionWorkspace({
 
   return (
     <div className="ta-ui-agent-web-conversation-page">
-      <header>
+      <header className="ta-ui-conversation-heading">
         <h1>{state.details.title ?? 'Untitled Session'}</h1>
       </header>
       <ConversationWorkspace

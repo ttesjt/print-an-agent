@@ -1,4 +1,4 @@
-/* Application layout only. Public component visuals remain in ui-styles. */
+/* Application shell layout and navigation only. Public component visuals remain in ui-styles. */
 .ta-ui-agent-web-shell {
   block-size: 100dvh;
   min-block-size: 0;
@@ -59,4 +59,10 @@
   .ta-ui-agent-web-shell > :where(.ta-ui-app-shell__sidebar, .ta-ui-app-shell__inspector) {
     max-block-size: 25dvh;
   }
+}
+.ta-ui-agent-web-draft-session {
+  padding: var(--ta-ui-space-3);
+  border-radius: var(--ta-ui-radius-small);
+  background: var(--ta-ui-color-accent-soft);
+  font-weight: var(--ta-ui-font-weight-strong);
 }

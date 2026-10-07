@@ -48,6 +48,45 @@ afterEach(cleanupReactRoots);
 afterAll(disableReactActEnvironment);
 
 describe('conversation components', () => {
+  it('renders a continuous user/assistant message sequence without an exchange card or completed banner', () => {
+    const turn = completedTurn();
+    const markup = renderToStaticMarkup(
+      <ConversationTimeline
+        emptyTitle="No messages"
+        loadMoreLabel="Older"
+        loadingLabel="Loading"
+        retryLabel="Retry"
+      >
+        {[1, 2].map((index) => (
+          <ConversationTurn
+            key={index}
+            assistantText={`Answer ${index}`}
+            labels={LABELS}
+            actions={<button type="button">Fork</button>}
+            state="completed"
+            userMessage={{ ...turn.userMessage, text: `Question ${index}` }}
+          />
+        ))}
+      </ConversationTimeline>
+    );
+    const container = document.createElement('div');
+    container.innerHTML = markup;
+    expect(
+      [
+        ...container.querySelectorAll(
+          '[data-slot="user-message"], [data-slot="assistant-message"]'
+        ),
+      ].map((node) => node.getAttribute('data-role'))
+    ).toEqual(['user', 'assistant', 'user', 'assistant']);
+    expect(container.querySelector('[data-slot="conversation-turn"] > article')).toBeNull();
+    expect(container.querySelector('.ta-ui-conversation-turn__header')).toBeNull();
+    expect(
+      container.querySelectorAll(
+        '[data-slot="conversation-response"] .ta-ui-conversation-turn__actions'
+      )
+    ).toHaveLength(2);
+    expect(markup).not.toContain('style=');
+  });
   it('keeps assistant, model-turn reasoning, and safe tool presentation structurally separate', () => {
     const turn = completedTurn();
     const markup = renderToStaticMarkup(

@@ -19,6 +19,7 @@ States:
 | Stack, cluster, and grid | Layout structure and semantic hooks                              | Choose composition and responsive arrangement | Implemented |
 | Application shell        | Persistent header/sidebar/main/inspector structure               | Routing, active view, and panel state         | Implemented |
 | Button and icon button   | Native behavior, variants, disabled/pending semantics            | Action authority and pending state            | Implemented |
+| Action bar               | Named, composable native control group and quiet style hooks     | Items, commands, and navigation authority     | Implemented |
 | Form field and controls  | Label/error relationships, native input behavior, style hooks    | Validation rules, values, and submission      | Implemented |
 | Status and feedback      | Loading, error, empty, notice, and badge presentation            | Produce safe messages and recovery actions    | Implemented |
 | Data display             | Section, label/value, timestamp, and identifier presentation     | Select and normalize displayed data           | Implemented |
@@ -26,15 +27,16 @@ States:
 
 ## Overlay and navigation primitives
 
-| Capability           | Reusable UI responsibility                                         | Application responsibility                   | State       |
-| -------------------- | ------------------------------------------------------------------ | -------------------------------------------- | ----------- |
-| Dialog               | Native modal lifecycle, focus restore, Escape, portal, style hooks | Open state, content, and command execution   | Implemented |
-| Confirmation         | Destructive/ordinary confirmation structure and pending state      | Copy, authority, and operation result        | Implemented |
-| Modal Drawer         | Start/end modal panel lifecycle and style hooks                    | Visibility, breakpoint, and selected content | Implemented |
-| Tabs                 | Keyboard navigation and ARIA relationships                         | Active value and panel content               | Implemented |
-| Disclosure           | Native expand/collapse behavior and state hooks                    | Content and persistence choice               | Implemented |
-| Navigation Rail      | Named navigation structure and semantic regions                    | Routes, records, and selection authority     | Implemented |
-| Popover/menu/tooltip | Accessible transient interaction                                   | Actions and application policy               | Deferred    |
+| Capability      | Reusable UI responsibility                                         | Application responsibility                   | State       |
+| --------------- | ------------------------------------------------------------------ | -------------------------------------------- | ----------- |
+| Dialog          | Native modal lifecycle, focus restore, Escape, portal, style hooks | Open state, content, and command execution   | Implemented |
+| Confirmation    | Destructive/ordinary confirmation structure and pending state      | Copy, authority, and operation result        | Implemented |
+| Modal Drawer    | Start/end modal panel lifecycle and style hooks                    | Visibility, breakpoint, and selected content | Implemented |
+| Tabs            | Keyboard navigation and ARIA relationships                         | Active value and panel content               | Implemented |
+| Disclosure      | Native expand/collapse behavior and state hooks                    | Content and persistence choice               | Implemented |
+| Navigation Rail | Named navigation structure and semantic regions                    | Routes, records, and selection authority     | Implemented |
+| Tooltip         | Hover/focus description, Escape, placement, and cleanup            | Safe informational content and trigger       | Implemented |
+| Popover/menu    | Accessible transient interaction                                   | Actions and application policy               | Deferred    |
 
 ## Agent management
 
@@ -62,15 +64,16 @@ States:
 
 ## Conversation and model activity
 
-| Capability              | Reusable UI responsibility                          | Application responsibility                                | State       |
-| ----------------------- | --------------------------------------------------- | --------------------------------------------------------- | ----------- |
-| Transcript              | Ordered turns and empty/loading/failure states      | History query, pagination, and normalization              | Implemented |
-| User/assistant messages | Semantic message presentation and metadata slots    | Supply safe content and provenance projection             | Implemented |
-| Reasoning blocks        | Live/saved presentation with model-turn boundaries  | Stream events and persisted presentation records          | Implemented |
-| Composer                | Draft input, IME-safe submit, send/cancel controls  | Readiness, command execution, and cancellation            | Implemented |
-| Streaming state         | Ordered delta and terminal-state presentation       | Transport, validation, reconnect policy, and backpressure | Implemented |
-| Tool activity           | Tool call/result status and expandable safe details | Normalize tool events and redact result data              | Implemented |
-| Conversation scrolling  | Follow-output and user-scroll preservation          | Conversation identity and content revisions               | Implemented |
+| Capability              | Reusable UI responsibility                               | Application responsibility                                       | State       |
+| ----------------------- | -------------------------------------------------------- | ---------------------------------------------------------------- | ----------- |
+| Transcript              | Ordered turns and empty/loading/failure states           | History query, pagination, and normalization                     | Implemented |
+| User/assistant messages | Semantic message presentation and metadata slots         | Supply safe content and provenance projection                    | Implemented |
+| Reasoning blocks        | Live/saved presentation with model-turn boundaries       | Stream events and persisted presentation records                 | Implemented |
+| Composer                | Draft input, IME-safe submit, send/cancel controls       | Readiness, command execution, and cancellation                   | Implemented |
+| Streaming state         | Ordered delta and terminal-state presentation            | Transport, validation, reconnect policy, and backpressure        | Implemented |
+| Tool activity           | Tool call/result status and expandable safe details      | Normalize tool events and redact result data                     | Implemented |
+| Conversation scrolling  | Follow-output and user-scroll preservation               | Conversation identity and content revisions                      | Implemented |
+| Completed Turn actions  | Optional commands and hover/focus timestamp presentation | Completion authority, formatting, capabilities, and confirmation | Implemented |
 
 ## Application composition
 

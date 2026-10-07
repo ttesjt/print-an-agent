@@ -12,6 +12,7 @@ import {
   SessionCatalog,
   SessionDetailsView,
   SessionLifecycleActions,
+  SessionListItem,
   SessionNavigationView,
 } from '../../src/index.js';
 import {
@@ -63,6 +64,34 @@ afterEach(() => {
 afterAll(disableReactActEnvironment);
 
 describe('Session management components', () => {
+  it('renders an optimistic row without inventing confirmed Session lifecycle data', () => {
+    const onSelect = vi.fn();
+    const container = renderInDocument(
+      <ul>
+        <SessionListItem
+          metadata={null}
+          onSelect={onSelect}
+          selected
+          statusLabel={null}
+          title="Untitled Session"
+          working
+          workingLabel="Working"
+        />
+      </ul>
+    );
+
+    const item = container.querySelector('[data-slot="session-list-item"]');
+    const button = item?.querySelector<HTMLButtonElement>('button');
+    expect(item?.classList.contains('ta-ui-session-list__item')).toBe(true);
+    expect(item?.hasAttribute('data-status')).toBe(false);
+    expect(item?.querySelector('[data-session-status]')).toBeNull();
+    expect(button?.getAttribute('aria-current')).toBe('true');
+    expect(button?.getAttribute('aria-busy')).toBe('true');
+    expect(item?.textContent).toBe('Untitled SessionWorking');
+    act(() => button?.click());
+    expect(onSelect).toHaveBeenCalledOnce();
+  });
+
   it('presents selection, localized status, metadata, and explicit load-more authority', () => {
     const onSelectSession = vi.fn();
     const onLoadMore = vi.fn();

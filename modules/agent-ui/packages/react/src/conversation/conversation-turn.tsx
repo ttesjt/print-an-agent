@@ -5,9 +5,10 @@ import type {
 } from '@ta-agent/ui-contracts';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 
-import { Alert, Badge } from '../feedback/feedback.js';
+import { Alert, Badge, Status } from '../feedback/feedback.js';
 import { joinStyleHooks } from '../internal/style-hooks.js';
-import { AssistantMessage, UserMessage } from './messages.js';
+import type { DisclosureContentMaxHeight, DisclosureStateProps } from '../navigation/disclosure.js';
+import { AssistantMessage, UserMessage, type ConversationMessagePresentation } from './messages.js';
 import { ReasoningBlock, type ReasoningBlockState } from './reasoning-block.js';
 import { ToolActivity, type ToolActivityStatusLabels } from './tool-activity.js';
 
@@ -21,7 +22,10 @@ export type ConversationTurnState =
 
 export interface ConversationTurnLabels {
   readonly assistant: ReactNode;
-  readonly reasoning: (modelTurnIndex: number) => ReactNode;
+  readonly reasoning: (
+    modelTurnIndex: number,
+    context: Readonly<{ blockCount: number; state: ReasoningBlockState }>
+  ) => ReactNode;
   readonly reasoningStates: Readonly<Record<ReasoningBlockState, ReactNode>>;
   readonly states: Readonly<Record<ConversationTurnState, ReactNode>>;
   readonly toolDetails: ReactNode;
@@ -37,7 +41,11 @@ export interface ConversationTurnProps extends NativeConversationTurnProps {
   readonly failure?: ReactNode;
   readonly formatTimestamp?: (timestamp: string) => ReactNode;
   readonly labels: ConversationTurnLabels;
+  readonly messagePresentation?: ConversationMessagePresentation;
   readonly reasoningBlocks?: readonly ConversationReasoningBlock[];
+  /** Caller-owned presentation state; no activity is inferred from the interaction status. */
+  readonly reasoningDisclosure?: (block: ConversationReasoningBlock) => DisclosureStateProps;
+  readonly reasoningMaxContentHeight?: DisclosureContentMaxHeight;
   readonly state: ConversationTurnState;
   readonly style?: never;
   readonly timestamp?: string;
@@ -52,7 +60,10 @@ export function ConversationTurn({
   failure,
   formatTimestamp,
   labels,
+  messagePresentation = 'compact',
   reasoningBlocks = [],
+  reasoningDisclosure,
+  reasoningMaxContentHeight,
   state,
   timestamp,
   toolActivities = [],
@@ -69,29 +80,38 @@ export function ConversationTurn({
       data-slot="conversation-turn"
       data-state={state}
     >
-      <article>
-        <header className="ta-ui-conversation-turn__header">
-          <Badge
-            tone={state === 'failed' ? 'critical' : state === 'completed' ? 'positive' : 'neutral'}
-          >
-            {labels.states[state]}
-          </Badge>
-          {actions === undefined ? null : (
-            <div className="ta-ui-conversation-turn__actions">{actions}</div>
-          )}
-        </header>
-        <UserMessage
-          label={labels.user}
-          message={userMessage}
-          {...(formatTimestamp === undefined ? {} : { formatTimestamp })}
-        />
+      <UserMessage
+        label={labels.user}
+        message={userMessage}
+        presentation={messagePresentation}
+        {...(formatTimestamp === undefined ? {} : { formatTimestamp })}
+      />
+      <div className="ta-ui-conversation-turn__response" data-slot="conversation-response">
+        {state === 'completed' ? null : (
+          <header className="ta-ui-conversation-turn__header">
+            {state === 'failed' || state === 'cancelled' ? (
+              <Badge tone={state === 'failed' ? 'critical' : 'caution'}>
+                {labels.states[state]}
+              </Badge>
+            ) : (
+              <Status>{labels.states[state]}</Status>
+            )}
+          </header>
+        )}
         {reasoningBlocks.length === 0 ? null : (
           <div className="ta-ui-conversation-turn__reasoning">
             {reasoningBlocks.map((block) => (
               <ReasoningBlock
+                {...reasoningDisclosure?.(block)}
                 block={block}
+                {...(reasoningMaxContentHeight === undefined
+                  ? {}
+                  : { contentMaxHeight: reasoningMaxContentHeight })}
                 key={block.modelTurnIndex}
-                label={labels.reasoning(block.modelTurnIndex)}
+                label={labels.reasoning(block.modelTurnIndex, {
+                  blockCount: reasoningBlocks.length,
+                  state: reasoningState,
+                })}
                 state={reasoningState}
                 stateLabel={labels.reasoningStates[reasoningState]}
               />
@@ -118,6 +138,7 @@ export function ConversationTurn({
         {assistantText === undefined || assistantText.length === 0 ? null : (
           <AssistantMessage
             label={labels.assistant}
+            presentation={messagePresentation}
             text={assistantText}
             {...(formatTimestamp === undefined ? {} : { formatTimestamp })}
             {...(timestamp === undefined ? {} : { timestamp })}
@@ -128,7 +149,10 @@ export function ConversationTurn({
             {failure}
           </Alert>
         )}
-      </article>
+        {actions === undefined ? null : (
+          <div className="ta-ui-conversation-turn__actions">{actions}</div>
+        )}
+      </div>
     </li>
   );
 }

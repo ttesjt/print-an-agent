@@ -27,6 +27,25 @@ afterEach(cleanupReactRoots);
 afterAll(disableReactActEnvironment);
 
 describe('navigation primitives', () => {
+  it('keeps plain Disclosure presentation explicit without changing native semantics', () => {
+    const container = renderInDocument(
+      <Disclosure appearance="plain">
+        <DisclosureSummary>Auxiliary details</DisclosureSummary>
+        <DisclosurePanel>Hidden until requested</DisclosurePanel>
+      </Disclosure>
+    );
+    const details = container.querySelector('details');
+    expect(details?.getAttribute('data-appearance')).toBe('plain');
+    expect(details?.open).toBe(false);
+    act(() => container.querySelector('summary')?.click());
+    expect(details?.open).toBe(true);
+    const surface = renderToStaticMarkup(
+      <Disclosure>
+        <DisclosureSummary>Surface</DisclosureSummary>
+      </Disclosure>
+    );
+    expect(surface).toContain('data-appearance="surface"');
+  });
   it('connects Tabs and panels with complete ARIA relationships', () => {
     const markup = renderToStaticMarkup(
       <Tabs defaultValue="active">

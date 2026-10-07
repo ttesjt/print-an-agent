@@ -8,11 +8,15 @@ import type {
 } from '@ta-agent/ui-contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { ConversationCommitTarget, SessionManagementPort } from '../application/ports.js';
+import type {
+  ConversationAdmissionTarget,
+  ConversationCommitTarget,
+  SessionManagementPort,
+} from '../application/ports.js';
 import type { WorkspaceLocation } from '../application/workspace-location.js';
 
 export type SessionSelectionState =
-  | Readonly<{ status: 'draft' }>
+  | Readonly<{ draftId: string; status: 'draft' }>
   | Readonly<{ error: string; status: 'failed' }>
   | Readonly<{ status: 'idle' }>
   | Readonly<{ status: 'loading' }>
@@ -60,20 +64,30 @@ export function useSessionManagement(
   const [workingSessionId, setWorkingSessionId] = useState<string>();
   const [workingBranchId, setWorkingBranchId] = useState<string>();
   const selectedSessionIdRef = useRef<string | undefined>(undefined);
+  const selectedDraftIdRef = useRef<string | undefined>(undefined);
   const agentIdRef = useRef(agentId);
+  const lifecycleFilterRef = useRef(lifecycleFilter);
   const catalogControllerRef = useRef<AbortController | undefined>(undefined);
   const loadMoreControllerRef = useRef<AbortController | undefined>(undefined);
   const sessionMutationControllerRef = useRef<AbortController | undefined>(undefined);
   const navigationControllerRef = useRef<AbortController | undefined>(undefined);
 
   agentIdRef.current = agentId;
+  lifecycleFilterRef.current = lifecycleFilter;
 
   const refreshCatalog = useCallback(() => setCatalogRevision((value) => value + 1), []);
+  const reconcileInteractionCatalog = useCallback(
+    (target: Readonly<{ agentId: string }>) => {
+      if (target.agentId === agentIdRef.current) refreshCatalog();
+    },
+    [refreshCatalog]
+  );
   const reconcileSelectedSession = useCallback(() => {
     setSelectionRevision((value) => value + 1);
     refreshCatalog();
   }, [refreshCatalog]);
   const selectSession = useCallback((sessionId: string | undefined) => {
+    selectedDraftIdRef.current = undefined;
     if (selectedSessionIdRef.current === sessionId) return;
     sessionMutationControllerRef.current?.abort(
       new DOMException('Session selection changed.', 'AbortError')
@@ -89,6 +103,16 @@ export function useSessionManagement(
     setRetireOpen(false);
     setPurgeOpen(false);
   }, []);
+  const selectDraft = useCallback(
+    (draftId: string) => {
+      selectSession(undefined);
+      selectedDraftIdRef.current = draftId;
+      setLifecycleFilterState('active');
+      setSelectionState({ draftId, status: 'draft' });
+    },
+    [selectSession]
+  );
+  const createDraft = useCallback(() => selectDraft(globalThis.crypto.randomUUID()), [selectDraft]);
   const reconcileSession = useCallback(
     (target: Readonly<{ agentId: string; sessionId: string }>) => {
       if (target.agentId !== agentId) return;
@@ -101,15 +125,52 @@ export function useSessionManagement(
   );
   const synchronizeConversationCommit = useCallback(
     (target: ConversationCommitTarget) => {
-      if (target.agentId !== agentId) return;
-      refreshCatalog();
+      if (target.agentId !== agentIdRef.current) return;
       if (target.createdSession) {
-        selectSession(target.sessionId);
+        if (target.draftId !== undefined && target.draftId === selectedDraftIdRef.current) {
+          setLifecycleFilterState('active');
+          selectSession(target.sessionId);
+        }
       } else if (selectedSessionIdRef.current === target.sessionId) {
         setSelectionRevision((value) => value + 1);
       }
     },
-    [agentId, refreshCatalog, selectSession]
+    [selectSession]
+  );
+  const synchronizeConversationAdmission = useCallback(
+    ({ admission, draftId }: ConversationAdmissionTarget) => {
+      if (admission.details.agentId !== agentIdRef.current) return;
+      // The durable Session now exists. A later background admission must not steal selection.
+      if (lifecycleFilterRef.current === 'active') {
+        setCatalogState((current) =>
+          current.status === 'ready' &&
+          current.sessions.every(
+            (session) =>
+              session.agentId === admission.details.agentId && session.status === 'active'
+          )
+            ? {
+                ...current,
+                sessions: [
+                  admission.details,
+                  ...current.sessions.filter(
+                    (session) => session.sessionId !== admission.details.sessionId
+                  ),
+                ],
+              }
+            : { status: 'ready', hasMore: false, sessions: [admission.details] }
+        );
+      }
+      refreshCatalog();
+      if (draftId === undefined || draftId !== selectedDraftIdRef.current) return;
+      setLifecycleFilterState('active');
+      selectSession(admission.details.sessionId);
+      setSelectionState({
+        details: admission.details,
+        navigation: admission.navigation,
+        status: 'ready',
+      });
+    },
+    [refreshCatalog, selectSession]
   );
 
   useEffect(() => {
@@ -126,8 +187,8 @@ export function useSessionManagement(
     consumedLocation.current = requestedLocation;
     selectSession(requestedLocation.sessionId);
     if (requestedLocation.view === 'conversation' && requestedLocation.sessionId === undefined)
-      setSelectionState({ status: 'draft' });
-  }, [agentId, requestedLocation, selectSession]);
+      createDraft();
+  }, [agentId, requestedLocation, selectSession, createDraft]);
 
   useEffect(() => {
     const controller = replaceController(catalogControllerRef);
@@ -136,7 +197,15 @@ export function useSessionManagement(
       setCatalogState({ hasMore: false, sessions: [], status: 'ready' });
       return () => controller.abort();
     }
-    setCatalogState({ status: 'loading' });
+    // Reconciliation does not hide a Session already published by the admission boundary.
+    setCatalogState((current) =>
+      current.status === 'ready' &&
+      current.sessions.every(
+        (session) => session.agentId === agentId && session.status === lifecycleFilter
+      )
+        ? current
+        : { status: 'loading' }
+    );
     void management
       .listSessions({ agentId, signal: controller.signal, status: lifecycleFilter })
       .then(
@@ -174,7 +243,13 @@ export function useSessionManagement(
     }
     if (agentId === undefined) return;
     const controller = new AbortController();
-    setSelectionState({ status: 'loading' });
+    setSelectionState((current) =>
+      current.status === 'ready' &&
+      current.details.agentId === agentId &&
+      current.details.sessionId === selectedSessionId
+        ? current
+        : { status: 'loading' }
+    );
     void Promise.all([
       management.inspectSession({
         agentId,
@@ -487,10 +562,7 @@ export function useSessionManagement(
   return {
     catalogState,
     changeLifecycle,
-    createDraft: () => {
-      selectSession(undefined);
-      setSelectionState({ status: 'draft' });
-    },
+    createDraft,
     lifecycleError,
     lifecycleFilter,
     loadMore,
@@ -499,6 +571,7 @@ export function useSessionManagement(
     purgeOpen,
     purgeSession,
     reconcileSession,
+    reconcileInteractionCatalog,
     refreshCatalog,
     reconcileSelectedSession,
     renameError,
@@ -511,6 +584,7 @@ export function useSessionManagement(
     selectedSessionId,
     selectionState,
     selectSession,
+    selectDraft,
     setLifecycleFilter: (status: SessionLifecycleStatus) => {
       setLifecycleFilterState(status);
       selectSession(undefined);
@@ -534,6 +608,7 @@ export function useSessionManagement(
       if (!workingSessionId) setRetireOpen(open);
     },
     synchronizeConversationCommit,
+    synchronizeConversationAdmission,
     workingBranchId,
     workingSessionId,
   } as const;

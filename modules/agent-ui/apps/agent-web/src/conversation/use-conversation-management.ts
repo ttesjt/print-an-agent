@@ -1,8 +1,12 @@
-import type { ConversationInteractionEvent, SessionRevision } from '@ta-agent/ui-contracts';
+import type { SessionRevision } from '@ta-agent/ui-contracts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { KeyedOperationOwnership } from '../application/operation-ownership.js';
-import type { ConversationCommitTarget, ConversationManagementPort } from '../application/ports.js';
+import type {
+  ConversationAdmissionTarget,
+  ConversationCommitTarget,
+  ConversationManagementPort,
+} from '../application/ports.js';
 import type { SessionSelectionState } from '../session/use-session-management.js';
 import {
   appendCompletedTurn,
@@ -18,14 +22,21 @@ import {
   type ActiveInteractionState,
   ConversationStreamProtocolError,
   createSubmittingInteraction,
-  failInteractionProtocol,
   isTerminalInteraction,
   markInteractionCancelling,
-  reduceInteractionEvent,
 } from './interaction-state.js';
+import { executeConversationInteraction } from './execute-conversation-interaction.js';
+import {
+  commitReasoningExpansion,
+  readReasoningExpansion,
+  updateReasoningExpansion,
+  type ReasoningExpansionOwner,
+  type ReasoningExpansionState,
+} from './reasoning-expansion-state.js';
 
 interface DraftConversationTarget {
   readonly agentId: string;
+  readonly draftId: string;
   readonly kind: 'draft';
 }
 
@@ -45,6 +56,7 @@ interface ConversationEntry {
   readonly branchMutationTurnId: string | undefined;
   readonly composerValue: string;
   readonly historyState: ConversationHistoryState;
+  readonly reasoningExpansion: ReasoningExpansionState;
   readonly target: ConversationTarget;
 }
 
@@ -52,16 +64,29 @@ export function useConversationManagement(input: {
   readonly agentId: string | undefined;
   readonly management: ConversationManagementPort;
   readonly onConversationCommitted: (target: ConversationCommitTarget) => void;
+  readonly onSessionAdmitted?: (target: ConversationAdmissionTarget) => void;
+  /** A failed/cancelled first response can still leave an authoritative backend Session. */
+  readonly onInteractionSettled: (target: Readonly<{ agentId: string }>) => void;
   readonly onNavigationChanged: (target: Readonly<{ agentId: string; sessionId: string }>) => void;
   readonly sessionState: SessionSelectionState;
 }) {
-  const { agentId, management, onConversationCommitted, onNavigationChanged, sessionState } = input;
+  const {
+    agentId,
+    management,
+    onConversationCommitted,
+    onSessionAdmitted,
+    onInteractionSettled,
+    onNavigationChanged,
+    sessionState,
+  } = input;
   const target = useMemo(() => conversationTarget(agentId, sessionState), [agentId, sessionState]);
   const targetKey = target === undefined ? undefined : conversationTargetKey(target);
   const [entries, setEntries] = useState<ReadonlyMap<string, ConversationEntry>>(
     () => new Map<string, ConversationEntry>()
   );
   const entriesRef = useRef(entries);
+  // Sidebar identity survives draft → Session promotion; it never serves as a durable Session ID.
+  const sessionListKeys = useRef(new Map<string, string>());
   const previousTargetRef = useRef<
     Readonly<{ key: string; target: ConversationTarget }> | undefined
   >(undefined);
@@ -110,7 +135,9 @@ export function useConversationManagement(input: {
     (key: string, message: string) => {
       historyOperations.abort(key, message);
       loadMoreOperations.abort(key, message);
-      interactionOperations.abort(key, message);
+      const interaction = entriesRef.current.get(key)?.activeInteraction;
+      if (interaction !== undefined)
+        interactionOperations.abort(interaction.interactionId, message);
       branchOperations.abort(key, message);
     },
     [branchOperations, historyOperations, interactionOperations, loadMoreOperations]
@@ -182,8 +209,11 @@ export function useConversationManagement(input: {
   useEffect(() => {
     const previous = previousTargetRef.current;
     if (previous !== undefined && previous.target.kind === 'draft' && previous.key !== targetKey) {
-      abortTarget(previous.key, 'The unpersisted conversation draft was left.');
-      removeEntry(previous.key);
+      // Only an unsent draft is disposable. Submitted work owns its lifecycle until settlement.
+      if (entriesRef.current.get(previous.key)?.activeInteraction === undefined) {
+        abortTarget(previous.key, 'The unsent conversation draft was left.');
+        removeEntry(previous.key);
+      }
     }
     previousTargetRef.current =
       target === undefined || targetKey === undefined
@@ -280,22 +310,27 @@ export function useConversationManagement(input: {
 
     // A logical send keeps this identity for its entire stream, independently of mounts or tabs.
     const interactionId = globalThis.crypto.randomUUID();
-    const controller = interactionOperations.beginIfIdle(targetKey);
+    const controller = interactionOperations.beginIfIdle(interactionId);
     if (controller === undefined) return;
     const message = entry.composerValue.trim();
-    let protocolFailure: ConversationStreamProtocolError | undefined;
-    let next = createSubmittingInteraction({
+    let ownedTarget = target;
+    let ownedKey = targetKey;
+    const initial = createSubmittingInteraction({
       interactionId,
       message,
       timestamp: new Date().toISOString(),
     });
     updateEntry(targetKey, target, (entry) =>
-      Object.freeze({ ...entry, activeInteraction: next, composerValue: '' })
+      Object.freeze({ ...entry, activeInteraction: initial, composerValue: '' })
     );
 
+    let settled: ActiveInteractionState | undefined;
     try {
-      await management.streamInteraction(
-        {
+      settled = await executeConversationInteraction({
+        initial,
+        isCurrent: () => interactionOperations.isCurrent(interactionId, controller),
+        management,
+        request: {
           agentId: target.agentId,
           interactionId,
           message,
@@ -310,77 +345,80 @@ export function useConversationManagement(input: {
               }
             : {}),
         },
-        (event) => {
-          if (!interactionOperations.isCurrent(targetKey, controller)) return Promise.resolve();
-          try {
-            requireCompletedEventTarget(event, target);
-            next = reduceInteractionEvent(next, event);
-            // Completion remains provisional until the port validates and settles the stream.
-            if (next.status !== 'completed') {
-              updateEntry(targetKey, target, (entry) =>
-                Object.freeze({ ...entry, activeInteraction: next })
+        onAdmission: (admission, state) => {
+          if (ownedTarget.kind === 'draft') {
+            const draftId = ownedTarget.draftId;
+            const persisted: PersistedConversationTarget = Object.freeze({
+              agentId: ownedTarget.agentId,
+              branchId: admission.navigation.selectedBranchId,
+              kind: 'persisted',
+              navigationRevision: admission.navigation.revision,
+              sessionId: admission.details.sessionId,
+            });
+            const persistedKey = conversationTargetKey(persisted);
+            const source = entriesRef.current.get(ownedKey);
+            const destination = entriesRef.current.get(persistedKey);
+            if (source === undefined || destination?.activeInteraction !== undefined) {
+              throw new ConversationStreamProtocolError(
+                'Admitted Session already owns another conversation.'
               );
             }
-            return Promise.resolve();
-          } catch (error) {
-            protocolFailure =
-              error instanceof ConversationStreamProtocolError
-                ? error
-                : new ConversationStreamProtocolError('Interaction event is malformed.');
-            return Promise.reject(protocolFailure);
+            const migrated = new Map(entriesRef.current);
+            migrated.delete(ownedKey);
+            migrated.set(
+              persistedKey,
+              Object.freeze({
+                ...(destination ?? source),
+                activeInteraction: state,
+                target: persisted,
+                reasoningExpansion: new Map([
+                  ...(destination?.reasoningExpansion ?? []),
+                  ...source.reasoningExpansion,
+                ]),
+              })
+            );
+            ownedTarget = persisted;
+            sessionListKeys.current.set(
+              sessionListIdentity(persisted.agentId, persisted.sessionId),
+              ownedKey
+            );
+            ownedKey = persistedKey;
+            replaceEntries(migrated);
+            onSessionAdmitted?.({ admission, draftId });
           }
-        }
-      );
-      if (!interactionOperations.isCurrent(targetKey, controller)) return;
-      if (protocolFailure !== undefined) throw protocolFailure;
-      if (!isTerminalInteraction(next)) {
-        next = failInteractionProtocol(next, 'Interaction stream ended without a terminal event.');
-        updateEntry(targetKey, target, (entry) =>
-          Object.freeze({ ...entry, activeInteraction: next })
-        );
-      }
-    } catch (error) {
-      if (!interactionOperations.isCurrent(targetKey, controller)) return;
-      if (protocolFailure !== undefined) {
-        next = failInteractionProtocol(next, protocolFailure.message);
-      } else if (next.status === 'completed') {
-        next = failInteractionProtocol(
-          next,
-          'Interaction transport failed after its completion event.'
-        );
-      } else if (!isTerminalInteraction(next)) {
-        const messageValue =
-          error instanceof ConversationStreamProtocolError
-            ? error.message
-            : controller.signal.aborted
-              ? 'The interaction was cancelled.'
-              : errorMessage(error, 'The interaction could not be completed.');
-        next = controller.signal.aborted
-          ? reduceInteractionEvent(next, { interactionId, type: 'cancelled' })
-          : failInteractionProtocol(next, messageValue);
-      }
-      updateEntry(targetKey, target, (entry) =>
-        Object.freeze({ ...entry, activeInteraction: next })
-      );
+        },
+        onProgress: (state) => {
+          updateEntry(ownedKey, ownedTarget, (entry) =>
+            Object.freeze({ ...entry, activeInteraction: state })
+          );
+        },
+      });
     } finally {
-      interactionOperations.complete(targetKey, controller);
+      const accepted = interactionOperations.isCurrent(interactionId, controller);
+      interactionOperations.complete(interactionId, controller);
+      if (accepted) onInteractionSettled({ agentId: target.agentId });
     }
 
-    if (next.status !== 'completed') return;
-    const completed = next;
-    if (target.kind === 'persisted') {
-      updateEntry(targetKey, target, (entry) =>
+    if (settled?.status !== 'completed') return;
+    const completed = settled;
+    if (ownedTarget.kind === 'persisted') {
+      updateEntry(ownedKey, ownedTarget, (entry) =>
         Object.freeze({
           ...entry,
           activeInteraction: undefined,
           historyState: appendCompletedTurn(entry.historyState, completed.turn),
+          reasoningExpansion: commitReasoningExpansion(
+            entry.reasoningExpansion,
+            interactionId,
+            completed.turn.turnId
+          ),
         })
       );
       onConversationCommitted({
-        agentId: target.agentId,
-        branchId: target.branchId,
+        agentId: ownedTarget.agentId,
+        branchId: ownedTarget.branchId,
         createdSession: false,
-        sessionId: target.sessionId,
+        sessionId: ownedTarget.sessionId,
       });
       return;
     }
@@ -392,6 +430,10 @@ export function useConversationManagement(input: {
       sessionId: completed.sessionId,
     });
     const persistedKey = conversationTargetKey(persistedTarget);
+    sessionListKeys.current.set(
+      sessionListIdentity(persistedTarget.agentId, persistedTarget.sessionId),
+      targetKey
+    );
     const nextEntries = new Map(entriesRef.current);
     nextEntries.delete(targetKey);
     nextEntries.set(
@@ -399,6 +441,11 @@ export function useConversationManagement(input: {
       Object.freeze({
         ...createEntry(persistedTarget),
         historyState: historyFromPage(Object.freeze([completed.turn]), undefined),
+        reasoningExpansion: commitReasoningExpansion(
+          entriesRef.current.get(targetKey)?.reasoningExpansion ?? new Map(),
+          interactionId,
+          completed.turn.turnId
+        ),
       })
     );
     replaceEntries(nextEntries);
@@ -406,6 +453,7 @@ export function useConversationManagement(input: {
       agentId: target.agentId,
       branchId: completed.turn.branchId,
       createdSession: true,
+      draftId: ownedTarget.draftId,
       sessionId: completed.sessionId,
     });
   };
@@ -416,7 +464,7 @@ export function useConversationManagement(input: {
     if (current === undefined || isTerminalInteraction(current)) return;
     const next = markInteractionCancelling(current);
     updateEntry(targetKey, target, (entry) => Object.freeze({ ...entry, activeInteraction: next }));
-    interactionOperations.cancel(targetKey, 'Interaction cancelled by the user.');
+    interactionOperations.cancel(current.interactionId, 'Interaction cancelled by the user.');
   };
 
   const mutateBranch = async (operation: 'fork' | 'rewind', turnId: string) => {
@@ -510,15 +558,53 @@ export function useConversationManagement(input: {
     cancel,
     discardDraft: () => {
       if (target?.kind !== 'draft' || targetKey === undefined) return;
+      if (entriesRef.current.get(targetKey)?.activeInteraction !== undefined) return;
       abortTarget(targetKey, 'New conversation draft was discarded.');
       updateEntry(targetKey, target, () => createEntry(target));
     },
     composerValue: currentEntry?.composerValue ?? '',
+    sessionListKey: (sessionId: string) =>
+      sessionListKeys.current.get(sessionListIdentity(agentId, sessionId)) ??
+      sessionListIdentity(agentId, sessionId),
+    submittedDrafts: [...entries.values()].flatMap((entry) =>
+      entry.target.kind === 'draft' &&
+      entry.target.agentId === agentId &&
+      entry.activeInteraction !== undefined
+        ? [
+            {
+              draftId: entry.target.draftId,
+              listKey: conversationTargetKey(entry.target),
+              status: entry.activeInteraction.status,
+            },
+          ]
+        : []
+    ),
     forkFromTurn: (turnId: string) => mutateBranch('fork', turnId),
     historyState: historyStateForSelection(sessionState, currentEntry?.historyState),
     loadMore,
     reconcileNavigation,
     refreshHistory,
+    reasoningDisclosure: (owner: ReasoningExpansionOwner, modelTurnIndex: number) => ({
+      open: readReasoningExpansion(
+        currentEntry?.reasoningExpansion ?? new Map(),
+        owner,
+        modelTurnIndex
+      ),
+      onOpenChange: (open: boolean) => {
+        if (target === undefined || targetKey === undefined) return;
+        updateEntry(targetKey, target, (entry) =>
+          Object.freeze({
+            ...entry,
+            reasoningExpansion: updateReasoningExpansion(
+              entry.reasoningExpansion,
+              owner,
+              modelTurnIndex,
+              open
+            ),
+          })
+        );
+      },
+    }),
     rewindToTurn: (turnId: string) => mutateBranch('rewind', turnId),
     send,
     setComposerValue: (value: string) => {
@@ -548,6 +634,7 @@ function createEntry(target: ConversationTarget): ConversationEntry {
       target.kind === 'draft'
         ? historyFromPage(Object.freeze([]), undefined)
         : Object.freeze({ status: 'idle' }),
+    reasoningExpansion: new Map(),
     target,
   });
 }
@@ -557,7 +644,8 @@ function conversationTarget(
   state: SessionSelectionState
 ): ConversationTarget | undefined {
   if (agentId === undefined) return undefined;
-  if (state.status === 'draft') return Object.freeze({ agentId, kind: 'draft' });
+  if (state.status === 'draft')
+    return Object.freeze({ agentId, draftId: state.draftId, kind: 'draft' });
   return state.status === 'ready'
     ? Object.freeze({
         agentId,
@@ -572,17 +660,22 @@ function conversationTarget(
 function conversationTargetKey(target: ConversationTarget): string {
   return JSON.stringify(
     target.kind === 'draft'
-      ? ['draft', target.agentId]
+      ? ['draft', target.agentId, target.draftId]
       : ['persisted', target.agentId, target.sessionId, target.branchId]
   );
+}
+
+function sessionListIdentity(agentId: string | undefined, sessionId: string): string {
+  return JSON.stringify(['session', agentId, sessionId]);
 }
 
 function sameTargetDefinition(left: ConversationTarget, right: ConversationTarget): boolean {
   return (
     left.kind === right.kind &&
     left.agentId === right.agentId &&
-    (left.kind === 'draft' ||
-      (right.kind === 'persisted' &&
+    ((left.kind === 'draft' && right.kind === 'draft' && left.draftId === right.draftId) ||
+      (left.kind === 'persisted' &&
+        right.kind === 'persisted' &&
         left.branchId === right.branchId &&
         left.sessionId === right.sessionId &&
         left.navigationRevision === right.navigationRevision))
@@ -611,21 +704,6 @@ function interactionIsRunning(state: ActiveInteractionState | undefined): boolea
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.length > 0 ? error.message : fallback;
-}
-
-function requireCompletedEventTarget(
-  event: ConversationInteractionEvent,
-  target: ConversationTarget
-): void {
-  if (
-    event.type === 'completed' &&
-    target.kind === 'persisted' &&
-    (event.sessionId !== target.sessionId || event.turn.branchId !== target.branchId)
-  ) {
-    throw new ConversationStreamProtocolError(
-      'Completed interaction target does not match the requested Session branch.'
-    );
-  }
 }
 
 function requireNavigationRevision(target: PersistedConversationTarget): SessionRevision {

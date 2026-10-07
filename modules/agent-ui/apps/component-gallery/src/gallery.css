@@ -110,6 +110,12 @@
   display: contents;
 }
 
+.ta-ui-gallery-tooltip-frame {
+  display: flex;
+  justify-content: center;
+  padding: var(--ta-ui-space-6);
+}
+
 @media (max-width: 40rem) {
   .ta-ui-gallery-header,
   .ta-ui-gallery-main {

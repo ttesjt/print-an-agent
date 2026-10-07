@@ -3,7 +3,17 @@ import type {
   ConversationFailure,
   ConversationToolActivity,
 } from './conversation-types.js';
-import type { SessionRevision } from './session-types.js';
+import type {
+  SessionDetails,
+  SessionNavigationSnapshot,
+  SessionRevision,
+} from './session-types.js';
+
+/** Authoritative Session identity available before the model response finishes. */
+export interface ConversationSessionAdmission {
+  readonly details: SessionDetails;
+  readonly navigation: SessionNavigationSnapshot;
+}
 
 export interface ExistingConversationTarget {
   readonly branchId: string;
@@ -25,6 +35,12 @@ interface ConversationInteractionEventBase {
 
 export type ConversationInteractionEvent =
   | Readonly<ConversationInteractionEventBase & { readonly type: 'interaction-started' }>
+  | Readonly<
+      ConversationInteractionEventBase & {
+        readonly admission: ConversationSessionAdmission;
+        readonly type: 'session-admitted';
+      }
+    >
   | Readonly<
       ConversationInteractionEventBase & {
         readonly delta: string;

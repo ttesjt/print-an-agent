@@ -6,6 +6,7 @@
   --ta-ui-font-size-body: 0.9375rem;
   --ta-ui-font-size-title: clamp(1.5rem, 1.25rem + 1vw, 2.25rem);
   --ta-ui-font-size-heading: 1.125rem;
+  --ta-ui-font-size-conversation-title: 1.25rem;
   --ta-ui-font-weight-regular: 400;
   --ta-ui-font-weight-medium: 500;
   --ta-ui-font-weight-strong: 650;
@@ -30,6 +31,11 @@
   --ta-ui-size-sidebar: 17rem;
   --ta-ui-size-inspector: 20rem;
   --ta-ui-size-grid-item-min: 15rem;
+  --ta-ui-size-conversation-content-max: 48rem;
+  --ta-ui-size-conversation-response-max: 44rem;
+  --ta-ui-size-disclosure-content-small: 12rem;
+  --ta-ui-size-disclosure-content-medium: 18rem;
+  --ta-ui-size-disclosure-content-large: 28rem;
 
   --ta-ui-border-width: 1px;
   --ta-ui-border-width-strong: 2px;

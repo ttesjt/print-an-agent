@@ -7,6 +7,7 @@ import type {
   AgentMetadataPort,
   ConversationHistoryPort,
   ConversationInteractionPort,
+  ConversationSessionAdmission,
   SessionBranchMutationPort,
   SessionCatalogPort,
   SessionInspectionPort,
@@ -60,4 +61,10 @@ export interface ConversationCommitTarget {
   readonly branchId: string;
   readonly createdSession: boolean;
   readonly sessionId: string;
+  readonly draftId?: string;
+}
+
+export interface ConversationAdmissionTarget {
+  readonly admission: ConversationSessionAdmission;
+  readonly draftId?: string;
 }

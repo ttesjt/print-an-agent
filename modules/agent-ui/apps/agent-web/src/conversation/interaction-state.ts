@@ -3,6 +3,7 @@ import type {
   ConversationFailure,
   ConversationInteractionEvent,
   ConversationReasoningBlock,
+  ConversationSessionAdmission,
   ConversationToolActivity,
   ConversationUserMessage,
 } from '@ta-agent/ui-contracts';
@@ -13,6 +14,7 @@ interface CapturedReasoningBlock {
 }
 
 interface InteractionStateBase {
+  readonly admission: ConversationSessionAdmission | undefined;
   readonly assistantTextChunks: readonly string[];
   readonly highestModelTurnIndex: number;
   readonly interactionId: string;
@@ -51,6 +53,7 @@ export function createSubmittingInteraction(input: {
   readonly timestamp: string;
 }): ActiveInteractionState {
   return Object.freeze({
+    admission: undefined,
     assistantTextChunks: Object.freeze([]),
     highestModelTurnIndex: 0,
     interactionId: input.interactionId,
@@ -107,6 +110,26 @@ export function reduceInteractionEvent(
     );
   }
 
+  if (event.type === 'session-admitted') {
+    const { details, navigation } = event.admission;
+    if (
+      state.admission !== undefined ||
+      state.highestModelTurnIndex !== 0 ||
+      details.status !== 'active' ||
+      details.agentId !== navigation.agentId ||
+      details.sessionId !== navigation.sessionId ||
+      details.selectedBranchId !== navigation.selectedBranchId ||
+      details.navigationRevision !== navigation.revision ||
+      details.branchCount !== navigation.branches.length ||
+      !navigation.branches.some((branch) => branch.branchId === navigation.selectedBranchId)
+    ) {
+      throw new ConversationStreamProtocolError(
+        'Session admission is inconsistent or out of order.'
+      );
+    }
+    return Object.freeze({ ...state, admission: event.admission });
+  }
+
   if (event.type === 'reasoning-delta') {
     requireDelta(event.delta, 'Reasoning');
     const highestModelTurnIndex = requireModelTurnOrder(
@@ -149,6 +172,15 @@ export function reduceInteractionEvent(
   }
 
   if (event.type === 'completed') {
+    if (
+      state.admission !== undefined &&
+      (event.sessionId !== state.admission.details.sessionId ||
+        event.turn.branchId !== state.admission.navigation.selectedBranchId)
+    ) {
+      throw new ConversationStreamProtocolError(
+        'Completed interaction does not match its admitted Session.'
+      );
+    }
     if (state.toolActivities.some((activity) => activity.status === 'pending')) {
       throw new ConversationStreamProtocolError(
         'Interaction completed with a pending tool activity.'

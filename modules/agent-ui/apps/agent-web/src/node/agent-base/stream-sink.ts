@@ -13,6 +13,7 @@ import {
 import type {
   ConversationInteractionEventConsumer,
   ConversationToolActivity,
+  ConversationSessionAdmission,
   StartConversationInteractionInput,
 } from '@ta-agent/ui-contracts';
 
@@ -26,8 +27,24 @@ export class WebStreamSink implements OutputSink {
   constructor(
     readonly input: StartConversationInteractionInput,
     private readonly consume: ConversationInteractionEventConsumer,
-    private readonly labels: Readonly<Record<string, string>>
+    private readonly labels: Readonly<Record<string, string>>,
+    private readonly readAdmission: (
+      target: Readonly<{ agentId: string; sessionId: string }>
+    ) => Promise<ConversationSessionAdmission>
   ) {}
+  async admit(context: DefaultRequestWorkflowContext): Promise<void> {
+    if (context.session === undefined || context.turn === undefined)
+      throw new Error('Turn admission is unavailable.');
+    context.signal.throwIfAborted();
+    const admission = await this.readAdmission(context.session);
+    context.signal.throwIfAborted();
+    this.turnId = context.turn.turnId;
+    await this.consume({
+      type: 'session-admitted',
+      interactionId: this.input.interactionId,
+      admission,
+    });
+  }
   open(): Promise<void> {
     return Promise.resolve();
   }
@@ -93,6 +110,7 @@ export function presentationStepOverrides() {
         }
       }
       await begin(context);
+      if (sink instanceof WebStreamSink) await sink.admit(context);
     },
     dispatchInteractionEvent: async (context: DefaultRequestWorkflowContext) => {
       const sink = context.request?.outputSink;

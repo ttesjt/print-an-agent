@@ -5,9 +5,12 @@ import { joinStyleHooks } from '../internal/style-hooks.js';
 
 type NativeMessageProps = Omit<ComponentPropsWithRef<'section'>, 'children' | 'style'>;
 
+export type ConversationMessagePresentation = 'compact' | 'detailed';
+
 interface ConversationMessageProps extends NativeMessageProps {
   readonly formatTimestamp?: (timestamp: string) => ReactNode;
   readonly label: ReactNode;
+  readonly presentation?: ConversationMessagePresentation;
   readonly style?: never;
 }
 
@@ -20,6 +23,7 @@ export function UserMessage({
   formatTimestamp,
   label,
   message,
+  presentation = 'compact',
   ...props
 }: UserMessageProps) {
   return (
@@ -27,13 +31,18 @@ export function UserMessage({
       {...props}
       className={joinStyleHooks('ta-ui-conversation-message', className)}
       data-role="user"
+      data-presentation={presentation}
       data-slot="user-message"
     >
-      <MessageHeader
-        label={label}
-        timestamp={message.timestamp}
-        {...(formatTimestamp === undefined ? {} : { formatTimestamp })}
-      />
+      {presentation === 'compact' ? (
+        <span className="ta-ui-visually-hidden">{label}</span>
+      ) : (
+        <MessageHeader
+          label={label}
+          timestamp={message.timestamp}
+          {...(formatTimestamp === undefined ? {} : { formatTimestamp })}
+        />
+      )}
       <p className="ta-ui-conversation-message__content">{message.text}</p>
     </section>
   );
@@ -48,6 +57,7 @@ export function AssistantMessage({
   className,
   formatTimestamp,
   label,
+  presentation = 'compact',
   text,
   timestamp,
   ...props
@@ -57,13 +67,18 @@ export function AssistantMessage({
       {...props}
       className={joinStyleHooks('ta-ui-conversation-message', className)}
       data-role="assistant"
+      data-presentation={presentation}
       data-slot="assistant-message"
     >
-      <MessageHeader
-        label={label}
-        {...(formatTimestamp === undefined ? {} : { formatTimestamp })}
-        {...(timestamp === undefined ? {} : { timestamp })}
-      />
+      {presentation === 'compact' ? (
+        <span className="ta-ui-visually-hidden">{label}</span>
+      ) : (
+        <MessageHeader
+          label={label}
+          {...(formatTimestamp === undefined ? {} : { formatTimestamp })}
+          {...(timestamp === undefined ? {} : { timestamp })}
+        />
+      )}
       <p className="ta-ui-conversation-message__content">{text}</p>
     </section>
   );

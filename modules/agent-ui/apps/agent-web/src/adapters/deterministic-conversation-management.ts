@@ -102,6 +102,14 @@ export function createDeterministicConversationManagement(
           });
           return;
         }
+        const admission = sessions.conversationStore.admitSession({
+          agentId: input.agentId,
+          ...target.value,
+        });
+        if (!histories.has(target.value.sessionId))
+          histories.set(target.value.sessionId, new Map([[target.value.branchId, []]]));
+        signal?.throwIfAborted();
+        await consume({ interactionId: input.interactionId, type: 'session-admitted', admission });
         const normalizedMessage = input.message.trim();
         if (normalizedMessage.toLowerCase().includes('fail')) {
           await emit({

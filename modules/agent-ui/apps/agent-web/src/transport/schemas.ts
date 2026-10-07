@@ -172,6 +172,11 @@ export const interactionEvent: Decoder<ConversationInteractionEvent> = union(
   object({ ...eventFields, type: literal('interaction-started') }),
   object({
     ...eventFields,
+    type: literal('session-admitted'),
+    admission: object({ details: session, navigation }),
+  }),
+  object({
+    ...eventFields,
     type: literal('text-delta'),
     delta: text(),
     modelTurnIndex: integer(1),

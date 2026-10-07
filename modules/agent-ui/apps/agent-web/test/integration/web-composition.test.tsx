@@ -124,7 +124,7 @@ describe('browser application composition', () => {
     );
     click('Send');
     await until(() => document.body.textContent?.includes('Offline reply: Hello from UI') === true);
-    expect(document.body.textContent).toContain('Thinking · model turn 1');
+    expect(document.body.textContent).toContain('Thought process');
     await until(() => window.location.hash.includes('session='));
     const savedHash = window.location.hash;
     await act(async () => {

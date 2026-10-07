@@ -5,6 +5,8 @@ export type {
   IconButtonAppearance,
 } from './actions/action-types.js';
 export { Button, IconButton } from './actions/button.js';
+export { ActionBar } from './actions/action-bar.js';
+export type { ActionBarProps } from './actions/action-bar.js';
 export type { ButtonProps, IconButtonProps } from './actions/button.js';
 export { TextLink } from './actions/text-link.js';
 export type { TextLinkProps } from './actions/text-link.js';
@@ -28,6 +30,8 @@ export type { ConversationScrollRegionProps } from './conversation/conversation-
 export { ConversationTimeline } from './conversation/conversation-timeline.js';
 export type { ConversationTimelineProps } from './conversation/conversation-timeline.js';
 export { ConversationTurn } from './conversation/conversation-turn.js';
+export { ConversationTurnActions } from './conversation/conversation-turn-actions.js';
+export type { ConversationTurnActionsProps } from './conversation/conversation-turn-actions.js';
 export type {
   ConversationTurnLabels,
   ConversationTurnProps,
@@ -35,6 +39,7 @@ export type {
 } from './conversation/conversation-turn.js';
 export { AssistantMessage, UserMessage } from './conversation/messages.js';
 export type { AssistantMessageProps, UserMessageProps } from './conversation/messages.js';
+export type { ConversationMessagePresentation } from './conversation/messages.js';
 export { ReasoningBlock } from './conversation/reasoning-block.js';
 export type { ReasoningBlockProps, ReasoningBlockState } from './conversation/reasoning-block.js';
 export { ToolActivity } from './conversation/tool-activity.js';
@@ -146,9 +151,13 @@ export type {
 } from './forms/form-field.js';
 export { Disclosure, DisclosurePanel, DisclosureSummary } from './navigation/disclosure.js';
 export type {
+  DisclosureActivity,
+  DisclosureAppearance,
+  DisclosureContentMaxHeight,
   DisclosurePanelProps,
   DisclosureProps,
   DisclosureSummaryProps,
+  DisclosureStateProps,
 } from './navigation/disclosure.js';
 export {
   NavigationRail,
@@ -201,6 +210,8 @@ export { ConfirmationDialog } from './overlays/confirmation-dialog.js';
 export type { ConfirmationDialogProps, ConfirmationTone } from './overlays/confirmation-dialog.js';
 export { Dialog } from './overlays/dialog.js';
 export type { DialogProps } from './overlays/dialog.js';
+export { Tooltip } from './overlays/tooltip.js';
+export type { TooltipPlacement, TooltipProps, TooltipTriggerProps } from './overlays/tooltip.js';
 export { Drawer } from './overlays/drawer.js';
 export type { DrawerPlacement, DrawerProps } from './overlays/drawer.js';
 export type { DialogCloseReason, DialogOpenChangeDetails } from './overlays/modal-surface.js';

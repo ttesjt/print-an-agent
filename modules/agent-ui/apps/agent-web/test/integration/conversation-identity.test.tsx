@@ -74,6 +74,7 @@ describe('logical interaction identity', () => {
       agentId: target.agentId,
       management,
       onConversationCommitted: vi.fn(),
+      onInteractionSettled: vi.fn(),
       onNavigationChanged: vi.fn(),
       sessionState: {
         status: 'ready',

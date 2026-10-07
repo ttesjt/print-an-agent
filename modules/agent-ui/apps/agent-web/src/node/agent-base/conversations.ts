@@ -9,6 +9,7 @@ import type {
 import { conversationFailure } from './failures.js';
 import { completedTurn, readWebConversation, reference } from './history.js';
 import type { WebBackendServices } from './profile.js';
+import { projectNavigation, projectSession } from './projection.js';
 import { mutateBranch } from './sessions.js';
 import { WebStreamSink } from './stream-sink.js';
 
@@ -37,7 +38,18 @@ async function streamInteraction(
 ): Promise<void> {
   input.signal?.throwIfAborted();
   await consume({ type: 'interaction-started', interactionId: input.interactionId });
-  const sink = new WebStreamSink(input, consume, services.toolLabels);
+  const sink = new WebStreamSink(input, consume, services.toolLabels, async (target) => {
+    const sessionReference = reference(target);
+    const [details, navigation] = await Promise.all([
+      services.sessions.inspect(sessionReference),
+      services.navigation.inspect(sessionReference),
+    ]);
+    if (details === undefined) throw new Error('Admitted Session is unavailable.');
+    return {
+      details: projectSession(details),
+      navigation: projectNavigation(navigation.navigation),
+    };
+  });
   let terminalAccepted = false;
   try {
     const agent = await services.runtime.open(parseAgentId(input.agentId));

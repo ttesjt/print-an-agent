@@ -13,6 +13,8 @@ describe('default Agent UI styles', () => {
     expect(source).toContain("@import './layout.css' layer(ta-ui-layout);");
     expect(source).toContain("@import './components.css' layer(ta-ui-components);");
     expect(source).toContain("@import './actions.css' layer(ta-ui-components);");
+    expect(source).toContain("@import './action-bar.css' layer(ta-ui-components);");
+    expect(source).toContain("@import './tooltip.css' layer(ta-ui-components);");
     expect(source).toContain("@import './forms.css' layer(ta-ui-components);");
     expect(source).toContain("@import './feedback.css' layer(ta-ui-components);");
     expect(source).toContain("@import './overlays.css' layer(ta-ui-components);");
@@ -22,6 +24,8 @@ describe('default Agent UI styles', () => {
     expect(source).toContain("@import './conversation.css' layer(ta-ui-components);");
     expect(manifest).toContain('"./layout.css"');
     expect(manifest).toContain('"./actions.css"');
+    expect(manifest).toContain('"./action-bar.css"');
+    expect(manifest).toContain('"./tooltip.css"');
     expect(manifest).toContain('"./forms.css"');
     expect(manifest).toContain('"./feedback.css"');
     expect(manifest).toContain('"./overlays.css"');
@@ -102,6 +106,26 @@ describe('default Agent UI styles', () => {
     expect(feedback).toContain("[data-tone='critical']");
     expect(forms).toContain('@media (forced-colors: active)');
     expect(feedback).toContain('@media (forced-colors: active)');
+  });
+
+  it('keeps action bars unframed and tooltips anchored in all four directions', () => {
+    const actions = readStyle('action-bar.css');
+    const tooltip = readStyle('tooltip.css');
+    const bar = actions.match(/:where\(\.ta-ui-action-bar\)\s*\{([^}]+)\}/u)?.[1];
+    expect(bar).toBeDefined();
+    expect(bar).not.toMatch(/border:|background:|box-shadow:/u);
+    expect(actions).toContain("[data-tone='neutral']");
+    expect(actions).toContain('.ta-ui-conversation-turn-actions__timestamps');
+    expect(tooltip).toContain('anchor-scope: --ta-ui-tooltip-anchor;');
+    expect(tooltip).toContain('position-anchor: --ta-ui-tooltip-anchor;');
+    expect(tooltip).toContain('position: fixed;');
+    expect(tooltip).toContain('inline-size: fit-content;');
+    expect(tooltip).toContain('position-try-fallbacks:');
+    for (const placement of ['top', 'bottom', 'left', 'right']) {
+      expect(tooltip).toContain(`position-area: ${placement};`);
+    }
+    expect(tooltip).toContain("[data-positioning='local']");
+    expect(tooltip).toContain('@media (forced-colors: active)');
   });
 
   it('styles modal overlays and local navigation through stable semantic hooks', () => {
@@ -189,6 +213,44 @@ describe('default Agent UI styles', () => {
     expect(conversation).toContain('@media (forced-colors: active)');
   });
 
+  it('styles individual chat messages rather than framing whole question/answer exchanges', () => {
+    const conversation = readStyle('conversation.css');
+    expect(conversation).not.toContain('.ta-ui-conversation-turn > article');
+    const turn = conversation.match(/:where\(\.ta-ui-conversation-turn\)\s*\{([^}]+)\}/u)?.[1];
+    const response = conversation.match(
+      /:where\(\.ta-ui-conversation-turn__response\)\s*\{([^}]+)\}/u
+    )?.[1];
+    expect(turn).toBeDefined();
+    expect(response).toBeDefined();
+    expect(`${turn}${response}`).not.toMatch(/border:|background:|box-shadow:/u);
+    expect(conversation).toMatch(/data-role='user'[^}]+justify-self: end/su);
+    expect(conversation).toMatch(/data-role='assistant'[^}]+justify-self: start/su);
+  });
+
+  it('gives auxiliary disclosures no frame and prioritizes readable assistant text', () => {
+    const navigation = readStyle('navigation.css');
+    const conversation = readStyle('conversation.css');
+    const plain = navigation.match(
+      /:where\(\.ta-ui-disclosure\[data-appearance='plain'\]\)\s*\{([^}]+)\}/u
+    )?.[1];
+    expect(plain).toContain('border: 0;');
+    expect(plain).toContain('background: transparent;');
+    expect(navigation).toContain("[data-appearance='plain'] > .ta-ui-disclosure__summary:hover");
+    const reasoning = conversation.match(
+      /:where\(\.ta-ui-reasoning-block, \.ta-ui-tool-activity\)\s*\{([^}]+)\}/u
+    )?.[1];
+    const assistant = conversation.match(
+      /:where\(\.ta-ui-conversation-message\[data-role='assistant'\]\)\s*\{([^}]+)\}/u
+    )?.[1];
+    expect(reasoning).toBeDefined();
+    expect(assistant).toBeDefined();
+    expect(`${reasoning}${assistant}`).not.toMatch(/border:|background:|box-shadow:/u);
+    expect(conversation).toContain('color: var(--ta-ui-color-ink);');
+    expect(conversation).toContain('--ta-ui-size-conversation-content-max');
+    expect(conversation).toContain('--ta-ui-font-size-conversation-title');
+    expect(readStyle('base.css')).toMatch(/\.ta-ui-visually-hidden[^}]+clip-path: inset\(50%\)/su);
+  });
+
   it('provides focus, reduced-motion, and forced-colors behavior', () => {
     const tokens = readStyle('tokens.css');
     const base = readStyle('base.css');
@@ -199,6 +261,28 @@ describe('default Agent UI styles', () => {
     expect(tokens).toContain('@media (forced-colors: active)');
     expect(base).toContain('@media (forced-colors: active)');
     expect(components).toContain('@media (forced-colors: active)');
+  });
+
+  it('limits only opted-in disclosure content through overrideable global height tokens', () => {
+    const navigation = readStyle('navigation.css');
+    const tokens = readStyle('tokens.css');
+    expect(navigation).toContain('.ta-ui-disclosure__panel[data-content-max-height]');
+    expect(navigation).toContain('overflow: auto;');
+    expect(navigation).toContain('overscroll-behavior: contain;');
+    for (const [size, height] of [
+      ['small', '12rem'],
+      ['medium', '18rem'],
+      ['large', '28rem'],
+    ]) {
+      expect(navigation).toContain(`data-content-max-height='${size}'`);
+      expect(navigation).toContain(`max-block-size: var(--ta-ui-size-disclosure-content-${size});`);
+      expect(tokens).toContain(`--ta-ui-size-disclosure-content-${size}: ${height};`);
+    }
+    const plainSummary = navigation.match(
+      /:where\(\.ta-ui-disclosure\[data-appearance='plain'\] > \.ta-ui-disclosure__summary\)\s*\{([^}]+)\}/u
+    )?.[1];
+    expect(plainSummary).not.toContain('max-block-size');
+    expect(plainSummary).not.toContain('overflow');
   });
 
   it('treats body-ported modal surfaces as complete base-style roots', () => {

@@ -79,6 +79,10 @@ export function NavigationGallery() {
             <DisclosureSummary>Tool activity</DisclosureSummary>
             <DisclosurePanel>Collapsed by default.</DisclosurePanel>
           </Disclosure>
+          <Disclosure appearance="plain">
+            <DisclosureSummary>Plain disclosure</DisclosureSummary>
+            <DisclosurePanel>Auxiliary content without a surface or border.</DisclosurePanel>
+          </Disclosure>
         </Stack>
 
         <NavigationRail aria-label="Example workspace navigation">
@@ -99,6 +103,21 @@ export function NavigationGallery() {
             </Cluster>
           </NavigationRailFooter>
         </NavigationRail>
+      </Grid>
+
+      <Grid columns="three">
+        {(['small', 'medium', 'large'] as const).map((size) => (
+          <Disclosure defaultOpen key={size}>
+            <DisclosureSummary>{size} content height limit</DisclosureSummary>
+            <DisclosurePanel aria-label={`${size} scrollable details`} contentMaxHeight={size}>
+              <Stack space="small">
+                {Array.from({ length: 18 }, (_, index) => (
+                  <p key={index}>Paragraph {String(index + 1)} in a keyboard-scrollable panel.</p>
+                ))}
+              </Stack>
+            </DisclosurePanel>
+          </Disclosure>
+        ))}
       </Grid>
     </GallerySection>
   );

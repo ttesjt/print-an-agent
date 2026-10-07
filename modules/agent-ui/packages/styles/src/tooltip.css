@@ -1,0 +1,86 @@
+:where(.ta-ui-tooltip) {
+  position: relative;
+  display: inline-flex;
+  anchor-scope: --ta-ui-tooltip-anchor;
+}
+
+:where(.ta-ui-tooltip__anchor) {
+  display: inline-flex;
+  anchor-name: --ta-ui-tooltip-anchor;
+}
+
+:where(.ta-ui-tooltip__content) {
+  box-sizing: border-box;
+  inline-size: max-content;
+  max-inline-size: min(24rem, calc(100vw - 2 * var(--ta-ui-space-4)));
+  padding: var(--ta-ui-space-3);
+  border: var(--ta-ui-border-width) solid var(--ta-ui-color-line);
+  border-radius: var(--ta-ui-radius-small);
+  background: var(--ta-ui-color-surface-raised);
+  color: var(--ta-ui-color-ink);
+  box-shadow: var(--ta-ui-shadow-surface);
+  font: var(--ta-ui-font-size-small) / var(--ta-ui-line-height-body) var(--ta-ui-font-sans);
+  overflow-wrap: anywhere;
+  z-index: var(--ta-ui-layer-overlay);
+}
+
+:where(.ta-ui-tooltip__content[data-positioning='native']) {
+  position: fixed;
+  inline-size: fit-content;
+  inset: auto;
+  margin: var(--ta-ui-space-2);
+  position-anchor: --ta-ui-tooltip-anchor;
+  position-area: top;
+  position-try-fallbacks:
+    flip-block,
+    flip-inline,
+    flip-block flip-inline;
+}
+
+:where(.ta-ui-tooltip__content[data-positioning='native'][data-placement='bottom']) {
+  position-area: bottom;
+}
+
+:where(.ta-ui-tooltip__content[data-positioning='native'][data-placement='left']) {
+  position-area: left;
+}
+
+:where(.ta-ui-tooltip__content[data-positioning='native'][data-placement='right']) {
+  position-area: right;
+}
+
+:where(.ta-ui-tooltip__content[data-positioning='local']) {
+  position: absolute;
+  margin: 0;
+  bottom: calc(100% + var(--ta-ui-space-2));
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+:where(.ta-ui-tooltip__content[data-positioning='local'][data-placement='bottom']) {
+  top: calc(100% + var(--ta-ui-space-2));
+  bottom: auto;
+}
+
+:where(.ta-ui-tooltip__content[data-positioning='local'][data-placement='left']) {
+  top: 50%;
+  right: calc(100% + var(--ta-ui-space-2));
+  bottom: auto;
+  left: auto;
+  transform: translateY(-50%);
+}
+
+:where(.ta-ui-tooltip__content[data-positioning='local'][data-placement='right']) {
+  top: 50%;
+  bottom: auto;
+  left: calc(100% + var(--ta-ui-space-2));
+  transform: translateY(-50%);
+}
+
+@media (forced-colors: active) {
+  :where(.ta-ui-tooltip__content) {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}

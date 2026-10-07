@@ -45,8 +45,12 @@ export function BrowserAgentWeb({
     window.location.hash === '' ? undefined : safeLocation()
   );
   const pending = useRef(requestedLocation !== undefined);
+  const publishedHash = useRef(window.location.hash);
   useEffect(() => {
     const navigate = () => {
+      // Application URL publication is not a new navigation request (including late echoes).
+      if (window.location.hash === publishedHash.current) return;
+      publishedHash.current = window.location.hash;
       pending.current = true;
       setRequestedLocation(safeLocation());
     };
@@ -70,6 +74,7 @@ export function BrowserAgentWeb({
         return;
       pending.current = false;
       const hash = workspaceHash(location);
+      publishedHash.current = hash;
       if (window.location.hash !== hash)
         window.history[options?.replace ? 'replaceState' : 'pushState'](
           null,

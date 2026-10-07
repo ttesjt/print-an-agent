@@ -39,19 +39,13 @@ export function ToolActivity({
   const header = (
     <span className="ta-ui-tool-activity__header">
       <span className="ta-ui-tool-activity__name">{activity.toolLabel}</span>
-      <Badge
-        tone={
-          presentationStatus === 'error'
-            ? 'critical'
-            : presentationStatus === 'success'
-              ? 'positive'
-              : presentationStatus === 'interrupted'
-                ? 'caution'
-                : 'neutral'
-        }
-      >
-        {statusLabels[presentationStatus]}
-      </Badge>
+      {presentationStatus === 'error' || presentationStatus === 'interrupted' ? (
+        <Badge tone={presentationStatus === 'error' ? 'critical' : 'caution'}>
+          {statusLabels[presentationStatus]}
+        </Badge>
+      ) : (
+        <span className="ta-ui-tool-activity__state">{statusLabels[presentationStatus]}</span>
+      )}
     </span>
   );
 
@@ -65,10 +59,12 @@ export function ToolActivity({
       data-tool-call-id={activity.callId}
     >
       {hasDetails ? (
-        <Disclosure>
+        <Disclosure appearance="plain">
           <DisclosureSummary>
             {header}
-            <span className="ta-ui-tool-activity__details-label">{detailsLabel}</span>
+            {detailsLabel === null || detailsLabel === undefined ? null : (
+              <span className="ta-ui-tool-activity__details-label">{detailsLabel}</span>
+            )}
           </DisclosureSummary>
           <DisclosurePanel>
             {activity.summary === undefined ? null : (

@@ -32,6 +32,7 @@ export type {
   ConversationInteractionEvent,
   ConversationInteractionEventConsumer,
   ConversationInteractionPort,
+  ConversationSessionAdmission,
   ExistingConversationTarget,
   StartConversationInteractionInput,
 } from './conversation-interaction.js';

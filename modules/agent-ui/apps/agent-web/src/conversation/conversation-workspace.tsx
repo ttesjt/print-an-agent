@@ -14,6 +14,7 @@ import {
   Status,
   type ConversationComposerState,
   type ConversationTurnLabels,
+  type ConversationTurnProps,
 } from '@ta-agent/ui-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
@@ -21,14 +22,16 @@ import type { SessionSelectionState } from '../session/use-session-management.js
 import { historyTurns } from './conversation-history-state.js';
 import { interactionAssistantText, interactionReasoningBlocks } from './interaction-state.js';
 import type { ConversationManagementController } from './use-conversation-management.js';
+import { CompletedTurnActions } from './completed-turn-actions.js';
 
-const TURN_LABELS: ConversationTurnLabels = Object.freeze({
+const TURN_LABELS = Object.freeze<ConversationTurnLabels>({
   assistant: 'Assistant',
-  reasoning: (modelTurnIndex: number) => `Thinking · model turn ${String(modelTurnIndex)}`,
+  reasoning: (modelTurnIndex, { blockCount }) =>
+    blockCount === 1 ? 'Thought process' : `Thought process · stage ${String(modelTurnIndex)}`,
   reasoningStates: Object.freeze({
-    completed: 'Completed',
+    completed: null,
     incomplete: 'Incomplete',
-    streaming: 'In progress',
+    streaming: 'Live',
   }),
   states: Object.freeze({
     cancelled: 'Cancelled',
@@ -38,15 +41,17 @@ const TURN_LABELS: ConversationTurnLabels = Object.freeze({
     streaming: 'Responding',
     submitting: 'Starting',
   }),
-  toolDetails: 'Details',
+  toolDetails: null,
   tools: Object.freeze({
     error: 'Failed',
     interrupted: 'Interrupted',
     pending: 'Running',
-    success: 'Completed',
+    success: 'Done',
   }),
   user: 'You',
 });
+
+type ReasoningDisclosure = NonNullable<ConversationTurnProps['reasoningDisclosure']>;
 
 export function ConversationWorkspace({
   controller,
@@ -130,36 +135,30 @@ export function ConversationWorkspace({
         >
           {turns.map((turn) => (
             <PersistedTurn
-              {...(turn.status === 'completed' &&
-              sessionState.status === 'ready' &&
-              conversationEnabled
+              {...(turn.status === 'completed'
                 ? {
                     actions: (
-                      <>
-                        <Button
-                          appearance="outline"
-                          disabled={running || controller.branchMutationTurnId !== undefined}
-                          onClick={() => void controller.forkFromTurn(turn.turnId)}
-                          pending={controller.branchMutationTurnId === turn.turnId}
-                          size="small"
-                          tone="neutral"
-                        >
-                          Fork from here
-                        </Button>
-                        <Button
-                          appearance="outline"
-                          disabled={running || controller.branchMutationTurnId !== undefined}
-                          onClick={() => setRewindTurnId(turn.turnId)}
-                          size="small"
-                          tone="neutral"
-                        >
-                          Rewind to here
-                        </Button>
-                      </>
+                      <CompletedTurnActions
+                        disabled={running || controller.branchMutationTurnId !== undefined}
+                        forkPending={controller.branchMutationTurnId === turn.turnId}
+                        {...(sessionState.status === 'ready' && conversationEnabled
+                          ? {
+                              onFork: () => void controller.forkFromTurn(turn.turnId),
+                              onRewind: () => setRewindTurnId(turn.turnId),
+                            }
+                          : {})}
+                        turn={turn}
+                      />
                     ),
                   }
                 : {})}
               key={turn.turnId}
+              reasoningDisclosure={(block) =>
+                controller.reasoningDisclosure(
+                  { id: turn.turnId, kind: 'turn' },
+                  block.modelTurnIndex
+                )
+              }
               turn={turn}
             />
           ))}
@@ -170,6 +169,13 @@ export function ConversationWorkspace({
               key={active.interactionId}
               labels={TURN_LABELS}
               reasoningBlocks={interactionReasoningBlocks(active)}
+              reasoningDisclosure={(block) =>
+                controller.reasoningDisclosure(
+                  { id: active.interactionId, kind: 'interaction' },
+                  block.modelTurnIndex
+                )
+              }
+              reasoningMaxContentHeight="medium"
               state={active.status}
               toolActivities={active.toolActivities}
               userMessage={active.userMessage}
@@ -230,7 +236,15 @@ export function ConversationWorkspace({
   );
 }
 
-function PersistedTurn({ actions, turn }: Readonly<{ actions?: ReactNode; turn: TurnValue }>) {
+function PersistedTurn({
+  actions,
+  reasoningDisclosure,
+  turn,
+}: Readonly<{
+  actions?: ReactNode;
+  reasoningDisclosure: ReasoningDisclosure;
+  turn: TurnValue;
+}>) {
   if (turn.status === 'failed') {
     return (
       <ConversationTurn
@@ -241,30 +255,36 @@ function PersistedTurn({ actions, turn }: Readonly<{ actions?: ReactNode; turn: 
       />
     );
   }
-  return <CompletedTurn {...(actions === undefined ? {} : { actions })} turn={turn} />;
+  return (
+    <CompletedTurn
+      {...(actions === undefined ? {} : { actions })}
+      reasoningDisclosure={reasoningDisclosure}
+      turn={turn}
+    />
+  );
 }
 
 function CompletedTurn({
   actions,
+  reasoningDisclosure,
   turn,
-}: Readonly<{ actions?: ReactNode; turn: CompletedConversationTurn }>) {
+}: Readonly<{
+  actions?: ReactNode;
+  reasoningDisclosure: ReasoningDisclosure;
+  turn: CompletedConversationTurn;
+}>) {
   return (
     <ConversationTurn
       {...(actions === undefined ? {} : { actions })}
       assistantText={turn.assistantMessage.text}
-      formatTimestamp={formatTimestamp}
       labels={TURN_LABELS}
       reasoningBlocks={turn.assistantMessage.reasoningBlocks}
+      reasoningDisclosure={reasoningDisclosure}
+      reasoningMaxContentHeight="medium"
       state="completed"
       timestamp={turn.assistantMessage.timestamp}
       toolActivities={turn.assistantMessage.toolActivities}
       userMessage={turn.userMessage}
     />
-  );
-}
-
-function formatTimestamp(timestamp: string): string {
-  return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(
-    new Date(timestamp)
   );
 }

@@ -1,23 +1,26 @@
 import {
-  Button,
+  AssistantMessage,
+  ConversationTurnActions,
   ConversationComposer,
   ConversationScrollRegion,
   ConversationTimeline,
   ConversationTurn,
   Grid,
   Stack,
+  UserMessage,
   type ConversationTurnLabels,
 } from '@ta-agent/ui-react';
 
 import { GallerySection } from './gallery-section.js';
 
-const LABELS: ConversationTurnLabels = Object.freeze({
+const LABELS = Object.freeze<ConversationTurnLabels>({
   assistant: 'Assistant',
-  reasoning: (index: number) => `Thinking · model turn ${String(index)}`,
+  reasoning: (index, { blockCount }) =>
+    blockCount === 1 ? 'Thought process' : `Thought process · stage ${String(index)}`,
   reasoningStates: Object.freeze({
-    completed: 'Completed',
+    completed: null,
     incomplete: 'Incomplete',
-    streaming: 'In progress',
+    streaming: 'Live',
   }),
   states: Object.freeze({
     cancelled: 'Cancelled',
@@ -27,12 +30,12 @@ const LABELS: ConversationTurnLabels = Object.freeze({
     streaming: 'Responding',
     submitting: 'Starting',
   }),
-  toolDetails: 'Details',
+  toolDetails: null,
   tools: Object.freeze({
     error: 'Failed',
     interrupted: 'Interrupted',
     pending: 'Running',
-    success: 'Completed',
+    success: 'Done',
   }),
   user: 'You',
 });
@@ -41,8 +44,12 @@ const USER_MESSAGE = Object.freeze({
   text: 'Compare the available evidence with the local index.',
   timestamp: '2026-02-01T00:00:00.000Z',
 });
+const FIRST_REASONING = Object.freeze({
+  modelTurnIndex: 1,
+  text: 'I will inspect the local index first.',
+});
 const REASONING = Object.freeze([
-  Object.freeze({ modelTurnIndex: 1, text: 'I will inspect the local index first.' }),
+  FIRST_REASONING,
   Object.freeze({ modelTurnIndex: 2, text: 'The returned records agree.' }),
 ]);
 const TOOL_ACTIVITIES = Object.freeze([
@@ -83,9 +90,19 @@ export function ConversationGallery() {
           >
             <ConversationTurn
               actions={
-                <Button appearance="outline" size="small" tone="neutral">
-                  Fork from here
-                </Button>
+                <ConversationTurnActions
+                  aria-label="Gallery Turn actions"
+                  answeredAt="2026-02-01T00:00:01.000Z"
+                  answeredLabel="Answered"
+                  forkLabel="Fork from here"
+                  formatTimestamp={(value) => value}
+                  onFork={() => undefined}
+                  onRewind={() => undefined}
+                  rewindLabel="Rewind to here"
+                  sentAt={USER_MESSAGE.timestamp}
+                  sentLabel="Sent"
+                  timestampsLabel="Message timestamps"
+                />
               }
               assistantText="The two strongest records agree on the central result."
               labels={LABELS}
@@ -97,7 +114,7 @@ export function ConversationGallery() {
             <ConversationTurn
               assistantText="A partial answer"
               labels={LABELS}
-              reasoningBlocks={[REASONING[0]!]}
+              reasoningBlocks={[FIRST_REASONING]}
               state="streaming"
               toolActivities={[
                 Object.freeze({
@@ -114,7 +131,7 @@ export function ConversationGallery() {
               assistantText="A partial response that did not complete."
               failure="The interaction failed. Partial output is not a completed turn."
               labels={LABELS}
-              reasoningBlocks={[REASONING[0]!]}
+              reasoningBlocks={[FIRST_REASONING]}
               state="failed"
               toolActivities={[
                 Object.freeze({
@@ -129,6 +146,17 @@ export function ConversationGallery() {
             />
           </ConversationTimeline>
         </ConversationScrollRegion>
+
+        <Stack space="small">
+          <h3>Detailed message presentation</h3>
+          <UserMessage label="You" message={USER_MESSAGE} presentation="detailed" />
+          <AssistantMessage
+            label="Assistant"
+            presentation="detailed"
+            text="Visible message metadata is an explicit presentation choice."
+            timestamp="2026-02-01T00:00:01.000Z"
+          />
+        </Stack>
 
         <Grid columns="two" space="medium">
           <ConversationComposer

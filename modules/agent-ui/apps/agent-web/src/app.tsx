@@ -76,6 +76,8 @@ export function App({
     agentId: agents.selectedAgentId,
     management: ports.conversations,
     onConversationCommitted: sessions.synchronizeConversationCommit,
+    onSessionAdmitted: sessions.synchronizeConversationAdmission,
+    onInteractionSettled: sessions.reconcileInteractionCatalog,
     onNavigationChanged: sessions.reconcileSession,
     sessionState:
       view === 'settings' && sessions.selectionState.status === 'draft'
@@ -143,6 +145,7 @@ export function App({
       (appliedLocation?.sessionId === undefined ||
         appliedLocation.agentId !== agents.selectedAgentId) &&
       sessions.selectedSessionId === undefined &&
+      sessions.lifecycleFilter === 'active' &&
       sessions.selectionState.status === 'idle'
     )
       sessions.createDraft();
@@ -151,6 +154,7 @@ export function App({
     appliedLocation,
     agents.selectedAgentId,
     sessions.selectedSessionId,
+    sessions.lifecycleFilter,
     sessions.selectionState.status,
     sessions.createDraft,
   ]);
@@ -252,6 +256,14 @@ export function App({
                 agentSelected={agents.selectedAgentId !== undefined}
                 controller={sessions}
                 onNew={newConversation}
+                submittedDrafts={conversation.submittedDrafts}
+                sessionListKey={conversation.sessionListKey}
+                onSelectDraft={(id) =>
+                  requestNavigation(() => {
+                    sessions.selectDraft(id);
+                    setView('conversation');
+                  })
+                }
                 onSelectSession={(id) =>
                   requestNavigation(() => {
                     sessions.selectSession(id);

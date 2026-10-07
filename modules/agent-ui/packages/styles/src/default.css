@@ -5,6 +5,8 @@
 @import './layout.css' layer(ta-ui-layout);
 @import './components.css' layer(ta-ui-components);
 @import './actions.css' layer(ta-ui-components);
+@import './action-bar.css' layer(ta-ui-components);
+@import './tooltip.css' layer(ta-ui-components);
 @import './forms.css' layer(ta-ui-components);
 @import './feedback.css' layer(ta-ui-components);
 @import './overlays.css' layer(ta-ui-components);

@@ -145,6 +145,14 @@ provide IDs and ARIA relationships but does not own validation rules, field valu
 Visual feedback tone does not imply live-region behavior; only the application knows whether a
 message is initial content or a newly produced announcement.
 
+Action bars preserve native Tab navigation as named groups rather than introducing toolbar/menu
+keyboard semantics. Tooltips own transient informational presentation only; applications own
+commands. `ConversationTurnActions` is a public convenience composition, not a second Turn owner:
+the application determines successful completion, provides copy/formatters, and confirms mutations.
+Agent Web exposes this bar only after the complete interaction port invocation settles successfully.
+Popover/anchor positioning belongs to the optional global stylesheet, not inline component styling
+or a dependency on an external overlay framework.
+
 Responsive layout preserves consumer-authored DOM order as the reading, keyboard-focus, and
 screen-reader order. Default CSS may reflow regions into different grid shapes but does not use
 `order` or `display: none` to rearrange or hide semantic regions. Drawer, disclosure, and mobile

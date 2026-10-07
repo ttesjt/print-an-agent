@@ -1,0 +1,51 @@
+:where(.ta-ui-action-bar) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ta-ui-space-1);
+  color: var(--ta-ui-color-ink-muted);
+}
+
+:where(
+    .ta-ui-action-bar .ta-ui-button,
+    .ta-ui-action-bar .ta-ui-icon-button
+  )[data-appearance='ghost'][data-tone='neutral'] {
+  color: var(--ta-ui-color-ink-muted);
+}
+
+:where(
+    .ta-ui-action-bar .ta-ui-button,
+    .ta-ui-action-bar .ta-ui-icon-button
+  )[data-appearance='ghost'][data-tone='neutral']:not(:disabled):hover {
+  color: var(--ta-ui-color-ink);
+}
+
+:where(.ta-ui-conversation-turn-actions__time-icon) {
+  inline-size: 1rem;
+  block-size: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+:where(.ta-ui-conversation-turn-actions__timestamps) {
+  display: grid;
+  gap: var(--ta-ui-space-1);
+  margin: 0;
+}
+
+:where(.ta-ui-conversation-turn-actions__timestamps > div) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--ta-ui-space-3);
+}
+
+:where(.ta-ui-conversation-turn-actions__timestamps dt) {
+  color: var(--ta-ui-color-ink-muted);
+}
+
+:where(.ta-ui-conversation-turn-actions__timestamps dd) {
+  margin: 0;
+}

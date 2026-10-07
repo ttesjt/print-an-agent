@@ -1,5 +1,6 @@
 import type {
   ChangeSessionLifecycleInput,
+  ConversationSessionAdmission,
   ForkSessionBranchInput,
   InspectSessionInput,
   InspectSessionNavigationInput,
@@ -31,6 +32,9 @@ export interface CommitDeterministicConversationTurnInput {
 }
 
 export interface DeterministicConversationSessionStore {
+  admitSession(
+    input: Readonly<{ agentId: string; branchId: string; sessionId: string }>
+  ): ConversationSessionAdmission;
   commitTurn(input: CommitDeterministicConversationTurnInput): void;
   forkBranch(input: ForkSessionBranchInput): SessionManagementResult<SessionBranchMutationResult>;
   rewindBranch(
@@ -135,6 +139,28 @@ export function createDeterministicSessionManagement(): DeterministicSessionMana
 
   return Object.freeze({
     conversationStore: Object.freeze({
+      admitSession: (input: Readonly<{ agentId: string; branchId: string; sessionId: string }>) => {
+        let record = records.get(input.sessionId);
+        if (record === undefined) {
+          const timestamp = now();
+          record = sessionRecord({
+            agentId: input.agentId,
+            branches: [{ branchId: input.branchId, createdAt: timestamp }],
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            selectedBranchId: input.branchId,
+            turnCount: 0,
+            turnIdsByBranch: { [input.branchId]: [] },
+          });
+          records.set(input.sessionId, record);
+        }
+        if (record.agentId !== input.agentId || record.status !== 'active')
+          throw new Error('Session admission is invalid.');
+        return {
+          details: details(input.sessionId, record),
+          navigation: navigation(input.sessionId, record),
+        };
+      },
       commitTurn: (input: CommitDeterministicConversationTurnInput) =>
         commitTurn(records, input, now),
       forkBranch: (input: ForkSessionBranchInput) =>
@@ -303,6 +329,7 @@ function commitTurn(
     throw new Error('Deterministic conversation branch no longer exists.');
   }
   if (!lineage.includes(input.turnId)) {
+    if (existing.turnCount === 0 && existing.title === undefined) existing.title = input.title;
     lineage.push(input.turnId);
     existing.turnCount += 1;
   }

@@ -37,6 +37,7 @@ function controllerInput(management: ConversationManagementPort, agentId = 'agen
     agentId,
     management,
     onConversationCommitted: vi.fn(),
+    onInteractionSettled: vi.fn(),
     onNavigationChanged: vi.fn(),
     sessionState: readySession(agentId),
   };

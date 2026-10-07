@@ -52,7 +52,11 @@ and an application-owned token override. It is a qualification fixture, not a te
 ## Runtime and recovery guarantees
 
 - Persisted conversations own independent history, draft, interaction and cancellation state.
-  Selection only changes the visible target. Unpersisted drafts remain foreground-owned.
+  Selection only changes the visible target. Only unsent drafts are disposable; submitted drafts
+  own their interaction until settlement, independently of foreground selection.
+- `session-admitted` promotes a submitted draft to its authoritative Session before the model
+  responds. It preserves interaction ownership and does not declare a successful Turn. Late
+  admission/completion does not replace the foreground selection of another draft or Session.
 - Revision conflicts reconcile authoritative details and catalogs. Transport failure is projected
   safely with retry; malformed responses never become domain state.
 - Awaited stream consumption retains order/backpressure. Success comes from the committed Session

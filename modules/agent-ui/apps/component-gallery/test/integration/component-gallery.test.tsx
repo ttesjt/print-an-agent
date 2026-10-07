@@ -205,6 +205,10 @@ describe('Agent UI Component Gallery', () => {
       'vertical',
     ]);
     expect(navigation?.querySelector('[data-slot="disclosure"]')).not.toBeNull();
+    expect(valuesOf(navigation, '[data-slot="disclosure"]', 'data-appearance')).toEqual([
+      'plain',
+      'surface',
+    ]);
     expect(navigation?.querySelector('[data-slot="navigation-rail"]')).not.toBeNull();
   });
 
@@ -233,6 +237,46 @@ describe('Agent UI Component Gallery', () => {
     expect(sessions?.querySelectorAll('[data-slot="session-lifecycle-actions"]')).toHaveLength(2);
   });
 
+  it('exhibits mixed action bars, all tooltip directions, and optional completed-Turn capabilities', () => {
+    const actions = renderStaticGallery().querySelector('#action-bars');
+    expect(valuesOf(actions, '[role="tooltip"]', 'data-placement')).toEqual([
+      'bottom',
+      'left',
+      'right',
+      'top',
+    ]);
+    expect(actions?.querySelectorAll('[data-slot="action-bar"]')).toHaveLength(4);
+    expect(actions?.querySelector('[data-slot="text-link"]')).not.toBeNull();
+    expect(actions?.querySelector('[data-pending="true"]')).not.toBeNull();
+    const readOnly = actions?.querySelector('[aria-label="Read-only preview Turn metadata"]');
+    expect(readOnly?.querySelectorAll('button')).toHaveLength(1);
+    expect(readOnly?.querySelectorAll('time')).toHaveLength(2);
+    expect(actions?.querySelector('details')).toBeNull();
+  });
+
+  it('exposes hover information to keyboard readers without moving their focus', () => {
+    const { container } = renderGallery();
+    const trigger = container.querySelector<HTMLButtonElement>(
+      '#action-bars [aria-label="Completed preview Turn actions"] [aria-label="Message timestamps"]'
+    );
+    if (trigger === null) throw new Error('Missing completed-Turn timestamps trigger');
+    const tooltip = document.getElementById(trigger.getAttribute('aria-describedby') ?? '');
+    act(() => trigger.focus());
+    expect(tooltip?.hidden).toBe(false);
+    expect(tooltip?.textContent).toContain('2026-02-01 12:01:00 UTC');
+    act(() => {
+      trigger.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          bubbles: true,
+          cancelable: true,
+          key: 'Escape',
+        })
+      );
+    });
+    expect(tooltip?.hidden).toBe(true);
+    expect(document.activeElement).toBe(trigger);
+  });
+
   it('exhibits completed, streaming, failed, reasoning, tool, and composer conversation states', () => {
     const conversation = renderStaticGallery().querySelector('#conversation');
 
@@ -249,7 +293,22 @@ describe('Agent UI Component Gallery', () => {
         ?.textContent
     ).toContain('Interrupted');
     expect(conversation?.querySelectorAll('[data-slot="conversation-composer"]')).toHaveLength(2);
+    expect(conversation?.querySelectorAll('[data-conversation-turn-actions]')).toHaveLength(1);
+    expect(
+      conversation?.querySelector('[data-state="streaming"] [data-conversation-turn-actions]')
+    ).toBeNull();
+    expect(
+      conversation?.querySelector('[data-state="failed"] [data-conversation-turn-actions]')
+    ).toBeNull();
     expect(conversation?.textContent).toContain('Partial output is not a completed turn.');
+    expect(valuesOf(conversation, '[data-role="assistant"]', 'data-presentation')).toEqual([
+      'compact',
+      'detailed',
+    ]);
+    expect(conversation?.querySelector('[data-slot="reasoning-block"] details[open]')).toBeNull();
+    expect(
+      conversation?.querySelectorAll('[data-slot="reasoning-block"] [data-appearance="plain"]')
+    ).toHaveLength(4);
   });
 
   it('opens nested modal Dialogs through the public Gallery surface', () => {
@@ -267,6 +326,59 @@ describe('Agent UI Component Gallery', () => {
       container.querySelectorAll<HTMLDialogElement>('[data-slot="dialog"][open]')
     ).toHaveLength(2);
   });
+
+  it('exhibits the complete activity and content-height matrix without a provider', () => {
+    const container = renderStaticGallery();
+    const activity = container.querySelector('#disclosure-activity');
+    expect(activity?.querySelectorAll('[data-disclosure-example]')).toHaveLength(6);
+    for (const mode of ['manual', 'expand', 'expand-collapse']) {
+      for (const height of ['bounded', 'unbounded']) {
+        const example = activity?.querySelector(`[data-disclosure-example="${mode}-${height}"]`);
+        expect(example?.querySelector('details')?.open).toBe(false);
+        expect(example?.querySelector('[data-content-max-height="medium"]') !== null).toBe(
+          height === 'bounded'
+        );
+      }
+    }
+    expect(
+      valuesOf(
+        container.querySelector('#navigation'),
+        '[data-slot="disclosure-panel"]',
+        'data-content-max-height'
+      )
+    ).toEqual(['large', 'medium', 'small']);
+  });
+
+  it.each(['bounded', 'unbounded'])(
+    'demonstrates manual, automatic and user-owned completion at %s height',
+    (height) => {
+      const { container } = renderGallery();
+      for (const mode of ['manual', 'expand', 'expand-collapse']) {
+        const example = container.querySelector(`[data-disclosure-example="${mode}-${height}"]`);
+        if (example === null) throw new Error('Missing activity example');
+        const details = example.querySelector('details');
+        if (details === null) throw new Error('Missing disclosure');
+        clickLabel(example, 'Start activity');
+        expect(details.open).toBe(mode !== 'manual');
+        clickLabel(example, 'Append content');
+        expect(details.textContent).toContain('New readable content.');
+        clickLabel(example, 'Finish activity');
+        expect(details.open).toBe(mode === 'expand');
+      }
+      const controlled = container.querySelector(
+        `[data-disclosure-example="expand-collapse-${height}"]`
+      );
+      if (controlled === null) throw new Error('Missing takeover example');
+      clickLabel(controlled, 'Reset example');
+      clickLabel(controlled, 'Start activity');
+      const details = controlled.querySelector('details');
+      if (details === null) throw new Error('Missing takeover disclosure');
+      click(details, 'summary');
+      click(details, 'summary');
+      clickLabel(controlled, 'Finish activity');
+      expect(details.open).toBe(true);
+    }
+  );
 
   it('switches the application theme without installing a Theme Provider', () => {
     const { container } = renderGallery();
@@ -299,6 +411,8 @@ describe('Agent UI Component Gallery', () => {
     expect(css).toContain('.ta-ui-navigation-rail');
     expect(css).toContain('.ta-ui-agent-catalog');
     expect(css).toContain('.ta-ui-conversation-turn');
+    expect(css).toContain('.ta-ui-action-bar');
+    expect(css).toContain('.ta-ui-tooltip__content');
     expect(css).toContain('.ta-ui-gallery-root');
     expect(css).toContain('[data-ta-ui-theme]');
     expect(css).toContain('color:var(--ta-ui-color-ink)');
@@ -330,6 +444,14 @@ function click(container: ParentNode, selector: string): void {
   const target = container.querySelector<HTMLButtonElement>(selector);
   expect(target, `${selector} must resolve to a button`).not.toBeNull();
   act(() => target?.click());
+}
+
+function clickLabel(container: ParentNode, label: string): void {
+  const button = [...container.querySelectorAll('button')].find(
+    (node) => node.textContent?.trim() === label
+  );
+  if (button === undefined) throw new Error(`Missing ${label}`);
+  act(() => button.click());
 }
 
 function valuesOf(root: ParentNode | null, selector: string, attribute: string): readonly string[] {

@@ -69,7 +69,13 @@ export function ConversationScrollRegion({
       {children}
       {following ? null : (
         <div className="ta-ui-conversation-scroll-region__jump">
-          <Button appearance="outline" onClick={jumpToLatest} size="small" tone="neutral">
+          <Button
+            appearance="ghost"
+            className="ta-ui-conversation-scroll-region__jump-button"
+            onClick={jumpToLatest}
+            size="small"
+            tone="neutral"
+          >
             {jumpToLatestLabel}
           </Button>
         </div>

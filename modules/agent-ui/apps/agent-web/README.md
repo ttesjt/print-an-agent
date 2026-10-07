@@ -2,6 +2,11 @@
 
 General-purpose Agent Web application composition root.
 
+Thinking panels use the global medium content height limit (18rem by default). They never auto-open
+or auto-close: this application does not guess when a provider's reasoning ends. Manual expansion
+is conversation-scoped, ephemeral UI state and survives live-to-history and draft-to-persisted
+transitions. It is not written to Session data, sent to the model, or restored after a page reload.
+
 This application owns Agent lifecycle, Session management, conversation
 interaction, routing, application-wide state, backend transport, and the adapter to an Agent
 runtime. Those responsibilities remain application policy and do not flow into reusable UI
@@ -32,17 +37,27 @@ its owning fields, and delayed mutation results cannot replace a newer Agent sel
 
 Session operations use the same stale-result and revision protections. Switching Agent or Session
 cancels obsolete reads and prevents late results from replacing the current workspace. “New” opens
-an unsaved conversation draft; persistence remains the responsibility of the first successful
-interaction. Metadata and navigation can complete concurrently without overwriting one another;
+an unsaved conversation draft; persistence begins when the backend admits its first message,
+not when the model finishes responding. Metadata and navigation can complete concurrently without overwriting one another;
 revision conflicts remain visible until an authoritative reload reconciles both selected details and
 the current catalog. A failed Session inspection exposes the same retry/reconciliation path.
+
+“New” immediately publishes an application-owned draft entry and selects the Active catalog.
+It does not fabricate a persisted Session ID. Sending immediately shows an ordinary Session row
+in the same sidebar list, without a separate "creating" view. An authoritative `session-admitted`
+stream event associates the actual Session ID with that same row and promotes the matching
+conversation before any model response. The row retains its DOM identity and keyboard focus during
+confirmation. Admission is not a successful Turn commit: only a verified successful terminal
+stream commits successful UI history. Settlement reconciles the catalog even after failure or
+cancellation. Background admission and completion cannot steal a newer selection.
 
 Conversation state is keyed by persisted Agent, Session, and branch identity. Persisted interactions
 can continue concurrently while selection changes; each target owns its history cache, Composer
 draft, live/partial Turn, cancellation, and error state. Returning to a target restores that state,
-and cancelling the selected target does not cancel another target. An unpersisted new-conversation
-draft remains foreground-only: leaving it cancels and discards its temporary state, while successful
-completion migrates it to the canonical persisted Session target.
+and cancelling the selected target does not cancel another target. Each new-conversation draft
+has a unique application-owned identity. Unsent drafts remain disposable; submitted interactions
+continue independently of selection even before Session admission arrives. Promotion preserves
+the same interaction, cancellation ownership, and manual reasoning expansion state.
 
 Each logical send receives a new browser-generated UUID, independent of mounts and tabs. On a
 persisted target, it is also the Request Journal idempotency key. Only an explicit retry of that
@@ -72,6 +87,14 @@ display name, config and lifecycle; Conversation owns the transcript and Compose
 to a fresh conversation and focuses its Composer. Unsaved Profile edits require explicit discard
 before selection/view changes, including browser navigation. Already submitted work is not treated
 as an unsaved edit; stale-result guards still apply.
+The transcript is a continuous sequence of user bubbles and unframed assistant text, not a card per
+exchange. Thought-process and tool details are plain disclosures, collapsed by default even during
+streaming. Readable reasoning stays separate by model turn; single-block labels omit technical
+numbering. A quiet, always-visible action bar follows authoritative completed Turns. Optional
+Fork/Rewind commands remain directly reachable; timestamps appear on hover or keyboard focus of
+the metadata icon. Working, failed, cancelled, and provisional-completed Turns do not expose this
+success-only bar. Rewind still requires explicit application-owned confirmation.
+None of these presentation choices changes runtime, persistence, failure or cancellation behavior.
 
 The application has a viewport-bounded shell: transcript, navigation and optional Session inspector
 scroll independently while the Composer remains reachable. It uses stable DOM reading order:

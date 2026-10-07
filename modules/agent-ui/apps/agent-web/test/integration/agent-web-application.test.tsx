@@ -113,7 +113,10 @@ describe('Agent Web deterministic composition', () => {
 
     clickButton(view.container, 'New');
     expect(view.container.querySelector('[data-session-draft]')).not.toBeNull();
-    expect(view.container.textContent).toContain('has no Session identity yet');
+    expect(view.container.querySelector('[data-session-draft] h1')?.textContent).toBe(
+      'New conversation'
+    );
+    expect(view.container.querySelector('[data-submitted-conversation]')).toBeNull();
   });
 
   it('enforces Session pagination, metadata, lifecycle, purge, and branch revisions', async () => {
@@ -686,7 +689,7 @@ describe('Agent Web deterministic composition', () => {
     expect(view.container.textContent).toContain('The tool confirmed the requested result.');
   });
 
-  it('creates a persisted Session only after a draft interaction completes successfully', async () => {
+  it('admits a draft into a persisted Session and reconciles its completed first turn', async () => {
     const sessions = createDeterministicSessionManagement();
     const conversations = createDeterministicConversationManagement(sessions, {
       pace: () => Promise.resolve(),

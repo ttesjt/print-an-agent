@@ -1,31 +1,55 @@
 import type { ConversationReasoningBlock } from '@ta-agent/ui-contracts';
-import type { ComponentPropsWithRef, ReactNode } from 'react';
+import { useId, type ComponentPropsWithRef, type ReactNode } from 'react';
 
-import { Disclosure, DisclosurePanel, DisclosureSummary } from '../navigation/disclosure.js';
+import {
+  Disclosure,
+  DisclosurePanel,
+  DisclosureSummary,
+  type DisclosureContentMaxHeight,
+  type DisclosurePanelProps,
+  type DisclosureStateProps,
+} from '../navigation/disclosure.js';
 import { joinStyleHooks } from '../internal/style-hooks.js';
 
 export type ReasoningBlockState = 'completed' | 'incomplete' | 'streaming';
 
 type NativeReasoningBlockProps = Omit<ComponentPropsWithRef<'div'>, 'children' | 'style'>;
 
-export interface ReasoningBlockProps extends NativeReasoningBlockProps {
+interface SharedReasoningBlockProps extends NativeReasoningBlockProps {
   readonly block: ConversationReasoningBlock;
-  readonly defaultOpen?: boolean;
+  readonly contentMaxHeight?: DisclosureContentMaxHeight;
   readonly label: ReactNode;
   readonly state?: ReasoningBlockState;
   readonly stateLabel: ReactNode;
   readonly style?: never;
 }
 
+export type ReasoningBlockProps = SharedReasoningBlockProps & DisclosureStateProps;
+
 export function ReasoningBlock({
+  activity,
   block,
   className,
+  contentMaxHeight,
   defaultOpen,
   label,
+  onOpenChange,
+  open,
   state = 'completed',
   stateLabel,
   ...props
 }: ReasoningBlockProps) {
+  const labelId = useId();
+  const panelProps: DisclosurePanelProps =
+    contentMaxHeight === undefined ? {} : { 'aria-labelledby': labelId, contentMaxHeight };
+  const disclosureState: DisclosureStateProps =
+    open === undefined
+      ? {
+          ...(activity === undefined ? {} : { activity }),
+          defaultOpen: defaultOpen ?? false,
+          ...(onOpenChange === undefined ? {} : { onOpenChange }),
+        }
+      : { open, ...(onOpenChange === undefined ? {} : { onOpenChange }) };
   return (
     <div
       {...props}
@@ -34,12 +58,14 @@ export function ReasoningBlock({
       data-slot="reasoning-block"
       data-state={state}
     >
-      <Disclosure defaultOpen={defaultOpen ?? state === 'streaming'}>
-        <DisclosureSummary>
+      <Disclosure appearance="plain" {...disclosureState}>
+        <DisclosureSummary id={labelId}>
           <span>{label}</span>
-          <span className="ta-ui-reasoning-block__state">{stateLabel}</span>
+          {stateLabel === null || stateLabel === undefined ? null : (
+            <span className="ta-ui-reasoning-block__state">{stateLabel}</span>
+          )}
         </DisclosureSummary>
-        <DisclosurePanel>
+        <DisclosurePanel {...panelProps}>
           <p className="ta-ui-reasoning-block__content">{block.text}</p>
         </DisclosurePanel>
       </Disclosure>

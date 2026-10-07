@@ -228,7 +228,7 @@ describe('per-Agent configuration through browser forms and actual Pi transport'
         document.querySelector('[data-slot="conversation-turn"][data-state="completed"]') !== null
     );
     expect(document.querySelector('main')?.textContent).toContain('Configured through UI');
-    expect(document.querySelector('main')?.textContent).toContain('Thinking · model turn 1');
+    expect(document.querySelector('main')?.textContent).toContain('Thought process');
     expect(provider.authorization).toEqual([
       'Bearer private-fixture-value',
       'Bearer private-fixture-value',

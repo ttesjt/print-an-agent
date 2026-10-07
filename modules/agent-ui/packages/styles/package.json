@@ -5,6 +5,8 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./action-bar.css": "./src/action-bar.css",
+    "./tooltip.css": "./src/tooltip.css",
     "./default.css": "./src/default.css",
     "./tokens.css": "./src/tokens.css",
     "./base.css": "./src/base.css",

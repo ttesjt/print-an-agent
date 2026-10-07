@@ -190,7 +190,8 @@ export interface SessionListItemProps extends NativeSessionListItemProps {
   readonly metadata: ReactNode;
   readonly onSelect: () => void;
   readonly selected?: boolean;
-  readonly session: SessionSummary;
+  /** Omit lifecycle data for an optimistic entry until the backend confirms its Session. */
+  readonly session?: SessionSummary;
   readonly statusLabel: ReactNode;
   readonly style?: never;
   readonly title: ReactNode;
@@ -217,7 +218,7 @@ export function SessionListItem({
       className={joinStyleHooks('ta-ui-session-list__item', className)}
       data-selected={selected || undefined}
       data-slot="session-list-item"
-      data-status={session.status}
+      data-status={session?.status}
       data-working={working || undefined}
     >
       <button
@@ -237,9 +238,9 @@ export function SessionListItem({
             <Spinner decorative />
             <span>{workingLabel}</span>
           </span>
-        ) : (
+        ) : session !== undefined ? (
           <SessionStatusBadge label={statusLabel} status={session.status} />
-        )}
+        ) : null}
       </button>
     </li>
   );

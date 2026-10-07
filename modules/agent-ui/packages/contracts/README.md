@@ -26,6 +26,12 @@ outcomes. A completed event includes the canonical persisted Turn. Safe tool act
 display label, summary, and labelled string details only; adapters must not expose raw tool
 arguments/results, traces, credentials, or provider payloads through this contract.
 
+An adapter can emit `session-admitted` once after `interaction-started` and before model content,
+when authoritative Session identity and navigation are available. This enables immediate catalog
+visibility without inventing a durable ID in the browser or waiting for model completion. Its
+details/navigation must agree with each other and the requested target; completion must retain
+that Session/branch. Admission does not imply a successful Turn. Replays may have no new admission.
+
 Non-cancellation outcomes use `AgentManagementResult`. Its failures are browser-safe projections
 for validation, conflicts, missing records, unavailable capabilities, and operation failure.
 Cancellation continues to use the caller's `AbortSignal` and rejects the operation instead of being

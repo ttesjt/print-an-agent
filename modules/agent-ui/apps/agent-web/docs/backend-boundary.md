@@ -25,6 +25,13 @@ OutputSink and tool buffer. Awaited consumers provide ordering/backpressure. Obs
 is never used as a UI event bus. Requested branch/revision is checked before Turn admission;
 the standard Session CAS then protects concurrent admission.
 
+The application overrides the standard `beginRequest` Step only to add a post-admission
+presentation notification, preserving its original implementation. After the first message is
+admitted, public Session inspection/navigation services supply the `session-admitted` snapshot
+before Actor invocation. This notification declares an established Session, not a completed Turn;
+a model failure or cancellation can still leave the admitted Session available in the catalog.
+No Agent Base lifecycle or provider protocol change is required.
+
 Completed UI events are emitted only after the public Agent invocation settles and the committed
 Turn and presentation have been read from Session authority. History reconstructs completed branch
 lineage and failed Turns, pages in causal order, and reads reasoning presentation separately.

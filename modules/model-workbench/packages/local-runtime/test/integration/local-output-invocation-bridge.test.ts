@@ -1,4 +1,4 @@
-import { access, mkdtemp, rm } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -31,6 +31,9 @@ const fixture = String.raw`
     console.log(JSON.stringify({ kind: 'stream-start' }));
     console.log(JSON.stringify({ kind: 'chunk', result: 'first' }));
     setInterval(() => console.log(JSON.stringify({ kind: 'chunk', result: 'later' })), 1000);
+  } else if (request.mode === 'invalid-first') {
+    console.log('{"kind":"unknown"}');
+    setInterval(() => undefined, 1000);
   } else if (request.mode === 'wait') {
     setInterval(() => undefined, 1000);
   } else {
@@ -88,6 +91,38 @@ describe('createLocalOutputInvocationBridge', () => {
         break;
       }
       await expectEventually(() => access(marker));
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('terminates an already running backend before the first stream pull, exactly once', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'workbench-output-invocation-'));
+    const marker = join(directory, 'terminated');
+    let iterator: AsyncIterator<unknown> | undefined;
+    try {
+      const invocation = await bridge.invoke({ mode: 'long-stream', terminationMarker: marker });
+      if (invocation.kind !== OutputInvocationKind.Streaming) throw new Error('Expected a stream.');
+      iterator = invocation.stream[Symbol.asyncIterator]();
+      await Promise.all([iterator.return?.(), iterator.return?.()]);
+      await expectEventually(() => access(marker));
+      expect(await readFile(marker, 'utf8')).toBe('terminated\\n');
+      await expect(iterator.next()).resolves.toMatchObject({ done: true });
+    } finally {
+      await iterator?.return?.();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('closes the reader and process when the invocation handshake is rejected', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'workbench-output-invocation-'));
+    const marker = join(directory, 'terminated');
+    try {
+      await expect(
+        bridge.invoke({ mode: 'invalid-first', terminationMarker: marker })
+      ).rejects.toBeInstanceOf(LocalOutputInvocationError);
+      await expectEventually(() => access(marker));
+      expect(await readFile(marker, 'utf8')).toBe('terminated\\n');
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

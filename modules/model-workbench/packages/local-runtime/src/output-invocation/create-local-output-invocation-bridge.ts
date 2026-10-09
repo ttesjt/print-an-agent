@@ -20,6 +20,11 @@ import type {
   LocalOutputInvocationBridgeOptions,
 } from './contracts.js';
 import { parseLocalOutputInvocationMessage } from './protocol.js';
+import {
+  closeInvocationReader,
+  createResultStream,
+  type InvocationStreamProcess,
+} from './result-stream.js';
 
 export function createLocalOutputInvocationBridge(
   options: LocalOutputInvocationBridgeOptions
@@ -82,7 +87,11 @@ export function createLocalOutputInvocationBridge(
           stream: createResultStream(lines, process),
         });
       } catch (cause: unknown) {
-        await process.stop();
+        try {
+          await closeInvocationReader(lines, process);
+        } catch (cleanupCause: unknown) {
+          throw new AggregateError([cause, cleanupCause], 'Local invocation and cleanup failed.');
+        }
         if (isAbortError(cause)) throw cause;
         if (cause instanceof LocalOutputInvocationError) throw cause;
         throw new LocalOutputInvocationError('The local Output Invocation failed.', { cause });
@@ -91,43 +100,8 @@ export function createLocalOutputInvocationBridge(
   });
 }
 
-function createResultStream(
-  lines: AsyncIterator<string>,
-  process: ManagedInvocationProcess
-): AsyncIterable<ReturnType<typeof parseJsonValue>> {
-  return Object.freeze({
-    async *[Symbol.asyncIterator]() {
-      let completed = false;
-      try {
-        while (true) {
-          const next = await lines.next();
-          if (next.done === true) break;
-          const message = parseLocalOutputInvocationMessage(next.value);
-          if (message.kind !== LocalOutputInvocationMessageKind.Chunk) {
-            throw new LocalOutputInvocationError(
-              'A streaming local Output Invocation may contain only chunk messages.'
-            );
-          }
-          yield message.result;
-        }
-        await process.requireSuccess();
-        completed = true;
-      } catch (cause: unknown) {
-        if (isAbortError(cause) || cause instanceof LocalOutputInvocationError) throw cause;
-        throw new LocalOutputInvocationError('The local Output Invocation stream failed.', {
-          cause,
-        });
-      } finally {
-        if (!completed) await process.stop();
-      }
-    },
-  });
-}
-
-interface ManagedInvocationProcess {
+interface ManagedInvocationProcess extends InvocationStreamProcess {
   readonly spawned: Promise<void>;
-  requireSuccess(): Promise<void>;
-  stop(): Promise<void>;
 }
 
 function manageProcess(
@@ -156,7 +130,13 @@ function manageProcess(
       child.once('close', (code, signal) => resolve({ code, signal }));
     }
   );
-  const abort = (): void => terminate(child, graceMilliseconds);
+  let terminationRequested = false;
+  let stopPromise: Promise<void> | undefined;
+  const abort = (): void => {
+    if (terminationRequested) return;
+    terminationRequested = true;
+    terminate(child, graceMilliseconds);
+  };
   options?.signal?.addEventListener('abort', abort, { once: true });
 
   async function result() {
@@ -178,13 +158,13 @@ function manageProcess(
         );
       }
     },
-    stop: async () => {
-      terminate(child, graceMilliseconds);
-      try {
-        await result();
-      } catch {
-        // Preserve the failure that caused process cleanup.
-      }
+    stop: () => {
+      abort();
+      stopPromise ??= result().then(
+        () => undefined,
+        () => undefined // Preserve the failure that caused process cleanup.
+      );
+      return stopPromise;
     },
   };
 }

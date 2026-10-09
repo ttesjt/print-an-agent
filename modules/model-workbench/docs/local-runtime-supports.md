@@ -144,3 +144,8 @@ EOF plus exit code zero completes the stream. Invalid messages, a non-zero exit,
 violation fail the invocation. The bridge forwards cancellation for the entire stream lifetime and
 terminates the child if the consumer stops iteration early. Stderr is continuously consumed while
 only a bounded prefix is retained for diagnostics.
+
+Early iterator return terminates the child even before its first chunk is requested. Shutdown
+starts process termination and reader closure before awaiting either, avoiding blocked reads or
+paused-stdout close cycles. Repeated close shares one cleanup result; failed invocation handshakes
+use the same process/reader cleanup boundary.

@@ -1,3 +1,7 @@
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -17,7 +21,9 @@ import {
   defineExporterCapability,
   defineInitializerCapability,
   defineOutputInvokerCapability,
+  type InvokeOutputCapability,
 } from '@ta-agent/workbench-extension';
+import { createLocalOutputInvocationBridge } from '@ta-agent/workbench-local-runtime';
 import { RuntimeBindingKind } from '@ta-agent/workbench-setup';
 
 const ProfileId = 'black-box-model';
@@ -146,9 +152,67 @@ describe('Model Workbench public application boundary', () => {
       ModelWorkbenchErrorCategory.UnexpectedFailure
     );
   });
+
+  it('closes an already running local invoker through every wrapper before the first pull', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'workbench-public-stream-close-'));
+    const marker = join(directory, 'terminated');
+    const bridge = createLocalOutputInvocationBridge({
+      command: {
+        executable: process.execPath,
+        arguments: [
+          '--input-type=module',
+          '--eval',
+          String.raw`
+            import { appendFileSync } from 'node:fs';
+            let input = '';
+            for await (const chunk of process.stdin) input += chunk;
+            const request = JSON.parse(input);
+            process.once('SIGTERM', () => {
+              appendFileSync(request.terminationMarker, 'terminated\n');
+              process.exit(0);
+            });
+            console.log('{"kind":"stream-start"}');
+            console.log('{"kind":"chunk","result":"unread"}');
+            setInterval(() => undefined, 1000);
+          `,
+        ],
+      },
+      cancellationGraceMilliseconds: 1_000,
+    });
+    const workbench = createBlackBoxWorkbench((request, options) =>
+      bridge.invoke(request.input, options)
+    );
+    let iterator: AsyncIterator<JsonValue> | undefined;
+    try {
+      await workbench.initialization.start({
+        profileId: ProfileId,
+        initializerId: 'seed',
+        input: null,
+      });
+      await workbench.exports.start({
+        profileId: ProfileId,
+        exporterId: 'portable',
+        source: { baseId: 'base:1' },
+        input: null,
+      });
+      const invocation = await workbench.outputInvocations.invoke({
+        profileId: ProfileId,
+        outputId: OutputId,
+        input: { terminationMarker: marker },
+      });
+      if (invocation.kind !== OutputInvocationKind.Streaming) throw new Error('Expected a stream.');
+      iterator = invocation.stream[Symbol.asyncIterator]();
+      await Promise.all([iterator.return?.(), iterator.return?.()]);
+      expect(await readFile(marker, 'utf8')).toBe('terminated\n');
+      await expect(iterator.next()).resolves.toMatchObject({ done: true });
+    } finally {
+      await iterator?.return?.();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
 });
 
-function createBlackBoxWorkbench() {
+function createBlackBoxWorkbench(invoke?: InvokeOutputCapability) {
   return createModelWorkbench({
     setup: {
       runtimeBindings: [
@@ -231,28 +295,30 @@ function createBlackBoxWorkbench() {
           capabilityId: 'output-invoker.fixture',
           input: JsonValueContract,
           output: JsonValueContract,
-          invoke: ({ target, input }) => {
-            if (readBoolean(input, 'fail')) {
-              return Promise.reject(new Error('Fixture invocation failed.'));
-            }
-            if (readBoolean(input, 'stream')) {
+          invoke:
+            invoke ??
+            (({ target, input }) => {
+              if (readBoolean(input, 'fail')) {
+                return Promise.reject(new Error('Fixture invocation failed.'));
+              }
+              if (readBoolean(input, 'stream')) {
+                return Promise.resolve({
+                  kind: OutputInvocationKind.Streaming,
+                  stream: streamOf({ token: 'hello' }, { token: ' world' }),
+                });
+              }
+              const prompt = readString(input, 'prompt');
+              const model = target.artifacts[0];
+              if (model === undefined) throw new Error('Fixture model Artifact is missing.');
               return Promise.resolve({
-                kind: OutputInvocationKind.Streaming,
-                stream: streamOf({ token: 'hello' }, { token: ' world' }),
+                kind: OutputInvocationKind.Completed,
+                result: {
+                  outputId: target.output.outputId,
+                  prompt,
+                  location: readString(model.artifact.binding, 'location'),
+                },
               });
-            }
-            const prompt = readString(input, 'prompt');
-            const model = target.artifacts[0];
-            if (model === undefined) throw new Error('Fixture model Artifact is missing.');
-            return Promise.resolve({
-              kind: OutputInvocationKind.Completed,
-              result: {
-                outputId: target.output.outputId,
-                prompt,
-                location: readString(model.artifact.binding, 'location'),
-              },
-            });
-          },
+            }),
         }),
       ],
       runtimeSupports: [

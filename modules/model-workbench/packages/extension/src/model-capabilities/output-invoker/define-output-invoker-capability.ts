@@ -19,6 +19,7 @@ import {
 } from '../../foundation/validation.js';
 import { eraseValueContract } from '../shared/value-contract.js';
 import { OutputInvocationKind } from './constants.js';
+import { parseOutputStream } from './parse-output-stream.js';
 import type {
   InvokeOutputCapability,
   OutputInvocation,
@@ -132,22 +133,6 @@ function parseOutputInvocation(
     `${path}.kind`,
     `must equal ${OutputInvocationKind.Completed} or ${OutputInvocationKind.Streaming}`
   );
-}
-
-function parseOutputStream(
-  stream: AsyncIterable<unknown>,
-  parseResult: (value: unknown, path?: string) => JsonValue,
-  path: string
-): AsyncIterable<JsonValue> {
-  return Object.freeze({
-    async *[Symbol.asyncIterator]() {
-      let index = 0;
-      for await (const chunk of stream) {
-        yield parseResult(chunk, `${path}[${String(index)}]`);
-        index += 1;
-      }
-    },
-  });
 }
 
 function isRecord(input: unknown): input is Record<string, unknown> {

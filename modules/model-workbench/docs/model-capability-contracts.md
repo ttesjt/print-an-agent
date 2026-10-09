@@ -85,6 +85,11 @@ Streaming cancellation is cooperative. Workbench passes the caller's `AbortSigna
 Invoker, but does not independently terminate an already returned stream. The Invoker owns any
 backend resources behind that stream and must continue observing the signal until iteration ends.
 Stopping iteration early closes the wrapped iterator so the Invoker can release those resources.
+Workbench's control-plane and value-validation wrappers forward `return()` even before the first
+`next()`, without pulling a chunk to trigger cleanup. Repeated return on the same iterator shares
+one cleanup result. Invokers that start work before returning a stream must implement iterator
+cleanup independently of whether consumption has started; a generator-body `finally` alone is not
+sufficient. Normal exhaustion owns its natural cleanup; stream failures also close the iterator.
 
 ## Contract and Artifact responsibilities
 

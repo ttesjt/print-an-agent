@@ -1,4 +1,4 @@
-import { parseJsonValue, type JsonValue } from '@ta-agent/workbench-domain';
+import { parseJsonValue } from '@ta-agent/workbench-domain';
 import { OutputInvocationKind } from '@ta-agent/workbench-extension';
 
 import type { InvokeOutputInput, OutputInvocation } from './contracts.js';
@@ -6,6 +6,7 @@ import { OutputInvocationCapabilityError } from './errors.js';
 import type { MaterializeOutput } from './materialize-output.js';
 import type { OutputInvocationTargetResolver } from './resolve-output-invocation-target.js';
 import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';
+import { wrapInvocationStream } from './wrap-invocation-stream.js';
 
 export interface InvokeOutputDependencies {
   readonly targetResolver: OutputInvocationTargetResolver;
@@ -68,23 +69,6 @@ export function createInvokeOutput(dependencies: InvokeOutputDependencies) {
       );
     }
   };
-}
-
-function wrapInvocationStream(
-  stream: AsyncIterable<JsonValue>,
-  profileId: string,
-  outputId: string
-): AsyncIterable<JsonValue> {
-  return Object.freeze({
-    async *[Symbol.asyncIterator]() {
-      try {
-        yield* stream;
-      } catch (cause: unknown) {
-        if (isAbortError(cause)) throw cause;
-        throw new OutputInvocationCapabilityError(profileId, outputId, { cause });
-      }
-    },
-  });
 }
 
 function assertNotAborted(signal: AbortSignal | undefined): void {

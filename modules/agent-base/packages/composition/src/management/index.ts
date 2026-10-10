@@ -28,6 +28,7 @@ export type * from './contracts/agent-management.js';
 export type * from './contracts/agent-runtime.js';
 export type * from './contracts/authority.js';
 export type * from './contracts/namespace.js';
+export type * from './contracts/operation.js';
 export type * from './contracts/projection.js';
 export type * from './contracts/runtime.js';
 export type * from './contracts/session-management.js';

@@ -16,12 +16,16 @@ describe('Agent Management Service authority mutations', () => {
       displayName: 'Alpha renamed',
     });
     expect(renamed).toMatchObject({
-      identity: {
-        identity: { id: agentId, displayName: 'Alpha renamed' },
-        revision: 2,
-        status: 'active',
+      status: 'committed',
+      operation: 'rename',
+      authority: {
+        identity: {
+          identity: { id: agentId, displayName: 'Alpha renamed' },
+          revision: 2,
+          status: 'active',
+        },
+        config: { revision: 1, value: { label: 'unchanged' } },
       },
-      config: { revision: 1, value: { label: 'unchanged' } },
     });
     await expect(
       service.rename({ agentId, expectedIdentityRevision: 1, displayName: 'Stale' })
@@ -30,7 +34,14 @@ describe('Agent Management Service authority mutations', () => {
     fixture.controls.projectionReconcileFailure = new Error('private projection');
     await expect(
       service.rename({ agentId, expectedIdentityRevision: 2, displayName: 'Committed' })
-    ).rejects.toMatchObject({ code: 'MANAGED_AGENT_PROJECTION_FAILED' });
+    ).resolves.toMatchObject({
+      status: 'committed',
+      authority: { identity: { identity: { displayName: 'Committed' }, revision: 3 } },
+      projection: {
+        kind: 'failed',
+        failure: { code: 'MANAGED_AGENT_PROJECTION_FAILED' },
+      },
+    });
     fixture.controls.projectionReconcileFailure = undefined;
     expect((await service.inspect(agentId)).identity.identity.displayName).toBe('Committed');
   });
@@ -43,9 +54,14 @@ describe('Agent Management Service authority mutations', () => {
 
     await expect(
       service.updateConfig({ agentId, config: { label: 'updated' }, expectedRevision: 1 })
-    ).rejects.toMatchObject({
-      code: 'MANAGED_AGENT_PROJECTION_FAILED',
+    ).resolves.toMatchObject({
+      status: 'committed',
       operation: 'update-config',
+      authority: { config: { value: { label: 'updated' }, revision: 2 } },
+      projection: {
+        kind: 'failed',
+        failure: { code: 'MANAGED_AGENT_PROJECTION_FAILED' },
+      },
     });
 
     fixture.controls.projectionReconcileFailure = undefined;
@@ -55,6 +71,41 @@ describe('Agent Management Service authority mutations', () => {
     await expect(
       service.updateConfig({ agentId, config: { label: 'stale' }, expectedRevision: 1 })
     ).rejects.toMatchObject({ code: 'CONFIG_REVISION_CONFLICT' });
+  });
+
+  it('returns the exact Config commit even when a later write wins before Projection settles', async () => {
+    const fixture = createManagedAgentFixture();
+    const service = createAgentManagementService(fixture.definition);
+    const agentId = parseAgentId('alpha');
+    await service.create({ identity: { id: agentId }, config: { label: 'initial' } });
+    const projectionEntered = Promise.withResolvers<void>();
+    const releaseProjection = Promise.withResolvers<void>();
+    fixture.projectionReconcile.mockImplementationOnce(async () => {
+      projectionEntered.resolve();
+      await releaseProjection.promise;
+      throw new Error('/private/projection/path');
+    });
+
+    const first = service.updateConfig({
+      agentId,
+      config: { label: 'first' },
+      expectedRevision: 1,
+    });
+    await projectionEntered.promise;
+    await expect(
+      service.updateConfig({ agentId, config: { label: 'second' }, expectedRevision: 2 })
+    ).resolves.toMatchObject({ authority: { config: { revision: 3 } } });
+    releaseProjection.resolve();
+
+    await expect(first).resolves.toMatchObject({
+      status: 'committed',
+      operation: 'update-config',
+      authority: { config: { value: { label: 'first' }, revision: 2 } },
+      projection: {
+        kind: 'failed',
+        failure: { code: 'MANAGED_AGENT_PROJECTION_FAILED' },
+      },
+    });
   });
 
   it('decodes unknown Config input before I/O and imports through the same CAS path', async () => {
@@ -73,7 +124,9 @@ describe('Agent Management Service authority mutations', () => {
     await expect(
       service.importConfig({ agentId, input: { label: 'imported' }, expectedRevision: 1 })
     ).resolves.toMatchObject({
-      config: { value: { label: 'imported' }, revision: 2 },
+      status: 'committed',
+      operation: 'import-config',
+      authority: { config: { value: { label: 'imported' }, revision: 2 } },
     });
   });
 
@@ -88,16 +141,19 @@ describe('Agent Management Service authority mutations', () => {
 
     const disabled = await service.disable({
       agentId,
-      expectedIdentityRevision: created.identity.revision,
+      expectedIdentityRevision: created.authority.identity.revision,
     });
-    expect(disabled.identity).toMatchObject({ status: 'disabled', revision: 2 });
+    expect(disabled.authority.identity).toMatchObject({ status: 'disabled', revision: 2 });
 
     await expect(
       service.updateConfig({ agentId, config: { label: 'while-disabled' }, expectedRevision: 1 })
-    ).resolves.toMatchObject({ config: { revision: 2 } });
+    ).resolves.toMatchObject({ authority: { config: { revision: 2 } } });
     await expect(
-      service.reactivate({ agentId, expectedIdentityRevision: disabled.identity.revision })
-    ).resolves.toMatchObject({ identity: { status: 'active', revision: 3 } });
+      service.reactivate({
+        agentId,
+        expectedIdentityRevision: disabled.authority.identity.revision,
+      })
+    ).resolves.toMatchObject({ authority: { identity: { status: 'active', revision: 3 } } });
     expect(fixture.createRuntimePorts).not.toHaveBeenCalled();
     expect(fixture.materialize).not.toHaveBeenCalled();
   });

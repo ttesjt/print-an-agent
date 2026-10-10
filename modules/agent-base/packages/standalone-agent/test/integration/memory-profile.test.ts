@@ -26,7 +26,7 @@ describe('Standalone Memory profile', () => {
       identity: { id: 'alpha' },
       config: resourceProfileConfig(),
     });
-    const agentId = created.identity.identity.id;
+    const agentId = created.authority.identity.identity.id;
     expect(created.projection).toEqual({ kind: 'not-configured' });
     expect((await sessions.list({ agentId })).records).toEqual([]);
     const [first, second] = await Promise.all([runtimes.open(agentId), runtimes.open(agentId)]);
@@ -167,8 +167,10 @@ describe('Standalone Memory profile', () => {
         config: resourceProfileConfig('Fresh config.'),
       })
     ).resolves.toMatchObject({
-      identity: { revision: 1, identity: { displayName: 'Fresh identity' } },
-      config: { revision: 1 },
+      authority: {
+        identity: { revision: 1, identity: { displayName: 'Fresh identity' } },
+        config: { revision: 1 },
+      },
     });
   });
 });

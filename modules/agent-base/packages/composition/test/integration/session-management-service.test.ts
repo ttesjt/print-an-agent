@@ -110,6 +110,8 @@ function createSessionPortFixture() {
     inspectSession,
     listRetiredSessions,
     listSessionTurns,
+    retireSession,
+    restoreSession,
     purgeSessionPersistence,
     recoverSessionPersistence,
     session,
@@ -288,7 +290,7 @@ describe('Session Management Service', () => {
     });
     await fixture.management.disable({
       agentId: portFixture.agentId,
-      expectedIdentityRevision: created.identity.revision,
+      expectedIdentityRevision: created.authority.identity.revision,
     });
     fixture.events.splice(0);
 
@@ -300,6 +302,156 @@ describe('Session Management Service', () => {
     expect(fixture.createRuntimePorts).not.toHaveBeenCalled();
     expect(fixture.materialize).not.toHaveBeenCalled();
     expect(fixture.events).toEqual([]);
+  });
+
+  it('does not purge when cancellation arrives during namespace resolution', async () => {
+    const portFixture = createSessionPortFixture();
+    const fixture = createSessionManagedFixture(() => portFixture.ports);
+    await fixture.management.create({
+      identity: { id: portFixture.agentId },
+      config: { label: 'session-owner' },
+    });
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const originalResolve = fixture.namespacePort.resolve.bind(fixture.namespacePort);
+    fixture.namespacePort.resolve = async (agentId) => {
+      entered.resolve();
+      await release.promise;
+      return originalResolve(agentId);
+    };
+    const controller = new AbortController();
+
+    const purging = fixture.sessions.purge(
+      {
+        agentId: portFixture.agentId,
+        sessionId: portFixture.sessionId,
+        expectedRevision: 2,
+        confirmation: 'permanently-delete-session',
+      },
+      { signal: controller.signal }
+    );
+    await entered.promise;
+    controller.abort();
+    release.resolve();
+
+    await expect(purging).rejects.toMatchObject({
+      code: 'MANAGED_AGENT_OPERATION_CANCELLED',
+      operation: 'purge-session',
+    });
+    expect(portFixture.purgeSessionPersistence).not.toHaveBeenCalled();
+    await expect(
+      fixture.sessions.purge({
+        agentId: portFixture.agentId,
+        sessionId: portFixture.sessionId,
+        expectedRevision: 2,
+        confirmation: 'permanently-delete-session',
+      })
+    ).resolves.toBeUndefined();
+    expect(portFixture.purgeSessionPersistence).toHaveBeenCalledOnce();
+  });
+
+  it('blocks every lifecycle mutation when cancellation arrives during Port preparation', async () => {
+    const portFixture = createSessionPortFixture();
+    let entered = Promise.withResolvers<void>();
+    let release = Promise.withResolvers<void>();
+    const fixture = createSessionManagedFixture(async () => {
+      entered.resolve();
+      await release.promise;
+      return portFixture.ports;
+    });
+    await fixture.management.create({
+      identity: { id: portFixture.agentId },
+      config: { label: 'session-owner' },
+    });
+    const cases = [
+      {
+        operation: 'retire-session',
+        invoke: (signal: AbortSignal) =>
+          fixture.sessions.retire(
+            {
+              agentId: portFixture.agentId,
+              sessionId: portFixture.sessionId,
+              expectedRevision: 0,
+            },
+            { signal }
+          ),
+        called: portFixture.retireSession,
+      },
+      {
+        operation: 'restore-session',
+        invoke: (signal: AbortSignal) =>
+          fixture.sessions.restore(
+            {
+              agentId: portFixture.agentId,
+              sessionId: portFixture.sessionId,
+              expectedRevision: 1,
+            },
+            { signal }
+          ),
+        called: portFixture.restoreSession,
+      },
+      {
+        operation: 'recover-session',
+        invoke: (signal: AbortSignal) =>
+          fixture.sessions.recover(
+            {
+              agentId: portFixture.agentId,
+              sessionId: portFixture.sessionId,
+              expectedExecutionRevision: 3,
+            },
+            { signal }
+          ),
+        called: portFixture.recoverSessionPersistence,
+      },
+    ] as const;
+
+    for (const testCase of cases) {
+      const controller = new AbortController();
+      const pending = testCase.invoke(controller.signal);
+      await entered.promise;
+      controller.abort();
+      release.resolve();
+      await expect(pending).rejects.toMatchObject({
+        code: 'MANAGED_AGENT_OPERATION_CANCELLED',
+        operation: testCase.operation,
+      });
+      expect(testCase.called).not.toHaveBeenCalled();
+      entered = Promise.withResolvers<void>();
+      release = Promise.withResolvers<void>();
+    }
+  });
+
+  it('waits for and returns the real Session outcome after a mutation begins', async () => {
+    const portFixture = createSessionPortFixture();
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const purge = vi.fn(async () => {
+      entered.resolve();
+      await release.promise;
+    });
+    portFixture.maintenance.purgeSessionPersistence = purge;
+    const fixture = createSessionManagedFixture(() => portFixture.ports);
+    await fixture.management.create({
+      identity: { id: portFixture.agentId },
+      config: { label: 'session-owner' },
+    });
+    const controller = new AbortController();
+
+    const purging = fixture.sessions.purge(
+      {
+        agentId: portFixture.agentId,
+        sessionId: portFixture.sessionId,
+        expectedRevision: 2,
+        confirmation: 'permanently-delete-session',
+      },
+      { signal: controller.signal }
+    );
+    await entered.promise;
+    controller.abort();
+    release.resolve();
+
+    await expect(purging).resolves.toBeUndefined();
+    expect(purge).toHaveBeenCalledOnce();
   });
 
   it('fails closed when the scoped factory omits a required standard capability', async () => {

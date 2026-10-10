@@ -1,4 +1,7 @@
-import type { SessionManagementService } from '@ta-agent/base-composition';
+import type {
+  ManagementOperationOptions,
+  SessionManagementService,
+} from '@ta-agent/base-composition';
 import { parseAgentId } from '@ta-agent/base-identity';
 import {
   parseSessionId,
@@ -47,14 +50,35 @@ export interface StandaloneRecoverSessionExecutionsInput extends StandaloneSessi
 
 /** String/JSON boundary projection of the generic, branded Session management Service. */
 export interface StandaloneSessionManagementService {
-  list(input: StandaloneListSessionsInput): Promise<SessionLifecycleListPage>;
-  listRetired(input: StandaloneListRetiredSessionsInput): Promise<RetiredSessionListPage>;
-  inspect(input: StandaloneSessionReferenceInput): Promise<SessionLifecycleInspection | undefined>;
-  listTurns(input: StandaloneListSessionTurnsInput): Promise<SessionTurnPage | undefined>;
-  retire(input: StandaloneSessionLifecycleMutationInput): Promise<SessionLifecycleSnapshot>;
-  restore(input: StandaloneSessionLifecycleMutationInput): Promise<SessionLifecycleSnapshot>;
-  purge(input: StandalonePurgeSessionInput): Promise<void>;
-  recover(input: StandaloneRecoverSessionExecutionsInput): Promise<SessionExecutionFence>;
+  list(
+    input: StandaloneListSessionsInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleListPage>;
+  listRetired(
+    input: StandaloneListRetiredSessionsInput,
+    options?: ManagementOperationOptions
+  ): Promise<RetiredSessionListPage>;
+  inspect(
+    input: StandaloneSessionReferenceInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleInspection | undefined>;
+  listTurns(
+    input: StandaloneListSessionTurnsInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionTurnPage | undefined>;
+  retire(
+    input: StandaloneSessionLifecycleMutationInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleSnapshot>;
+  restore(
+    input: StandaloneSessionLifecycleMutationInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleSnapshot>;
+  purge(input: StandalonePurgeSessionInput, options?: ManagementOperationOptions): Promise<void>;
+  recover(
+    input: StandaloneRecoverSessionExecutionsInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionExecutionFence>;
 }
 
 function projectReference(input: StandaloneSessionReferenceInput) {
@@ -68,56 +92,78 @@ function projectReference(input: StandaloneSessionReferenceInput) {
 export function projectStandaloneSessionManagementService(
   service: SessionManagementService
 ): StandaloneSessionManagementService {
-  return Object.freeze({
-    list: (input: StandaloneListSessionsInput) =>
-      service.list({
-        agentId: parseAgentId(input.agentId),
-        ...(input.cursor === undefined
-          ? {}
-          : {
-              cursor: {
-                updatedAt: input.cursor.updatedAt,
-                sessionId: parseSessionId(input.cursor.sessionId),
-              },
-            }),
-        ...(input.limit === undefined ? {} : { limit: input.limit }),
-      }),
-    listRetired: (input: StandaloneListRetiredSessionsInput) =>
-      service.listRetired({
-        agentId: parseAgentId(input.agentId),
-        ...(input.cursor === undefined
-          ? {}
-          : {
-              cursor: {
-                retiredAt: input.cursor.retiredAt,
-                sessionId: parseSessionId(input.cursor.sessionId),
-              },
-            }),
-        ...(input.limit === undefined ? {} : { limit: input.limit }),
-      }),
-    inspect: (input: StandaloneSessionReferenceInput) => service.inspect(projectReference(input)),
-    listTurns: (input: StandaloneListSessionTurnsInput) =>
-      service.listTurns({
-        ...projectReference(input),
-        ...(input.beforeTurnId === undefined
-          ? {}
-          : { beforeTurnId: parseTurnId(input.beforeTurnId) }),
-        ...(input.limit === undefined ? {} : { limit: input.limit }),
-      }),
-    retire: (input: StandaloneSessionLifecycleMutationInput) =>
-      service.retire({ ...projectReference(input), expectedRevision: input.expectedRevision }),
-    restore: (input: StandaloneSessionLifecycleMutationInput) =>
-      service.restore({ ...projectReference(input), expectedRevision: input.expectedRevision }),
-    purge: (input: StandalonePurgeSessionInput) =>
-      service.purge({
-        ...projectReference(input),
-        expectedRevision: input.expectedRevision,
-        confirmation: input.confirmation,
-      }),
-    recover: (input: StandaloneRecoverSessionExecutionsInput) =>
-      service.recover({
-        ...projectReference(input),
-        expectedExecutionRevision: input.expectedExecutionRevision,
-      }),
-  });
+  const projected: StandaloneSessionManagementService = {
+    list: (input, options) =>
+      service.list(
+        {
+          agentId: parseAgentId(input.agentId),
+          ...(input.cursor === undefined
+            ? {}
+            : {
+                cursor: {
+                  updatedAt: input.cursor.updatedAt,
+                  sessionId: parseSessionId(input.cursor.sessionId),
+                },
+              }),
+          ...(input.limit === undefined ? {} : { limit: input.limit }),
+        },
+        options
+      ),
+    listRetired: (input, options) =>
+      service.listRetired(
+        {
+          agentId: parseAgentId(input.agentId),
+          ...(input.cursor === undefined
+            ? {}
+            : {
+                cursor: {
+                  retiredAt: input.cursor.retiredAt,
+                  sessionId: parseSessionId(input.cursor.sessionId),
+                },
+              }),
+          ...(input.limit === undefined ? {} : { limit: input.limit }),
+        },
+        options
+      ),
+    inspect: (input, options) => service.inspect(projectReference(input), options),
+    listTurns: (input, options) =>
+      service.listTurns(
+        {
+          ...projectReference(input),
+          ...(input.beforeTurnId === undefined
+            ? {}
+            : { beforeTurnId: parseTurnId(input.beforeTurnId) }),
+          ...(input.limit === undefined ? {} : { limit: input.limit }),
+        },
+        options
+      ),
+    retire: (input, options) =>
+      service.retire(
+        { ...projectReference(input), expectedRevision: input.expectedRevision },
+        options
+      ),
+    restore: (input, options) =>
+      service.restore(
+        { ...projectReference(input), expectedRevision: input.expectedRevision },
+        options
+      ),
+    purge: (input, options) =>
+      service.purge(
+        {
+          ...projectReference(input),
+          expectedRevision: input.expectedRevision,
+          confirmation: input.confirmation,
+        },
+        options
+      ),
+    recover: (input, options) =>
+      service.recover(
+        {
+          ...projectReference(input),
+          expectedExecutionRevision: input.expectedExecutionRevision,
+        },
+        options
+      ),
+  };
+  return Object.freeze(projected);
 }

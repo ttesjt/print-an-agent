@@ -51,6 +51,12 @@ export async function readAgentBaseCliJsonDocument(documentPath: string): Promis
 }
 
 type ManagedSnapshot = Awaited<ReturnType<StandaloneAgentManagementService['inspect']>>;
+type ManagedCommitResult = Awaited<ReturnType<StandaloneAgentManagementService['create']>>;
+type ManagedSummarySource = Readonly<{
+  identity: ManagedSnapshot['identity'];
+  config: ManagedSnapshot['config'];
+  projection: ManagedSnapshot['projection'] | ManagedCommitResult['projection'];
+}>;
 
 function projectRuntime(agent: StandaloneRawAgent): AgentBaseCliRuntime {
   const runtime: AgentBaseCliRuntime = {
@@ -95,13 +101,13 @@ function projectProvider(
   });
 }
 
-function safeManagedSnapshot(snapshot: ManagedSnapshot): Readonly<{
+function safeManagedSnapshot(snapshot: ManagedSummarySource): Readonly<{
   agentId: string;
   displayName: string;
   status: ManagedSnapshot['identity']['status'];
   identityRevision: number;
   configRevision: number;
-  manifestProjection: ManagedSnapshot['projection']['kind'];
+  manifestProjection: ManagedSummarySource['projection']['kind'];
 }> {
   return Object.freeze({
     agentId: snapshot.identity.identity.id,
@@ -113,6 +119,13 @@ function safeManagedSnapshot(snapshot: ManagedSnapshot): Readonly<{
   });
 }
 
+function safeManagedCommit(result: ManagedCommitResult) {
+  return safeManagedSnapshot({
+    ...result.authority,
+    projection: result.projection,
+  });
+}
+
 export function loadAgentBaseCliAgentManager(
   locator: AgentBaseCliStorageLocator
 ): Promise<AgentBaseCliAgentManager> {
@@ -121,18 +134,18 @@ export function loadAgentBaseCliAgentManager(
     Object.freeze({
       create: async (input: unknown) => {
         const manifest = defineStandaloneAgentManifest(input);
-        return safeManagedSnapshot(
+        return safeManagedCommit(
           await management.create({ identity: manifest.identity, config: manifest.config })
         );
       },
       list: async () => (await management.list()).map(safeManagedSnapshot),
       inspect: async (agentId: string) => safeManagedSnapshot(await management.inspect(agentId)),
       disable: async (agentId: string, expectedRevision: number) =>
-        safeManagedSnapshot(
+        safeManagedCommit(
           await management.disable({ agentId, expectedIdentityRevision: expectedRevision })
         ),
       reactivate: async (agentId: string, expectedRevision: number) =>
-        safeManagedSnapshot(
+        safeManagedCommit(
           await management.reactivate({ agentId, expectedIdentityRevision: expectedRevision })
         ),
     })

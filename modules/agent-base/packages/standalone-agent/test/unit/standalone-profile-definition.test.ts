@@ -65,17 +65,19 @@ async function verifyDefinition<TNamespaceHandle>(
   expect(created.projection).toEqual({ kind: expectedProjection });
   expect(readEnvironmentVariable).not.toHaveBeenCalled();
 
-  const first = await runtime.open(created.identity.identity.id);
-  const second = await runtime.open(created.identity.identity.id);
+  const first = await runtime.open(created.authority.identity.identity.id);
+  const second = await runtime.open(created.authority.identity.identity.id);
   expect(first).not.toBe(second);
   expect(first.identity.id).toBe('bro');
   expect(readEnvironmentVariable).not.toHaveBeenCalled();
-  await expect(sessions.list({ agentId: created.identity.identity.id })).resolves.toMatchObject({
+  await expect(
+    sessions.list({ agentId: created.authority.identity.identity.id })
+  ).resolves.toMatchObject({
     records: [],
   });
   await expect(
     navigation.inspect({
-      agentId: created.identity.identity.id,
+      agentId: created.authority.identity.identity.id,
       sessionId: parseSessionId('missing-session'),
     })
   ).rejects.toMatchObject({ code: 'SESSION_NOT_FOUND' });

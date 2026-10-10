@@ -125,7 +125,7 @@ describe('shared SQLite Standalone profile', () => {
       await profile.updateConfig({
         agentId: 'bro',
         config: definition('Keep it short.'),
-        expectedRevision: bro.config.revision,
+        expectedRevision: bro.authority.config.revision,
       });
 
       const broAgent = await profile.open('bro');
@@ -287,8 +287,10 @@ describe('shared SQLite Standalone profile', () => {
       });
       await expect(profile.list()).resolves.toEqual([]);
       await expect(profile.create(manifest('bro', 'Bro'))).resolves.toMatchObject({
-        identity: { identity: { id: 'bro', displayName: 'Bro' } },
-        config: { revision: 1 },
+        authority: {
+          identity: { identity: { id: 'bro', displayName: 'Bro' } },
+          config: { revision: 1 },
+        },
       });
     });
   });

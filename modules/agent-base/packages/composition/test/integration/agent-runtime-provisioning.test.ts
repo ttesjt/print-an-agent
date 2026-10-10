@@ -38,8 +38,8 @@ describe('authoritative runtime provisioning', () => {
     const provisioning = fixture.createRuntimePorts.mock.calls[0]?.[0];
     expect(provisioning).toEqual({
       namespace: await fixture.namespacePort.resolve(agentId),
-      identity: active.identity,
-      config: updated.config,
+      identity: active.authority.identity,
+      config: updated.authority.config,
     });
     expect(provisioning?.identity.revision).toBe(3);
     expect(provisioning?.config.revision).toBe(2);
@@ -48,8 +48,8 @@ describe('authoritative runtime provisioning', () => {
     expect(Object.isFrozen(provisioning?.config)).toBe(true);
     const materialization = fixture.materialize.mock.calls[0]?.[0];
     expect(materialization).toEqual({
-      identity: active.identity.identity,
-      config: updated.config.value,
+      identity: active.authority.identity.identity,
+      config: updated.authority.config.value,
       ports: { slot: 1 },
     });
     expect(materialization?.identity).toBe(provisioning?.identity.identity);

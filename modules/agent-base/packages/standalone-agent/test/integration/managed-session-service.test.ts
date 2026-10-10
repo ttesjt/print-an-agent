@@ -82,7 +82,7 @@ describe('managed standalone Session service', () => {
       const created = await managementProfile.create(manifest('directory-owner'));
       await managementProfile.disable({
         agentId: 'directory-owner',
-        expectedRevision: created.identity.revision,
+        expectedRevision: created.authority.identity.revision,
       });
       const databasePath = join(rootDirectory, 'directory-owner', 'agent.sqlite');
       const profile = createSqliteSessionPersistence({
@@ -206,7 +206,7 @@ describe('managed standalone Session service', () => {
       await managementProfile.create(manifest('second-agent'));
       await managementProfile.disable({
         agentId: 'first-agent',
-        expectedRevision: first.identity.revision,
+        expectedRevision: first.authority.identity.revision,
       });
       const profile = createSqliteSessionPersistence({
         databasePath,

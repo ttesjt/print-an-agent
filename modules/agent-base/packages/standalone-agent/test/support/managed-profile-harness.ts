@@ -2,6 +2,7 @@ import {
   createAgentManagementService,
   createAgentRuntimeService,
   type ManagedAgentCompositionDefinition,
+  type ManagedAgentCommitResult,
   type ManagedAgentSnapshot,
 } from '@ta-agent/base-composition';
 import { parseAgentId } from '@ta-agent/base-identity';
@@ -14,22 +15,24 @@ import type {
 } from '../../src/types.js';
 
 export interface ManagedProfileHarness {
-  create(input: StandaloneAgentManifestInput): Promise<ManagedAgentSnapshot<StandaloneAgentConfig>>;
+  create(
+    input: StandaloneAgentManifestInput
+  ): Promise<ManagedAgentCommitResult<StandaloneAgentConfig>>;
   inspect(agentId: string): Promise<ManagedAgentSnapshot<StandaloneAgentConfig>>;
   list(): Promise<readonly ManagedAgentSnapshot<StandaloneAgentConfig>[]>;
   updateConfig(input: {
     readonly agentId: string;
     readonly config: StandaloneAgentConfigInput;
     readonly expectedRevision: number;
-  }): Promise<ManagedAgentSnapshot<StandaloneAgentConfig>>;
+  }): Promise<ManagedAgentCommitResult<StandaloneAgentConfig>>;
   disable(input: {
     readonly agentId: string;
     readonly expectedRevision: number;
-  }): Promise<ManagedAgentSnapshot<StandaloneAgentConfig>>;
+  }): Promise<ManagedAgentCommitResult<StandaloneAgentConfig>>;
   reactivate(input: {
     readonly agentId: string;
     readonly expectedRevision: number;
-  }): Promise<ManagedAgentSnapshot<StandaloneAgentConfig>>;
+  }): Promise<ManagedAgentCommitResult<StandaloneAgentConfig>>;
   open(agentId: string): Promise<StandaloneRawAgent>;
 }
 

@@ -16,6 +16,7 @@ import { canonicalizeManagedAgentConfig, decodeManagedAgentConfig } from './conf
 import type {
   CreateManagedAgentRequest,
   ImportManagedAgentConfigRequest,
+  ManagedAgentCommitResult,
   ManagedAgentSnapshot,
   TransitionManagedAgentRequest,
   UpdateManagedAgentConfigRequest,
@@ -34,9 +35,12 @@ import {
   validatePublishedNamespace,
   validateStagedNamespace,
 } from './namespace.js';
+import { assertManagementOperationActive } from './operation.js';
 import {
+  createManagedAgentCommitResult,
   createManagedAgentSnapshot,
-  publishManagedAgentProjection,
+  publishCommittedManagedAgentProjection,
+  reconcileCommittedManagedAgentProjection,
   reconcileManagedAgentProjection,
 } from './projection.js';
 
@@ -79,8 +83,10 @@ async function abortProvision<TNamespaceHandle>(
 async function inspectNamespace<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>(
   operation: AgentManagementOperation,
   definition: Definition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>,
-  namespace: ManagedAgentNamespace<TNamespaceHandle>
+  namespace: ManagedAgentNamespace<TNamespaceHandle>,
+  signal: AbortSignal | undefined
 ): Promise<ManagedAgentSnapshot<TConfig>> {
+  assertManagementOperationActive(operation, signal);
   const ports = createManagedAgentAuthorityPorts(operation, definition, namespace);
   const authority = await readManagedAgentAuthority<TConfig>(
     operation,
@@ -88,6 +94,7 @@ async function inspectNamespace<TConfig, TNamespaceHandle, TRuntimePorts, TAgent
     ports,
     definition.config.codec
   );
+  assertManagementOperationActive(operation, signal);
   const projection = await reconcileManagedAgentProjection(
     operation,
     definition,
@@ -99,8 +106,10 @@ async function inspectNamespace<TConfig, TNamespaceHandle, TRuntimePorts, TAgent
 
 export async function createManagedAgent<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>(
   definition: Definition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>,
-  request: CreateManagedAgentRequest<TConfig>
-): Promise<ManagedAgentSnapshot<TConfig>> {
+  request: CreateManagedAgentRequest<TConfig>,
+  signal: AbortSignal | undefined
+): Promise<ManagedAgentCommitResult<TConfig>> {
+  assertManagementOperationActive('create', signal);
   const identity = defineAgentIdentity(request.identity);
   const config = canonicalizeManagedAgentConfig(definition.config.codec, request.config);
   const staged = validateStagedNamespace(
@@ -110,6 +119,7 @@ export async function createManagedAgent<TConfig, TNamespaceHandle, TRuntimePort
   );
   let published = false;
   try {
+    assertManagementOperationActive('create', signal);
     const ports = createManagedAgentAuthorityPorts('create', definition, staged);
     const authority = await initializeManagedAgentAuthority(
       identity,
@@ -118,11 +128,16 @@ export async function createManagedAgent<TConfig, TNamespaceHandle, TRuntimePort
       definition.config.codec,
       staged.resumed
     );
+    assertManagementOperationActive('create', signal);
     const namespaceCandidate = await definition.namespace.port.publish(staged);
     published = true;
     const namespace = validatePublishedNamespace('create', namespaceCandidate, identity.id);
-    const projection = await publishManagedAgentProjection(definition, namespace, authority);
-    return createManagedAgentSnapshot(authority, projection);
+    const projection = await publishCommittedManagedAgentProjection(
+      definition,
+      namespace,
+      authority
+    );
+    return createManagedAgentCommitResult('create', authority, projection);
   } catch (cause: unknown) {
     if (!published) return await abortProvision(definition.namespace.port, staged, cause);
     throw cause;
@@ -131,24 +146,31 @@ export async function createManagedAgent<TConfig, TNamespaceHandle, TRuntimePort
 
 export async function inspectManagedAgent<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>(
   definition: Definition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>,
-  agentIdInput: Parameters<ManagedAgentNamespacePort<TNamespaceHandle>['resolve']>[0]
+  agentIdInput: Parameters<ManagedAgentNamespacePort<TNamespaceHandle>['resolve']>[0],
+  signal: AbortSignal | undefined
 ): Promise<ManagedAgentSnapshot<TConfig>> {
+  assertManagementOperationActive('inspect', signal);
   const agentId = parseAgentId(agentIdInput);
   const namespace = await resolveManagedAgentNamespace(
     'inspect',
     definition.namespace.port,
     agentId
   );
-  return await inspectNamespace('inspect', definition, namespace);
+  assertManagementOperationActive('inspect', signal);
+  return await inspectNamespace('inspect', definition, namespace, signal);
 }
 
 export async function listManagedAgents<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>(
-  definition: Definition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>
+  definition: Definition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>,
+  signal: AbortSignal | undefined
 ): Promise<readonly ManagedAgentSnapshot<TConfig>[]> {
+  assertManagementOperationActive('list', signal);
   const namespaces = await listManagedAgentNamespaces(definition.namespace.port);
+  assertManagementOperationActive('list', signal);
   const snapshots: ManagedAgentSnapshot<TConfig>[] = [];
   for (const namespace of namespaces) {
-    snapshots.push(await inspectNamespace('list', definition, namespace));
+    assertManagementOperationActive('list', signal);
+    snapshots.push(await inspectNamespace('list', definition, namespace, signal));
   }
   return Object.freeze(snapshots);
 }
@@ -156,8 +178,10 @@ export async function listManagedAgents<TConfig, TNamespaceHandle, TRuntimePorts
 export async function updateManagedAgentConfig<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>(
   operation: 'update-config' | 'import-config',
   definition: Definition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>,
-  request: UpdateManagedAgentConfigRequest<TConfig>
-): Promise<ManagedAgentSnapshot<TConfig>> {
+  request: UpdateManagedAgentConfigRequest<TConfig>,
+  signal: AbortSignal | undefined
+): Promise<ManagedAgentCommitResult<TConfig>> {
+  assertManagementOperationActive(operation, signal);
   const agentId = parseAgentId(request.agentId);
   const expectedRevision = validateExpectedRevision(
     operation,
@@ -170,6 +194,7 @@ export async function updateManagedAgentConfig<TConfig, TNamespaceHandle, TRunti
     definition.namespace.port,
     agentId
   );
+  assertManagementOperationActive(operation, signal);
   const ports = createManagedAgentAuthorityPorts(operation, definition, namespace);
   const current = await readManagedAgentAuthority<TConfig>(
     operation,
@@ -177,6 +202,7 @@ export async function updateManagedAgentConfig<TConfig, TNamespaceHandle, TRunti
     ports,
     definition.config.codec
   );
+  assertManagementOperationActive(operation, signal);
   const updated = await writeAgentConfig({
     identity: current.identity.identity,
     codec: definition.config.codec,
@@ -198,32 +224,41 @@ export async function updateManagedAgentConfig<TConfig, TNamespaceHandle, TRunti
     updated.revision,
     expectedRevision
   );
-  const projection = await reconcileManagedAgentProjection(
+  const projection = await reconcileCommittedManagedAgentProjection(
     operation,
     definition,
     namespace,
     authority
   );
-  return createManagedAgentSnapshot(authority, projection);
+  return createManagedAgentCommitResult(operation, authority, projection);
 }
 
 export function importManagedAgentConfig<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>(
   definition: Definition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>,
-  request: ImportManagedAgentConfigRequest
-): Promise<ManagedAgentSnapshot<TConfig>> {
+  request: ImportManagedAgentConfigRequest,
+  signal: AbortSignal | undefined
+): Promise<ManagedAgentCommitResult<TConfig>> {
+  assertManagementOperationActive('import-config', signal);
   const config = decodeManagedAgentConfig(definition.config.codec, request.input);
-  return updateManagedAgentConfig('import-config', definition, {
-    agentId: request.agentId,
-    config,
-    expectedRevision: request.expectedRevision,
-  });
+  return updateManagedAgentConfig(
+    'import-config',
+    definition,
+    {
+      agentId: request.agentId,
+      config,
+      expectedRevision: request.expectedRevision,
+    },
+    signal
+  );
 }
 
 export async function transitionManagedAgent<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>(
   operation: 'disable' | 'reactivate',
   definition: Definition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>,
-  request: TransitionManagedAgentRequest
-): Promise<ManagedAgentSnapshot<TConfig>> {
+  request: TransitionManagedAgentRequest,
+  signal: AbortSignal | undefined
+): Promise<ManagedAgentCommitResult<TConfig>> {
+  assertManagementOperationActive(operation, signal);
   const agentId = parseAgentId(request.agentId);
   const expectedRevision = validateExpectedRevision(
     operation,
@@ -235,6 +270,7 @@ export async function transitionManagedAgent<TConfig, TNamespaceHandle, TRuntime
     definition.namespace.port,
     agentId
   );
+  assertManagementOperationActive(operation, signal);
   const ports = createManagedAgentAuthorityPorts(operation, definition, namespace);
   const current = await readManagedAgentAuthority<TConfig>(
     operation,
@@ -242,6 +278,7 @@ export async function transitionManagedAgent<TConfig, TNamespaceHandle, TRuntime
     ports,
     definition.config.codec
   );
+  assertManagementOperationActive(operation, signal);
   const transition = operation === 'disable' ? disableAgentIdentity : reactivateAgentIdentity;
   const identity = await transition({
     agentId,
@@ -252,11 +289,11 @@ export async function transitionManagedAgent<TConfig, TNamespaceHandle, TRuntime
     identity,
     config: current.config,
   });
-  const projection = await reconcileManagedAgentProjection(
+  const projection = await reconcileCommittedManagedAgentProjection(
     operation,
     definition,
     namespace,
     authority
   );
-  return createManagedAgentSnapshot(authority, projection);
+  return createManagedAgentCommitResult(operation, authority, projection);
 }

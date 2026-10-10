@@ -281,10 +281,23 @@ createSessionManagementService(definition);
 createSessionNavigationService(definition);
 
 void management.inspect(managedAgentId);
-void management.updateConfig({
+void management.inspect(managedAgentId, { signal: new AbortController().signal });
+// @ts-expect-error Management operation options are a closed public contract.
+void management.inspect(managedAgentId, { signal: new AbortController().signal, retry: true });
+const managedConfigCommit = management.updateConfig({
   agentId: managedAgentId,
   config: { model: 'test-model' },
   expectedRevision: 1,
+});
+void managedConfigCommit.then((result) => {
+  const config: CustomConfig = result.authority.config.value;
+  void config;
+  // @ts-expect-error Mutation results separate committed authority from read snapshots.
+  void result.config;
+  if (result.projection.kind === 'failed') {
+    const code: 'MANAGED_AGENT_PROJECTION_FAILED' = result.projection.failure.code;
+    void code;
+  }
 });
 void management.importConfig({
   agentId: managedAgentId,
@@ -577,6 +590,10 @@ const sessionService = createSessionManagementService(standardSessionDefinition)
 const managedSessionId = parseSessionId('managed-session');
 void sessionService.inspect({ agentId: managedAgentId, sessionId: managedSessionId });
 void sessionService.list({ agentId: managedAgentId });
+void sessionService.inspect(
+  { agentId: managedAgentId, sessionId: managedSessionId },
+  { signal: new AbortController().signal }
+);
 
 // @ts-expect-error Generic Session management accepts branded Agent IDs.
 void sessionService.list({ agentId: 'managed-agent' });

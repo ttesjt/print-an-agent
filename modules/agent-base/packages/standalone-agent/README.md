@@ -74,8 +74,13 @@ const reopened = await runtime.open('ordinary-agent');
 
 Reuse the same host table-naming options if customized. Config is read from authority; use
 management `updateConfig()` or `importConfig()` with an expected revision to change it. Updating
-Config affects future opens, not already opened Agents. If sibling Services are needed for Memory,
-retain one canonical Definition as below rather than using isolated bootstrap calls.
+Config affects future opens, not already opened Agents. Mutation methods return committed Identity
+and Config authority separately from the optional manifest Projection outcome. A stale or failed
+manifest Projection does not roll back authority; callers can inspect or reconcile it later. Every
+management method accepts optional `{ signal }` execution options. Cancellation can stop work before
+the authoritative adapter boundary, but it cannot relabel a mutation after that boundary has begun.
+If sibling Services are needed for Memory, retain one canonical Definition as below rather than
+using isolated bootstrap calls.
 
 ## Managed profiles
 
@@ -104,10 +109,10 @@ const runtimes = createAgentRuntimeService(definition);
 const sessions = createSessionManagementService(definition);
 const navigation = createSessionNavigationService(definition);
 const created = await agents.create({ identity, config: defineStandaloneAgentConfig(config) });
-const agent = await runtimes.open(created.identity.identity.id);
+const agent = await runtimes.open(created.authority.identity.identity.id);
 const response = await agent.invoke('foreground', { message: 'hello' });
 const history = await sessions.listTurns({
-  agentId: created.identity.identity.id,
+  agentId: created.authority.identity.identity.id,
   sessionId: response.sessionId,
 });
 ```
@@ -170,8 +175,11 @@ const sessions = createStandaloneDirectorySessionService({ rootDirectory });
 const navigation = createStandaloneDirectorySessionNavigationService({ rootDirectory });
 
 const created = await agents.create({ identity, config });
-const agent = await runtime.open(created.identity.identity.id);
-const active = await sessions.list({ agentId: created.identity.identity.id, limit: 20 });
+const agent = await runtime.open(created.authority.identity.identity.id);
+const active = await sessions.list({
+  agentId: created.authority.identity.identity.id,
+  limit: 20,
+});
 ```
 
 Equivalent `createSharedSqliteStandalone*Service()` factories select the shared database profile.
@@ -192,6 +200,9 @@ only the scoped Session-management ports for the selected published Agent namesp
 open an Agent runtime, resolve provider credentials, or require an active Agent identity. SQLite
 bootstrap creates a published namespace accessible through the same shared-SQLite Services. Memory
 consumers that need out-of-band management retain their canonical Definition/provisioning scope.
+Every method accepts optional `{ signal }` execution options. Cancellation is rechecked after
+namespace and Port preparation and immediately before the final Port call; once that call starts,
+the Service waits for the real lifecycle or maintenance result.
 
 The independent Standalone navigation factories expose plain-string `inspect`, `select`, `fork`, and
 non-destructive `rewind` inputs while delegating validation, execution admission, CAS, cancellation,

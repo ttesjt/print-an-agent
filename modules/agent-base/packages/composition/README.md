@@ -78,7 +78,10 @@ published namespace, may be synchronous or asynchronous, and runs independently 
 Purge and recovery require the explicit Session + Request Journal maintenance Port and cannot
 silently degrade to Session-only success. A disabled Agent's published Session resources remain
 manageable. Definitions without this optional capability are rejected by TypeScript rather than by
-a runtime `undefined` branch.
+a runtime `undefined` branch. Session management methods accept `ManagementOperationOptions` and
+check cancellation after namespace and Port preparation, immediately before the final Port call.
+Once a lifecycle or maintenance mutation starts, the Service waits for the actual adapter outcome;
+it neither races storage work nor claims ownership of adapter-internal execution fences.
 
 `createSessionNavigationService()` exposes inspect/select/fork/non-destructive rewind directly over
 one published Agent namespace. Each call resolves the namespace and creates fresh scoped navigation
@@ -94,14 +97,53 @@ installing either one never implies the other.
 Agent lifecycle: create, inspect, deterministic list, typed Config update, unknown Config import,
 disable, and reactivate. Creation follows staged namespace allocation, authoritative Identity/Config
 initialization, atomic namespace publication, and optional Projection publication. A failure before
-namespace publication aborts the staged namespace. A Projection failure after publication returns a
-stable coordination error without rolling back the Agent; inspection and reconciliation provide the
-recovery path. Likewise, an authoritative Config or Identity update is never rolled back because the
-non-authoritative Projection later fails.
+namespace publication aborts the staged namespace. Once authority is committed, mutation methods
+return a `ManagedAgentCommitResult`: its exact authority result is separated from the recoverable
+Projection outcome. A Projection failure is reported as `projection.kind === 'failed'` with a stable,
+safe code; it never rolls back authority or disguises the commit as an exception. Inspection and
+reconciliation provide the recovery path.
 
-Management methods use branded `AgentId` values after creation and return immutable snapshots with
-separate Identity, Config revision, and `not-configured | current | stale` Projection state. Config
-mutation uses revision CAS, while `importConfig()` is the explicit `unknown` codec-ingestion boundary.
+Management methods use branded `AgentId` values after creation. Reads return immutable snapshots
+with separate Identity, Config revision, and `not-configured | current | stale` Projection state.
+Mutations return immutable committed authority plus a
+`not-configured | current | stale | failed` Projection outcome. Config mutation uses revision CAS,
+while `importConfig()` is the explicit `unknown` codec-ingestion boundary.
+
+Consumers that coordinate product work after an authority commit must preserve each secondary
+outcome independently. In particular, a runtime-reconciliation failure must not prevent the caller
+from observing and reporting the Projection outcome that is already present in the commit result:
+
+```ts
+const commit = await agents.updateConfig(request, { signal });
+const projectionOutcome = commit.projection;
+
+let runtimeOutcome:
+  | { readonly kind: 'succeeded' }
+  | { readonly kind: 'failed'; readonly error: unknown };
+
+try {
+  await reconcileRuntime(commit.authority);
+  runtimeOutcome = { kind: 'succeeded' };
+} catch (error) {
+  runtimeOutcome = { kind: 'failed', error };
+}
+
+reportCoordination({
+  authority: commit.authority,
+  projection: projectionOutcome,
+  runtime: runtimeOutcome,
+});
+```
+
+The example expresses consumer-owned coordination rather than an Agent Base runtime contract. A
+consumer may use a different settled-result representation, but must not let either recoverable
+secondary failure hide the other or reinterpret the authoritative commit as rolled back.
+
+Every management call accepts optional `ManagementOperationOptions` with an `AbortSignal`.
+Cancellation is checked at entry and after asynchronous preparation, immediately before a stateful
+adapter boundary. Once an authority mutation starts, the Service waits for its real outcome and does
+not relabel a successful commit as cancellation. Ports without a cooperative cancellation contract
+are never raced in the background.
 Namespace adapters report an atomic duplicate reservation through the stable
 `MANAGED_AGENT_NAMESPACE_ALREADY_EXISTS` contract; the Service exposes it as
 `MANAGED_AGENT_ALREADY_EXISTS` without relying on a racy resolve-before-stage precheck.

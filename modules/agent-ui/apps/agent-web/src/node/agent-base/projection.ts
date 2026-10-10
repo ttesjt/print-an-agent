@@ -1,4 +1,4 @@
-import type { ManagedAgentSnapshot } from '@ta-agent/base-composition';
+import type { ManagedAgentAuthoritySnapshot } from '@ta-agent/base-composition';
 import type { SessionLifecycleSummary, SessionNavigationSnapshot } from '@ta-agent/base-session';
 import type {
   AgentSnapshot,
@@ -14,7 +14,7 @@ export function revision(value: string): number {
 }
 
 export function projectAgent(
-  snapshot: ManagedAgentSnapshot<AgentWebConfig>
+  snapshot: ManagedAgentAuthoritySnapshot<AgentWebConfig>
 ): AgentSnapshot<AgentWebConfig> {
   const identity = snapshot.identity;
   return {

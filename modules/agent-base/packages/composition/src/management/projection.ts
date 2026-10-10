@@ -1,5 +1,10 @@
 import type { AgentConfigProjectionStatus } from './contracts/projection.js';
-import type { ManagedAgentSnapshot } from './contracts/agent-management.js';
+import type {
+  ManagedAgentCommitResult,
+  ManagedAgentMutationOperation,
+  ManagedAgentProjectionOutcome,
+  ManagedAgentSnapshot,
+} from './contracts/agent-management.js';
 import type { ManagedAgentNamespace } from './contracts/namespace.js';
 import type { ManagedAgentCompositionDefinition } from './definition.js';
 import { AgentManagementError, type AgentManagementOperation } from './errors.js';
@@ -7,6 +12,10 @@ import type { ManagedAgentAuthority } from './authority.js';
 
 const NOT_CONFIGURED = Object.freeze({ kind: 'not-configured' as const });
 const CURRENT = Object.freeze({ kind: 'current' as const });
+const FAILED = Object.freeze({
+  kind: 'failed' as const,
+  failure: Object.freeze({ code: 'MANAGED_AGENT_PROJECTION_FAILED' as const }),
+});
 
 function projectionView<TConfig>(authority: ManagedAgentAuthority<TConfig>) {
   return Object.freeze({
@@ -88,6 +97,41 @@ export async function reconcileManagedAgentProjection<
   }
 }
 
+export async function publishCommittedManagedAgentProjection<
+  TConfig,
+  TNamespaceHandle,
+  TRuntimePorts,
+  TAgent,
+>(
+  definition: ManagedAgentCompositionDefinition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>,
+  namespace: ManagedAgentNamespace<TNamespaceHandle>,
+  authority: ManagedAgentAuthority<TConfig>
+): Promise<ManagedAgentProjectionOutcome> {
+  try {
+    return await publishManagedAgentProjection(definition, namespace, authority);
+  } catch {
+    return FAILED;
+  }
+}
+
+export async function reconcileCommittedManagedAgentProjection<
+  TConfig,
+  TNamespaceHandle,
+  TRuntimePorts,
+  TAgent,
+>(
+  operation: ManagedAgentMutationOperation,
+  definition: ManagedAgentCompositionDefinition<TConfig, TNamespaceHandle, TRuntimePorts, TAgent>,
+  namespace: ManagedAgentNamespace<TNamespaceHandle>,
+  authority: ManagedAgentAuthority<TConfig>
+): Promise<ManagedAgentProjectionOutcome> {
+  try {
+    return await reconcileManagedAgentProjection(operation, definition, namespace, authority);
+  } catch {
+    return FAILED;
+  }
+}
+
 export function createManagedAgentSnapshot<TConfig>(
   authority: ManagedAgentAuthority<TConfig>,
   projection: AgentConfigProjectionStatus
@@ -95,6 +139,22 @@ export function createManagedAgentSnapshot<TConfig>(
   return Object.freeze({
     identity: authority.identity,
     config: authority.config,
+    projection,
+  });
+}
+
+export function createManagedAgentCommitResult<TConfig>(
+  operation: ManagedAgentMutationOperation,
+  authority: ManagedAgentAuthority<TConfig>,
+  projection: ManagedAgentProjectionOutcome
+): ManagedAgentCommitResult<TConfig> {
+  return Object.freeze({
+    status: 'committed',
+    operation,
+    authority: Object.freeze({
+      identity: authority.identity,
+      config: authority.config,
+    }),
     projection,
   });
 }

@@ -79,7 +79,7 @@ describe('Agent Runtime Service', () => {
     });
     await management.disable({
       agentId: parseAgentId('alpha'),
-      expectedIdentityRevision: created.identity.revision,
+      expectedIdentityRevision: created.authority.identity.revision,
     });
 
     await expect(runtimes.open(parseAgentId('alpha'))).rejects.toMatchObject({

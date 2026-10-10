@@ -148,6 +148,20 @@ and Projection never becomes an implicit reverse-write path. Explicit Config imp
 through the Definition's Config Codec and revision/CAS authority. Out-of-band Session management is
 likewise an optional typed capability rather than a hidden requirement of every Definition.
 
+Management mutation results distinguish the authoritative commit from Projection coordination. A
+successful Identity or Config mutation returns the exact committed authority snapshot together with
+the Projection outcome. Projection failure is a safe, explicit secondary outcome: it neither rolls
+back authority nor turns the commit into an exception. Product-owned coordination that follows the
+commit, such as reconciling a runtime host, remains outside Agent Base and must settle independently
+from Projection so that neither secondary failure hides the other.
+
+Agent and Session management operations accept optional execution cancellation without adding
+`AbortSignal` to domain inputs or persistence documents. Services check cancellation before resource
+preparation and again after asynchronous preparation, immediately before the stateful adapter
+boundary. Once an adapter mutation begins, the framework waits for its real outcome and never uses a
+promise race to report cancellation while storage may still commit. This is a cooperative pre-commit
+boundary, not a claim that every injected adapter operation can be interrupted.
+
 ## Runtime hierarchy
 
 ```text

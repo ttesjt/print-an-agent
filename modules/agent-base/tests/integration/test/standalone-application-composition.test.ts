@@ -96,7 +96,7 @@ describe('public Standalone application composition entry points', () => {
       identity: { id: 'memory-consumer' },
       config: defineStandaloneAgentConfig(standaloneConfig()),
     });
-    const agentId = created.identity.identity.id;
+    const agentId = created.authority.identity.identity.id;
     const first = await runtimes.open(agentId);
     const response = await first.invoke('foreground', { message: 'remember this' });
 

@@ -143,14 +143,16 @@ describe('Standalone directory profile', () => {
       });
       const created = await profile.create(manifest('bro', 'Bro'));
       const updated = await profile.updateConfig({
-        agentId: created.identity.identity.id,
+        agentId: created.authority.identity.identity.id,
         config: definition('Prefer short answers.'),
-        expectedRevision: created.config.revision,
+        expectedRevision: created.authority.config.revision,
       });
       expect(updated).toMatchObject({
-        config: {
-          revision: 2,
-          value: { mainActor: { instructions: 'Prefer short answers.' } },
+        authority: {
+          config: {
+            revision: 2,
+            value: { mainActor: { instructions: 'Prefer short answers.' } },
+          },
         },
         projection: { kind: 'current' },
       });
@@ -161,16 +163,20 @@ describe('Standalone directory profile', () => {
         rootDirectory,
         readEnvironmentVariable: () => undefined,
       });
-      await expect(reopened.inspect(created.identity.identity.id)).resolves.toMatchObject({
-        config: { revision: 2 },
-        projection: { kind: 'current' },
-      });
+      await expect(reopened.inspect(created.authority.identity.identity.id)).resolves.toMatchObject(
+        {
+          config: { revision: 2 },
+          projection: { kind: 'current' },
+        }
+      );
       expect(await readFile(manifestPath, 'utf8')).toContain('Prefer short answers.');
 
       await unlink(manifestPath);
-      await expect(reopened.inspect(created.identity.identity.id)).resolves.toMatchObject({
-        projection: { kind: 'current' },
-      });
+      await expect(reopened.inspect(created.authority.identity.identity.id)).resolves.toMatchObject(
+        {
+          projection: { kind: 'current' },
+        }
+      );
       expect(await readFile(manifestPath, 'utf8')).toContain('Prefer short answers.');
     });
   });
@@ -184,9 +190,9 @@ describe('Standalone directory profile', () => {
         clock: () => ++clock,
       });
       const created = await profile.create(manifest('bro', 'Bro'));
-      const agent = await profile.open(created.identity.identity.id);
+      const agent = await profile.open(created.authority.identity.identity.id);
       const session = await agent.resources.session.resolve({
-        agentId: created.identity.identity.id,
+        agentId: created.authority.identity.identity.id,
       });
       const turnId = parseTurnId('turn-1');
       const sessionPort = agent.resources.session;
@@ -214,20 +220,20 @@ describe('Standalone directory profile', () => {
 
       await sessionPort.releaseSessionExecution(execution);
       const disabled = await profile.disable({
-        agentId: created.identity.identity.id,
-        expectedRevision: created.identity.revision,
+        agentId: created.authority.identity.identity.id,
+        expectedRevision: created.authority.identity.revision,
       });
-      expect(disabled.identity.status).toBe('disabled');
-      await expect(profile.open(created.identity.identity.id)).rejects.toMatchObject({
+      expect(disabled.authority.identity.status).toBe('disabled');
+      await expect(profile.open(created.authority.identity.identity.id)).rejects.toMatchObject({
         code: 'MANAGED_AGENT_DISABLED',
       });
 
       const active = await profile.reactivate({
-        agentId: created.identity.identity.id,
-        expectedRevision: disabled.identity.revision,
+        agentId: created.authority.identity.identity.id,
+        expectedRevision: disabled.authority.identity.revision,
       });
-      expect(active.identity.status).toBe('active');
-      const reopened = await profile.open(created.identity.identity.id);
+      expect(active.authority.identity.status).toBe('active');
+      const reopened = await profile.open(created.authority.identity.identity.id);
       await expect(reopened.resources.session.inspect(session)).resolves.toMatchObject({
         turns: [{ status: 'completed', userMessage: { text: 'hello' } }],
       });
@@ -277,7 +283,7 @@ describe('Standalone directory profile', () => {
       await unlink(manifestPath);
       await symlink(join(rootDirectory, 'bro', 'agent.sqlite'), manifestPath);
 
-      await expect(profile.inspect(created.identity.identity.id)).rejects.toMatchObject({
+      await expect(profile.inspect(created.authority.identity.identity.id)).rejects.toMatchObject({
         code: 'MANAGED_AGENT_PROJECTION_FAILED',
       });
     });

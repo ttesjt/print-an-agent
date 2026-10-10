@@ -31,6 +31,7 @@ import type {
 import type { ManagedAgentNamespacePort } from './contracts/namespace.js';
 import { AgentManagementError, type AgentManagementOperation } from './errors.js';
 import { resolveManagedAgentNamespace } from './namespace.js';
+import { assertManagementOperationActive } from './operation.js';
 
 type SessionManagedDefinition<TNamespaceHandle> = Readonly<{
   namespace: Readonly<{ port: ManagedAgentNamespacePort<TNamespaceHandle> }>;
@@ -117,96 +118,140 @@ async function withSessionManagementPorts<TNamespaceHandle, TResult>(
   operation: AgentManagementOperation,
   definition: SessionManagedDefinition<TNamespaceHandle>,
   agentId: AgentId,
+  signal: AbortSignal | undefined,
   action: (ports: SessionManagementPorts) => Promise<TResult>
 ): Promise<TResult> {
+  assertManagementOperationActive(operation, signal);
   const namespace = await resolveManagedAgentNamespace(
     operation,
     definition.namespace.port,
     agentId
   );
+  assertManagementOperationActive(operation, signal);
   const ports = validateSessionManagementPorts(
     operation,
     await definition.sessionManagement.createPorts(namespace)
   );
+  assertManagementOperationActive(operation, signal);
   return action(ports);
 }
 
 export function listManagedSessions<TNamespaceHandle>(
   definition: SessionManagedDefinition<TNamespaceHandle>,
-  input: ListSessionsInput
+  input: ListSessionsInput,
+  signal: AbortSignal | undefined
 ): Promise<SessionLifecycleListPage> {
+  assertManagementOperationActive('list-sessions', signal);
   const request = normalizeListSessionsInput(input);
-  return withSessionManagementPorts('list-sessions', definition, request.agentId, (ports) =>
+  return withSessionManagementPorts('list-sessions', definition, request.agentId, signal, (ports) =>
     ports.session.listSessions(request)
   );
 }
 
 export function listRetiredManagedSessions<TNamespaceHandle>(
   definition: SessionManagedDefinition<TNamespaceHandle>,
-  input: ListRetiredSessionsInput
+  input: ListRetiredSessionsInput,
+  signal: AbortSignal | undefined
 ): Promise<RetiredSessionListPage> {
+  assertManagementOperationActive('list-retired-sessions', signal);
   const request = normalizeListRetiredSessionsInput(input);
-  return withSessionManagementPorts('list-retired-sessions', definition, request.agentId, (ports) =>
-    ports.session.listRetiredSessions(request)
+  return withSessionManagementPorts(
+    'list-retired-sessions',
+    definition,
+    request.agentId,
+    signal,
+    (ports) => ports.session.listRetiredSessions(request)
   );
 }
 
 export function inspectManagedSession<TNamespaceHandle>(
   definition: SessionManagedDefinition<TNamespaceHandle>,
-  input: SessionReference
+  input: SessionReference,
+  signal: AbortSignal | undefined
 ): Promise<SessionLifecycleInspection | undefined> {
+  assertManagementOperationActive('inspect-session', signal);
   const reference = normalizeSessionReference(input);
-  return withSessionManagementPorts('inspect-session', definition, reference.agentId, (ports) =>
-    ports.session.inspectSession(reference)
+  return withSessionManagementPorts(
+    'inspect-session',
+    definition,
+    reference.agentId,
+    signal,
+    (ports) => ports.session.inspectSession(reference)
   );
 }
 
 export function listManagedSessionTurns<TNamespaceHandle>(
   definition: SessionManagedDefinition<TNamespaceHandle>,
-  input: ListSessionTurnsInput
+  input: ListSessionTurnsInput,
+  signal: AbortSignal | undefined
 ): Promise<SessionTurnPage | undefined> {
+  assertManagementOperationActive('list-session-turns', signal);
   const request = normalizeListSessionTurnsInput(input);
-  return withSessionManagementPorts('list-session-turns', definition, request.agentId, (ports) =>
-    ports.session.listSessionTurns(request)
+  return withSessionManagementPorts(
+    'list-session-turns',
+    definition,
+    request.agentId,
+    signal,
+    (ports) => ports.session.listSessionTurns(request)
   );
 }
 
 export function retireManagedSession<TNamespaceHandle>(
   definition: SessionManagedDefinition<TNamespaceHandle>,
-  input: SessionLifecycleMutationInput
+  input: SessionLifecycleMutationInput,
+  signal: AbortSignal | undefined
 ): Promise<SessionLifecycleSnapshot> {
+  assertManagementOperationActive('retire-session', signal);
   const request = normalizeSessionLifecycleMutationInput(input);
-  return withSessionManagementPorts('retire-session', definition, request.agentId, (ports) =>
-    ports.session.retireSession(request)
+  return withSessionManagementPorts(
+    'retire-session',
+    definition,
+    request.agentId,
+    signal,
+    (ports) => ports.session.retireSession(request)
   );
 }
 
 export function restoreManagedSession<TNamespaceHandle>(
   definition: SessionManagedDefinition<TNamespaceHandle>,
-  input: SessionLifecycleMutationInput
+  input: SessionLifecycleMutationInput,
+  signal: AbortSignal | undefined
 ): Promise<SessionLifecycleSnapshot> {
+  assertManagementOperationActive('restore-session', signal);
   const request = normalizeSessionLifecycleMutationInput(input);
-  return withSessionManagementPorts('restore-session', definition, request.agentId, (ports) =>
-    ports.session.restoreSession(request)
+  return withSessionManagementPorts(
+    'restore-session',
+    definition,
+    request.agentId,
+    signal,
+    (ports) => ports.session.restoreSession(request)
   );
 }
 
 export function purgeManagedSession<TNamespaceHandle>(
   definition: SessionManagedDefinition<TNamespaceHandle>,
-  input: PurgeSessionInput
+  input: PurgeSessionInput,
+  signal: AbortSignal | undefined
 ): Promise<void> {
+  assertManagementOperationActive('purge-session', signal);
   const request = normalizePurgeSessionInput(input);
-  return withSessionManagementPorts('purge-session', definition, request.agentId, (ports) =>
+  return withSessionManagementPorts('purge-session', definition, request.agentId, signal, (ports) =>
     ports.maintenance.purgeSessionPersistence(request)
   );
 }
 
 export function recoverManagedSession<TNamespaceHandle>(
   definition: SessionManagedDefinition<TNamespaceHandle>,
-  input: RecoverSessionExecutionsInput
+  input: RecoverSessionExecutionsInput,
+  signal: AbortSignal | undefined
 ): Promise<SessionExecutionFence> {
+  assertManagementOperationActive('recover-session', signal);
   const request = normalizeRecoverSessionExecutionsInput(input);
-  return withSessionManagementPorts('recover-session', definition, request.agentId, (ports) =>
-    ports.maintenance.recoverSessionPersistence(request)
+  return withSessionManagementPorts(
+    'recover-session',
+    definition,
+    request.agentId,
+    signal,
+    (ports) => ports.maintenance.recoverSessionPersistence(request)
   );
 }

@@ -1,4 +1,5 @@
 import type { ManagedAgentNamespace } from './namespace.js';
+import type { ManagementOperationOptions } from './operation.js';
 import type {
   ListRetiredSessionsInput,
   ListSessionTurnsInput,
@@ -43,12 +44,33 @@ export interface SessionManagementCapability<TNamespaceHandle, TSessionManagemen
 
 /** Out-of-band lifecycle management for Sessions owned by one published managed Agent. */
 export interface SessionManagementService {
-  list(input: ListSessionsInput): Promise<SessionLifecycleListPage>;
-  listRetired(input: ListRetiredSessionsInput): Promise<RetiredSessionListPage>;
-  inspect(reference: SessionReference): Promise<SessionLifecycleInspection | undefined>;
-  listTurns(input: ListSessionTurnsInput): Promise<SessionTurnPage | undefined>;
-  retire(input: SessionLifecycleMutationInput): Promise<SessionLifecycleSnapshot>;
-  restore(input: SessionLifecycleMutationInput): Promise<SessionLifecycleSnapshot>;
-  purge(input: PurgeSessionInput): Promise<void>;
-  recover(input: RecoverSessionExecutionsInput): Promise<SessionExecutionFence>;
+  list(
+    input: ListSessionsInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleListPage>;
+  listRetired(
+    input: ListRetiredSessionsInput,
+    options?: ManagementOperationOptions
+  ): Promise<RetiredSessionListPage>;
+  inspect(
+    reference: SessionReference,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleInspection | undefined>;
+  listTurns(
+    input: ListSessionTurnsInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionTurnPage | undefined>;
+  retire(
+    input: SessionLifecycleMutationInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleSnapshot>;
+  restore(
+    input: SessionLifecycleMutationInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleSnapshot>;
+  purge(input: PurgeSessionInput, options?: ManagementOperationOptions): Promise<void>;
+  recover(
+    input: RecoverSessionExecutionsInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionExecutionFence>;
 }

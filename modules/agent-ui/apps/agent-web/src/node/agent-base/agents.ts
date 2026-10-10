@@ -19,12 +19,13 @@ export function createWebAgentManagement(
   const query = async <Value>(
     signal: AbortSignal | undefined,
     action: () => Promise<Value>,
-    readRevision?: () => Promise<string>
+    readRevision?: () => Promise<string>,
+    committed = false
   ): Promise<AgentManagementResult<Value>> => {
     signal?.throwIfAborted();
     try {
       const value = await action();
-      signal?.throwIfAborted();
+      if (!committed) signal?.throwIfAborted();
       return { status: 'succeeded', value };
     } catch (error) {
       signal?.throwIfAborted();
@@ -44,13 +45,19 @@ export function createWebAgentManagement(
         input.signal,
         async () =>
           projectAgent(
-            await services.agents.rename({
-              agentId: parseAgentId(input.agentId),
-              displayName: input.displayName,
-              expectedIdentityRevision: revision(input.expectedRevision),
-            })
+            (
+              await services.agents.rename(
+                {
+                  agentId: parseAgentId(input.agentId),
+                  displayName: input.displayName,
+                  expectedIdentityRevision: revision(input.expectedRevision),
+                },
+                input.signal === undefined ? {} : { signal: input.signal }
+              )
+            ).authority
           ).details,
-        async () => (await inspect(input.agentId)).details.identityRevision
+        async () => (await inspect(input.agentId)).details.identityRevision,
+        true
       ),
     inspectModel: (input) =>
       query(input.signal, async () => {
@@ -118,50 +125,77 @@ export function createWebAgentManagement(
     readAgentConfig: (input) =>
       query(input.signal, async () => (await inspect(input.agentId)).config),
     createAgent: (input) =>
-      query(input.signal, async () =>
-        projectAgent(
-          await services.agents.create({
-            identity: { id: input.identity.agentId, displayName: input.identity.displayName },
-            config: config(input.config),
-          })
-        )
+      query(
+        input.signal,
+        async () =>
+          projectAgent(
+            (
+              await services.agents.create(
+                {
+                  identity: { id: input.identity.agentId, displayName: input.identity.displayName },
+                  config: config(input.config),
+                },
+                input.signal === undefined ? {} : { signal: input.signal }
+              )
+            ).authority
+          ),
+        undefined,
+        true
       ),
     updateAgentConfig: (input) =>
       query(
         input.signal,
         async () =>
           projectAgent(
-            await services.agents.updateConfig({
-              agentId: parseAgentId(input.agentId),
-              config: config(input.config),
-              expectedRevision: revision(input.expectedRevision),
-            })
+            (
+              await services.agents.updateConfig(
+                {
+                  agentId: parseAgentId(input.agentId),
+                  config: config(input.config),
+                  expectedRevision: revision(input.expectedRevision),
+                },
+                input.signal === undefined ? {} : { signal: input.signal }
+              )
+            ).authority
           ).config,
-        async () => (await inspect(input.agentId)).config.revision
+        async () => (await inspect(input.agentId)).config.revision,
+        true
       ),
     disableAgent: (input) =>
       query(
         input.signal,
         async () =>
           projectAgent(
-            await services.agents.disable({
-              agentId: parseAgentId(input.agentId),
-              expectedIdentityRevision: revision(input.expectedRevision),
-            })
+            (
+              await services.agents.disable(
+                {
+                  agentId: parseAgentId(input.agentId),
+                  expectedIdentityRevision: revision(input.expectedRevision),
+                },
+                input.signal === undefined ? {} : { signal: input.signal }
+              )
+            ).authority
           ).details,
-        async () => (await inspect(input.agentId)).details.identityRevision
+        async () => (await inspect(input.agentId)).details.identityRevision,
+        true
       ),
     reactivateAgent: (input) =>
       query(
         input.signal,
         async () =>
           projectAgent(
-            await services.agents.reactivate({
-              agentId: parseAgentId(input.agentId),
-              expectedIdentityRevision: revision(input.expectedRevision),
-            })
+            (
+              await services.agents.reactivate(
+                {
+                  agentId: parseAgentId(input.agentId),
+                  expectedIdentityRevision: revision(input.expectedRevision),
+                },
+                input.signal === undefined ? {} : { signal: input.signal }
+              )
+            ).authority
           ).details,
-        async () => (await inspect(input.agentId)).details.identityRevision
+        async () => (await inspect(input.agentId)).details.identityRevision,
+        true
       ),
   };
 }

@@ -21,12 +21,21 @@ describe('Agent Management Service lifecycle', () => {
     });
 
     expect(created).toMatchObject({
-      identity: { identity: { id: 'alpha', displayName: 'Alpha' }, status: 'active', revision: 1 },
-      config: { value: { label: 'initial' }, revision: 1 },
+      status: 'committed',
+      operation: 'create',
+      authority: {
+        identity: {
+          identity: { id: 'alpha', displayName: 'Alpha' },
+          status: 'active',
+          revision: 1,
+        },
+        config: { value: { label: 'initial' }, revision: 1 },
+      },
       projection: { kind: 'not-configured' },
     });
     expect(Object.isFrozen(created)).toBe(true);
-    expect(Object.isFrozen(created.config)).toBe(true);
+    expect(Object.isFrozen(created.authority)).toBe(true);
+    expect(Object.isFrozen(created.authority.config)).toBe(true);
     expect(fixture.events).toEqual([
       'namespace:stage:alpha',
       'authority:ports:1',
@@ -71,7 +80,7 @@ describe('Agent Management Service lifecycle', () => {
         identity: { id: 'alpha', displayName: 'Alpha' },
         config: { label: 'initial' },
       })
-    ).resolves.toMatchObject({ config: { revision: 1 } });
+    ).resolves.toMatchObject({ authority: { config: { revision: 1 } } });
     await expect(service.inspect(agentId)).resolves.toMatchObject({
       identity: { identity: { displayName: 'Alpha' } },
       config: { value: { label: 'initial' } },
@@ -134,10 +143,14 @@ describe('Agent Management Service lifecycle', () => {
 
     await expect(
       service.create({ identity: { id: 'alpha' }, config: { label: 'initial' } })
-    ).rejects.toMatchObject({
-      name: 'AgentManagementError',
-      code: 'MANAGED_AGENT_PROJECTION_FAILED',
+    ).resolves.toMatchObject({
+      status: 'committed',
       operation: 'create',
+      authority: { config: { value: { label: 'initial' }, revision: 1 } },
+      projection: {
+        kind: 'failed',
+        failure: { code: 'MANAGED_AGENT_PROJECTION_FAILED' },
+      },
     });
     expect(fixture.events).not.toContain('namespace:abort:alpha');
     fixture.controls.projectionPublishFailure = undefined;

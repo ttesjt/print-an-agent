@@ -157,8 +157,11 @@ describe('public managed resource consumer', () => {
     });
 
     expect(created).toMatchObject({
-      identity: { identity: { id: 'opaque-consumer' }, status: 'active' },
-      config: { revision: 1 },
+      status: 'committed',
+      authority: {
+        identity: { identity: { id: 'opaque-consumer' }, status: 'active' },
+        config: { revision: 1 },
+      },
       projection: { kind: 'not-configured' },
     });
     await expect(runtime.open(parseAgentId('opaque-consumer'))).resolves.toMatchObject({

@@ -1,4 +1,5 @@
 import type { AgentId, AgentIdentityInput, AgentIdentitySnapshot } from '@ta-agent/base-identity';
+import type { ManagementOperationOptions } from './operation.js';
 import type { AgentConfigProjectionStatus } from './projection.js';
 
 export interface CreateManagedAgentRequest<TConfig> {
@@ -32,21 +33,69 @@ export interface ManagedAgentConfigSnapshot<TConfig> {
   readonly revision: number;
 }
 
-export interface ManagedAgentSnapshot<TConfig> {
+export interface ManagedAgentAuthoritySnapshot<TConfig> {
   readonly identity: AgentIdentitySnapshot;
   readonly config: ManagedAgentConfigSnapshot<TConfig>;
+}
+
+export interface ManagedAgentSnapshot<TConfig> extends ManagedAgentAuthoritySnapshot<TConfig> {
   readonly projection: AgentConfigProjectionStatus;
 }
 
+export type ManagedAgentMutationOperation =
+  | 'create'
+  | 'update-config'
+  | 'import-config'
+  | 'disable'
+  | 'reactivate'
+  | 'rename';
+
+export type ManagedAgentProjectionOutcome =
+  | AgentConfigProjectionStatus
+  | Readonly<{
+      kind: 'failed';
+      failure: Readonly<{ code: 'MANAGED_AGENT_PROJECTION_FAILED' }>;
+    }>;
+
+/**
+ * An authority mutation completed. Projection coordination is reported separately because it is
+ * recoverable secondary state and cannot roll back the authoritative commit.
+ */
+export interface ManagedAgentCommitResult<TConfig> {
+  readonly status: 'committed';
+  readonly operation: ManagedAgentMutationOperation;
+  readonly authority: ManagedAgentAuthoritySnapshot<TConfig>;
+  readonly projection: ManagedAgentProjectionOutcome;
+}
+
 export interface AgentManagementService<TConfig> {
-  create(request: CreateManagedAgentRequest<TConfig>): Promise<ManagedAgentSnapshot<TConfig>>;
-  inspect(agentId: AgentId): Promise<ManagedAgentSnapshot<TConfig>>;
-  list(): Promise<readonly ManagedAgentSnapshot<TConfig>[]>;
-  updateConfig(
-    request: UpdateManagedAgentConfigRequest<TConfig>
+  create(
+    request: CreateManagedAgentRequest<TConfig>,
+    options?: ManagementOperationOptions
+  ): Promise<ManagedAgentCommitResult<TConfig>>;
+  inspect(
+    agentId: AgentId,
+    options?: ManagementOperationOptions
   ): Promise<ManagedAgentSnapshot<TConfig>>;
-  importConfig(request: ImportManagedAgentConfigRequest): Promise<ManagedAgentSnapshot<TConfig>>;
-  disable(request: TransitionManagedAgentRequest): Promise<ManagedAgentSnapshot<TConfig>>;
-  reactivate(request: TransitionManagedAgentRequest): Promise<ManagedAgentSnapshot<TConfig>>;
-  rename(request: RenameManagedAgentRequest): Promise<ManagedAgentSnapshot<TConfig>>;
+  list(options?: ManagementOperationOptions): Promise<readonly ManagedAgentSnapshot<TConfig>[]>;
+  updateConfig(
+    request: UpdateManagedAgentConfigRequest<TConfig>,
+    options?: ManagementOperationOptions
+  ): Promise<ManagedAgentCommitResult<TConfig>>;
+  importConfig(
+    request: ImportManagedAgentConfigRequest,
+    options?: ManagementOperationOptions
+  ): Promise<ManagedAgentCommitResult<TConfig>>;
+  disable(
+    request: TransitionManagedAgentRequest,
+    options?: ManagementOperationOptions
+  ): Promise<ManagedAgentCommitResult<TConfig>>;
+  reactivate(
+    request: TransitionManagedAgentRequest,
+    options?: ManagementOperationOptions
+  ): Promise<ManagedAgentCommitResult<TConfig>>;
+  rename(
+    request: RenameManagedAgentRequest,
+    options?: ManagementOperationOptions
+  ): Promise<ManagedAgentCommitResult<TConfig>>;
 }

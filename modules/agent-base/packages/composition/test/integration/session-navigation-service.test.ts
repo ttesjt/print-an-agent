@@ -126,7 +126,7 @@ describe('Session Navigation Service', () => {
     const created = await publishAgent(fixture);
     await fixture.management.disable({
       agentId,
-      expectedIdentityRevision: created.identity.revision,
+      expectedIdentityRevision: created.authority.identity.revision,
     });
     fixture.events.splice(0);
 

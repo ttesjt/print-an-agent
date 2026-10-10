@@ -4,6 +4,8 @@ import type {
 } from './contracts/session-management.js';
 import type { SessionManagedAgentCompositionDefinition } from './definition.js';
 import { runManagementOperation } from './failures.js';
+import type { ManagementOperationOptions } from './contracts/operation.js';
+import { normalizeManagementOperationOptions } from './operation.js';
 import {
   inspectManagedSession,
   listManagedSessions,
@@ -32,25 +34,45 @@ export function createSessionManagementService<
   >
 ): SessionManagementService {
   return Object.freeze({
-    list: (input) =>
-      runManagementOperation('list-sessions', () => listManagedSessions(definition, input)),
-    listRetired: (input) =>
-      runManagementOperation('list-retired-sessions', () =>
-        listRetiredManagedSessions(definition, input)
-      ),
-    inspect: (input) =>
-      runManagementOperation('inspect-session', () => inspectManagedSession(definition, input)),
-    listTurns: (input) =>
-      runManagementOperation('list-session-turns', () =>
-        listManagedSessionTurns(definition, input)
-      ),
-    retire: (input) =>
-      runManagementOperation('retire-session', () => retireManagedSession(definition, input)),
-    restore: (input) =>
-      runManagementOperation('restore-session', () => restoreManagedSession(definition, input)),
-    purge: (input) =>
-      runManagementOperation('purge-session', () => purgeManagedSession(definition, input)),
-    recover: (input) =>
-      runManagementOperation('recover-session', () => recoverManagedSession(definition, input)),
+    list: (input, options?: ManagementOperationOptions) =>
+      runManagementOperation('list-sessions', () => {
+        const { signal } = normalizeManagementOperationOptions('list-sessions', options);
+        return listManagedSessions(definition, input, signal);
+      }),
+    listRetired: (input, options?: ManagementOperationOptions) =>
+      runManagementOperation('list-retired-sessions', () => {
+        const { signal } = normalizeManagementOperationOptions('list-retired-sessions', options);
+        return listRetiredManagedSessions(definition, input, signal);
+      }),
+    inspect: (input, options?: ManagementOperationOptions) =>
+      runManagementOperation('inspect-session', () => {
+        const { signal } = normalizeManagementOperationOptions('inspect-session', options);
+        return inspectManagedSession(definition, input, signal);
+      }),
+    listTurns: (input, options?: ManagementOperationOptions) =>
+      runManagementOperation('list-session-turns', () => {
+        const { signal } = normalizeManagementOperationOptions('list-session-turns', options);
+        return listManagedSessionTurns(definition, input, signal);
+      }),
+    retire: (input, options?: ManagementOperationOptions) =>
+      runManagementOperation('retire-session', () => {
+        const { signal } = normalizeManagementOperationOptions('retire-session', options);
+        return retireManagedSession(definition, input, signal);
+      }),
+    restore: (input, options?: ManagementOperationOptions) =>
+      runManagementOperation('restore-session', () => {
+        const { signal } = normalizeManagementOperationOptions('restore-session', options);
+        return restoreManagedSession(definition, input, signal);
+      }),
+    purge: (input, options?: ManagementOperationOptions) =>
+      runManagementOperation('purge-session', () => {
+        const { signal } = normalizeManagementOperationOptions('purge-session', options);
+        return purgeManagedSession(definition, input, signal);
+      }),
+    recover: (input, options?: ManagementOperationOptions) =>
+      runManagementOperation('recover-session', () => {
+        const { signal } = normalizeManagementOperationOptions('recover-session', options);
+        return recoverManagedSession(definition, input, signal);
+      }),
   } satisfies SessionManagementService);
 }

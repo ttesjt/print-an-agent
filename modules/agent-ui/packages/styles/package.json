@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./collection.css": "./src/collection.css",
     "./action-bar.css": "./src/action-bar.css",
     "./tooltip.css": "./src/tooltip.css",
     "./default.css": "./src/default.css",

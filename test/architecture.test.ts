@@ -494,7 +494,9 @@ describe('module architecture', () => {
 
   it('keeps Agent Web provider selection out of the root/port CLI and deterministic Engines opt-in', () => {
     const appSource = join(repositoryRoot, 'modules', 'agent-ui', 'apps', 'agent-web', 'src');
-    const host = readFileSync(join(appSource, 'node', 'main.ts'), 'utf8');
+    const host =
+      readFileSync(join(appSource, 'node', 'main.ts'), 'utf8') +
+      readFileSync(join(appSource, 'node', 'host-arguments.ts'), 'utf8');
     expect(host).toContain('--root');
     expect(host).toContain('--port');
     expect(host).not.toContain('--provider');
@@ -586,9 +588,11 @@ describe('module architecture', () => {
     for (const sourceFile of typeScriptFiles(agentWebSourceRoot).filter(
       (candidate) =>
         !normalize(relative(agentWebSourceRoot, candidate)).startsWith('adapters/') &&
-        !['main.tsx', 'application/browser-composition.tsx'].includes(
-          normalize(relative(agentWebSourceRoot, candidate))
-        )
+        ![
+          'main.tsx',
+          'application/browser-composition.tsx',
+          'application/collection-composition.tsx',
+        ].includes(normalize(relative(agentWebSourceRoot, candidate)))
     )) {
       expect(
         moduleSpecifiers(readFileSync(sourceFile, 'utf8')).filter((specifier) =>

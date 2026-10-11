@@ -66,3 +66,8 @@
   background: var(--ta-ui-color-accent-soft);
   font-weight: var(--ta-ui-font-weight-strong);
 }
+.ta-ui-agent-web-collection-entry {
+  max-inline-size: 48rem;
+  margin-inline: auto;
+  padding: var(--ta-ui-space-6);
+}

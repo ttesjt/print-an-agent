@@ -85,6 +85,7 @@ export function useConversationManagement(input: {
     () => new Map<string, ConversationEntry>()
   );
   const entriesRef = useRef(entries);
+  const composerDrafts = useRef<ReadonlyMap<string, string>>(new Map());
   // Sidebar identity survives draft → Session promotion; it never serves as a durable Session ID.
   const sessionListKeys = useRef(new Map<string, string>());
   const previousTargetRef = useRef<
@@ -96,6 +97,16 @@ export function useConversationManagement(input: {
   const branchOperations = useMemo(() => new KeyedOperationOwnership(), []);
 
   const replaceEntries = useCallback((next: ReadonlyMap<string, ConversationEntry>) => {
+    const drafts = new Map(
+      [...next].flatMap(([key, entry]) =>
+        entry.composerValue.length === 0 ? [] : [[key, entry.composerValue] as const]
+      )
+    );
+    if (
+      drafts.size !== composerDrafts.current.size ||
+      [...drafts].some(([key, value]) => composerDrafts.current.get(key) !== value)
+    )
+      composerDrafts.current = drafts;
     entriesRef.current = next;
     setEntries(next);
   }, []);
@@ -552,6 +563,12 @@ export function useConversationManagement(input: {
     .map((entry) => entry.target);
 
   return {
+    composerDrafts: composerDrafts.current,
+    hasUnsavedComposerDrafts: composerDrafts.current.size > 0,
+    collectionWorking: [...entries.values()].some(
+      (entry) =>
+        interactionIsRunning(entry.activeInteraction) || entry.branchMutationTurnId !== undefined
+    ),
     activeInteraction: currentEntry?.activeInteraction,
     branchMutationError: currentEntry?.branchMutationError,
     branchMutationTurnId: currentEntry?.branchMutationTurnId,

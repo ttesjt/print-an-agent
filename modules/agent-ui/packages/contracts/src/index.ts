@@ -92,3 +92,10 @@ export type {
   SessionSummary,
   SessionValidationFailure,
 } from './session-types.js';
+export type {
+  CollectionReference,
+  CollectionChoice,
+  CollectionOpenResult,
+  CollectionAccessPort,
+} from './collection.js';
+export type { RecentCollection, RecentCollectionsPersistencePort } from './collection-history.js';

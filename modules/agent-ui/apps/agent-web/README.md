@@ -117,10 +117,13 @@ pnpm --filter @ta-agent/ui-agent-web serve --root /absolute/path/to/agents
 ```
 
 Open `http://127.0.0.1:4174`. Create an Agent and configure its model connection in the UI.
+Omit `--root` to select a Collection directory in the browser instead. The **Collections** action
+switches workspaces, with unsaved-edit and active-work protection. Recent directories use replaceable
+browser persistence; forget/clear never delete resources. See [Collection selection](./docs/collections.md).
 There is no implicit offline Engine or global provider file. For credentials and a separate Vite development server, see
 [local host setup](./docs/local-host.md). `dev` alone starts the frontend, not the backend.
 
-Agent and Session selection are restored from the URL; branch selection remains a revision-guarded
+Collection, Agent and Session selection are restored from the URL; branch selection remains a revision-guarded
 backend operation, not a route mutation. Theme preference is application-owned browser storage.
 Reloading the browser cancels its owned streams; durable background execution/reconnect is not
 claimed. See [composition](./docs/composition.md) and [boundary limits](./docs/backend-boundary.md).

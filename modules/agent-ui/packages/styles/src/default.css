@@ -14,3 +14,4 @@
 @import './agent-management.css' layer(ta-ui-components);
 @import './session-management.css' layer(ta-ui-components);
 @import './conversation.css' layer(ta-ui-components);
+@import './collection.css' layer(ta-ui-components);

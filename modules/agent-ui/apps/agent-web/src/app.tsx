@@ -15,7 +15,7 @@ import {
   Select,
   Stack,
 } from '@ta-agent/ui-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApplicationTheme } from './application/theme-preference.js';
 import { useNavigationGuard } from './application/use-navigation-guard.js';
 import { useNarrowWorkspace } from './application/use-narrow-workspace.js';
@@ -34,6 +34,7 @@ import {
   SessionWorkspace,
 } from './session/session-management-panels.js';
 import { useSessionManagement } from './session/use-session-management.js';
+import type { CollectionBoundaryState } from './collection/collection-application.js';
 
 export interface AppProps {
   readonly ports: AgentWebPorts<AgentWebConfig>;
@@ -45,6 +46,8 @@ export interface AppProps {
   ) => void;
   /** Explicit application/qualification defaults, not a backend fallback. */
   readonly creationConfig?: AgentWebConfig;
+  readonly onRequestCollections?: () => void;
+  readonly onBoundaryStateChange?: (state: CollectionBoundaryState) => void;
 }
 const STATUS_LABELS = Object.freeze({ active: 'Active', disabled: 'Disabled' });
 
@@ -54,6 +57,8 @@ export function App({
   requestedLocation,
   onLocationChange,
   creationConfig,
+  onRequestCollections,
+  onBoundaryStateChange,
 }: AppProps) {
   const { theme, setTheme } = useApplicationTheme();
   const narrow = useNarrowWorkspace();
@@ -87,6 +92,45 @@ export function App({
   const workingAgentIds = [
     ...new Set([...agents.workingAgentIds, ...conversation.workingAgentIds]),
   ];
+  const collectionDirty =
+    agents.configDirty ||
+    metadata.dirty ||
+    agents.createOpen ||
+    sessions.renameOpen ||
+    conversation.hasUnsavedComposerDrafts;
+  const collectionWorking =
+    workingAgentIds.length > 0 ||
+    agents.createPending ||
+    metadata.pending ||
+    model.testing ||
+    sessions.workingSessionId !== undefined ||
+    sessions.workingBranchId !== undefined ||
+    conversation.collectionWorking;
+  const configEdits = agents.configDirty ? agents.configDraft : undefined;
+  const metadataEdits = metadata.dirty ? metadata.displayName : undefined;
+  const createIdentityEdits = agents.createOpen ? agents.createIdentity : undefined;
+  const createConfigEdits = agents.createOpen ? agents.createConfig : undefined;
+  const renameEdits = sessions.renameOpen ? sessions.renameTitle : undefined;
+  // Opaque identity changes with actual draft state, not loading/streaming feedback.
+  const editIdentity = useMemo(
+    () => (collectionDirty ? {} : undefined),
+    [
+      collectionDirty,
+      configEdits,
+      metadataEdits,
+      createIdentityEdits,
+      createConfigEdits,
+      renameEdits,
+      conversation.composerDrafts,
+    ]
+  );
+  useEffect(() => {
+    onBoundaryStateChange?.({
+      dirty: collectionDirty,
+      working: collectionWorking,
+      editIdentity,
+    });
+  }, [collectionDirty, collectionWorking, editIdentity, onBoundaryStateChange]);
   const location: WorkspaceLocation = {
     view,
     ...(agents.selectedAgentId === undefined ? {} : { agentId: agents.selectedAgentId }),
@@ -180,6 +224,11 @@ export function App({
               <span>{agents.selected?.details.displayName ?? 'Choose an Agent'}</span>
             </Cluster>
             <Cluster space="small">
+              {onRequestCollections !== undefined && (
+                <Button appearance="text" onClick={onRequestCollections}>
+                  Collections
+                </Button>
+              )}
               <Button
                 appearance="text"
                 onClick={() => setNavigationOpen((open) => !open)}

@@ -37,12 +37,17 @@ See [the architecture contract](./docs/architecture.md) for package and componen
 to validated HTTP/NDJSON UI ports; its browser owns routing, theme preference, application state,
 Agent/Session management, paged history, text/reasoning/tool delivery, cancellation and branching.
 The default host uses real directory/SQLite persistence and per-Agent UI model configuration.
+Collection selection is application-owned: an optional `--root` path skips the directory chooser;
+otherwise the browser opens a Collection before mounting its isolated Agent workspace. Reusable
+selection components accept generic JSON references, not filesystem assumptions.
 Credentials remain in the host environment. Deterministic browser fixtures remain
 available only through explicit `?mode=deterministic` selection.
 
 See [local host setup](./apps/agent-web/docs/local-host.md),
 [application composition](./apps/agent-web/docs/composition.md), and
 [integration boundaries and limits](./apps/agent-web/docs/backend-boundary.md).
+See [Collection selection and binding](./apps/agent-web/docs/collections.md) for routes, directory
+opening, scoped transport and replaceable recent history.
 
 `apps/component-gallery` is a deterministic developer application for reviewing component states,
 themes, responsive layout, accessibility, and semantic DOM. It has no backend or formal business

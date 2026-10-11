@@ -176,3 +176,11 @@ capability; its absence must not be treated as an error or inferred from another
 Turn-level fork and rewind are likewise optional capabilities. Their default semantics are
 non-destructive branch creation guarded by the Session navigation revision; they do not delete or
 rewrite existing history.
+
+# Collection boundary
+
+Collection references are safe application-defined JSON, not a framework storage-kind enum.
+Opening and routing bind existing narrow domain ports to an application-owned connection. Reusable
+selection components know neither filesystem paths nor Agent Base. Recent-history persistence is
+an independent optional port; it does not own resources or active selection. Concrete directory,
+HTTP and browser-storage implementations remain inside Agent Web's application composition.

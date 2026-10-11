@@ -15,6 +15,7 @@ import { OverlayGallery } from './gallery/overlay-gallery.js';
 import { PanelGallery } from './gallery/panel-gallery.js';
 import { SessionManagementGallery } from './gallery/session-management-gallery.js';
 import { ThemeGallery } from './gallery/theme-gallery.js';
+import { CollectionGallery } from './gallery/collection-gallery.js';
 
 type ThemeMode = 'dark' | 'light' | 'system';
 
@@ -72,6 +73,7 @@ export function App() {
               <TextLink href="#agent-management">Agent management</TextLink>
               <TextLink href="#session-management">Session management</TextLink>
               <TextLink href="#conversation">Conversation</TextLink>
+              <TextLink href="#collections">Collections</TextLink>
               <TextLink href="#disclosure-activity">Disclosure activity</TextLink>
               <TextLink href="/consumer.html?styles=none">Unstyled consumer</TextLink>
               <TextLink href="/consumer.html?styles=default">Default-style consumer</TextLink>
@@ -96,6 +98,7 @@ export function App() {
           <AgentManagementGallery />
           <SessionManagementGallery />
           <ConversationGallery />
+          <CollectionGallery />
           <DisclosureActivityGallery />
         </Stack>
       </main>

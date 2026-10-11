@@ -215,3 +215,9 @@ export type { TooltipPlacement, TooltipProps, TooltipTriggerProps } from './over
 export { Drawer } from './overlays/drawer.js';
 export type { DrawerPlacement, DrawerProps } from './overlays/drawer.js';
 export type { DialogCloseReason, DialogOpenChangeDetails } from './overlays/modal-surface.js';
+export {
+  CollectionList,
+  CollectionSetupForm,
+  type CollectionListProps,
+  type CollectionSetupFormProps,
+} from './collection/collection-selection.js';

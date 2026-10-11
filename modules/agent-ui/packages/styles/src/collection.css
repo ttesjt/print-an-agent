@@ -1,0 +1,37 @@
+:where(.ta-ui-collection-list ul) {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+:where(.ta-ui-collection-list li) {
+  display: flex;
+  align-items: center;
+  gap: var(--ta-ui-space-2);
+}
+
+:where(.ta-ui-collection-list li > button:first-child) {
+  flex: 1;
+  min-inline-size: 0;
+  justify-content: start;
+  flex-direction: column;
+  align-items: start;
+  text-align: start;
+}
+
+:where(.ta-ui-collection-list__description) {
+  color: var(--ta-ui-color-ink-muted);
+  overflow-wrap: anywhere;
+}
+
+:where(.ta-ui-collection-setup) {
+  display: grid;
+  gap: var(--ta-ui-space-4);
+}
+
+:where(.ta-ui-collection-setup > fieldset) {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-inline-size: 0;
+}

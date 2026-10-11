@@ -1,34 +1,16 @@
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
-import { createAgentBaseWebPorts } from './agent-base/backend.js';
+import { createDirectoryCollectionHost } from './collections/directory-host.js';
 import { startLocalAgentWebServer } from './transport/http-server.js';
+import { parseHostArguments } from './host-arguments.js';
 
 async function main() {
-  const args = process.argv.slice(2);
-  const fields = new Map<string, string>();
-  for (let index = 0; index < args.length; index += 2) {
-    const name = args[index];
-    const value = args[index + 1];
-    if (
-      name === undefined ||
-      !['--port', '--root'].includes(name) ||
-      value === undefined ||
-      fields.has(name)
-    )
-      throw new Error('Invalid host arguments.');
-    fields.set(name, value);
-  }
-  const port = Number(fields.get('--port') ?? '4174');
-  if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error('Invalid port.');
-  const ports = createAgentBaseWebPorts({
+  const { port, initialRoot } = parseHostArguments(process.argv.slice(2));
+  const collections = await createDirectoryCollectionHost({
     readEnvironmentVariable: (name) => process.env[name],
-    persistence: {
-      kind: 'directory',
-      rootDirectory: resolve(fields.get('--root') ?? 'temp/agent-web'),
-    },
+    ...(initialRoot === undefined ? {} : { initialRoot }),
   });
   const host = await startLocalAgentWebServer({
-    ports,
+    collections,
     port,
     publicDirectory: fileURLToPath(new URL('../../public/', import.meta.url)),
     allowedOrigins: ['http://localhost:5173', 'http://127.0.0.1:5173'],

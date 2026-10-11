@@ -7,9 +7,12 @@ import { fail, object, text, TransportProtocolError } from '../../transport/deco
 import { WEB_TRANSPORT_LIMITS } from '../../transport/limits.js';
 import { interactionEvent, interactionInput } from '../../transport/schemas.js';
 import { serveStatic } from './static.js';
+import type { DirectoryCollectionHost } from '../collections/directory-host.js';
 
 export interface LocalServerOptions {
-  readonly ports: AgentWebPorts<AgentWebConfig>;
+  /** Explicit fixed binding for embedded applications/qualification. */
+  readonly ports?: AgentWebPorts<AgentWebConfig>;
+  readonly collections?: DirectoryCollectionHost;
   readonly port?: number;
   readonly publicDirectory?: string;
   /** Explicit trusted browser origins, for a same-machine Vite dev proxy. No wildcard CORS. */
@@ -21,6 +24,8 @@ const commandEnvelope = object({
 });
 
 export async function startLocalAgentWebServer(options: LocalServerOptions) {
+  if ((options.ports === undefined) === (options.collections === undefined))
+    throw new Error('Provide exactly one fixed binding or Collection host.');
   const active = new Map<AbortController, Promise<void>>();
   let closing = false;
   let closePromise: Promise<void> | undefined;
@@ -73,15 +78,45 @@ export async function startLocalAgentWebServer(options: LocalServerOptions) {
         await serveStatic(options.publicDirectory, path, response);
         return;
       }
-      if (request.method !== 'POST' || (path !== '/api/commands' && path !== '/api/interactions'))
+      const scoped = /^\/api\/collections\/([a-zA-Z0-9-]+)\/(commands|interactions)$/u.exec(path);
+      if (
+        request.method !== 'POST' ||
+        (path !== '/api/collections' &&
+          path !== '/api/commands' &&
+          path !== '/api/interactions' &&
+          scoped === null)
+      )
         return sendError(response, 404);
       if (request.headers['content-type']?.split(';')[0]?.trim() !== 'application/json')
         return sendError(response, 415);
       const body = await readRequest(request, controller.signal);
-      if (path === '/api/commands') {
+      if (path === '/api/collections') {
+        const host = options.collections;
+        if (host === undefined) return sendError(response, 404);
+        const envelope = commandEnvelope.decode(body);
+        let value: unknown;
+        if (envelope.command === 'bootstrap') {
+          object({}).decode(envelope.input);
+          value = await host.bootstrap(controller.signal);
+        } else if (envelope.command === 'open')
+          value = await host.open(envelope.input, controller.signal);
+        else if (envelope.command === 'browse')
+          value = await host.browse(
+            object({ rootDirectory: text(4096) }).decode(envelope.input).rootDirectory,
+            controller.signal
+          );
+        else return fail();
+        controller.signal.throwIfAborted();
+        response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        response.end(JSON.stringify(value));
+        return;
+      }
+      const ports = scoped === null ? options.ports : options.collections?.resolve(scoped[1] ?? '');
+      if (ports === undefined) return sendError(response, 404);
+      if (path === '/api/commands' || scoped?.[2] === 'commands') {
         const envelope = commandEnvelope.decode(body);
         const command = commands[commandName(envelope.command)];
-        const value = await command.run(options.ports, envelope.input, controller.signal);
+        const value = await command.run(ports, envelope.input, controller.signal);
         controller.signal.throwIfAborted();
         const json = JSON.stringify(value, (_key, item: unknown) =>
           item === undefined ? null : item
@@ -95,7 +130,7 @@ export async function startLocalAgentWebServer(options: LocalServerOptions) {
         let terminal = false;
         let started = false;
         let bytes = 0;
-        await options.ports.conversations.streamInteraction(
+        await ports.conversations.streamInteraction(
           { ...input, signal: controller.signal },
           async (event) => {
             controller.signal.throwIfAborted();

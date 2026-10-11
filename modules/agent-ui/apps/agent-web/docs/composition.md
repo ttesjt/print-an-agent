@@ -2,10 +2,12 @@
 
 ```text
 Browser public components + optional stylesheet
+    → Collection selection / reference resolver
+    → immutable application connection binding
     → application-owned controllers and narrow UI ports
     → validated HTTP commands / ordered NDJSON interaction stream
     → Node application adapter
-    → one managed Agent Base Definition
+    → one managed Agent Base Definition per Collection
         → Identity / Config authority
         → Session management and navigation services
         → materialized Agent and foreground Operation
@@ -25,10 +27,12 @@ const host = await startLocalAgentWebServer({ ports });
 
 The browser receives only safe DTOs. `App` accepts the application's typed `AgentWebPorts`
 composition, so another host may replace all adapters. `BrowserAgentWeb` adds URL selection and
-the default entry chooses localhost ports; it is not a second domain owner. No reusable component
-imports these controllers or the Node adapter. The browser's hash contains only view and Agent/Session IDs,
-never provider configuration or credentials. Navigation history changes selection without
-remounting the application or cancelling an unrelated persisted conversation.
+the default entry opens a directory Collection before installing scoped localhost ports; it is not
+a second domain owner. No reusable component imports these controllers or the Node adapter. The
+browser's hash contains only a Collection key, view and Agent/Session IDs,
+never provider configuration or credentials. Within a Collection, navigation changes selection
+without remounting the workspace or cancelling an unrelated persisted conversation. Changing
+Collection remounts the workspace under a new immutable connection binding.
 An omitted Agent ID selects the current or first available catalog Agent. `view=settings` restores
 Profile, while `view=conversation` restores chat. Unknown fields, duplicate IDs and a Session without
 an Agent are rejected. Unsaved Profile edits are guarded before applying external location changes;

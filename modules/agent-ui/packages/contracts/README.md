@@ -38,3 +38,10 @@ Cancellation continues to use the caller's `AbortSignal` and rejects the operati
 misrepresented as a domain failure. Agent ID is immutable. Applications with a real metadata
 authority may install the optional `AgentMetadataPort` for CAS display-name changes; this does not
 change config or Session identity and is not a requirement on every backend.
+
+# Collection locators
+
+`CollectionReference` is non-secret JSON interpreted by the application, not a storage-kind
+union. `CollectionChoice.key` is canonical identity supplied by that application's resolver;
+choices in one list must have unique keys. `CollectionAccessPort` only opens a reference into
+an application-owned connection. It does not replace Agent, Session or interaction ports.

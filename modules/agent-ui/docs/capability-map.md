@@ -77,6 +77,12 @@ States:
 
 ## Application composition
 
+Collection list and setup form are implemented reusable presentation capabilities: they accept
+application-defined safe JSON references and field slots. Opening, routing, canonical identity and
+immutable connection binding are implemented in Agent Web. Directory browsing is its concrete local
+implementation, not a storage assumption in reusable UI contracts. Recent history has a narrow
+replaceable persistence port, with browser storage provided by the application.
+
 | Capability              | Reusable UI responsibility                                     | Application responsibility                                   | State       |
 | ----------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ | ----------- |
 | Selection orchestration | Reusable logic only after demonstrated cross-application value | Agent/Session selection authority and routing                | Implemented |
@@ -85,7 +91,7 @@ States:
 | Backend adapter         | Define the narrow ports it must satisfy                        | Map public backend APIs into UI contracts                    | Implemented |
 | Runtime validation      | Optional transport-neutral codecs when justified               | Validate every external transport boundary                   | Implemented |
 | HTTP/stream transport   | None                                                           | Protocol, server, security, and credential policy            | Implemented |
-| Host/filesystem setup   | Generic form primitives only                                   | Product/application-specific implementation                  | Deferred    |
+| Host/filesystem setup   | Generic Collection list/setup form and reference contract      | Directory resolver/browser, root CLI shortcut                | Implemented |
 
 Application capabilities marked Implemented live in Agent Web, not reusable packages. Tool
 presentation is live-only at its current Agent Base boundary; persisted reasoning is restored

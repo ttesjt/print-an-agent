@@ -28,6 +28,15 @@ afterAll(() => {
 });
 
 describe('Agent UI Component Gallery', () => {
+  it('exhibits collection selection with unrelated application locator shapes and opening states', () => {
+    const container = renderStaticGallery();
+    const collections = container.querySelector('#collections');
+    expect(collections?.querySelectorAll('[data-slot="collection-list"]')).toHaveLength(3);
+    expect(collections?.textContent).toContain('Opaque locator');
+    expect(collections?.textContent).toContain('Remote example');
+    expect(collections?.querySelector('form[aria-busy="true"]')).not.toBeNull();
+    expect(collections?.textContent).toContain('Application could not resolve this locator.');
+  });
   it('exhibits every current Panel and layout variant through public components', () => {
     const container = renderStaticGallery();
     const panelVariants = valuesOf(

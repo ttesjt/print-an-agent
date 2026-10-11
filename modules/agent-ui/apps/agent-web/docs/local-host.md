@@ -9,6 +9,18 @@ Open `http://127.0.0.1:4174`. `--root` selects the multi-Agent workspace. Each A
 own Identity, typed configuration and Session/Journal database. The CLI chooses root/port only;
 there is no global provider file and no implicit deterministic fallback.
 
+To select the Collection in the browser instead, omit `--root`:
+
+```sh
+pnpm --filter @ta-agent/ui-agent-web serve --port 4174
+```
+
+Enter an absolute host directory or browse folders. Opening creates a missing directory. The
+header's **Collections** action returns to selection; active work must finish or be cancelled, and
+unsaved edits/drafts require explicit discard. Recent entries are convenient browser references,
+not resource ownership. Forgetting or clearing them never deletes an Agent. See
+[Collection routing and binding](./collections.md).
+
 Create an Agent, choose its model connection and save. Builtin provider/model names use the
 installed provider catalog; catalog capabilities are not redeclared. OpenAI-compatible endpoints
 require an explicit provider/model, HTTP(S) base URL, context/output capabilities, reasoning

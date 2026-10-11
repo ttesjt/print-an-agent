@@ -4,11 +4,13 @@ Agent Web's Node adapter consumes only Agent Base package-root public exports. R
 contracts, React components, styles and the Gallery do not depend on it. The browser never loads
 the Node adapter or provider credentials.
 
-One app-owned managed composition Definition coordinates namespace, Identity/Config authority,
+One app-owned managed composition Definition per Collection coordinates namespace, Identity/Config authority,
 runtime ports, Session management and Session navigation. The official Standalone profile supplies
 namespace and authority provisioning; it does not dictate this application's config codec or
 materializer. Agent Web stores its typed model/Actor/execution config in the authority,
 not a Standalone provider manifest. The host injects a secret resolver, tools and safe tool labels.
+The [Collection host](./collections.md) resolves each command/stream to its immutable binding;
+selecting another Collection never mutates a host-global root or an in-flight request's ports.
 
 Memory state is scoped to one backend instance. Directory state is one Agent directory/database,
 and can be reopened by another instance. Both profiles use coordinated official Session/Journal

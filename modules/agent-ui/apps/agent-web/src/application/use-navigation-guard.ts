@@ -8,6 +8,10 @@ export function useNavigationGuard(dirty: boolean) {
     undefined
   );
   const [pending, setPending] = useState(false);
+  const reset = useCallback(() => {
+    pendingAction.current = undefined;
+    setPending(false);
+  }, []);
   useEffect(() => {
     if (!dirty) return;
     const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -18,6 +22,8 @@ export function useNavigationGuard(dirty: boolean) {
     return () => window.removeEventListener('beforeunload', beforeUnload);
   }, [dirty]);
   const request = useCallback((accept: () => void, reject?: () => void) => {
+    pendingAction.current = undefined;
+    setPending(false);
     if (!dirtyRef.current) {
       accept();
       return;
@@ -32,5 +38,5 @@ export function useNavigationGuard(dirty: boolean) {
     if (accepted) action?.accept();
     else action?.reject?.();
   };
-  return { request, pending, confirm: () => settle(true), cancel: () => settle(false) };
+  return { request, reset, pending, confirm: () => settle(true), cancel: () => settle(false) };
 }

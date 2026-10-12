@@ -1,16 +1,8 @@
+import { workspaceCommands } from '@ta-agent/ui-transport';
+import { createDefaultWorkspacePorts } from '../application/default-ports.js';
 import type { AgentWebPorts } from '../application/ports.js';
 import type { AgentWebConfig } from '../application/agent-config.js';
-import {
-  array,
-  integer,
-  literal,
-  object,
-  optional,
-  text,
-  union,
-  fail,
-  type Decoder,
-} from './decoder.js';
+import { array, object, text, fail, type Decoder } from './decoder.js';
 import * as s from './schemas.js';
 import { AgentConfigValidationError } from '../application/agent-config-validation.js';
 
@@ -41,21 +33,40 @@ function command<Input, Output>(
   });
 }
 const agentId = object({ agentId: s.id });
-const target = { agentId: s.id, sessionId: s.id };
-const lifecycle = object({ ...target, expectedRevision: s.revision });
-const unit: Decoder<void> = {
-  decode: (input) => (input === null || input === undefined ? undefined : fail()),
-};
 const a = <T>(value: Decoder<T>) => s.result(value, s.agentFailure);
-const m = <T>(value: Decoder<T>) => s.result(value, s.sessionFailure);
-
-/** Closed application RPC vocabulary; schemas are the same on both sides of transport. */
+function shared<Input, Output>(definition: {
+  readonly input: Decoder<Input>;
+  readonly output: Decoder<Output>;
+  readonly run: (
+    ports: import('@ta-agent/ui-contracts').WorkspacePorts,
+    value: unknown,
+    signal: AbortSignal
+  ) => Promise<Output>;
+}) {
+  return {
+    input: definition.input,
+    output: definition.output,
+    run: (ports: Ports, value: unknown, signal: AbortSignal) =>
+      definition.run(createDefaultWorkspacePorts(ports), value, signal),
+  };
+}
 export const commands = Object.freeze({
-  renameAgent: command(
-    object({ agentId: s.id, displayName: text(256, 1), expectedRevision: s.revision }),
-    a(s.agentDetails),
-    (p, i, signal) => p.agents.renameAgent({ ...i, signal })
-  ),
+  listAgentPage: shared(workspaceCommands.listAgentPage),
+  inspectAgentDetails: shared(workspaceCommands.inspectAgentDetails),
+  renameAgent: shared(workspaceCommands.renameAgent),
+  disableAgent: shared(workspaceCommands.disableAgent),
+  reactivateAgent: shared(workspaceCommands.reactivateAgent),
+  listSessions: shared(workspaceCommands.listSessions),
+  inspectSession: shared(workspaceCommands.inspectSession),
+  inspectSessionNavigation: shared(workspaceCommands.inspectSessionNavigation),
+  renameSession: shared(workspaceCommands.renameSession),
+  retireSession: shared(workspaceCommands.retireSession),
+  restoreSession: shared(workspaceCommands.restoreSession),
+  purgeSession: shared(workspaceCommands.purgeSession),
+  selectSessionBranch: shared(workspaceCommands.selectSessionBranch),
+  forkSessionBranch: shared(workspaceCommands.forkSessionBranch),
+  rewindSessionBranch: shared(workspaceCommands.rewindSessionBranch),
+  readConversation: shared(workspaceCommands.readConversation),
   inspectModel: command(agentId, a(s.modelStatus), (p, i, signal) =>
     p.agents.inspectModel({ ...i, signal })
   ),
@@ -82,83 +93,6 @@ export const commands = Object.freeze({
     object({ agentId: s.id, expectedRevision: s.revision, config: s.config }),
     a(s.configSnapshot),
     (p, i, signal) => p.agents.updateAgentConfig({ ...i, signal })
-  ),
-  disableAgent: command(
-    object({ agentId: s.id, expectedRevision: s.revision }),
-    a(s.agentDetails),
-    (p, i, signal) => p.agents.disableAgent({ ...i, signal })
-  ),
-  reactivateAgent: command(
-    object({ agentId: s.id, expectedRevision: s.revision }),
-    a(s.agentDetails),
-    (p, i, signal) => p.agents.reactivateAgent({ ...i, signal })
-  ),
-  listSessions: command(
-    object({
-      agentId: s.id,
-      status: union(literal('active'), literal('retired')),
-      limit: optional(integer(1, 200)),
-      cursor: optional(text(2048, 1)),
-    }),
-    m(s.sessionPage),
-    (p, i, signal) => p.sessions.listSessions({ ...i, signal })
-  ),
-  inspectSession: command(object(target), m(s.session), (p, i, signal) =>
-    p.sessions.inspectSession({ ...i, signal })
-  ),
-  inspectSessionNavigation: command(object(target), m(s.navigation), (p, i, signal) =>
-    p.sessions.inspectSessionNavigation({ ...i, signal })
-  ),
-  renameSession: command(
-    object({ ...target, expectedRevision: s.revision, title: text(256, 1) }),
-    m(s.session),
-    (p, i, signal) => p.sessions.renameSession({ ...i, signal })
-  ),
-  retireSession: command(lifecycle, m(s.session), (p, i, signal) =>
-    p.sessions.retireSession({ ...i, signal })
-  ),
-  restoreSession: command(lifecycle, m(s.session), (p, i, signal) =>
-    p.sessions.restoreSession({ ...i, signal })
-  ),
-  purgeSession: command(
-    object({
-      ...target,
-      expectedRevision: s.revision,
-      confirmation: literal('permanently-delete-session'),
-    }),
-    m(unit),
-    (p, i, signal) => p.sessions.purgeSession({ ...i, signal })
-  ),
-  selectSessionBranch: command(
-    object({ ...target, branchId: s.id, expectedRevision: s.revision }),
-    m(s.navigation),
-    (p, i, signal) => p.sessions.selectSessionBranch({ ...i, signal })
-  ),
-  forkSessionBranch: command(
-    object({
-      ...target,
-      sourceBranchId: s.id,
-      throughTurnId: s.id,
-      expectedRevision: s.revision,
-      newBranchId: optional(s.id),
-    }),
-    m(s.branchMutation),
-    (p, i, signal) => p.conversations.forkSessionBranch({ ...i, signal })
-  ),
-  rewindSessionBranch: command(
-    object({
-      ...target,
-      throughTurnId: s.id,
-      expectedRevision: s.revision,
-      newBranchId: optional(s.id),
-    }),
-    m(s.branchMutation),
-    (p, i, signal) => p.conversations.rewindSessionBranch({ ...i, signal })
-  ),
-  readConversation: command(
-    object({ ...target, branchId: s.id, limit: optional(integer(1, 200)), cursor: optional(s.id) }),
-    s.result(s.conversationPage, s.conversationFailure),
-    (p, i, signal) => p.conversations.readConversation({ ...i, signal })
   ),
 });
 export type CommandName = keyof typeof commands;

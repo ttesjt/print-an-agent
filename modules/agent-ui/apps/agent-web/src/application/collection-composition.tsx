@@ -9,7 +9,7 @@ import type {
   DirectoryCollectionReference,
 } from '../collection/directory-contracts.js';
 import { createBrowserCollectionHistory } from '../adapters/browser-collection-history.js';
-import { useRecentCollections } from '../collection/use-recent-collections.js';
+import { useRecentCollections } from '@ta-agent/ui-workspace';
 
 export function LocalCollectionApplication({
   access = DEFAULT_ACCESS,

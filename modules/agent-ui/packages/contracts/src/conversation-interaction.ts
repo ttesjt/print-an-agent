@@ -33,6 +33,16 @@ interface ConversationInteractionEventBase {
   readonly interactionId: string;
 }
 
+/**
+ * Durable execution has settled; presentation recovery must not resubmit this interaction.
+ * Identity must match admission, or the explicit request target for an existing Session replay.
+ */
+export interface ConversationCommitReceipt {
+  readonly sessionId: string;
+  readonly branchId: string;
+  readonly turnId: string;
+}
+
 export type ConversationInteractionEvent =
   | Readonly<ConversationInteractionEventBase & { readonly type: 'interaction-started' }>
   | Readonly<
@@ -66,6 +76,13 @@ export type ConversationInteractionEvent =
         readonly sessionId: string;
         readonly turn: CompletedConversationTurn;
         readonly type: 'completed';
+      }
+    >
+  | Readonly<
+      ConversationInteractionEventBase & {
+        readonly type: 'committed';
+        readonly receipt: ConversationCommitReceipt;
+        readonly message: string;
       }
     >
   | Readonly<

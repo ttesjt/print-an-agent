@@ -7,12 +7,12 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
 import type { ConversationManagementPort } from '../../src/application/ports.js';
-import { ConversationWorkspace } from '../../src/conversation/conversation-workspace.js';
+import { ConversationWorkspace } from '@ta-agent/ui-workspace/testing';
 import {
   useConversationManagement,
   type ConversationManagementController,
-} from '../../src/conversation/use-conversation-management.js';
-import type { SessionSelectionState } from '../../src/session/use-session-management.js';
+} from '@ta-agent/ui-workspace/testing';
+import type { SessionSelectionState } from '@ta-agent/ui-workspace/testing';
 
 type ControllerInput = Parameters<typeof useConversationManagement>[0];
 

@@ -33,6 +33,7 @@ export type {
   ConversationInteractionEventConsumer,
   ConversationInteractionPort,
   ConversationSessionAdmission,
+  ConversationCommitReceipt,
   ExistingConversationTarget,
   StartConversationInteractionInput,
 } from './conversation-interaction.js';
@@ -99,3 +100,11 @@ export type {
   CollectionAccessPort,
 } from './collection.js';
 export type { RecentCollection, RecentCollectionsPersistencePort } from './collection-history.js';
+export type {
+  WorkspacePorts,
+  WorkspaceAgentPort,
+  WorkspaceSessionPort,
+  WorkspaceConversationPort,
+  AgentCatalogPage,
+} from './workspace.js';
+export type { MutationOutcome, MutationNotice, RevisionedValue } from './mutation-outcome.js';

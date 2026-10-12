@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { KeyedOperationOwnership } from '../../src/application/operation-ownership.js';
+import { KeyedOperationOwnership } from '@ta-agent/ui-workspace/testing';
 
 describe('KeyedOperationOwnership', () => {
   it('acquires exclusive work synchronously and retains the slot through cancellation drainage', () => {

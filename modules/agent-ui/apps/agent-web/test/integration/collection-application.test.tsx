@@ -6,10 +6,7 @@ import {
   CollectionApplication,
   type CollectionConnection,
 } from '../../src/collection/collection-application.js';
-import {
-  collectionHash,
-  readCollectionLocation,
-} from '../../src/collection/collection-location.js';
+import { collectionHash, readCollectionLocation } from '@ta-agent/ui-workspace';
 import { createBrowserComposition } from '../../src/application/browser-composition.js';
 import { domEnvironment } from '../support/dom-environment.js';
 

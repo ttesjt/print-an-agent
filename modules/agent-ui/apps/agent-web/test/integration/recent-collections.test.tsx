@@ -2,7 +2,7 @@ import type { RecentCollection, RecentCollectionsPersistencePort } from '@ta-age
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, expect, it } from 'vitest';
-import { useRecentCollections } from '../../src/collection/use-recent-collections.js';
+import { useRecentCollections } from '@ta-agent/ui-workspace';
 
 const environment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
 const roots: Root[] = [];

@@ -1,5 +1,4 @@
 import '@ta-agent/ui-styles/default.css';
-import './application/layout.css';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

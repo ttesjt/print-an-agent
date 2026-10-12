@@ -15,7 +15,7 @@ import { engineConfig, providerConfig } from '../support/agent-config.js';
 import {
   createSubmittingInteraction,
   reduceInteractionEvent,
-} from '../../src/conversation/interaction-state.js';
+} from '@ta-agent/ui-workspace/testing';
 
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {

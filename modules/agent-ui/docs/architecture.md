@@ -7,12 +7,11 @@ They express the UI capabilities they consume through module-owned ports. A conc
 implements those ports at its composition boundary.
 
 ```text
-ui-contracts ──────┬── ui-react
-                   └── agent-web
-ui-react ──────────┬── agent-web
-                   └── component-gallery
-ui-styles ─────────┬── agent-web
-                   └── component-gallery
+ui-contracts ──┬── ui-react ── ui-workspace ── consuming applications
+              ├── ui-workspace
+              └── ui-transport (optional) ── consuming applications
+ui-react ────── component-gallery
+ui-styles ── explicit application stylesheet import
 ```
 
 `agent-web` owns its Node-side Agent Base backend adapter. That integration does not grant reusable UI
@@ -52,25 +51,30 @@ client, or a product package.
 `@ta-agent/ui-styles` implements the semantic style hooks. It does not own behavior or import the
 React and contracts packages.
 
-Applications own routing, transport, backend adapters, credentials, persistence choices, and
-application-wide state orchestration. Reusable packages do not reach into an application through
-relative imports or global service locators.
+`ui-workspace` owns reusable page composition, routing coordination and application-wide interaction
+state. Applications select its ports, product extensions, transport, backend adapters, credentials
+and persistence. Reusable packages never import application internals or global service locators.
+
+`ui-transport` optionally provides closed HTTP/NDJSON codecs, a browser client and Node response
+helpers. It depends only on contracts; workspace and React packages do not depend on it. Server
+listening, security, Collection access, credentials and backend ownership remain application code.
 
 Agent Web groups the narrow public UI ports it consumes at its application composition boundary.
 This structural grouping is not a new universal adapter contract: controllers still depend on
 capability-specific methods, and another application may group or implement the ports differently.
 Persisted conversation state is owned by a stable Agent/Session/branch key rather than by current
 selection. Selection is a view projection; it does not cancel work owned by another persisted
-target. Unpersisted drafts are the deliberate exception because they have no navigable Session
-identity and remain foreground-owned until a successful interaction creates one.
+target. Unsent drafts are disposable; submitted drafts own their interaction independently of
+selection. Authoritative admission promotes them to navigable Sessions before model output.
 
 ## Application roles
 
 `apps/` contains independently startable, buildable, or deployable composition roots.
 
-`@ta-agent/ui-agent-web` is the general-purpose Agent Web application. It owns the
-Agent runtime adapter, lifecycle and Session orchestration, conversation transport, routing, and
-application-wide state.
+`@ta-agent/ui-agent-web` is the general-purpose Agent Web composition root. It installs
+`ui-workspace` for shared lifecycle, Session/conversation orchestration, routes and state. It owns
+the Agent Base adapter, model configuration extension, directory host, credentials and transport
+binding. It does not maintain another implementation of the shared controllers.
 
 `@ta-agent/ui-component-gallery` is a developer visual-qualification application. It displays the
 public components, bounded variants, themes, responsive behavior, accessibility, and semantic DOM.
@@ -109,14 +113,24 @@ model-turn reasoning blocks, and tool activity. Tool presentation contains only 
 labels, summaries, and display details; raw arguments, results, traces, credentials, and provider
 payloads are outside the UI contract.
 
-A successful terminal interaction contains the canonical completed Turn and must agree with the
+A `completed` terminal interaction contains the canonical completed Turn and must agree with the
 presentation events already accepted by the application. Failed or cancelled partial output may
 remain visible in the current application view with an explicit incomplete state, but is not
 silently promoted to a completed history Turn. Conversation components render these projections;
 they do not invoke ports or become the history authority. History loading or failure is a boundary
 state beside visible live/partial Turns, not a replacement for them. A tool still reported as
-pending when its parent interaction fails or is cancelled is presented as interrupted; this derived
+pending when its parent interaction fails, is cancelled, or settles without presentation is shown as interrupted; this derived
 UI state does not rewrite or invent a backend tool-lifecycle event.
+
+Durable execution and successful presentation are distinct. `committed` supplies an exact
+Session/branch/Turn receipt when presentation cannot be returned promptly. After stream settlement,
+execution is no longer busy, partial output remains visible, and the user can reload saved history.
+Only an authoritative matching completed Turn restores success-only actions; no synthetic Turn or
+automatic resend is allowed. Both terminal variants must pass full stream validation before use.
+
+Product creation/settings follow the same distinction through `MutationOutcome`: committed values
+may carry safe post-commit notices, rejected results mean known no commit, and indeterminate results
+require reconciliation. Separate settings authorities keep separate revisions and operation state.
 
 The current reusable capability scope and ownership map is maintained in
 [capability-map.md](./capability-map.md). The map plans capability ownership; it does not create a
@@ -159,9 +173,8 @@ screen-reader order. Default CSS may reflow regions into different grid shapes b
 panel switching are explicit interaction capabilities, not implicit breakpoint behavior.
 
 The public Drawer is a modal overlay with controlled visibility. Persistent desktop sidebar and
-inspector regions remain part of App Shell. Applications choose when a narrow layout opens a Drawer;
-the reusable packages do not install a breakpoint observer, duplicate semantic content, or hide an
-App Shell region automatically.
+inspector regions remain part of App Shell. The optional shared workspace installs its own responsive
+application policy; primitive components do not observe breakpoints or silently hide App Shell regions.
 
 Because modal overlays portal to `document.body` by default, `.ta-ui-modal-surface` is an explicit
 base-style root alongside `.ta-ui-root`. Portal placement may change DOM ancestry, but it must not
@@ -181,6 +194,9 @@ rewrite existing history.
 
 Collection references are safe application-defined JSON, not a framework storage-kind enum.
 Opening and routing bind existing narrow domain ports to an application-owned connection. Reusable
-selection components know neither filesystem paths nor Agent Base. Recent-history persistence is
-an independent optional port; it does not own resources or active selection. Concrete directory,
-HTTP and browser-storage implementations remain inside Agent Web's application composition.
+selection components know neither filesystem paths nor Agent Base. `ui-workspace` implements shared
+selection routing, isolation and recent-history coordination. Persistence is an independent optional
+port; it does not own resources or active selection. Concrete directory and browser-storage
+implementations remain inside Agent Web. The shared transport is optional, not a Collection owner.
+
+See [workspace consumption](./workspace-consumption.md) for extension, transport and qualification contracts.

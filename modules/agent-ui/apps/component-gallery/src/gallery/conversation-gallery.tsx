@@ -26,6 +26,7 @@ const LABELS = Object.freeze<ConversationTurnLabels>({
     cancelled: 'Cancelled',
     cancelling: 'Cancelling',
     completed: 'Completed',
+    committed: 'Saved · presentation needs recovery',
     failed: 'Failed',
     streaming: 'Responding',
     submitting: 'Starting',

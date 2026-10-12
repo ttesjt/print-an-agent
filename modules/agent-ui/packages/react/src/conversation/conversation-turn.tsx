@@ -16,6 +16,7 @@ export type ConversationTurnState =
   | 'cancelled'
   | 'cancelling'
   | 'completed'
+  | 'committed'
   | 'failed'
   | 'streaming'
   | 'submitting';
@@ -126,7 +127,8 @@ export function ConversationTurn({
                 detailsLabel={labels.toolDetails}
                 key={activity.callId}
                 presentationStatus={
-                  activity.status === 'pending' && (state === 'cancelled' || state === 'failed')
+                  activity.status === 'pending' &&
+                  (state === 'cancelled' || state === 'failed' || state === 'committed')
                     ? 'interrupted'
                     : activity.status
                 }

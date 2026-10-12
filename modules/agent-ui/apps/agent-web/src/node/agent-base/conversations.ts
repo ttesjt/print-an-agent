@@ -5,6 +5,7 @@ import type { ConversationManagementPort } from '../../application/ports.js';
 import type {
   ConversationInteractionEventConsumer,
   StartConversationInteractionInput,
+  ConversationCommitReceipt,
 } from '@ta-agent/ui-contracts';
 import { conversationFailure } from './failures.js';
 import { completedTurn, readWebConversation, reference } from './history.js';
@@ -12,6 +13,10 @@ import type { WebBackendServices } from './profile.js';
 import { projectNavigation, projectSession } from './projection.js';
 import { mutateBranch } from './sessions.js';
 import { WebStreamSink } from './stream-sink.js';
+import {
+  awaitCommittedPresentation,
+  DEFAULT_PRESENTATION_WAIT_MILLISECONDS,
+} from './presentation-wait.js';
 
 export function createWebConversationManagement(
   services: WebBackendServices
@@ -51,6 +56,7 @@ async function streamInteraction(
     };
   });
   let terminalAccepted = false;
+  let committed: ConversationCommitReceipt | undefined;
   try {
     const agent = await services.runtime.open(parseAgentId(input.agentId));
     input.signal?.throwIfAborted();
@@ -66,26 +72,33 @@ async function streamInteraction(
       input.signal === undefined ? {} : { signal: input.signal }
     );
     const target = reference({ agentId: input.agentId, sessionId: response.sessionId });
-    const session = await services.sessionFor(target.agentId);
-    const snapshot = await session.inspect(target);
-    const turn = snapshot?.turns.find(
-      (record) => record.turnId === parseTurnId(response.requestId)
-    );
-    // A Step override may choose a Turn ID independent from Run ID; prefer the admitted Turn.
-    const actual =
-      sink.turnId === undefined
-        ? turn
-        : snapshot?.turns.find((record) => record.turnId === sink.turnId);
-    if (actual?.status !== 'completed') throw new Error('Committed Turn is unavailable.');
-    const projected = await completedTurn(services, target, actual, response.branchId, [
-      ...sink.tools.values(),
-    ]);
+    if (
+      input.session !== undefined &&
+      (response.sessionId !== input.session.sessionId ||
+        response.branchId !== input.session.branchId)
+    )
+      throw new AgentSessionError(
+        'SESSION_NAVIGATION_CONFLICT',
+        'Response belongs to a different conversation target.'
+      );
+    // This app owns the standard beginRequest composition: Turn ID = Run ID.
+    // The journal replays the original response.requestId, not the replay Run ID.
+    // Successful invoke establishes commit authority before any optional display reads.
+    const turnId = sink.turnId ?? parseTurnId(response.requestId);
+    committed = {
+      sessionId: response.sessionId,
+      branchId: response.branchId,
+      turnId,
+    };
+    const projected = await awaitCommittedPresentation(async () => {
+      const session = await services.sessionFor(target.agentId);
+      const snapshot = await session.inspect(target);
+      const actual = snapshot?.turns.find((record) => record.turnId === turnId);
+      if (actual?.status !== 'completed' || actual.branchId !== response.branchId)
+        throw new Error('Committed Turn is unavailable.');
+      return completedTurn(services, target, actual, response.branchId, [...sink.tools.values()]);
+    }, services.modelHost.presentationWaitMilliseconds ?? DEFAULT_PRESENTATION_WAIT_MILLISECONDS);
     if (sink.turnId === undefined) {
-      if (input.session !== undefined && response.branchId !== input.session.branchId)
-        throw new AgentSessionError(
-          'SESSION_NAVIGATION_CONFLICT',
-          'Replay belongs to a different conversation branch.'
-        );
       // Replay has no model loop. Reconstruct its saved display events, not model evidence.
       for (const block of projected.assistantMessage.reasoningBlocks) {
         input.signal?.throwIfAborted();
@@ -115,6 +128,16 @@ async function streamInteraction(
     });
   } catch (error) {
     if (terminalAccepted) throw error;
+    if (committed !== undefined) {
+      await consume({
+        type: 'committed',
+        interactionId: input.interactionId,
+        receipt: committed,
+        message:
+          'The response was saved, but its presentation could not be loaded. Reload the saved response.',
+      });
+      return;
+    }
     await consume(
       input.signal?.aborted
         ? { type: 'cancelled', interactionId: input.interactionId }

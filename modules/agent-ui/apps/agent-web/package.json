@@ -21,6 +21,7 @@
     "serve": "node dist/server/node/main.js"
   },
   "dependencies": {
+    "@ta-agent/ui-workspace": "workspace:*",
     "@ta-agent/base-actor": "workspace:*",
     "@ta-agent/base-composition": "workspace:*",
     "@ta-agent/base-config": "workspace:*",
@@ -35,7 +36,8 @@
     "@ta-agent/ui-react": "workspace:*",
     "@ta-agent/ui-styles": "workspace:*",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "@ta-agent/ui-transport": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

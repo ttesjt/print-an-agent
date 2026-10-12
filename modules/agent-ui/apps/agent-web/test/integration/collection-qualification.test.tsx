@@ -16,7 +16,7 @@ import {
 import { createOfflineWebEngine } from '../../src/node/offline-engine.js';
 import { engineConfig } from '../support/agent-config.js';
 import { domEnvironment } from '../support/dom-environment.js';
-import { collectionHash } from '../../src/collection/collection-location.js';
+import { collectionHash } from '@ta-agent/ui-workspace';
 
 const environment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
 const roots: Root[] = [];

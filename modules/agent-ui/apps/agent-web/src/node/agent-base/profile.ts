@@ -36,8 +36,11 @@ import { WEB_AGENT_CONFIG_CODEC } from './config.js';
 import { presentationStepOverrides } from './stream-sink.js';
 import { createWebModelRuntime, actorInvocation } from './model-runtime.js';
 import { DEFAULT_REQUEST_POLICY } from '@ta-agent/base-request';
+import { validatePresentationWait } from './presentation-wait.js';
 
 export interface WebBackendOptions {
+  /** Bounded post-commit UI projection only; model execution deadlines are configured separately. */
+  readonly presentationWaitMilliseconds?: number;
   readonly engine?: ActorEngine;
   readonly readEnvironmentVariable?: (name: string) => string | undefined;
   readonly persistence:
@@ -48,6 +51,8 @@ export interface WebBackendOptions {
 }
 
 export function createWebBackendServices(options: WebBackendOptions) {
+  if (options.presentationWaitMilliseconds !== undefined)
+    validatePresentationWait(options.presentationWaitMilliseconds);
   if (options.persistence.kind === 'directory') {
     const profile = createStandaloneDirectoryDefinition({
       rootDirectory: options.persistence.rootDirectory,

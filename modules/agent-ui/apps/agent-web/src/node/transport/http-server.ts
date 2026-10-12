@@ -1,3 +1,8 @@
+import {
+  readJsonRequest,
+  writeJsonResponse,
+  writeInteractionResponse,
+} from '@ta-agent/ui-transport/node';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { once } from 'node:events';
 import type { AgentWebPorts } from '../../application/ports.js';
@@ -5,7 +10,6 @@ import type { AgentWebConfig } from '../../application/agent-config.js';
 import { commandName, commands } from '../../transport/commands.js';
 import { fail, object, text, TransportProtocolError } from '../../transport/decoder.js';
 import { WEB_TRANSPORT_LIMITS } from '../../transport/limits.js';
-import { interactionEvent, interactionInput } from '../../transport/schemas.js';
 import { serveStatic } from './static.js';
 import type { DirectoryCollectionHost } from '../collections/directory-host.js';
 
@@ -89,7 +93,7 @@ export async function startLocalAgentWebServer(options: LocalServerOptions) {
         return sendError(response, 404);
       if (request.headers['content-type']?.split(';')[0]?.trim() !== 'application/json')
         return sendError(response, 415);
-      const body = await readRequest(request, controller.signal);
+      const body = await readJsonRequest(request, controller.signal);
       if (path === '/api/collections') {
         const host = options.collections;
         if (host === undefined) return sendError(response, 404);
@@ -118,47 +122,9 @@ export async function startLocalAgentWebServer(options: LocalServerOptions) {
         const command = commands[commandName(envelope.command)];
         const value = await command.run(ports, envelope.input, controller.signal);
         controller.signal.throwIfAborted();
-        const json = JSON.stringify(value, (_key, item: unknown) =>
-          item === undefined ? null : item
-        );
-        if (Buffer.byteLength(json) > WEB_TRANSPORT_LIMITS.responseBytes) return fail();
-        response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        response.end(json);
+        writeJsonResponse(response, value);
       } else {
-        const input = interactionInput.decode(body);
-        response.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8' });
-        let terminal = false;
-        let started = false;
-        let bytes = 0;
-        await ports.conversations.streamInteraction(
-          { ...input, signal: controller.signal },
-          async (event) => {
-            controller.signal.throwIfAborted();
-            const normalized = interactionEvent.decode(event);
-            if (
-              terminal ||
-              normalized.interactionId !== input.interactionId ||
-              (!started && normalized.type !== 'interaction-started') ||
-              (started && normalized.type === 'interaction-started')
-            )
-              return fail();
-            started = true;
-            terminal =
-              normalized.type === 'completed' ||
-              normalized.type === 'failed' ||
-              normalized.type === 'cancelled';
-            const line = `${JSON.stringify(normalized)}\n`;
-            bytes += Buffer.byteLength(line);
-            if (
-              Buffer.byteLength(line) > WEB_TRANSPORT_LIMITS.frameBytes ||
-              bytes > WEB_TRANSPORT_LIMITS.streamBytes
-            )
-              return fail();
-            if (!response.write(line)) await once(response, 'drain', { signal: controller.signal });
-          }
-        );
-        if (!terminal) return fail();
-        response.end();
+        await writeInteractionResponse(ports.conversations, body, response, controller.signal);
       }
     } catch (error) {
       controller.abort(error);
@@ -199,19 +165,4 @@ function sendError(response: ServerResponse, status: number): void {
       message: 'The local application request could not be accepted.',
     })
   );
-}
-
-async function readRequest(request: IncomingMessage, signal: AbortSignal): Promise<unknown> {
-  let bytes = 0;
-  const chunks: Buffer[] = [];
-  for await (const raw of request) {
-    signal.throwIfAborted();
-    const chunk: unknown = raw;
-    if (!Buffer.isBuffer(chunk)) return fail();
-    bytes += chunk.byteLength;
-    if (bytes > WEB_TRANSPORT_LIMITS.requestBytes) return fail();
-    chunks.push(chunk);
-  }
-  signal.throwIfAborted();
-  return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)));
 }

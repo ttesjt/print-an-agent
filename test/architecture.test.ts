@@ -517,6 +517,43 @@ describe('module architecture', () => {
     const contractsManifest = packageManifest('contracts');
     const reactManifest = packageManifest('react');
     const stylesManifest = packageManifest('styles');
+    const workspaceManifest = packageManifest('workspace');
+    expect(productionDependencies(workspaceManifest)).toEqual([
+      '@ta-agent/ui-contracts',
+      '@ta-agent/ui-react',
+    ]);
+    expect(declaredPeerDependencies(workspaceManifest)).toEqual(['react', 'react-dom']);
+    const transportManifest = packageManifest('transport');
+    expect(productionDependencies(transportManifest)).toEqual(['@ta-agent/ui-contracts']);
+    expect(declaredPeerDependencies(transportManifest)).toEqual([]);
+    const transportRoot = join(packagesRoot, 'transport', 'src');
+    for (const file of typeScriptFiles(transportRoot)) {
+      const imports = moduleSpecifiers(readFileSync(file, 'utf8'));
+      expect(
+        imports.some((name) => name === 'react' || name.startsWith('@ta-agent/ui-workspace'))
+      ).toBe(false);
+      if (file !== join(transportRoot, 'node.ts')) {
+        expect(imports.some((name) => name.startsWith('node:') || name === './node.js')).toBe(
+          false
+        );
+      }
+      for (const name of imports.filter((name) => name.startsWith('.'))) {
+        expect(normalize(relative(transportRoot, resolve(dirname(file), name)))).not.toMatch(
+          /^\.\./u
+        );
+      }
+    }
+    const workspaceRoot = join(packagesRoot, 'workspace', 'src');
+    for (const file of typeScriptFiles(workspaceRoot)) {
+      for (const specifier of moduleSpecifiers(readFileSync(file, 'utf8'))) {
+        expect(specifier).not.toMatch(/^(?:node:|@ta-agent\/ui-transport)|\.css$/u);
+        if (specifier.startsWith('.')) {
+          expect(normalize(relative(workspaceRoot, resolve(dirname(file), specifier)))).not.toMatch(
+            /^\.\./u
+          );
+        }
+      }
+    }
 
     expect(productionDependencies(contractsManifest)).toEqual([]);
     expect(declaredPeerDependencies(contractsManifest)).toEqual([]);
@@ -639,6 +676,42 @@ describe('module architecture', () => {
         `${normalize(cssFile)} must not patch reusable component hooks`
       ).not.toMatch(/\.ta-ui-(?!gallery-)/u);
     }
+  });
+
+  it('qualifies a second workspace consumer on public APIs without copying default controllers', () => {
+    const uiRoot = join(repositoryRoot, 'modules', 'agent-ui');
+    const fixtureRoot = join(uiRoot, 'packages', 'workspace', 'test', 'qualification');
+    const fixtures = typeScriptFiles(fixtureRoot);
+    expect(fixtures.length).toBeGreaterThanOrEqual(3);
+    for (const file of fixtures) {
+      for (const specifier of moduleSpecifiers(readFileSync(file, 'utf8'))) {
+        if (specifier.startsWith('.')) {
+          expect(normalize(relative(fixtureRoot, resolve(dirname(file), specifier)))).not.toMatch(
+            /^\.\./u
+          );
+        } else {
+          expect([
+            '@ta-agent/ui-contracts',
+            '@ta-agent/ui-react',
+            '@ta-agent/ui-workspace',
+            '@ta-agent/ui-workspace/testing',
+            'react',
+            'react-dom/client',
+            'vitest',
+          ]).toContain(specifier);
+        }
+      }
+    }
+    const app = join(uiRoot, 'apps', 'agent-web', 'src');
+    expect(typeScriptFiles(join(app, 'conversation'))).toEqual([]);
+    expect(typeScriptFiles(join(app, 'session'))).toEqual([]);
+    expect(readFileSync(join(app, 'app.tsx'), 'utf8')).toContain('@ta-agent/ui-workspace');
+    expect(readFileSync(join(app, 'adapters', 'http-agent-web-ports.ts'), 'utf8')).toContain(
+      '@ta-agent/ui-transport/browser'
+    );
+    expect(readFileSync(join(app, 'node', 'transport', 'http-server.ts'), 'utf8')).toContain(
+      '@ta-agent/ui-transport/node'
+    );
   });
 
   it('keeps Agent UI React behavior independent from visual policy', () => {

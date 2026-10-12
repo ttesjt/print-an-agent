@@ -1,14 +1,8 @@
-import type {
-  ConversationInteractionEvent,
-  ConversationInteractionEventConsumer,
-  StartConversationInteractionInput,
-} from '@ta-agent/ui-contracts';
+import { createHttpTransport } from '@ta-agent/ui-transport/browser';
 import type { AgentWebPorts } from '../application/ports.js';
 import type { AgentWebConfig } from '../application/agent-config.js';
 import { commands, type CommandName } from '../transport/commands.js';
-import { TransportProtocolError, fail, type Decoder } from '../transport/decoder.js';
-import { WEB_TRANSPORT_LIMITS } from '../transport/limits.js';
-import { interactionEvent, interactionInput } from '../transport/schemas.js';
+import { TransportProtocolError, type Decoder } from '../transport/decoder.js';
 import { AgentConfigValidationError } from '../application/agent-config-validation.js';
 
 export interface HttpAgentWebOptions {
@@ -20,28 +14,16 @@ export interface HttpAgentWebOptions {
 export function createHttpAgentWebPorts(
   options: HttpAgentWebOptions = {}
 ): AgentWebPorts<AgentWebConfig> {
-  const fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
-  const baseUrl = (options.baseUrl ?? '/api').replace(/\/$/u, '');
+  const transport = createHttpTransport(options);
   const rpc = async <T>(
     name: CommandName,
     input: { readonly signal?: AbortSignal },
     output: Decoder<T>
   ): Promise<T> => {
-    const { signal, ...payload } = input;
+    const { signal } = input;
     signal?.throwIfAborted();
     try {
-      const normalized = commands[name].input.decode(payload);
-      const response = await fetch(`${baseUrl}/commands`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: name, input: normalized }),
-        ...(signal === undefined ? {} : { signal }),
-      });
-      if (!response.ok || !response.headers.get('content-type')?.startsWith('application/json'))
-        return fail();
-      return output.decode(
-        JSON.parse(await readBody(response, WEB_TRANSPORT_LIMITS.responseBytes))
-      );
+      return await transport.command(name, input, commands[name].input, output);
     } catch (error) {
       signal?.throwIfAborted();
       if (error instanceof AgentConfigValidationError)
@@ -97,121 +79,7 @@ export function createHttpAgentWebPorts(
       forkSessionBranch: (i) => rpc('forkSessionBranch', i, commands.forkSessionBranch.output),
       rewindSessionBranch: (i) =>
         rpc('rewindSessionBranch', i, commands.rewindSessionBranch.output),
-      streamInteraction: (i, consume) => stream(fetch, `${baseUrl}/interactions`, i, consume),
+      streamInteraction: transport.streamInteraction,
     },
   };
-}
-
-async function readBody(response: Response, limit: number): Promise<string> {
-  if (response.body === null) return fail();
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder('utf-8', { fatal: true });
-  let content = '';
-  let bytes = 0;
-  try {
-    while (true) {
-      const chunk = await reader.read();
-      if (chunk.done) break;
-      bytes += chunk.value.byteLength;
-      if (bytes > limit) return fail();
-      content += decoder.decode(chunk.value, { stream: true });
-    }
-    return content + decoder.decode();
-  } finally {
-    await reader.cancel().catch(() => undefined);
-    reader.releaseLock();
-  }
-}
-
-async function stream(
-  fetch: typeof globalThis.fetch,
-  url: string,
-  input: StartConversationInteractionInput,
-  consume: ConversationInteractionEventConsumer
-): Promise<void> {
-  const { signal, ...payload } = input;
-  signal?.throwIfAborted();
-  let started = false;
-  let terminalEvent: ConversationInteractionEvent | undefined;
-  let terminalDelivered = false;
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(interactionInput.decode(payload)),
-      ...(signal === undefined ? {} : { signal }),
-    });
-    if (
-      !response.ok ||
-      !response.headers.get('content-type')?.startsWith('application/x-ndjson') ||
-      response.body === null
-    )
-      return fail();
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8', { fatal: true });
-    let buffer = '';
-    let bytes = 0;
-    const accept = async (line: string) => {
-      if (
-        terminalEvent !== undefined ||
-        new TextEncoder().encode(line).byteLength > WEB_TRANSPORT_LIMITS.frameBytes
-      )
-        return fail();
-      const event = interactionEvent.decode(JSON.parse(line));
-      if (
-        event.interactionId !== input.interactionId ||
-        (!started && event.type !== 'interaction-started') ||
-        (started && event.type === 'interaction-started')
-      )
-        return fail();
-      started = true;
-      if (event.type === 'completed' || event.type === 'failed' || event.type === 'cancelled') {
-        terminalEvent = event;
-      } else {
-        await consume(event);
-      }
-    };
-    try {
-      while (true) {
-        const chunk = await reader.read();
-        if (chunk.done) break;
-        bytes += chunk.value.byteLength;
-        if (bytes > WEB_TRANSPORT_LIMITS.streamBytes) return fail();
-        buffer += decoder.decode(chunk.value, { stream: true });
-        let newline = buffer.indexOf('\n');
-        while (newline >= 0) {
-          await accept(buffer.slice(0, newline));
-          buffer = buffer.slice(newline + 1);
-          newline = buffer.indexOf('\n');
-        }
-        if (buffer.length > WEB_TRANSPORT_LIMITS.frameBytes) return fail();
-      }
-      buffer += decoder.decode();
-      if (buffer.length !== 0 || terminalEvent === undefined) return fail();
-      signal?.throwIfAborted();
-      // A terminal frame is authoritative only after clean EOF, with no trailing data.
-      terminalDelivered = true;
-      await consume(terminalEvent);
-    } finally {
-      await reader.cancel().catch(() => undefined);
-      reader.releaseLock();
-    }
-  } catch (error) {
-    if (terminalDelivered) throw error;
-    await consume(
-      signal?.aborted
-        ? { type: 'cancelled', interactionId: input.interactionId }
-        : {
-            type: 'failed',
-            interactionId: input.interactionId,
-            failure: {
-              code:
-                error instanceof TransportProtocolError || error instanceof SyntaxError
-                  ? 'invalid-stream'
-                  : 'unavailable',
-              message: 'The local interaction transport did not complete.',
-            },
-          }
-    );
-  }
 }

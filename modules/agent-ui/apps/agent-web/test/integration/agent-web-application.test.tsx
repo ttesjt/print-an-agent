@@ -56,7 +56,7 @@ describe('Agent Web deterministic composition', () => {
       />
     );
 
-    expect(markup).toContain('class="ta-ui-app-shell ta-ui-root ta-ui-agent-web-shell"');
+    expect(markup).toContain('class="ta-ui-app-shell ta-ui-root ta-ui-workspace-shell"');
     expect(markup).toContain('class="ta-ui-app-shell__header"');
     expect(markup).toContain('class="ta-ui-app-shell__sidebar"');
     expect(markup).toContain('class="ta-ui-app-shell__main"');

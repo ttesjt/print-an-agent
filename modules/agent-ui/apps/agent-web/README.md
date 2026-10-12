@@ -7,10 +7,9 @@ or auto-close: this application does not guess when a provider's reasoning ends.
 is conversation-scoped, ephemeral UI state and survives live-to-history and draft-to-persisted
 transitions. It is not written to Session data, sent to the model, or restored after a page reload.
 
-This application owns Agent lifecycle, Session management, conversation
-interaction, routing, application-wide state, backend transport, and the adapter to an Agent
-runtime. Those responsibilities remain application policy and do not flow into reusable UI
-packages.
+This application installs `ui-workspace` for Agent/Session orchestration, conversation interaction,
+routing and scoped state. It owns model configuration, host/runtime adapters and server security.
+The optional `ui-transport` package supplies the shared HTTP/NDJSON implementation.
 
 The default browser composition installs validated localhost HTTP/NDJSON ports and imports the
 optional default stylesheet explicitly. The Node host connects these ports to public Agent Base
@@ -28,8 +27,8 @@ adapters and stylesheet without changing reusable component behavior.
 The application consumes one typed composition of narrow Agent, Session, history, interaction, and
 branch-mutation ports. This grouping belongs to Agent Web; it is not a universal backend adapter and
 does not leak the deterministic implementation into controllers. Agent, Session, and conversation
-orchestration live in separate application-owned controllers while `App` remains the composition and
-view-wiring boundary.
+orchestration live in shared workspace controllers while `App` remains a thin composition boundary.
+The app-owned model configuration extension does not duplicate Session/conversation state.
 
 The composition treats configuration and lifecycle mutations as independent operations. Revision
 conflicts reload an authoritative snapshot before retry, structured validation remains attached to
@@ -81,6 +80,12 @@ its terminal frame until clean EOF; trailing events or data invalidate the strea
 does not publish successful history or commit callbacks when a port rejects after `completed`.
 Transport failure does not prove that the backend rolled back: authoritative history must still be
 reconciled after an interrupted connection.
+An explicit `committed` receipt ends execution even when canonical presentation is unavailable;
+the workspace retains partial display and offers history recovery without resubmitting the message.
+The complete post-commit read chain (Session port acquisition, snapshot inspection and presentation)
+has a one-second waiting budget, configurable by the TypeScript
+host's `presentationWaitMilliseconds`. This does not limit model reasoning time or roll back a saved
+Turn. Underlying read I/O is not forcibly interrupted; late projection results are ignored.
 
 Conversation and Agent Profile are separate URL-restorable views. Profile owns model settings,
 display name, config and lifecycle; Conversation owns the transcript and Composer. “New” goes directly

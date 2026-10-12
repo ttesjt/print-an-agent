@@ -1,0 +1,41 @@
+{
+  "name": "@ta-agent/ui-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm run build && vitest run",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@ta-agent/ui-contracts": "workspace:*",
+    "@ta-agent/ui-react": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0 <20",
+    "react-dom": ">=19.0.0 <20"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "happy-dom": "20.14.5",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

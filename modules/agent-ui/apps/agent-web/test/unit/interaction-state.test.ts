@@ -13,7 +13,7 @@ import {
   interactionAssistantText,
   interactionReasoningBlocks,
   reduceInteractionEvent,
-} from '../../src/conversation/interaction-state.js';
+} from '@ta-agent/ui-workspace/testing';
 
 describe('conversation interaction reducer', () => {
   it('decodes admission through a closed, validated transport record', () => {

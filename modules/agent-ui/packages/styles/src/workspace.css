@@ -1,0 +1,73 @@
+/* Shared workspace layout. Applications explicitly opt into the stylesheet. */
+.ta-ui-workspace-shell {
+  block-size: 100dvh;
+  min-block-size: 0;
+  overflow: hidden;
+}
+.ta-ui-workspace-shell
+  > :where(.ta-ui-app-shell__sidebar, .ta-ui-app-shell__main, .ta-ui-app-shell__inspector) {
+  min-block-size: 0;
+  overflow: auto;
+}
+.ta-ui-workspace-shell[data-view='conversation'] > .ta-ui-app-shell__main {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.ta-ui-workspace-main,
+.ta-ui-workspace-conversation-page {
+  min-block-size: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ta-ui-space-3);
+}
+.ta-ui-workspace-profile-label {
+  color: var(--ta-ui-color-ink-muted);
+  font-size: var(--ta-ui-font-size-small);
+}
+.ta-ui-workspace-conversation {
+  flex: 1;
+  min-block-size: 0;
+}
+.ta-ui-workspace-conversation > .ta-ui-conversation-scroll-region {
+  flex: 1;
+  min-block-size: 0;
+  max-block-size: none;
+}
+.ta-ui-workspace-conversation > .ta-ui-conversation-composer {
+  flex-shrink: 0;
+}
+@media (max-width: 68rem) {
+  .ta-ui-workspace-shell {
+    grid-template-areas: 'header' 'main';
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .ta-ui-workspace-shell:has(> .ta-ui-app-shell__sidebar) {
+    grid-template-areas: 'header' 'sidebar' 'main';
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .ta-ui-workspace-shell:has(> .ta-ui-app-shell__inspector) {
+    grid-template-areas: 'header' 'main' 'inspector';
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+  .ta-ui-workspace-shell:has(> .ta-ui-app-shell__sidebar):has(> .ta-ui-app-shell__inspector) {
+    grid-template-areas: 'header' 'sidebar' 'main' 'inspector';
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+  .ta-ui-workspace-shell > :where(.ta-ui-app-shell__sidebar, .ta-ui-app-shell__inspector) {
+    max-block-size: 25dvh;
+  }
+}
+.ta-ui-workspace-draft-session {
+  padding: var(--ta-ui-space-3);
+  border-radius: var(--ta-ui-radius-small);
+  background: var(--ta-ui-color-accent-soft);
+  font-weight: var(--ta-ui-font-weight-strong);
+}
+.ta-ui-workspace-collection-entry {
+  max-inline-size: 48rem;
+  margin-inline: auto;
+  padding: var(--ta-ui-space-6);
+}

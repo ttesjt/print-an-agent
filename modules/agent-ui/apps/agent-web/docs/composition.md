@@ -4,8 +4,8 @@
 Browser public components + optional stylesheet
     → Collection selection / reference resolver
     → immutable application connection binding
-    → application-owned controllers and narrow UI ports
-    → validated HTTP commands / ordered NDJSON interaction stream
+    → ui-workspace controllers and narrow UI ports
+    → optional ui-transport HTTP commands / ordered NDJSON interaction stream
     → Node application adapter
     → one managed Agent Base Definition per Collection
         → Identity / Config authority
@@ -28,7 +28,9 @@ const host = await startLocalAgentWebServer({ ports });
 The browser receives only safe DTOs. `App` accepts the application's typed `AgentWebPorts`
 composition, so another host may replace all adapters. `BrowserAgentWeb` adds URL selection and
 the default entry opens a directory Collection before installing scoped localhost ports; it is not
-a second domain owner. No reusable component imports these controllers or the Node adapter. The
+a second domain owner. Default model configuration stays in its typed product extension. Other
+applications consume [the shared workspace](../../../docs/workspace-consumption.md), not this app's
+source files. No reusable component imports the Node adapter. The
 browser's hash contains only a Collection key, view and Agent/Session IDs,
 never provider configuration or credentials. Within a Collection, navigation changes selection
 without remounting the workspace or cancelling an unrelated persisted conversation. Changing

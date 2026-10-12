@@ -2,7 +2,7 @@ import type { ConversationInteractionEvent } from '@ta-agent/ui-contracts';
 import { act } from 'react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createHttpAgentWebPorts } from '../../src/adapters/http-agent-web-ports.js';
-import { historyTurns } from '../../src/conversation/conversation-history-state.js';
+import { historyTurns } from '@ta-agent/ui-workspace/testing';
 import {
   cleanupConversationControllers,
   completeInteraction,

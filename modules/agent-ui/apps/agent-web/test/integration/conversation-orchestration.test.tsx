@@ -9,7 +9,7 @@ import { act } from 'react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ConversationManagementPort } from '../../src/application/ports.js';
-import { historyTurns } from '../../src/conversation/conversation-history-state.js';
+import { historyTurns } from '@ta-agent/ui-workspace/testing';
 import {
   cleanupConversationControllers,
   completeInteraction,

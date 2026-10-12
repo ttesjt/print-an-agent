@@ -45,3 +45,18 @@ change config or Session identity and is not a requirement on every backend.
 union. `CollectionChoice.key` is canonical identity supplied by that application's resolver;
 choices in one list must have unique keys. `CollectionAccessPort` only opens a reference into
 an application-owned connection. It does not replace Agent, Session or interaction ports.
+
+# Workspace capabilities
+
+`WorkspacePorts` groups narrow capabilities without requiring a configuration schema. Agent reads
+use `listAgentPage` and `inspectAgentDetails`; catalog cursors are opaque and selection may refer to
+an Agent outside the loaded page. A backend without pagination returns a single page, without
+claiming server-side paging. Metadata/lifecycle mutations, purge and branch mutations are optional.
+Consumers must not install dummy implementations to advertise unavailable capabilities.
+
+`MutationOutcome` distinguishes confirmed commits (possibly with safe follow-up notices), known
+rejections, and indeterminate outcomes. A lost response or cancellation is not proof of rollback.
+`committed` is an interaction terminal receipt for a durable Turn whose presentation is not ready;
+it does not fabricate a canonical `completed` Turn. Recover presentation by querying authority,
+never by resubmitting the message. Like every terminal, it is accepted only after clean stream
+settlement. Backend adapters remain responsible for authoritative identity and safe projection.

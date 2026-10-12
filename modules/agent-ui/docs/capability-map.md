@@ -79,21 +79,25 @@ States:
 
 Collection list and setup form are implemented reusable presentation capabilities: they accept
 application-defined safe JSON references and field slots. Opening, routing, canonical identity and
-immutable connection binding are implemented in Agent Web. Directory browsing is its concrete local
+immutable connection binding are implemented in `ui-workspace`. Directory browsing is Agent Web's concrete local
 implementation, not a storage assumption in reusable UI contracts. Recent history has a narrow
 replaceable persistence port, with browser storage provided by the application.
 
-| Capability              | Reusable UI responsibility                                     | Application responsibility                                   | State       |
-| ----------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ | ----------- |
-| Selection orchestration | Reusable logic only after demonstrated cross-application value | Agent/Session selection authority and routing                | Implemented |
-| Concurrent interactions | Present independent lifecycle state                            | Scope operations, cancellation, and stale-result suppression | Implemented |
-| Error projection        | Render stable UI-safe errors and recovery actions              | Map/redact backend and transport failures                    | Implemented |
-| Backend adapter         | Define the narrow ports it must satisfy                        | Map public backend APIs into UI contracts                    | Implemented |
-| Runtime validation      | Optional transport-neutral codecs when justified               | Validate every external transport boundary                   | Implemented |
-| HTTP/stream transport   | None                                                           | Protocol, server, security, and credential policy            | Implemented |
-| Host/filesystem setup   | Generic Collection list/setup form and reference contract      | Directory resolver/browser, root CLI shortcut                | Implemented |
+| Capability              | Reusable UI responsibility                                            | Application responsibility                                 | State       |
+| ----------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- | ----------- |
+| Selection orchestration | Shared Agent/Session selection, URL routing and navigation protection | Install ports and product readiness policy                 | Implemented |
+| Concurrent interactions | Scoped operations, drafts, admission, history and cancellation        | Authoritative backend identity and commit projection       | Implemented |
+| Error projection        | Render stable UI-safe errors and recovery actions                     | Map/redact backend and transport failures                  | Implemented |
+| Backend adapter         | Define the narrow ports it must satisfy                               | Map public backend APIs into UI contracts                  | Implemented |
+| Runtime validation      | Optional transport-neutral codecs when justified                      | Validate every external transport boundary                 | Implemented |
+| HTTP/stream transport   | Optional codecs, browser client and Node response helpers             | Server, security, Collection binding and credential policy | Implemented |
+| Host/filesystem setup   | Generic Collection list/setup form and reference contract             | Directory resolver/browser, root CLI shortcut              | Implemented |
 
-Application capabilities marked Implemented live in Agent Web, not reusable packages. Tool
+Shared application capabilities live in `ui-workspace`, qualified by Agent Web and a structurally
+different research fixture. Product configuration/creation is supplied by typed extension surfaces;
+independent commit authorities may use the shared revisioned editor and mutation helpers. Agent
+catalog pagination is implemented in the shared controller and transport; the current Agent Base
+adapter honestly exposes a single page because its public management service is not paginated. Tool
 presentation is live-only at its current Agent Base boundary; persisted reasoning is restored
 separately. Compaction remains deferred pending an explicit public authority/consumer. Agent ID is
 immutable; display-name updates use the optional metadata capability with revision checks.

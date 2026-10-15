@@ -965,6 +965,33 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
 
+  modules/workflow/packages/core:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
+
+  modules/workflow/tests/qualification:
+    devDependencies:
+      '@ta-agent/workflow-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
+
   tooling/templates/typescript-package:
     devDependencies:
       '@types/node':

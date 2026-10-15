@@ -30,6 +30,20 @@ export const boundaryConfigs = Object.freeze([
     rules: moduleRestrictions([]),
   },
   {
+    files: ['modules/workflow/**/src/**/*.{ts,tsx}'],
+    rules: moduleRestrictions([
+      {
+        group: [
+          '@ta-agent/base-*',
+          '@ta-agent/workbench-*',
+          '@ta-agent/self-learn-*',
+          '@ta-agent/ui-*',
+        ],
+        message: 'Workflow must remain independent of Agent and product domains.',
+      },
+    ]),
+  },
+  {
     files: [
       'modules/model-workbench/{apps,packages}/*/src/**/*.{ts,tsx}',
       'modules/model-workbench/templates/*/*/src/**/*.{ts,tsx}',

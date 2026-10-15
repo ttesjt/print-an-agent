@@ -16,6 +16,15 @@ import { describe, expect, it } from 'vitest';
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url));
 
 const moduleRules = Object.freeze({
+  workflow: {
+    packagePrefix: '@ta-agent/workflow-',
+    forbiddenPrefixes: [
+      '@ta-agent/base-',
+      '@ta-agent/workbench-',
+      '@ta-agent/self-learn-',
+      '@ta-agent/ui-',
+    ],
+  },
   'model-workbench': {
     packagePrefix: '@ta-agent/workbench-',
     forbiddenPrefixes: ['@ta-agent/base-', '@ta-agent/self-learn-'],

@@ -5,6 +5,7 @@ A modular framework for building agents with replaceable model, workflow, memory
 - [Agent Base](./modules/agent-base/README.md) — Agent execution, Sessions, and composition.
 - [Agent UI](./modules/agent-ui/README.md) — Reusable interface components and reference applications.
 - [Model Workbench](./modules/model-workbench/README.md) — Model execution, training, and artifact management.
+- [Workflow](./modules/workflow/README.md) — Workflow execution and resource binding.
 
 ## Development
 

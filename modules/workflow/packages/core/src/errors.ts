@@ -1,0 +1,40 @@
+export type WorkflowDefinitionErrorCode =
+  | 'WORKFLOW_NAME_INVALID'
+  | 'STEP_OVERRIDE_UNKNOWN'
+  | 'STEP_DEFINITION_INVALID'
+  | 'STEP_OVERRIDE_INVALID'
+  | 'STEP_CARDINALITY_INVALID'
+  | 'STEP_IMPLEMENTATION_MISSING'
+  | 'STEP_NOT_SKIPPABLE'
+  | 'WORKFLOW_ENTRY_STEP_SKIPPED';
+
+export class WorkflowDefinitionError extends Error {
+  constructor(
+    readonly code: WorkflowDefinitionErrorCode,
+    readonly subjectName: string,
+    message: string
+  ) {
+    super(message);
+    this.name = 'WorkflowDefinitionError';
+  }
+}
+
+export type WorkflowRunErrorCode =
+  | 'STEP_NOT_REGISTERED'
+  | 'STEP_CONCURRENT_INVOCATION_NOT_ALLOWED'
+  | 'STEP_CARDINALITY_EXCEEDED'
+  | 'WORKFLOW_CONDITION_INVALID'
+  | 'WORKFLOW_SCOPE_CLOSED'
+  | 'WORKFLOW_EXECUTION_INCOMPLETE'
+  | 'STEP_EXECUTOR_INVALID';
+
+export class WorkflowRunError extends Error {
+  constructor(
+    readonly code: WorkflowRunErrorCode,
+    message: string,
+    readonly subjectName?: string
+  ) {
+    super(message);
+    this.name = 'WorkflowRunError';
+  }
+}

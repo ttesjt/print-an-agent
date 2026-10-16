@@ -4,6 +4,7 @@ import {
   RUN_WORKFLOW,
   type WorkflowContext,
 } from '@ta-agent/workflow-core';
+import type { BundleWorkflowDefinition } from '@ta-agent/workflow-bundle';
 
 export interface CatalogRecord {
   readonly revision: number;
@@ -22,12 +23,12 @@ export interface UpdatePorts {
   readonly records: RecordStore;
   readonly titleLimit: (signal: AbortSignal) => Promise<number>;
 }
-interface Input {
+export interface UpdateInput {
   readonly enabled: boolean;
   readonly id: string;
   readonly title: string;
 }
-interface State {
+export interface UpdateState {
   record: CatalogRecord | undefined;
   limit: number | undefined;
 }
@@ -35,10 +36,27 @@ export type UpdateResult =
   | { readonly status: 'not-updated' }
   | { readonly status: 'updated'; readonly record: CatalogRecord };
 export type UpdateName = 'update' | 'load' | 'record' | 'rules' | 'validate' | 'commit';
-export type UpdateContext = WorkflowContext<UpdateName, Input, State, UpdatePorts, UpdateResult>;
+export type UpdateContext = WorkflowContext<
+  UpdateName,
+  UpdateInput,
+  UpdateState,
+  UpdatePorts,
+  UpdateResult
+>;
 
-export function recordUpdate() {
-  return new Workflow<UpdateName, Input, State, UpdatePorts, UpdateResult>({
+export function recordUpdate(resources: UpdatePorts) {
+  return new Workflow({ ...recordUpdateDefinition(), resources });
+}
+
+/** The same unbound definition is reusable independently or inside a Bundle. */
+export function recordUpdateDefinition(): BundleWorkflowDefinition<
+  UpdateName,
+  UpdateInput,
+  UpdateState,
+  UpdatePorts,
+  UpdateResult
+> {
+  return {
     name: 'record-update',
     entryStep: 'update',
     createResult: () => ({ status: 'not-updated' }),
@@ -97,5 +115,5 @@ export function recordUpdate() {
         },
       },
     },
-  });
+  };
 }

@@ -13,7 +13,11 @@ describe('MemoryAgentTraceAdapter', () => {
     });
 
     await trace.record({ type: 'agent-run-started', operationName: 'test' });
-    await trace.record({ type: 'workflow-run-skipped', workflowName: 'optional' });
+    await trace.record({
+      type: 'workflow-run-skipped',
+      workflowName: 'optional',
+      workflowRunId: 'optional-run',
+    });
     await trace.record({ type: 'agent-run-completed', operationName: 'test' });
 
     const snapshot = adapter.inspect();

@@ -1,18 +1,17 @@
+import { Workflow, STEP_CARDINALITY } from '@ta-agent/workflow-core';
+import { bindAgentWorkflow } from '@ta-agent/base-runtime';
 import {
   BUILT_IN_RESPONSIBILITIES,
   createActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
 } from '@ta-agent/base-actor';
-import type { AgentOperationDefinitionMap } from '@ta-agent/base-workflow';
+import type { AgentOperationDefinitionMap } from '@ta-agent/base-runtime';
 import {
   defineAgentOperation,
-  STEP_CARDINALITY,
   type AgentRunContextFactoryInput,
   type BaseAgentRunContext,
-  type BaseWorkflowContext,
-  Workflow,
-} from '@ta-agent/base-workflow';
+} from '@ta-agent/base-runtime';
 import { describe, expect, it } from 'vitest';
 import {
   AgentCompositionError,
@@ -33,8 +32,6 @@ interface ProductService {
 interface ProductRunContext extends BaseAgentRunContext<string, string> {
   readonly service: ProductService;
 }
-
-type ProductWorkflowContext = BaseWorkflowContext<ProductStepName, ProductRunContext, string>;
 
 function createOptions(): ComposeAgentOptions {
   return {
@@ -80,25 +77,30 @@ describe('Agent composition extensions', () => {
     let observedStandardDefinition: StandardAgentDefinition | undefined;
     const agent = composeAgentWithExtensions(createOptions(), (standard) => {
       observedStandardDefinition = standard;
-      const workflow = new Workflow<
-        ProductStepName,
-        ProductRunContext,
-        ProductWorkflowContext,
-        string
-      >({
-        name: 'inspectProduct',
-        entryStep: 'readProductResource',
-        stepDefinitions: {
-          readProductResource: {
-            cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
-            skippable: false,
-            step: (context) => {
-              context.result = `${context.agentRunContext.service.label}:${context.agentRunContext.input}`;
-              return Promise.resolve();
+      const workflow = bindAgentWorkflow({
+        workflow: new Workflow<
+          ProductStepName,
+          ProductRunContext,
+          Record<never, never>,
+          undefined,
+          string
+        >({
+          name: 'inspectProduct',
+          resources: undefined,
+          entryStep: 'readProductResource',
+          stepDefinitions: {
+            readProductResource: {
+              cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+              skippable: false,
+              step: (context) => {
+                context.result = `${context.input.service.label}:${context.input.input}`;
+                return Promise.resolve();
+              },
             },
           },
-        },
-        createContext: (base) => ({ ...base }),
+          createState: () => ({}),
+          createResult: () => '',
+        }),
         applyResult: (context, result) => {
           context.output = result;
           return Promise.resolve();

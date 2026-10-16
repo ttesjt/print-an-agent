@@ -1,5 +1,5 @@
 import type { ContextModelMessage, ModelMessage } from '@ta-agent/base-model';
-import type { ExecutionTimeoutMilliseconds } from '@ta-agent/base-workflow';
+import type { ExecutionTimeoutMilliseconds } from '@ta-agent/workflow-core';
 import type { SessionWriteAuthority } from '../lifecycle/execution.js';
 import type {
   CompletedSessionTurn,

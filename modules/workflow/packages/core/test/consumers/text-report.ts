@@ -19,7 +19,7 @@ export type ReportContext = WorkflowContext<
 >;
 
 /** Ordinary data processing, no identity, Agent Run, database, or Memory contract. */
-export function textReport(overrides?: StepOverrides<Name, ReportContext>) {
+export function textReport(resources: TextFiles, overrides?: StepOverrides<Name, ReportContext>) {
   return new Workflow<
     Name,
     ReportContext['input'],
@@ -28,6 +28,7 @@ export function textReport(overrides?: StepOverrides<Name, ReportContext>) {
     ReportContext['result']
   >({
     name: 'text-report',
+    resources,
     entryStep: 'report',
     createState: () => ({ text: '' }),
     createResult: () => ({ written: [] }),

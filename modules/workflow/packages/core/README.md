@@ -9,6 +9,7 @@ import { Workflow } from '@ta-agent/workflow-core';
 
 const sum = new Workflow<'sum', readonly number[], void, void, number>({
   name: 'sum',
+  resources: undefined,
   entryStep: 'sum',
   createState: () => undefined,
   createResult: () => 0,
@@ -24,10 +25,13 @@ const sum = new Workflow<'sum', readonly number[], void, void, number>({
   },
 });
 
-const result = await sum.run({ input: [1, 2, 3], resources: undefined }); // 6
+const result = await sum.run({ input: [1, 2, 3] }); // 6
 ```
 
-The five generic parameters are Step names, input, local state, injected resources, and result.
+The five generic parameters are Step names, input, local state, bound resources, and result.
+Resources are provided alongside Steps at construction; every run borrows the same capability
+references through `context.resources`. `run()` accepts input and execution options, with no Resources
+override. `RunnableWorkflow<Input, Result>` describes the already-assembled callable.
 `createState` / `createResult` create data, not connections. A Step returns `Promise<void>` and updates
 `context.state` or `context.result`; `run()` returns the typed result directly. Primitive and void
 results work too. A skipped Workflow returns the truthful initial result without creating state or
@@ -42,7 +46,7 @@ business state: consumers must design concurrent writes safely (for example, wri
 Registered unfinished work is cancelled and drained before hooks or return. A successful body that
 leaves registered children pending is a locked protocol failure, not implicit fire-and-forget support.
 Unregistered work and non-cooperative promises cannot be forcibly stopped. Resource owners must await
-their child group before releasing resources; injected shared adapters remain borrowed.
+their child group before releasing resources; bound shared adapters remain borrowed.
 
 Read the [usage guide](../../docs/usage.md) and [full execution contract](../../docs/execution-contract.md). The
 [file report consumer](./test/consumers/text-report.ts) and its real-filesystem test demonstrate a

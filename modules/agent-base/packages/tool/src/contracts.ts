@@ -135,9 +135,20 @@ export interface ToolRunInspection {
 
 export interface ToolRuntime {
   readonly tools: readonly ToolDescriptor[];
-  execute(proposal: ToolCallProposal): Promise<ToolExecutionOutcome>;
+  /**
+   * Per-call cancellation adds to, and never replaces, the runtime owner's cancellation.
+   * Propagate cancellation to the handler and await its settlement before returning a failure.
+   */
+  execute(
+    proposal: ToolCallProposal,
+    options?: ToolExecutionOptions
+  ): Promise<ToolExecutionOutcome>;
   close(): void;
   inspect(): ToolRunInspection;
+}
+
+export interface ToolExecutionOptions {
+  readonly signal?: AbortSignal;
 }
 
 export interface ToolRegistry {

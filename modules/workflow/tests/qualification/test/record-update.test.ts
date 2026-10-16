@@ -15,9 +15,8 @@ it('updates a durable record through independent ports, then reopens the databas
     try {
       records.seed(input.id, 'original');
       const close = vi.spyOn(records, 'close');
-      const result = await recordUpdate().run({
+      const result = await recordUpdate({ records, titleLimit: () => Promise.resolve(80) }).run({
         input,
-        resources: { records, titleLimit: () => Promise.resolve(80) },
       });
       expect(result).toEqual({ status: 'updated', record: { revision: 2, title: 'edited' } });
       expect(close).not.toHaveBeenCalled();
@@ -57,10 +56,10 @@ it('keeps CAS authority in the store when separate Workflow runs race', async ()
       },
       titleLimit: () => Promise.resolve(80),
     };
-    const flow = recordUpdate();
+    const flow = recordUpdate(resources);
     const results = await Promise.allSettled([
-      flow.run({ input, resources }),
-      flow.run({ input: { ...input, title: 'other' }, resources }),
+      flow.run({ input }),
+      flow.run({ input: { ...input, title: 'other' } }),
     ]);
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     expect(results.filter((r) => r.status === 'rejected')).toMatchObject([
@@ -81,9 +80,8 @@ it('returns a truthful skipped union and does not overwrite existing host state'
     titleLimit: unused,
   };
   const host = { title: 'keep me', revision: 7 };
-  const result: UpdateResult = await recordUpdate().run({
+  const result: UpdateResult = await recordUpdate(resources).run({
     input: { ...input, enabled: false },
-    resources,
   });
   if (result.status === 'updated') Object.assign(host, result.record);
   expect(result).toEqual({ status: 'not-updated' });
@@ -96,7 +94,7 @@ it('rejects business validation without replacing a failure with the default res
   try {
     records.seed(input.id, 'original');
     await expect(
-      recordUpdate().run({ input, resources: { records, titleLimit: () => Promise.resolve(1) } })
+      recordUpdate({ records, titleLimit: () => Promise.resolve(1) }).run({ input })
     ).rejects.toThrow('Title rejected.');
     expect(await records.read(input.id, new AbortController().signal)).toEqual({
       title: 'original',

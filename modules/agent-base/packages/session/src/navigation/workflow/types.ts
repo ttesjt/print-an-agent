@@ -1,10 +1,6 @@
-import type { AgentIdentity } from '@ta-agent/base-identity';
-import type {
-  BaseAgentRunContext,
-  BaseWorkflowContext,
-  StepOverrides,
-  WorkflowDefinition,
-} from '@ta-agent/base-workflow';
+import type { AgentId } from '@ta-agent/base-identity';
+import type { AgentTraceEmitter } from '@ta-agent/base-observability';
+import type { WorkflowContext, WorkflowDefinition } from '@ta-agent/workflow-core';
 import type {
   NavigateSessionInput,
   NavigableSessionPort,
@@ -16,38 +12,26 @@ import type { SessionNavigationStepName } from './names.js';
 export interface SessionNavigationResources {
   readonly session: NavigableSessionPort;
 }
-
-export interface SessionNavigationAgentRunContext extends BaseAgentRunContext<
-  NavigateSessionInput,
-  SessionNavigationOutcome
-> {
-  readonly identity: AgentIdentity;
-  readonly resources: SessionNavigationResources;
+export interface SessionNavigationWorkflowInput {
+  readonly agentId: AgentId;
+  readonly navigation: NavigateSessionInput;
+  /** Per-invocation correlation; never retained in the Workflow's bound resources. */
+  readonly traceEmitter?: AgentTraceEmitter;
 }
-
-export interface SessionNavigationWorkflowContext
-  extends
-    BaseWorkflowContext<
-      SessionNavigationStepName,
-      SessionNavigationAgentRunContext,
-      SessionNavigationOutcome
-    >,
-    SessionNavigationExecutionState {
-  readonly resources: SessionNavigationResources;
-}
-
-export interface CreateSessionNavigationWorkflowOptions extends Omit<
+export type SessionNavigationWorkflowContext = WorkflowContext<
+  SessionNavigationStepName,
+  SessionNavigationWorkflowInput,
+  SessionNavigationExecutionState,
+  SessionNavigationResources,
+  SessionNavigationOutcome | undefined
+>;
+export type CreateSessionNavigationWorkflowOptions = Omit<
   WorkflowDefinition<
     SessionNavigationStepName,
-    SessionNavigationAgentRunContext,
-    SessionNavigationWorkflowContext,
-    SessionNavigationOutcome
+    SessionNavigationWorkflowInput,
+    SessionNavigationExecutionState,
+    SessionNavigationResources,
+    SessionNavigationOutcome | undefined
   >,
-  'name' | 'entryStep' | 'stepDefinitions' | 'createContext' | 'applyResult'
-> {
-  readonly resources: SessionNavigationResources;
-  readonly stepOverrides?: StepOverrides<
-    SessionNavigationStepName,
-    SessionNavigationWorkflowContext
-  >;
-}
+  'name' | 'entryStep' | 'stepDefinitions' | 'createState' | 'createResult'
+>;

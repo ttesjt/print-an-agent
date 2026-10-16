@@ -1,4 +1,4 @@
-import type { StepOverrides } from '@ta-agent/base-workflow';
+import type { StepOverrides } from '@ta-agent/workflow-core';
 import {
   commitSessionNavigationState,
   inspectSessionNavigationState,
@@ -7,38 +7,35 @@ import {
 import type { SessionNavigationStepName } from './names.js';
 import type { SessionNavigationWorkflowContext } from './types.js';
 
-function validateSessionNavigation(context: SessionNavigationWorkflowContext): Promise<void> {
-  validateSessionNavigationState(context);
-  return Promise.resolve();
-}
-
-async function inspectSessionNavigation(context: SessionNavigationWorkflowContext): Promise<void> {
-  await inspectSessionNavigationState(context);
-}
-
-async function commitSessionNavigation(context: SessionNavigationWorkflowContext): Promise<void> {
-  const applied = await commitSessionNavigationState(context);
-  const result = context.result;
-  if (applied === undefined || result === undefined || result.status === 'inspected') return;
-  await context.agentRunContext.traceEmitter?.record({
-    type: 'session-navigation-applied',
-    workflowName: context.workflowName,
-    workflowRunId: context.workflowRunId,
-    operation: applied.operation,
-    sessionId: result.sessionId,
-    selectedBranchId: applied.navigation.selectedBranchId,
-    affectedBranchId: applied.affectedBranchId,
-    navigationRevision: applied.navigation.revision,
-  });
-}
-
 export function createDefaultSessionNavigationStepOverrides(): StepOverrides<
   SessionNavigationStepName,
   SessionNavigationWorkflowContext
 > {
-  return Object.freeze({
-    validateSessionNavigation,
-    inspectSessionNavigation,
-    commitSessionNavigation,
-  });
+  return {
+    validateSessionNavigation(context) {
+      validateSessionNavigationState(context.state, context.signal);
+      return Promise.resolve();
+    },
+    async inspectSessionNavigation(context) {
+      if (context.result !== undefined) return;
+      context.result = await inspectSessionNavigationState(context.state, context.signal);
+    },
+    async commitSessionNavigation(context) {
+      if (context.result !== undefined) return;
+      const committed = await commitSessionNavigationState(context.state, context.signal);
+      if (committed === undefined) return;
+      const { applied, result } = committed;
+      context.result = result;
+      await context.input.traceEmitter?.record({
+        type: 'session-navigation-applied',
+        workflowName: context.workflowName,
+        workflowRunId: context.workflowRunId,
+        operation: applied.operation,
+        sessionId: result.sessionId,
+        selectedBranchId: applied.navigation.selectedBranchId,
+        affectedBranchId: applied.affectedBranchId,
+        navigationRevision: applied.navigation.revision,
+      });
+    },
+  };
 }

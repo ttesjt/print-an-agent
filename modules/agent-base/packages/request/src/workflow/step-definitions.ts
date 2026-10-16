@@ -1,9 +1,4 @@
-import {
-  STEP_CARDINALITY,
-  type AnyAgentRunContext,
-  type Step,
-  type StepDefinitions,
-} from '@ta-agent/base-workflow';
+import { STEP_CARDINALITY, type Step, type StepDefinitions } from '@ta-agent/workflow-core';
 import { AgentRequestError, RequestStepNotImplementedError } from '../errors.js';
 import type { RequestLeafStepName, RequestStepName } from './names.js';
 import type { RequestWorkflowContext } from './types.js';
@@ -27,7 +22,7 @@ const EXECUTE_REQUEST_STEPS = Object.freeze([
 ] as const satisfies readonly RequestStepName[]);
 
 async function dispatchInteractionEvent(context: RequestWorkflowContext): Promise<void> {
-  const event = context.interaction?.currentEvent;
+  const event = context.state.interaction?.currentEvent;
   if (event === undefined)
     throw new AgentRequestError(
       'REQUEST_INTERACTION_EVENT_INVALID',
@@ -57,7 +52,7 @@ function createResultAwareCompositeStep<WC extends RequestWorkflowContext>(
   return async (context) => {
     for (const stepName of stepNames) {
       await context.runStep(stepName);
-      if (Object.hasOwn(context, 'result')) return;
+      if (context.result !== undefined) return;
     }
   };
 }
@@ -68,11 +63,10 @@ function createPlaceholderStep<WC extends RequestWorkflowContext>(
   return () => Promise.reject(new RequestStepNotImplementedError(stepName));
 }
 
-export function createRequestStepDefinitions<
-  C extends AnyAgentRunContext,
-  TResult,
-  WC extends RequestWorkflowContext<C, TResult>,
->(): StepDefinitions<RequestStepName, WC> {
+export function createRequestStepDefinitions<WC extends RequestWorkflowContext>(): StepDefinitions<
+  RequestStepName,
+  WC
+> {
   return Object.freeze({
     runRequest: {
       step: createResultAwareCompositeStep<WC>(['prepareRequest', 'executeRequest']),

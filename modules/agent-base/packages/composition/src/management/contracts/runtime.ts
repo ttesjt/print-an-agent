@@ -1,5 +1,5 @@
 import type { AgentIdentity, AgentIdentitySnapshot } from '@ta-agent/base-identity';
-import type { Agent } from '@ta-agent/base-workflow';
+import type { Agent } from '@ta-agent/base-runtime';
 import type { ManagedAgentConfigSnapshot } from './agent-management.js';
 import type { ManagedAgentNamespace } from './namespace.js';
 

@@ -172,7 +172,7 @@ it.each(['compaction', 'navigation'] as const)(
         buildCompactedContext: async (context) => {
           entered.resolve();
           await resume.promise;
-          context.compactedContext = { role: 'context', text: 'summary', timestamp: 1 };
+          context.state.compactedContext = { role: 'context', text: 'summary', timestamp: 1 };
         },
       },
     });

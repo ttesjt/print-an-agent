@@ -2,6 +2,21 @@
 
 The canonical foreground Request Workflow skeleton for Agent Base.
 
+`createRequestWorkflow({ resources, ... })` creates a native `@ta-agent/workflow-core` Workflow with
+its ports and policy bound at construction. Call it with `run({ input, signal })`; it returns the
+consumer-defined result directly. The standard
+composition uses `bindAgentWorkflow()` from `@ta-agent/base-runtime` to apply that result to the
+originating Agent Run. A condition skip returns `undefined` (no change); an active execution must
+produce a response or it fails with `REQUEST_OUTPUT_STATE_INVALID`.
+
+The standard Context separates the Agent Run (`context.input`), per-request working data
+(`context.state`), borrowed capabilities and policy (`context.resources`), and the output
+(`context.result`). Override Steps use the effective `context.signal`, not the original Agent Run
+signal. `createState` only constructs run-local data; ports remain owned by their supplying host.
+The bound `createOutputSink` is a factory: each request creates or supplies its own sink. Tools,
+execution leases and reasoning data remain in per-request state, and trace emitters remain on the
+Agent Run. Concurrent requests share prepared ports without sharing mutable request state.
+
 ```text
 request Workflow
 └── runRequest
@@ -34,7 +49,7 @@ The five composite Steps are implemented and always resolve their children throu
 Step Registry. The generic catalog retains deliberate fail-fast leaf placeholders so a partial custom
 composition cannot pretend that an unresolved concern was handled.
 
-`createDefaultRequestStepOverrides()` provides the current concrete text-request slice over injected
+`createDefaultRequestStepOverrides()` provides concrete text-request Steps over bound
 Responsibility routing, session, request-journal, and tool ports. It validates input, resolves a
 session and captures its selected branch and navigation revision, resolves
 `foreground-interaction` to one immutable Actor snapshot, composes
@@ -121,6 +136,11 @@ This policy does not define Actor-invocation or provider-transport timeouts. Tho
 execution boundaries with their own future or adapter-owned policies. Request timeout is validated
 configuration, not a mandatory field on every Agent Operation, Workflow, or Step.
 
+A signal already aborted before Workflow admission rejects with its original reason. No request
+Steps run, no Session or Journal work is admitted, and no OutputSink lifecycle starts. Cancellation
+after admission follows the active phase's error and cleanup contracts; a model invocation can
+therefore report `MODEL_INVOCATION_CANCELLED` and fail its opened OutputSink.
+
 ## Interaction Steps and event delivery
 
 The official `runAgentInteraction` implementation owns interaction scope, trace boundaries, event
@@ -134,7 +154,7 @@ Overrides may replace a leaf, the event dispatcher, or the whole composite;
 there is no separate handler registry, nested Workflow Context, or hidden direct call to a default
 leaf. Replacing the whole composite also replaces its lifecycle responsibilities.
 
-`RequestInteractionState` lives in `context.interaction`. Use
+`RequestInteractionState` lives in `context.state.interaction`. Use
 `requireInteractionEvent(context, 'text-delta')` to read a narrowed current event inside its awaited
 Step. The current event is cleared after dispatch, including failure. Consumers must not retain that
 mutable slot or launch unawaited Step work. Changing text delivery alone does not rewrite the
@@ -161,6 +181,11 @@ Engine, Step, or sink code cannot be forcibly interrupted, and an already-starte
 rolled back. Such implementations must settle their pending work. Tools close on success and failure,
 and listener cleanup belongs to the interaction scope. No retry or persistence format change is
 introduced by this decomposition.
+
+Actor invocation observes both its effective Step signal and the interaction delivery signal. A
+Step executor failure can therefore cancel the active Actor while Core drains that Step; delivery
+failure can independently cancel the same Actor. Request cleanup waits for the admitted execution
+to settle before releasing Tools, OutputSink state, or Session execution authority.
 
 ## Reasoning streaming
 
@@ -212,7 +237,7 @@ stepOverrides: {
 ```
 
 This disables retention without disabling live delivery. Override capture to filter or redact saved
-content through `context.capturedReasoning` (`CapturedReasoningPresentation`), whose `blocks`
+content through `context.state.capturedReasoning` (`CapturedReasoningPresentation`), whose `blocks`
 contain `modelTurnIndex` and `chunks`, with a cumulative `characterCount`. Final validation recomputes
 the size instead of trusting this counter. Capture does not silently transform live OutputSink events.
 Skipping `buildTurnPresentation` also omits the prepared record. There is no Agent-global retention

@@ -31,10 +31,10 @@ export function captureReasoningPresentation(
   }
   const { delta } = requireInteractionEvent(context, 'reasoning-delta');
   if (delta.length === 0) return Promise.resolve();
-  const captured = context.capturedReasoning ?? { blocks: [], characterCount: 0 };
+  const captured = context.state.capturedReasoning ?? { blocks: [], characterCount: 0 };
   assertPresentationSize(context, captured.characterCount + delta.length);
   // Single-turn Engines may omit lifecycle events; do not invent additional boundaries.
-  const modelTurnIndex = Math.max(context.modelTurnCount ?? 0, 1);
+  const modelTurnIndex = Math.max(context.state.modelTurnCount ?? 0, 1);
   let block = captured.blocks.at(-1);
   if (block?.modelTurnIndex !== modelTurnIndex) {
     if (captured.blocks.length >= MAX_SESSION_PRESENTATION_BLOCKS) {
@@ -48,13 +48,13 @@ export function captureReasoningPresentation(
   }
   block.chunks.push(delta);
   captured.characterCount += delta.length;
-  context.capturedReasoning = captured;
+  context.state.capturedReasoning = captured;
   return Promise.resolve();
 }
 
 export function buildTurnPresentation(context: DefaultRequestWorkflowContext): Promise<void> {
-  delete context.turnPresentation;
-  const captured = context.capturedReasoning;
+  delete context.state.turnPresentation;
+  const captured = context.state.capturedReasoning;
   if (captured !== undefined && captured.blocks.length > 0) {
     const presentation = defineSessionTurnPresentation({
       reasoningBlocks: captured.blocks.map(({ modelTurnIndex, chunks }) => ({
@@ -66,13 +66,13 @@ export function buildTurnPresentation(context: DefaultRequestWorkflowContext): P
       context,
       presentation.reasoningBlocks.reduce((sum, block) => sum + block.text.length, 0)
     );
-    context.turnPresentation = presentation;
+    context.state.turnPresentation = presentation;
   }
   return Promise.resolve();
 }
 
 function assertPresentationSize(context: DefaultRequestWorkflowContext, characters: number): void {
-  if (characters > context.policy.maxReasoningCharacters) {
+  if (characters > context.resources.policy.maxReasoningCharacters) {
     throw new AgentModelError(
       'MODEL_REASONING_LIMIT_EXCEEDED',
       'Reasoning presentation exceeded the request character budget.'

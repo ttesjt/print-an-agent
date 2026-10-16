@@ -9,7 +9,7 @@ import type {
   Agent,
   AgentOperationDefinitionMap,
   AgentOperationReference,
-} from '@ta-agent/base-workflow';
+} from '@ta-agent/base-runtime';
 import {
   createAgentManagementService,
   createAgentRuntimeService,

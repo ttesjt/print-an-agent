@@ -13,20 +13,22 @@ export interface RequestInteractionState {
 export function requireInteraction(
   context: DefaultRequestWorkflowContext
 ): RequestInteractionState {
-  if (context.interaction === undefined) {
+  if (context.state.interaction === undefined) {
     throw new AgentRequestError(
       'REQUEST_INTERACTION_STATE_INVALID',
       'Request interaction has not been opened.'
     );
   }
-  return context.interaction;
+  return context.state.interaction;
 }
 
 export function requireInteractionEvent<T extends AgentLoopEvent['type']>(
-  context: { readonly interaction?: Pick<RequestInteractionState, 'currentEvent'> },
+  context: {
+    readonly state: { readonly interaction?: Pick<RequestInteractionState, 'currentEvent'> };
+  },
   type: T
 ): Extract<AgentLoopEvent, { readonly type: T }> {
-  const event = context.interaction?.currentEvent;
+  const event = context.state.interaction?.currentEvent;
   if (event === undefined || event.type !== type) {
     throw new AgentRequestError(
       'REQUEST_INTERACTION_EVENT_INVALID',

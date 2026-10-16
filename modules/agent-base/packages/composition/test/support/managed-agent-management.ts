@@ -4,7 +4,7 @@ import {
   MemoryAgentIdentityCatalogAdapter,
 } from '@ta-agent/base-local-adapters';
 import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
-import { createAgent, type Agent } from '@ta-agent/base-workflow';
+import { createAgent, type Agent } from '@ta-agent/base-runtime';
 import { vi } from 'vitest';
 import {
   defineManagedAgentComposition,

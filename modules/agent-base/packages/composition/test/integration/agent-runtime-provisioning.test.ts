@@ -1,5 +1,5 @@
 import { parseAgentId } from '@ta-agent/base-identity';
-import { createAgent } from '@ta-agent/base-workflow';
+import { createAgent } from '@ta-agent/base-runtime';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createAgentManagementService,

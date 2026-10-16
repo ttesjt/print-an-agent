@@ -4,8 +4,8 @@ import type {
   ToolDefinition,
   ToolDescriptor,
   ToolExecutionOutcome,
+  ToolExecutionOptions,
   ToolExecutionPolicy,
-  ToolHandlerResult,
   ToolName,
   ToolPermissionPolicy,
   ToolRegistry,
@@ -19,16 +19,10 @@ import { AgentToolError, type AgentToolErrorCode } from '../errors.js';
 import { validateToolExecutionPolicy } from '../execution-policy.js';
 import { resolveEffectiveTools } from '../permission-policy.js';
 import { parseToolArguments, parseToolName } from '../schema.js';
+import { executeToolHandler } from './execute-tool-handler.js';
 
 const TOOL_CALL_ID_MAX_LENGTH = 128;
 const TOOL_CALL_ID_PATTERN = /^[a-z0-9][a-z0-9._:-]*$/i;
-const HANDLER_FAILURE_TEXT = 'Tool execution failed.';
-
-function normalizeRejection(error: unknown): Error {
-  return error instanceof Error
-    ? error
-    : new Error('Tool execution rejected with a non-Error value.');
-}
 
 export interface CreateBoundedToolRuntimeOptions {
   readonly registry: ToolRegistry;
@@ -79,64 +73,6 @@ function cloneRecord(record: ToolRunRecord): ToolRunRecord {
   return Object.freeze({ ...record });
 }
 
-function executeUntilAbort<T>(signal: AbortSignal, execute: () => Promise<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const settle = (action: () => void) => {
-      if (settled) return;
-      settled = true;
-      signal.removeEventListener('abort', rejectForAbort);
-      action();
-    };
-    const rejectForAbort = () => {
-      const reason: unknown = signal.reason;
-      settle(() =>
-        reject(reason instanceof Error ? reason : new Error('Tool execution was aborted.'))
-      );
-    };
-    if (signal.aborted) {
-      rejectForAbort();
-      return;
-    }
-    signal.addEventListener('abort', rejectForAbort, { once: true });
-    let operation: Promise<T>;
-    try {
-      operation = execute();
-    } catch (error: unknown) {
-      settle(() => reject(normalizeRejection(error)));
-      return;
-    }
-    operation.then(
-      (value) => settle(() => resolve(value)),
-      (error: unknown) => settle(() => reject(normalizeRejection(error)))
-    );
-  });
-}
-
-function executionFailure(
-  signal: AbortSignal,
-  timeoutSignal: AbortSignal,
-  cause: unknown
-): AgentToolError {
-  if (timeoutSignal.aborted) {
-    return new AgentToolError('TOOL_EXECUTION_TIMEOUT', 'Tool execution exceeded its deadline.', {
-      cause,
-    });
-  }
-  if (signal.aborted) {
-    return new AgentToolError('TOOL_EXECUTION_CANCELLED', 'Tool execution was cancelled.', {
-      cause,
-    });
-  }
-  return new AgentToolError(
-    'TOOL_RESULT_INVALID',
-    'Tool execution failed at the runtime boundary.',
-    {
-      cause,
-    }
-  );
-}
-
 interface PreparedToolCall {
   readonly callId: ToolCallId;
   readonly toolName: ToolName;
@@ -166,8 +102,13 @@ class BoundedToolRuntime implements ToolRuntime {
     this.#clock = options.clock ?? Date.now;
   }
 
-  execute(proposal: ToolCallProposal): Promise<ToolExecutionOutcome> {
-    const execution = this.#executionTail.then(() => this.#execute(proposal));
+  execute(
+    proposal: ToolCallProposal,
+    options: ToolExecutionOptions = {}
+  ): Promise<ToolExecutionOutcome> {
+    const signal =
+      options.signal === undefined ? this.#signal : AbortSignal.any([this.#signal, options.signal]);
+    const execution = this.#executionTail.then(() => this.#execute(proposal, signal));
     this.#executionTail = execution.then(
       () => undefined,
       () => undefined
@@ -175,60 +116,46 @@ class BoundedToolRuntime implements ToolRuntime {
     return execution;
   }
 
-  async #execute(proposal: ToolCallProposal): Promise<ToolExecutionOutcome> {
-    const prepared = this.#prepare(proposal);
-    const timeoutSignal = AbortSignal.timeout(this.#policy.toolTimeoutMilliseconds);
-    const signal = AbortSignal.any([this.#signal, timeoutSignal]);
-    let handlerResult: ToolHandlerResult;
+  async #execute(proposal: ToolCallProposal, signal: AbortSignal): Promise<ToolExecutionOutcome> {
+    const prepared = this.#prepare(proposal, signal);
+    let outcome: ToolExecutionOutcome;
     try {
-      handlerResult = await executeUntilAbort(signal, () =>
-        prepared.tool.execute({
-          callId: prepared.callId,
-          arguments: prepared.arguments,
-          signal,
-        })
+      outcome = await executeToolHandler(
+        signal,
+        this.#policy.toolTimeoutMilliseconds,
+        (effectiveSignal) =>
+          prepared.tool.execute({
+            callId: prepared.callId,
+            arguments: prepared.arguments,
+            signal: effectiveSignal,
+          })
       );
     } catch (cause: unknown) {
-      if (signal.aborted) {
-        const error = executionFailure(this.#signal, timeoutSignal, cause);
-        return this.#reject(
-          prepared.callId,
-          prepared.toolName,
-          prepared.startedAt,
-          error.code,
-          error.message,
-          error
-        );
-      }
-      return this.#complete(prepared.callId, prepared.toolName, prepared.startedAt, {
-        status: 'handler-error',
-        text: HANDLER_FAILURE_TEXT,
-      });
-    }
-    if (
-      typeof handlerResult !== 'object' ||
-      handlerResult === null ||
-      typeof handlerResult.text !== 'string'
-    ) {
+      const error =
+        cause instanceof AgentToolError
+          ? cause
+          : new AgentToolError(
+              'TOOL_RESULT_INVALID',
+              'Tool execution failed at the runtime boundary.',
+              { cause }
+            );
       return this.#reject(
         prepared.callId,
         prepared.toolName,
         prepared.startedAt,
-        'TOOL_RESULT_INVALID',
-        'Tool result must contain text.'
+        error.code,
+        error.message,
+        error
       );
     }
-    return this.#complete(prepared.callId, prepared.toolName, prepared.startedAt, {
-      status: 'success',
-      text: handlerResult.text,
-    });
+    return this.#complete(prepared.callId, prepared.toolName, prepared.startedAt, outcome);
   }
 
-  #prepare(proposal: ToolCallProposal): PreparedToolCall {
+  #prepare(proposal: ToolCallProposal, signal: AbortSignal): PreparedToolCall {
     if (this.#closed) {
       throw new AgentToolError('TOOL_RUN_CLOSED', 'Tool runtime is closed.');
     }
-    if (this.#signal.aborted) {
+    if (signal.aborted) {
       throw new AgentToolError('TOOL_EXECUTION_CANCELLED', 'Tool execution was cancelled.');
     }
     const callId = parseToolCallId(proposal.callId);

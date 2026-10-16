@@ -177,9 +177,21 @@ describe('bounded Tool Broker runtime', () => {
     expect(JSON.stringify(runtime.inspect())).not.toContain('private handler detail');
   });
 
-  it('enforces timeout and caller cancellation even when a handler does not settle', async () => {
-    const never = () => new Promise<string>(() => undefined);
-    const timed = runtimeFor(never, {
+  it('enforces timeout and caller cancellation through a cooperative handler', async () => {
+    const untilCancelled = (_value: string, signal: AbortSignal) =>
+      new Promise<string>((_resolve, reject) => {
+        signal.addEventListener(
+          'abort',
+          () => {
+            const reason: unknown = signal.reason;
+            reject(
+              reason instanceof Error ? reason : new Error('Tool was cancelled.', { cause: reason })
+            );
+          },
+          { once: true }
+        );
+      });
+    const timed = runtimeFor(untilCancelled, {
       executionPolicy: policy({ toolTimeoutMilliseconds: 5 }),
     });
     await expect(
@@ -189,7 +201,7 @@ describe('bounded Tool Broker runtime', () => {
     );
 
     const controller = new AbortController();
-    const cancelled = runtimeFor(never, { signal: controller.signal });
+    const cancelled = runtimeFor(untilCancelled, { signal: controller.signal });
     const executing = cancelled.runtime.execute({
       callId: 'cancelled',
       toolName: 'echo',

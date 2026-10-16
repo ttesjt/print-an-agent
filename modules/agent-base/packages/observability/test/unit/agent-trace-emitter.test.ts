@@ -9,6 +9,29 @@ import {
 } from '../../src/index.js';
 
 describe('Agent trace emitter', () => {
+  it('requires full Workflow identity for skipped events at emitter and persistence boundaries', async () => {
+    const trace = createAgentTraceEmitter({ agentId: 'agent', agentRunId: 'run' });
+    const details = { type: 'workflow-run-skipped', workflowName: 'conditional' } as const;
+    await expect(
+      trace.record({ ...details, workflowRunId: 'workflow-run' })
+    ).resolves.toBeUndefined();
+    await expect(
+      Reflect.apply(trace.record.bind(trace), undefined, [details])
+    ).rejects.toMatchObject({ code: 'TRACE_EVENT_INVALID' });
+    const envelope = {
+      schemaVersion: 2,
+      agentId: 'agent',
+      agentRunId: 'run',
+      sequence: 1,
+      timestamp: 1,
+    };
+    expect(() => validateAgentTraceEvent({ ...envelope, ...details })).toThrowError(
+      AgentObservabilityError
+    );
+    expect(() =>
+      validateAgentTraceEvent({ ...envelope, ...details, workflowRunId: 'workflow-run' })
+    ).not.toThrow();
+  });
   it('adds deterministic immutable correlation envelopes and per-run sequences', async () => {
     const events: AgentTraceEvent[] = [];
     const sink: AgentTraceEventSink = {

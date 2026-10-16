@@ -24,7 +24,8 @@ import type {
   RequestJournalPort,
 } from '@ta-agent/base-request';
 import type { ToolExecutionPolicy, ToolRegistry } from '@ta-agent/base-tool';
-import type { RunnableWorkflow, StepOverrides } from '@ta-agent/base-workflow';
+import type { AgentWorkflow } from '@ta-agent/base-runtime';
+import type { StepOverrides } from '@ta-agent/workflow-core';
 import type { RequestStepName } from '@ta-agent/base-request';
 import type { AgentAPI } from './agent-api.js';
 import type {
@@ -52,7 +53,7 @@ export interface ComposeAgentOptions {
   readonly createOutputSink?: () => OutputSink;
   readonly requestPolicy?: RequestPolicy;
   readonly stepOverrides?: StepOverrides<RequestStepName, DefaultRequestWorkflowContext>;
-  readonly requestWorkflow?: RunnableWorkflow<RequestAgentRunContext>;
+  readonly requestWorkflow?: AgentWorkflow<RequestAgentRunContext>;
   readonly observability?: AgentTraceRuntimeOptions;
   readonly clock?: () => number;
   readonly createRunId?: () => string;
@@ -64,7 +65,7 @@ export interface ComposeAgentOptions {
     SessionCompactionStepName,
     SessionCompactionWorkflowContext
   >;
-  readonly sessionCompactionWorkflow?: RunnableWorkflow<SessionCompactionAgentRunContext>;
+  readonly sessionCompactionWorkflow?: AgentWorkflow<SessionCompactionAgentRunContext>;
   readonly createCompactionRunId?: () => string;
   readonly createCompactionWorkflowRunId?: () => string;
 }

@@ -64,14 +64,13 @@ function createPiTool(
     description: descriptor.description,
     parameters: toPiSchema(descriptor.parameters),
     executionMode: 'sequential',
-    async execute(toolCallId, arguments_, _signal) {
+    async execute(toolCallId, arguments_, signal) {
       state.attemptedCallIds.add(toolCallId);
       try {
-        const outcome = await runtime.execute({
-          callId: toolCallId,
-          toolName: descriptor.name,
-          arguments: arguments_,
-        });
+        const outcome = await runtime.execute(
+          { callId: toolCallId, toolName: descriptor.name, arguments: arguments_ },
+          signal === undefined ? undefined : { signal }
+        );
         if (outcome.status === 'handler-error') throw new Error(outcome.text);
         return { content: [{ type: 'text', text: outcome.text }], details: Object.freeze({}) };
       } catch (cause: unknown) {

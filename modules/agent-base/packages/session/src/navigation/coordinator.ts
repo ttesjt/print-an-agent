@@ -37,16 +37,18 @@ export async function executeSessionNavigation(
     agentId: request.agentId,
     input: request.navigation,
     resources: Object.freeze({ session: request.session }),
-    signal: resolveSignal(options),
   };
+
+  const signal = resolveSignal(options);
 
   let operationFailed = false;
   let operationError: unknown;
+  let result: SessionNavigationOutcome | undefined;
   try {
-    validateSessionNavigationState(state);
-    await inspectSessionNavigationState(state);
-    await commitSessionNavigationState(state);
-    if (state.result === undefined) {
+    validateSessionNavigationState(state, signal);
+    result = await inspectSessionNavigationState(state, signal);
+    if (result === undefined) result = (await commitSessionNavigationState(state, signal))?.result;
+    if (result === undefined) {
       throw new AgentSessionError(
         'SESSION_NAVIGATION_INVALID',
         'Session navigation completed without a result.'
@@ -77,11 +79,11 @@ export async function executeSessionNavigation(
     throw operationError;
   }
   if (cleanupFailed) throw cleanupError;
-  if (state.result === undefined) {
+  if (result === undefined) {
     throw new AgentSessionError(
       'SESSION_NAVIGATION_INVALID',
       'Session navigation completed without a result.'
     );
   }
-  return state.result;
+  return result;
 }

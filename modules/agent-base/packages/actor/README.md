@@ -26,6 +26,12 @@ authoritative Engine protocol failures retain their original identity. Cancellat
 an Engine that ignores its signal may continue work, while the Actor waits for settlement and then
 still reports its expired deadline.
 
+Interaction tools borrow the Request-owned runtime and its budgets. Each call additionally inherits
+the current Actor invocation signal, including cancellation from its invoking Step. Engines may
+supply a narrower signal through `tools.execute(proposal, { signal })`, but cannot remove inherited
+cancellation. Custom Tool runtimes must honor this per-call signal and settle active handlers before
+reporting cancellation; the Actor wrapper does not close or take ownership of the runtime.
+
 The resolved Actor boundary enforces `maxModelTurns` for every Engine by counting normalized
 `turn-start` events. A terminal-only Engine consumes the provable minimum of one model turn. Custom
 Engines are trusted executable infrastructure and must emit `turn-start` before each real model

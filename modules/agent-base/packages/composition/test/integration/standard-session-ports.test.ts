@@ -1,6 +1,6 @@
 import { MemorySessionAdapter } from '@ta-agent/base-local-adapters';
 import type { CompactableSessionPort, SessionExecutionPort } from '@ta-agent/base-session';
-import { SKIP_STEP } from '@ta-agent/base-workflow';
+import { SKIP_STEP } from '@ta-agent/workflow-core';
 import { expect, it } from 'vitest';
 import { createDeterministicAgentAPI } from '../../src/index.js';
 

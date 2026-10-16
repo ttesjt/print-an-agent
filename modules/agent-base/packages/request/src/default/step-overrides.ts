@@ -2,7 +2,7 @@ import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
 import type { AgentLoopEvent } from '@ta-agent/base-model';
 import { parseSessionId, parseTurnId, supportsSessionExecution } from '@ta-agent/base-session';
 import { createBoundedToolRuntime, defineToolPermissionPolicy } from '@ta-agent/base-tool';
-import { SKIP_STEP, type StepOverrides } from '@ta-agent/base-workflow';
+import { SKIP_STEP, type StepOverrides } from '@ta-agent/workflow-core';
 import type { OutputSink, ValidatedAgentRequest } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
 import { createRequestFingerprint } from '../replay/fingerprint.js';
@@ -37,7 +37,7 @@ function isOutputSink(value: unknown): value is OutputSink {
 }
 
 function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> {
-  const input: unknown = context.agentRunContext.input;
+  const input: unknown = context.input.input;
   if (typeof input !== 'object' || input === null) {
     throw new AgentRequestError('REQUEST_INPUT_INVALID', 'Agent request must be an object.');
   }
@@ -50,11 +50,11 @@ function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> 
   if (
     typeof candidate.message !== 'string' ||
     candidate.message.trim().length === 0 ||
-    candidate.message.length > context.policy.maxMessageCharacters
+    candidate.message.length > context.resources.policy.maxMessageCharacters
   ) {
     throw new AgentRequestError(
       'REQUEST_INPUT_INVALID',
-      `Request message must contain 1-${context.policy.maxMessageCharacters} characters.`
+      `Request message must contain 1-${context.resources.policy.maxMessageCharacters} characters.`
     );
   }
   if (candidate.sessionId !== undefined && typeof candidate.sessionId !== 'string') {
@@ -82,7 +82,7 @@ function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> 
       'Request sessionId is required when idempotencyKey is provided.'
     );
   }
-  context.request = Object.freeze({
+  context.state.request = Object.freeze({
     message: candidate.message,
     ...(sessionId === undefined ? {} : { sessionId }),
     ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
@@ -92,8 +92,8 @@ function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> 
 }
 
 async function publishReplayedResponse(context: DefaultRequestWorkflowContext): Promise<void> {
-  const request = requireValue(context.request, 'request');
-  const response = requireValue(context.response, 'response');
+  const request = requireValue(context.state.request, 'request');
+  const response = requireValue(context.state.response, 'response');
   await traceOutputStarted(context, true);
   context.signal.throwIfAborted();
   try {
@@ -131,20 +131,20 @@ async function publishReplayedResponse(context: DefaultRequestWorkflowContext): 
   }
   context.signal.throwIfAborted();
   await traceOutputCompleted(context);
-  context.executionSettled = true;
+  context.state.executionSettled = true;
 }
 
 async function resolveRequestReplay(context: DefaultRequestWorkflowContext): Promise<void> {
-  const request = requireValue(context.request, 'request');
+  const request = requireValue(context.state.request, 'request');
   if (request.idempotencyKey === undefined) return;
-  const session = requireValue(context.session, 'session');
+  const session = requireValue(context.state.session, 'session');
   let claim: RequestJournalClaim;
   try {
     claim = await context.resources.requestJournal.claim({
       ...session,
       idempotencyKey: request.idempotencyKey,
       fingerprint: createRequestFingerprint({ message: request.message }),
-      requestId: context.agentRunContext.runId,
+      requestId: context.input.runId,
     });
   } catch (error: unknown) {
     if (error instanceof AgentRequestError && error.code === 'REQUEST_REPLAY_CONFLICT') {
@@ -152,9 +152,9 @@ async function resolveRequestReplay(context: DefaultRequestWorkflowContext): Pro
     }
     throw error;
   }
-  context.requestJournalEntry = claim.entry;
+  context.state.requestJournalEntry = claim.entry;
   if (claim.status === 'claimed') {
-    context.ownedRequestJournalClaim = claim.entry;
+    context.state.ownedRequestJournalClaim = claim.entry;
     await traceReplayResolved(context, 'claimed');
     return;
   }
@@ -170,77 +170,79 @@ async function resolveRequestReplay(context: DefaultRequestWorkflowContext): Pro
     throw new RequestReplayFailedError(claim.entry.failure);
   }
   await traceReplayResolved(context, 'completed');
-  context.response = claim.entry.response;
+  context.state.response = claim.entry.response;
   await publishReplayedResponse(context);
   context.result = claim.entry.response;
 }
 
 async function resolveSession(context: DefaultRequestWorkflowContext): Promise<void> {
-  const request = requireValue(context.request, 'request');
-  context.session = await context.resources.session.resolve({
-    agentId: context.agentRunContext.identity.id,
+  const request = requireValue(context.state.request, 'request');
+  context.state.session = await context.resources.session.resolve({
+    agentId: context.input.identity.id,
     ...(request.sessionId === undefined ? {} : { sessionId: request.sessionId }),
   });
   if (supportsSessionExecution(context.resources.session)) {
-    const execution = await context.resources.session.acquireSessionExecution(context.session);
-    context.session = Object.freeze({ ...context.session, execution });
+    const execution = await context.resources.session.acquireSessionExecution(
+      context.state.session
+    );
+    context.state.session = Object.freeze({ ...context.state.session, execution });
   }
   await traceSessionResolved(context);
 }
 
 async function beginRequest(context: DefaultRequestWorkflowContext): Promise<void> {
-  const request = requireValue(context.request, 'request');
-  const session = requireValue(context.session, 'session');
+  const request = requireValue(context.state.request, 'request');
+  const session = requireValue(context.state.session, 'session');
   const userMessage = Object.freeze({
     role: 'user' as const,
     text: request.message,
     timestamp: context.resources.clock(),
   });
-  context.userMessage = userMessage;
-  context.turn = await context.resources.session.beginTurn({
+  context.state.userMessage = userMessage;
+  context.state.turn = await context.resources.session.beginTurn({
     ...session,
-    turnId: parseTurnId(context.agentRunContext.runId),
+    turnId: parseTurnId(context.input.runId),
     userMessage,
   });
 }
 
 async function resolveExecutionTarget(context: DefaultRequestWorkflowContext): Promise<void> {
-  context.responsibility = await context.resources.responsibilities.resolve(
+  context.state.responsibility = await context.resources.responsibilities.resolve(
     FOREGROUND_INTERACTION_RESPONSIBILITY_ID
   );
   await traceActorResolved(context);
 }
 
 async function resolveInstructions(context: DefaultRequestWorkflowContext): Promise<void> {
-  const request = requireValue(context.request, 'request');
+  const request = requireValue(context.state.request, 'request');
   const contributions: string[] = [];
   for (const contributor of context.resources.instructionContributors) {
     const contribution = (await contributor({ request })).trim();
     if (contribution.length > 0) contributions.push(contribution);
   }
   const instructions = contributions.join('\n\n');
-  if (instructions.length > context.policy.maxInstructionsCharacters) {
+  if (instructions.length > context.resources.policy.maxInstructionsCharacters) {
     throw new AgentRequestError(
       'REQUEST_INSTRUCTIONS_INVALID',
-      `Resolved instructions exceed ${context.policy.maxInstructionsCharacters} characters.`
+      `Resolved instructions exceed ${context.resources.policy.maxInstructionsCharacters} characters.`
     );
   }
-  context.instructions = instructions;
+  context.state.instructions = instructions;
 }
 
 async function loadSessionContext(context: DefaultRequestWorkflowContext): Promise<void> {
-  const session = requireValue(context.session, 'session');
-  const turn = requireValue(context.turn, 'turn');
+  const session = requireValue(context.state.session, 'session');
+  const turn = requireValue(context.state.turn, 'turn');
   const snapshot = await context.resources.session.loadContext({
     ...session,
     beforeTurnId: turn.turnId,
   });
-  context.history = snapshot.messages;
+  context.state.history = snapshot.messages;
 }
 
 async function buildTools(context: DefaultRequestWorkflowContext): Promise<void> {
-  const responsibility = requireValue(context.responsibility, 'responsibility');
-  context.tools = createBoundedToolRuntime({
+  const responsibility = requireValue(context.state.responsibility, 'responsibility');
+  context.state.tools = createBoundedToolRuntime({
     registry: context.resources.toolRegistry,
     permissionPolicy: defineToolPermissionPolicy({
       responsibility: responsibility.allowedTools,
@@ -256,14 +258,14 @@ async function buildTools(context: DefaultRequestWorkflowContext): Promise<void>
 }
 
 function buildModelContext(context: DefaultRequestWorkflowContext): Promise<void> {
-  requireValue(context.tools, 'tools');
-  context.modelRequest = Object.freeze({
-    instructions: requireValue(context.instructions, 'instructions'),
-    history: requireValue(context.history, 'history'),
-    prompt: requireValue(context.userMessage, 'userMessage'),
-    tools: requireValue(context.tools, 'tools'),
-    maxModelTurns: context.policy.maxModelTurns,
-    maxOutputCharacters: context.policy.maxOutputCharacters,
+  requireValue(context.state.tools, 'tools');
+  context.state.modelRequest = Object.freeze({
+    instructions: requireValue(context.state.instructions, 'instructions'),
+    history: requireValue(context.state.history, 'history'),
+    prompt: requireValue(context.state.userMessage, 'userMessage'),
+    tools: requireValue(context.state.tools, 'tools'),
+    maxModelTurns: context.resources.policy.maxModelTurns,
+    maxOutputCharacters: context.resources.policy.maxOutputCharacters,
     signal: context.signal,
     emit: (event: AgentLoopEvent) => requireInteraction(context).emit(event),
   });
@@ -271,18 +273,20 @@ function buildModelContext(context: DefaultRequestWorkflowContext): Promise<void
 }
 
 async function completeResponse(context: DefaultRequestWorkflowContext): Promise<void> {
-  const request = requireValue(context.request, 'request');
-  const response = requireValue(context.response, 'response');
-  const claim = context.ownedRequestJournalClaim;
+  const request = requireValue(context.state.request, 'request');
+  const response = requireValue(context.state.response, 'response');
+  const claim = context.state.ownedRequestJournalClaim;
   context.signal.throwIfAborted();
   if (claim !== undefined) {
-    context.requestJournalEntry = await context.resources.requestJournal.complete({
+    context.state.requestJournalEntry = await context.resources.requestJournal.complete({
       agentId: claim.agentId,
       sessionId: claim.sessionId,
       idempotencyKey: claim.idempotencyKey,
       requestId: claim.requestId,
       response,
-      ...(context.session?.execution === undefined ? {} : { execution: context.session.execution }),
+      ...(context.state.session?.execution === undefined
+        ? {}
+        : { execution: context.state.session.execution }),
     });
   }
   context.signal.throwIfAborted();
@@ -295,7 +299,7 @@ async function completeResponse(context: DefaultRequestWorkflowContext): Promise
   context.signal.throwIfAborted();
   await traceOutputCompleted(context);
   context.result = response;
-  context.executionSettled = true;
+  context.state.executionSettled = true;
 }
 
 export function createDefaultRequestStepOverrides(): StepOverrides<

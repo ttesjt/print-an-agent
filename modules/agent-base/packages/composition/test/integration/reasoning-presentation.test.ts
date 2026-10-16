@@ -13,7 +13,7 @@ import {
   DEFAULT_REQUEST_POLICY,
   type DefaultRequestWorkflowContext,
 } from '@ta-agent/base-request';
-import { SKIP_STEP } from '@ta-agent/base-workflow';
+import { SKIP_STEP } from '@ta-agent/workflow-core';
 import { describe, expect, it, vi } from 'vitest';
 import { FOREGROUND_AGENT_OPERATION_NAME } from '../../src/index.js';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';
@@ -47,7 +47,7 @@ describe('Reasoning presentation composition', () => {
             stage === 'capture'
               ? {
                   captureReasoningPresentation: (context) => {
-                    context.capturedReasoning = {
+                    context.state.capturedReasoning = {
                       blocks: [{ modelTurnIndex: 1, chunks: [oversized] }],
                       characterCount: oversized.length,
                     };
@@ -56,7 +56,7 @@ describe('Reasoning presentation composition', () => {
                 }
               : {
                   buildTurnPresentation: (context) => {
-                    context.turnPresentation = {
+                    context.state.turnPresentation = {
                       reasoningBlocks: [{ modelTurnIndex: 1, text: oversized }],
                     };
                     return Promise.resolve();
@@ -98,13 +98,13 @@ describe('Reasoning presentation composition', () => {
                     savedContext = context;
                     const { delta } = requireInteractionEvent(context, 'reasoning-delta');
                     const text = delta.replace(/first|second/g, '[redacted]');
-                    const captured = context.capturedReasoning ?? {
+                    const captured = context.state.capturedReasoning ?? {
                       blocks: [{ modelTurnIndex: 1, chunks: [] }],
                       characterCount: 0,
                     };
                     captured.blocks[0]?.chunks.push(text);
                     captured.characterCount += text.length;
-                    context.capturedReasoning = captured;
+                    context.state.capturedReasoning = captured;
                     return Promise.resolve();
                   },
                 }
@@ -125,8 +125,8 @@ describe('Reasoning presentation composition', () => {
       expect(reasons).toHaveLength(mode === 'skip-delivery' ? 0 : 2);
       expect(JSON.stringify(response)).not.toContain('firstsecond');
       if (savedContext !== undefined) {
-        expect(savedContext.capturedReasoning).toBeUndefined();
-        expect(savedContext.turnPresentation).toBeUndefined();
+        expect(savedContext.state.capturedReasoning).toBeUndefined();
+        expect(savedContext.state.turnPresentation).toBeUndefined();
       }
       expect(JSON.stringify(fixture.trace.inspect())).not.toContain('[redacted]');
       const replay = new MemoryOutputSink();

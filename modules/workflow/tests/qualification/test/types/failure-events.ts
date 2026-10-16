@@ -7,9 +7,8 @@ import type {
 export const classifier: WorkflowFailureClassifier = (error) =>
   error instanceof Error ? 'DOMAIN_FAILURE' : undefined;
 
-export const options: WorkflowRunOptions<void, void> = {
+export const options: WorkflowRunOptions<void> = {
   input: undefined,
-  resources: undefined,
   classifyFailure: classifier,
 };
 

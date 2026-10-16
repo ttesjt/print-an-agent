@@ -21,6 +21,7 @@ import {
   type ActorInvocationPolicyInput,
 } from './invocation-policy.js';
 import { runActorInvocation } from './invocation-timeout.js';
+import { bindInteractionTools } from './interaction-tools.js';
 import {
   parseActorEngineId,
   parseActorId,
@@ -169,6 +170,7 @@ export function resolveActor(
           try {
             result = await interact({
               ...request,
+              tools: bindInteractionTools(request.tools, signal),
               instructions: composeActorInstructions(definition.instructions, request.instructions),
               invocationConfig: definition.invocationConfig,
               signal,

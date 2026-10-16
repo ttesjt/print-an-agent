@@ -31,12 +31,12 @@ export async function failRequest(
   const cleanupErrors: unknown[] = [];
   const failure = failureFrom(error);
   try {
-    context.tools?.close();
+    context.state.tools?.close();
   } catch (cleanupError: unknown) {
     cleanupErrors.push(cleanupError);
   }
-  const session = context.session;
-  const turn = context.turn;
+  const session = context.state.session;
+  const turn = context.state.turn;
   if (session !== undefined && turn !== undefined) {
     try {
       await context.resources.session.failTurn({
@@ -48,10 +48,10 @@ export async function failRequest(
       cleanupErrors.push(cleanupError);
     }
   }
-  const journalClaim = context.ownedRequestJournalClaim;
+  const journalClaim = context.state.ownedRequestJournalClaim;
   if (journalClaim !== undefined) {
     try {
-      context.requestJournalEntry = await context.resources.requestJournal.fail({
+      context.state.requestJournalEntry = await context.resources.requestJournal.fail({
         agentId: journalClaim.agentId,
         sessionId: journalClaim.sessionId,
         idempotencyKey: journalClaim.idempotencyKey,
@@ -67,7 +67,7 @@ export async function failRequest(
       cleanupErrors.push(cleanupError);
     }
   }
-  const outputSink = context.request?.outputSink;
+  const outputSink = context.state.request?.outputSink;
   if (outputSink !== undefined) {
     try {
       await outputSink.fail(failure);
@@ -75,7 +75,7 @@ export async function failRequest(
       cleanupErrors.push(cleanupError);
     }
   }
-  context.executionSettled = cleanupErrors.length === 0;
+  context.state.executionSettled = cleanupErrors.length === 0;
   if (cleanupErrors.length === 1) throw cleanupErrors[0];
   if (cleanupErrors.length > 1) {
     throw new AggregateError(cleanupErrors, 'Request cleanup failed.');
@@ -85,10 +85,10 @@ export async function failRequest(
 export async function releaseRequestExecution(
   context: DefaultRequestWorkflowContext
 ): Promise<void> {
-  const execution = context.session?.execution;
+  const execution = context.state.session?.execution;
   if (
     execution !== undefined &&
-    context.executionSettled === true &&
+    context.state.executionSettled === true &&
     supportsSessionExecution(context.resources.session)
   ) {
     await context.resources.session.releaseSessionExecution(execution);

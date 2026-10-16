@@ -55,8 +55,8 @@ Current foundation packages:
   ports plus replaceable Workflows/Steps;
 - `@ta-agent/base-tool`: provider-independent schemas, registries, permission policy, and bounded
   run-scoped Tool Broker;
-- `@ta-agent/base-workflow`: single-owner Agent, typed Operation/Run, Workflow Catalog, minimum
-  Context, Step, and lifecycle runtime;
+- `@ta-agent/base-runtime`: single-owner Agent, typed Operation/Run, Workflow Catalog, invocation
+  permissions, and result/trace bindings to `@ta-agent/workflow-core`;
 - `@ta-agent/base-request`: canonical foreground Request Workflow, OutputSink, Request Journal, and
   concrete request Steps over injected ports;
 - `@ta-agent/base-local-adapters`: official Memory, SQLite, local OutputSink, and bounded trace

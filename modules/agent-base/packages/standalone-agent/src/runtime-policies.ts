@@ -5,7 +5,7 @@ import {
   validateRequestPolicy,
   type RequestPolicy,
 } from '@ta-agent/base-request';
-import { mergeStepOverrides, resolveStepRegistry } from '@ta-agent/base-workflow';
+import { mergeStepOverrides, resolveStepRegistry } from '@ta-agent/workflow-core';
 import {
   DEFAULT_SESSION_COMPACTION_POLICY,
   validateSessionCompactionPolicy,

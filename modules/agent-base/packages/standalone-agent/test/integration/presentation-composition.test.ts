@@ -48,7 +48,7 @@ describe.each(['explicit', 'directory', 'shared-sqlite'] as const)(
         readEnvironmentVariable: () => undefined,
         stepOverrides: {
           invokeActorInteraction: async (context) => {
-            const interaction = context.interaction;
+            const interaction = context.state.interaction;
             if (interaction === undefined) throw new Error('Expected interaction scope');
             const message = defineAssistantModelMessage({
               role: 'assistant',
@@ -73,7 +73,7 @@ describe.each(['explicit', 'directory', 'shared-sqlite'] as const)(
           },
           captureReasoningPresentation: (context) => {
             captures += 1;
-            context.capturedReasoning = {
+            context.state.capturedReasoning = {
               blocks: [{ modelTurnIndex: 1, chunks: ['[filtered]'] }],
               characterCount: '[filtered]'.length,
             };

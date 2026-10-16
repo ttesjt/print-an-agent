@@ -14,9 +14,9 @@ it('runs a standalone file-processing consumer with injected real I/O through pu
       write: (name, content, signal) => writeFile(join(directory, name), content, { signal }),
     };
     const input = { source: 'input', destination: 'output' };
-    expect(await textReport().run({ input, resources: files })).toEqual({ written: ['output'] });
+    expect(await textReport(files).run({ input })).toEqual({ written: ['output'] });
     expect(await readFile(join(directory, 'output'), 'utf8')).toBe('hello workflow');
-    await textReport({ normalize: SKIP_STEP }).run({ input, resources: files });
+    await textReport(files, { normalize: SKIP_STEP }).run({ input });
     expect(await readFile(join(directory, 'output'), 'utf8')).toBe('  HELLO WORKFLOW  ');
   } finally {
     await rm(directory, { recursive: true, force: true });

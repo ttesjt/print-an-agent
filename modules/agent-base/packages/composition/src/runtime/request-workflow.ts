@@ -11,10 +11,10 @@ import {
   type RequestRuntimeResources,
 } from '@ta-agent/base-request';
 import { AgentSessionError, supportsSessionPresentation } from '@ta-agent/base-session';
-import { mergeStepOverrides, resolveStepRegistry } from '@ta-agent/base-workflow';
+import { bindAgentWorkflow } from '@ta-agent/base-runtime';
+import { mergeStepOverrides, resolveStepRegistry } from '@ta-agent/workflow-core';
 import type { ComposeAgentOptions } from './types.js';
 
-/** Validate installed capability dependencies without adding a second feature/config registry. */
 export function composeRequestWorkflow(
   options: ComposeAgentOptions,
   resources: RequestRuntimeResources,
@@ -27,11 +27,7 @@ export function composeRequestWorkflow(
   );
   if (!supportsSessionPresentation(resources.session)) {
     const resolved = resolveStepRegistry(
-      createRequestStepDefinitions<
-        RequestAgentRunContext,
-        AgentResponse,
-        DefaultRequestWorkflowContext
-      >(),
+      createRequestStepDefinitions<DefaultRequestWorkflowContext>(),
       stepOverrides
     );
     if (resolved.captureReasoningPresentation.status === 'active') {
@@ -41,20 +37,25 @@ export function composeRequestWorkflow(
       );
     }
   }
-  return createRequestWorkflow<
+  const workflow = createRequestWorkflow<
     RequestAgentRunContext,
-    AgentResponse,
-    DefaultRequestWorkflowContext
+    DefaultRequestWorkflowContext['state'],
+    DefaultRequestWorkflowContext['resources'],
+    AgentResponse
   >({
+    resources: Object.freeze({ ...resources, policy }),
     stepOverrides,
-    createContext: (base) => ({ ...base, resources, policy }),
+    createState: () => ({}),
     lifecycle: { onError: failRequest, onFinally: releaseRequestExecution },
-    applyResult: (agentRunContext, result) => {
-      agentRunContext.output = result;
-      return Promise.resolve();
-    },
     ...(options.createWorkflowRunId === undefined
       ? {}
       : { createRunId: options.createWorkflowRunId }),
+  });
+  return bindAgentWorkflow({
+    workflow,
+    applyResult(context, result) {
+      // Undefined is the explicit no-change result of a condition skip.
+      if (result !== undefined) context.output = result;
+    },
   });
 }

@@ -1,7 +1,7 @@
 import { AgentModelError } from '@ta-agent/base-model';
 import { MemorySessionAdapter } from '@ta-agent/base-local-adapters';
 import { DEFAULT_REQUEST_POLICY, NO_REQUEST_TIMEOUT } from '@ta-agent/base-request';
-import { runWithExecutionTimeout } from '@ta-agent/base-workflow';
+import { runWithExecutionTimeout } from '@ta-agent/workflow-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';
 

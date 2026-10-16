@@ -20,7 +20,7 @@ export class Workflow<
   TState,
   TResources,
   TResult,
-> implements RunnableWorkflow<TInput, TResources, TResult> {
+> implements RunnableWorkflow<TInput, TResult> {
   readonly name: string;
   readonly #definition: WorkflowDefinition<TStepName, TInput, TState, TResources, TResult>;
   readonly #steps: ResolvedStepRegistry<
@@ -62,7 +62,7 @@ export class Workflow<
       );
   }
 
-  async run(options: WorkflowRunOptions<TInput, TResources>): Promise<TResult> {
+  async run(options: WorkflowRunOptions<TInput>): Promise<TResult> {
     const definition = this.#definition;
     const reference = Object.freeze({
       workflowName: this.name,
@@ -75,7 +75,7 @@ export class Workflow<
     emit({ type: 'workflow-started', ...reference });
     try {
       root.assertAdmission();
-      const inputs = Object.freeze({ input: options.input, resources: options.resources });
+      const inputs = Object.freeze({ input: options.input, resources: definition.resources });
       const initialResult = definition.createResult(inputs);
       const decision = await (definition.condition?.({ ...inputs, signal: root.signal }) ??
         RUN_WORKFLOW);

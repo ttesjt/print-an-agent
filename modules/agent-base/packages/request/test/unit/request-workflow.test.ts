@@ -1,12 +1,12 @@
+import type { WorkflowContext } from '@ta-agent/workflow-core';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
+import { type BaseAgentRunContext } from '@ta-agent/base-runtime';
 import {
   SKIP_STEP,
   STEP_CARDINALITY,
-  type BaseAgentRunContext,
-  type BaseWorkflowContext,
   type Step,
   type StepOverrides,
-} from '@ta-agent/base-workflow';
+} from '@ta-agent/workflow-core';
 import { describe, expect, it } from 'vitest';
 import {
   createRequestStepDefinitions,
@@ -16,19 +16,23 @@ import {
   RequestStepNotImplementedError,
   type RequestLeafStepName,
   type RequestStepName,
+  type RequestWorkflowStateView,
 } from '../../src/index.js';
 
 interface TestAgentContext extends BaseAgentRunContext<string, string> {
   readonly applied: string[];
 }
 
-interface TestRequestContext extends BaseWorkflowContext<
-  RequestStepName,
-  TestAgentContext,
-  string
-> {
+interface TestState extends RequestWorkflowStateView {
   readonly calls: string[];
 }
+type TestRequestContext = WorkflowContext<
+  RequestStepName,
+  TestAgentContext,
+  TestState,
+  undefined,
+  string | undefined
+>;
 
 const LEAF_STEP_NAMES = REQUEST_STEP_NAMES.filter(
   (stepName): stepName is RequestLeafStepName =>
@@ -66,8 +70,8 @@ function implementedLeafSteps(): StepOverrides<RequestStepName, TestRequestConte
   return Object.fromEntries(
     LEAF_STEP_NAMES.map((stepName) => {
       const step: Step<TestRequestContext> = (context) => {
-        context.calls.push(stepName);
-        if (stepName === 'completeResponse') context.result = context.calls.join('|');
+        context.state.calls.push(stepName);
+        if (stepName === 'completeResponse') context.result = context.state.calls.join('|');
         return Promise.resolve();
       };
       return [stepName, step];
@@ -76,13 +80,10 @@ function implementedLeafSteps(): StepOverrides<RequestStepName, TestRequestConte
 }
 
 function workflow(stepOverrides: StepOverrides<RequestStepName, TestRequestContext> = {}) {
-  return createRequestWorkflow<TestAgentContext, string, TestRequestContext>({
+  return createRequestWorkflow<TestAgentContext, TestState, undefined, string>({
+    resources: undefined,
     stepOverrides,
-    createContext: (base) => ({ ...base, calls: [] }),
-    applyResult: (context, result) => {
-      context.applied.push(result);
-      return Promise.resolve();
-    },
+    createState: () => ({ calls: [] }),
     createRunId: () => 'request-run',
   });
 }
@@ -119,9 +120,9 @@ describe('Request Workflow skeleton', () => {
 
   it('fails explicitly at the first unresolved leaf Step', async () => {
     const calls: string[] = [];
-    const requestWorkflow = createRequestWorkflow<TestAgentContext, string, TestRequestContext>({
-      createContext: (base) => ({ ...base, calls: [] }),
-      applyResult: () => Promise.resolve(),
+    const requestWorkflow = createRequestWorkflow<TestAgentContext, TestState, undefined, string>({
+      resources: undefined,
+      createState: () => ({ calls: [] }),
       lifecycle: {
         onError: (_context, error) => {
           calls.push(`error:${(error as RequestStepNotImplementedError).stepName}`);
@@ -134,7 +135,9 @@ describe('Request Workflow skeleton', () => {
       },
     });
 
-    const error = await requestWorkflow.run(agentRunContext()).catch((failure: unknown) => failure);
+    const error = await requestWorkflow
+      .run({ input: agentRunContext() })
+      .catch((failure: unknown) => failure);
 
     expect(error).toBeInstanceOf(RequestStepNotImplementedError);
     expect(error).toMatchObject({
@@ -145,11 +148,7 @@ describe('Request Workflow skeleton', () => {
   });
 
   it('declares repeatable event Steps and accepts a minimum event Context', () => {
-    const definitions = createRequestStepDefinitions<
-      TestAgentContext,
-      string,
-      TestRequestContext
-    >();
+    const definitions = createRequestStepDefinitions<TestRequestContext>();
     for (const name of REQUEST_STEP_NAMES) {
       expect(definitions[name].cardinality).toBe(
         name === 'dispatchInteractionEvent' ||
@@ -162,7 +161,7 @@ describe('Request Workflow skeleton', () => {
     }
     expect(
       requireInteractionEvent(
-        { interaction: { currentEvent: { type: 'text-delta', delta: 'hello' } } },
+        { state: { interaction: { currentEvent: { type: 'text-delta', delta: 'hello' } } } },
         'text-delta'
       ).delta
     ).toBe('hello');
@@ -173,30 +172,22 @@ describe('Request Workflow skeleton', () => {
       ...implementedLeafSteps(),
       prepareRequest: () => Promise.resolve(),
       runAgentInteraction: (context) => {
-        context.calls.push('customInteraction');
+        context.state.calls.push('customInteraction');
         return Promise.resolve();
       },
     });
-    await expect(requestWorkflow.run(agentRunContext())).resolves.toMatchObject({
-      status: 'completed',
-      result: 'customInteraction|completeResponse',
-    });
+    await expect(requestWorkflow.run({ input: agentRunContext() })).resolves.toEqual(
+      'customInteraction|completeResponse'
+    );
   });
 
   it('executes fully implemented leaf Steps in canonical order', async () => {
     const requestWorkflow = workflow(implementedLeafSteps());
     const context = agentRunContext();
 
-    const outcome = await requestWorkflow.run(context);
+    const outcome = await requestWorkflow.run({ input: context });
 
-    expect(outcome).toMatchObject({
-      status: 'completed',
-      workflowName: 'request',
-      workflowRunId: 'request-run',
-      result: SEQUENTIAL_LEAF_STEP_NAMES.join('|'),
-    });
-    if (outcome.status === 'completed') await outcome.applyTo(context);
-    expect(context.applied).toEqual([SEQUENTIAL_LEAF_STEP_NAMES.join('|')]);
+    expect(outcome).toEqual(SEQUENTIAL_LEAF_STEP_NAMES.join('|'));
   });
 
   it('propagates a composite override without invoking captured defaults', async () => {
@@ -204,16 +195,14 @@ describe('Request Workflow skeleton', () => {
     const requestWorkflow = workflow({
       ...overrides,
       prepareRequest: (context) => {
-        context.calls.push('customPrepare');
+        context.state.calls.push('customPrepare');
         return Promise.resolve();
       },
     });
 
-    await expect(requestWorkflow.run(agentRunContext())).resolves.toMatchObject({
-      status: 'completed',
-      result:
-        'customPrepare|openResponseStream|invokeActorInteraction|buildAgentResponse|completeResponse',
-    });
+    await expect(requestWorkflow.run({ input: agentRunContext() })).resolves.toEqual(
+      'customPrepare|openResponseStream|invokeActorInteraction|buildAgentResponse|completeResponse'
+    );
   });
 
   it('short-circuits preparation and execution when replay assigns the result', async () => {
@@ -221,24 +210,17 @@ describe('Request Workflow skeleton', () => {
     const requestWorkflow = workflow({
       ...overrides,
       resolveRequestReplay: (context) => {
-        context.calls.push('resolveRequestReplay');
+        context.state.calls.push('resolveRequestReplay');
         context.result = 'replayed';
         return Promise.resolve();
       },
     });
 
-    await expect(requestWorkflow.run(agentRunContext())).resolves.toMatchObject({
-      status: 'completed',
-      result: 'replayed',
-    });
+    await expect(requestWorkflow.run({ input: agentRunContext() })).resolves.toEqual('replayed');
   });
 
   it('allows only explicitly optional leaf Steps to be skipped', async () => {
-    const definitions = createRequestStepDefinitions<
-      TestAgentContext,
-      string,
-      TestRequestContext
-    >();
+    const definitions = createRequestStepDefinitions<TestRequestContext>();
 
     expect(definitions.resolveRequestReplay.skippable).toBe(true);
     expect(definitions.gatherExternalContext.skippable).toBe(true);
@@ -262,9 +244,9 @@ describe('Request Workflow skeleton', () => {
       resolveRequestReplay: SKIP_STEP,
       gatherExternalContext: SKIP_STEP,
     });
-    await expect(requestWorkflow.run(agentRunContext())).resolves.toMatchObject({
-      status: 'completed',
-    });
+    await expect(requestWorkflow.run({ input: agentRunContext() })).resolves.toEqual(
+      expect.any(String)
+    );
   });
 
   it('rejects skipping a required request Step during Workflow creation', () => {

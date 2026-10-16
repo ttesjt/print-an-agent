@@ -20,9 +20,10 @@ import {
   type DefaultRequestWorkflowContext,
   type RequestStepName,
 } from '@ta-agent/base-request';
-import type { Step } from '@ta-agent/base-workflow';
+import type { Step } from '@ta-agent/workflow-core';
+import { createAgent } from '@ta-agent/base-runtime';
 import {
-  composeAgent,
+  createStandardAgentDefinition,
   FOREGROUND_AGENT_OPERATION_NAME,
   type ComposeAgentOptions,
 } from '../../src/index.js';
@@ -55,7 +56,10 @@ export function defaultRequestStep(name: RequestStepName): Step<DefaultRequestWo
 
 export async function interactionAgent(
   interact: ActorInteractionHandler,
-  options: Partial<ComposeAgentOptions> = {}
+  options: Partial<ComposeAgentOptions> = {},
+  createWorkflow?: (
+    resources: DefaultRequestWorkflowContext['resources']
+  ) => NonNullable<ComposeAgentOptions['requestWorkflow']>
 ) {
   const session = new MemorySessionAdapter({ createSessionId: () => 'session' });
   const journal = new MemoryRequestJournalAdapter();
@@ -78,7 +82,7 @@ export async function interactionAgent(
       },
     ],
   });
-  const agent = composeAgent({
+  const definition = createStandardAgentDefinition({
     identity: { id: 'interaction-agent' },
     actorCatalog,
     responsibilityCatalog: createResponsibilityCatalog({
@@ -89,6 +93,20 @@ export async function interactionAgent(
     observability: { sink: trace, clock: () => 1 },
     createRunId: () => 'interaction-run',
     ...options,
+  });
+  const foreground = definition.operations.foreground;
+  const requestWorkflow = createWorkflow?.(
+    Object.freeze({ ...foreground.resources, policy: foreground.config })
+  );
+  const agent = createAgent({
+    ...definition,
+    operations: {
+      ...definition.operations,
+      foreground:
+        requestWorkflow === undefined
+          ? foreground
+          : { ...foreground, workflowPlan: [requestWorkflow] },
+    },
   });
   const { sessionId } = await (options.session ?? session).resolve({ agentId: agent.identity.id });
   return {

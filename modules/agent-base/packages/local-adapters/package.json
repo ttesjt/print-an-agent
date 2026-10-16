@@ -39,7 +39,7 @@
   "devDependencies": {
     "@ta-agent/base-actor": "workspace:*",
     "@ta-agent/base-tool": "workspace:*",
-    "@ta-agent/base-workflow": "workspace:*",
+    "@ta-agent/base-runtime": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",

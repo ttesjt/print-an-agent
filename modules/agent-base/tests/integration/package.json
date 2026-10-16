@@ -26,7 +26,7 @@
     "@ta-agent/base-session": "workspace:*",
     "@ta-agent/base-standalone-agent": "workspace:*",
     "@ta-agent/base-tool": "workspace:*",
-    "@ta-agent/base-workflow": "workspace:*",
+    "@ta-agent/base-runtime": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",

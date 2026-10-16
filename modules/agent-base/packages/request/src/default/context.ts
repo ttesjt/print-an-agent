@@ -12,7 +12,8 @@ import type {
   SessionWriteAuthority,
 } from '@ta-agent/base-session';
 import type { ToolExecutionPolicy, ToolName, ToolRegistry, ToolRuntime } from '@ta-agent/base-tool';
-import type { BaseAgentRunContext, BaseWorkflowContext } from '@ta-agent/base-workflow';
+import type { BaseAgentRunContext } from '@ta-agent/base-runtime';
+import type { WorkflowContext } from '@ta-agent/workflow-core';
 import type { RequestStepName } from '../workflow/names.js';
 import type { RequestInteractionState } from '../interaction/state.js';
 import type { CapturedReasoningPresentation } from '../interaction/presentation.js';
@@ -45,13 +46,15 @@ export interface RequestRuntimeResources {
 
 export type RequestAgentRunContext = BaseAgentRunContext<AgentRequestInput, AgentResponse>;
 
-export interface DefaultRequestWorkflowContext extends BaseWorkflowContext<
+export type DefaultRequestWorkflowContext = WorkflowContext<
   RequestStepName,
   RequestAgentRunContext,
-  AgentResponse
-> {
-  readonly resources: RequestRuntimeResources;
-  readonly policy: RequestPolicy;
+  RequestWorkflowState,
+  RequestRuntimeResources & { readonly policy: RequestPolicy },
+  AgentResponse | undefined
+>;
+
+export interface RequestWorkflowState {
   request?: ValidatedAgentRequest;
   session?: ResolvedSessionReference & SessionWriteAuthority;
   /** True only after all owned persistent work and output finalization settled successfully. */

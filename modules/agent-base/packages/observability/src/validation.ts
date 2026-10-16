@@ -113,14 +113,10 @@ function validateDetailsRecord(
     requireErrorCode(record.errorCode);
     return;
   }
-  if (type === 'workflow-run-skipped') {
-    assertExactKeys(record, ['workflowName'], includeEnvelope);
-    requireString(record.workflowName, 'Trace workflowName');
-    return;
-  }
   if (
     type === 'workflow-run-started' ||
     type === 'workflow-run-completed' ||
+    type === 'workflow-run-skipped' ||
     type === 'workflow-run-failed'
   ) {
     const keys =

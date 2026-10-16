@@ -11,6 +11,7 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@ta-agent/workflow-bundle": "workspace:*",
     "@ta-agent/workflow-core": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",

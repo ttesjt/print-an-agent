@@ -54,7 +54,7 @@ function runtimeOptions(onInvocation: () => void): StandaloneRuntimeOptions {
     stepOverrides: {
       invokeActorInteraction: async (context) => {
         onInvocation();
-        const interaction = context.interaction;
+        const interaction = context.state.interaction;
         if (interaction === undefined) throw new Error('Expected interaction scope.');
         const message = defineAssistantModelMessage({
           role: 'assistant',

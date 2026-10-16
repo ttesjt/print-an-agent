@@ -11,6 +11,7 @@ type Context = WorkflowContext<'main' | 'child', void, void, void, number>;
 function fixture(step: Step<Context>, executor: StepExecutor<'main' | 'child', Context>) {
   return new Workflow<'main' | 'child', void, void, void, number>({
     name: 'executor',
+    resources: undefined,
     entryStep: 'main',
     createState: () => undefined,
     createResult: () => 0,
@@ -28,7 +29,7 @@ function fixture(step: Step<Context>, executor: StepExecutor<'main' | 'child', C
     executeStep: executor,
   });
 }
-const options = { input: undefined, resources: undefined };
+const options = { input: undefined };
 
 it('locks executor concurrent attempt violations even when the executor handles them', async () => {
   const started = gate();

@@ -27,6 +27,7 @@ export function workflow(
 ) {
   return new Workflow<Names, number, { values: number[] }, { label: string }, number[]>({
     name: 'test',
+    resources: { label: 'borrowed' },
     entryStep: 'main',
     createResult: () => [],
     createState: () => ({ values: [] }),
@@ -42,7 +43,7 @@ export function workflow(
     ...changes,
   });
 }
-export const options = () => ({ input: 4, resources: { label: 'borrowed' } });
+export const options = () => ({ input: 4 });
 export const gate = () => Promise.withResolvers<void>();
 export function aborted(signal: AbortSignal): Promise<void> {
   if (signal.aborted) return Promise.resolve();

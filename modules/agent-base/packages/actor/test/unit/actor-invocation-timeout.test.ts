@@ -6,6 +6,7 @@ import {
   type ResolvedActor,
 } from '../../src/index.js';
 import { assistantMessage, EMPTY_TOOL_RUNTIME } from '../support/fixtures.js';
+import type { ToolRuntime } from '@ta-agent/base-tool';
 
 const CAPABILITIES = Object.freeze({
   invocationModes: ['interaction', 'direct'] as const,
@@ -76,6 +77,55 @@ afterEach(() => {
 });
 
 describe('Actor invocation timeout', () => {
+  it.each(['actor', 'parent', 'engine'] as const)(
+    'propagates %s cancellation to tools even with a different runtime owner',
+    async (source) => {
+      vi.useFakeTimers();
+      const parent = new AbortController();
+      const engineLocal = new AbortController();
+      const invoked = Promise.withResolvers<AbortSignal>();
+      const closeTools = vi.fn();
+      const tools: ToolRuntime = {
+        ...EMPTY_TOOL_RUNTIME,
+        execute: (_proposal, options) => {
+          if (options?.signal === undefined) throw new Error('Missing invocation signal');
+          invoked.resolve(options.signal);
+          return rejectWhenAborted(options.signal);
+        },
+        close: closeTools,
+      };
+      const actor = await resolveTestActor(
+        {
+          id: 'engine',
+          capabilities: CAPABILITIES,
+          interact: async (request) => {
+            await request.tools.execute(
+              { callId: 'call', toolName: 'work', arguments: {} },
+              source === 'actor' ? undefined : { signal: engineLocal.signal }
+            );
+            return { message: assistantMessage('unreachable') };
+          },
+          complete: () => Promise.resolve({ message: assistantMessage('unused') }),
+        },
+        25
+      );
+      const run = actor.interact({ ...interactionRequest(parent.signal), tools });
+      const failure = new Error('local cancellation');
+      const expectation =
+        source === 'actor'
+          ? expect(run).rejects.toMatchObject({ code: 'ACTOR_INVOCATION_TIMEOUT' })
+          : expect(run).rejects.toBe(failure);
+      const toolSignal = await invoked.promise;
+      if (source === 'actor') await vi.advanceTimersByTimeAsync(25);
+      else (source === 'parent' ? parent : engineLocal).abort(failure);
+      await expectation;
+      expect(toolSignal.aborted).toBe(true);
+      expect(parent.signal.aborted).toBe(source === 'parent');
+      expect(engineLocal.signal.aborted).toBe(source === 'engine');
+      expect(closeTools).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    }
+  );
   it('uses no timer and passes through the exact parent signal by default', async () => {
     vi.useFakeTimers();
     const parentSignal = new AbortController().signal;

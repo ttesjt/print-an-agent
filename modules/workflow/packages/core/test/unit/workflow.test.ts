@@ -69,6 +69,7 @@ describe('Workflow data and lifecycle', () => {
   it('allows primitive replacement and a legitimate undefined result', async () => {
     const scalar = new Workflow<'main', number, void, void, number>({
       name: 'scalar',
+      resources: undefined,
       entryStep: 'main',
       createState: () => undefined,
       createResult: () => 0,
@@ -83,9 +84,10 @@ describe('Workflow data and lifecycle', () => {
         },
       },
     });
-    expect(await scalar.run({ input: 3, resources: undefined })).toBe(6);
+    expect(await scalar.run({ input: 3 })).toBe(6);
     const none = new Workflow<'main', void, void, void, void>({
       name: 'void',
+      resources: undefined,
       entryStep: 'main',
       createState: () => undefined,
       createResult: () => undefined,
@@ -93,7 +95,7 @@ describe('Workflow data and lifecycle', () => {
         main: { step: () => Promise.resolve(), skippable: false, cardinality: 'at-most-once' },
       },
     });
-    expect(await none.run({ input: undefined, resources: undefined })).toBeUndefined();
+    expect(await none.run({ input: undefined })).toBeUndefined();
   });
 
   it('isolates simultaneous runs and freezes execution fields without freezing business data', async () => {

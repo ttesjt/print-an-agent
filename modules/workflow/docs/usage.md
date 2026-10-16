@@ -2,6 +2,9 @@
 
 Use `@ta-agent/workflow-core`, never a source deep import. There is one execution package, no generic
 application/resource framework. Each consuming domain supplies its own ports and types.
+For a group of Workflows sharing Resources, use
+[`@ta-agent/workflow-bundle`](../packages/bundle/README.md). It constructs ordinary Core Workflows
+from unbound definitions and adds no execution layer.
 
 ## Defining a flow
 
@@ -26,9 +29,21 @@ its children's counts. These are execution policies, **not durable idempotency o
 
 ## Data and result ownership
 
-Call `workflow.run({input, resources, signal?, parentRunId?, onEvent?})`. Core creates execution fields;
-the caller cannot supply a runner or replace signal/run identity. The input/resources/state references
-are read-only, but not deep-frozen. Mutable state/result must be constructed afresh by their factories.
+Provide `resources` in the Workflow definition, alongside Step configuration. Each assembled Workflow
+keeps that binding for its lifetime. For example, construct `textReport(files)` or `recordUpdate(ports)`
+once, then call it with different inputs. To use a different store, assemble a separate Workflow with
+that store. A resource-free Workflow explicitly binds `resources: undefined`.
+
+Call `workflow.run({input, signal?, parentRunId?, onEvent?, classifyFailure?})`. Core creates execution
+fields; the caller cannot supply a runner or replace signal/run identity. `WorkflowRunOptions<Input>`
+has no Resources parameter, and `RunnableWorkflow<Input, Result>` represents the already-assembled
+callable. Condition, result/state factories, executors, Steps and hooks receive the bound resources.
+
+The input/resources/state references are read-only, but not deep-frozen. Resources keep their original
+object identity and class methods. Replacing `definition.resources` after construction does not rebind
+an assembled Workflow. Mutable adapter contents are still live; Core does not snapshot database data
+or freeze borrowed capabilities. Mutable state/result must be constructed afresh by their factories.
+Parallel runs share dependencies and keep independent execution state, cancellation and observation.
 Shared ports or closures need their own concurrency guarantees.
 
 All context views for a run share `state` and the typed `result` slot. Assigning `context.result = value`
@@ -78,11 +93,15 @@ signal keeps drain waiting. We never claim it stopped or release resources based
 
 ## Resources, hooks and errors
 
-Factories only construct data and references. Acquire owned resources outside `run()` and protect the
-entire invocation (including factory failure) with the owner's cleanup boundary. A Step acquiring its
-own lease must await its users before releasing it. Shared injected resources remain borrowed; core
-never calls their `close()` methods. If both external execution and release fail, that owner must
-preserve both errors rather than allowing a JavaScript `finally` throw to overwrite the first.
+Factories only construct data and references. Binding a capability does not acquire a connection or
+transfer ownership. A bound adapter may manage a pool or acquire per-operation transactions/leases.
+A Step acquiring its own lease must await its users before releasing it. Shared bound resources remain
+borrowed; Core never calls their `close()` methods, including on failure, skip or cancellation.
+
+When an external owner acquires resources, protect assembly and every invocation using them with that
+owner's cleanup boundary, including construction/factory failures. Release shared resources after all
+their Workflow runs have settled. If execution and release both fail, the owner must preserve both
+errors rather than allowing a JavaScript `finally` throw to overwrite the first.
 
 After execution admission closes and tracked work settles, core calls `onSuccess` or `onError`, then
 `onFinally`. Hook failures are retained alongside execution failures. A factory/condition failure or
@@ -109,7 +128,6 @@ For safe failure diagnostics, supply a synchronous classifier for each run:
 ```ts
 await workflow.run({
   input,
-  resources,
   classifyFailure: (error) => (error instanceof SyntaxError ? 'INPUT_INVALID' : undefined),
   onEvent: (event) => {
     if (event.type === 'step-failed' || event.type === 'workflow-failed') {
@@ -135,6 +153,6 @@ enabled timeout, a successfully returned committed operation is not reclassified
 
 ## Testing
 
-Run `pnpm test:workflow-qualification`; it builds the core, compiles both workspaces (including negative
-type fixtures), lints/formats, executes both consumers and lifecycle regressions, and checks public
+Run `pnpm test:workflow-qualification`; it builds Core and Bundle, compiles their consumers (including
+negative type fixtures), lints/formats, executes standalone and Bundle lifecycle regressions, and checks public
 dependency/declaration boundaries. For a clean rebuild first run `pnpm --filter @ta-agent/workflow-core clean`.

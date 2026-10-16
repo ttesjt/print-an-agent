@@ -91,7 +91,7 @@ describe('Model-turn reasoning presentation boundaries', () => {
       {
         stepOverrides: {
           captureReasoningPresentation: (context) =>
-            context.modelTurnCount === 2 ? Promise.resolve() : capture(context),
+            context.state.modelTurnCount === 2 ? Promise.resolve() : capture(context),
         },
       }
     );

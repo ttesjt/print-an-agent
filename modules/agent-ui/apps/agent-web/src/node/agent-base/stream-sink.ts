@@ -4,7 +4,6 @@ import {
   createDefaultRequestStepOverrides,
   createRequestStepDefinitions,
   type DefaultRequestWorkflowContext,
-  type RequestAgentRunContext,
   type AgentResponse,
   type OutputSink,
   type OutputStreamEvent,
@@ -33,12 +32,12 @@ export class WebStreamSink implements OutputSink {
     ) => Promise<ConversationSessionAdmission>
   ) {}
   async admit(context: DefaultRequestWorkflowContext): Promise<void> {
-    if (context.session === undefined || context.turn === undefined)
+    if (context.state.session === undefined || context.state.turn === undefined)
       throw new Error('Turn admission is unavailable.');
     context.signal.throwIfAborted();
-    const admission = await this.readAdmission(context.session);
+    const admission = await this.readAdmission(context.state.session);
     context.signal.throwIfAborted();
-    this.turnId = context.turn.turnId;
+    this.turnId = context.state.turn.turnId;
     await this.consume({
       type: 'session-admitted',
       interactionId: this.input.interactionId,
@@ -86,22 +85,19 @@ export class WebStreamSink implements OutputSink {
 
 export function presentationStepOverrides() {
   const defaults = createDefaultRequestStepOverrides();
-  const dispatch = createRequestStepDefinitions<
-    RequestAgentRunContext,
-    AgentResponse,
-    DefaultRequestWorkflowContext
-  >().dispatchInteractionEvent.step;
+  const dispatch =
+    createRequestStepDefinitions<DefaultRequestWorkflowContext>().dispatchInteractionEvent.step;
   if (dispatch === undefined) throw new Error('Standard event dispatch is unavailable.');
   const begin = defaults.beginRequest;
   if (typeof begin !== 'function') throw new Error('Standard Turn admission is unavailable.');
   return {
     beginRequest: async (context: DefaultRequestWorkflowContext) => {
-      const sink = context.request?.outputSink;
+      const sink = context.state.request?.outputSink;
       if (sink instanceof WebStreamSink && sink.input.session !== undefined) {
         const expected = sink.input.session;
         if (
-          context.session?.branchId !== expected.branchId ||
-          String(context.session.navigationRevision) !== expected.navigationRevision
+          context.state.session?.branchId !== expected.branchId ||
+          String(context.state.session.navigationRevision) !== expected.navigationRevision
         ) {
           throw new AgentSessionError(
             'SESSION_NAVIGATION_CONFLICT',
@@ -113,11 +109,11 @@ export function presentationStepOverrides() {
       if (sink instanceof WebStreamSink) await sink.admit(context);
     },
     dispatchInteractionEvent: async (context: DefaultRequestWorkflowContext) => {
-      const sink = context.request?.outputSink;
-      const event = context.interaction?.currentEvent;
+      const sink = context.state.request?.outputSink;
+      const event = context.state.interaction?.currentEvent;
       if (sink instanceof WebStreamSink && event !== undefined) {
-        sink.modelTurnIndex = Math.max(context.modelTurnCount ?? 0, 1);
-        sink.turnId = context.turn?.turnId;
+        sink.modelTurnIndex = Math.max(context.state.modelTurnCount ?? 0, 1);
+        sink.turnId = context.state.turn?.turnId;
         await sink.loopEvent(event);
       }
       await dispatch(context);

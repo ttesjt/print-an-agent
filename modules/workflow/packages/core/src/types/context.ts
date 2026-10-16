@@ -6,7 +6,7 @@ export interface StepRunner<TStepName extends string> {
 
 export interface WorkflowInputs<TInput, TResources> {
   readonly input: TInput;
-  /** Borrowed references. Holding a reference does not transfer resource ownership. */
+  /** Assembly-bound capabilities, shared across runs without transferring resource ownership. */
   readonly resources: TResources;
 }
 

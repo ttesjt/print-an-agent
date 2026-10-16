@@ -34,12 +34,12 @@ import {
   validateToolExecutionPolicy,
 } from '@ta-agent/base-tool';
 import {
+  bindAgentWorkflow,
   createAgent,
   defineAgentOperation,
-  mergeStepOverrides,
-  runWithExecutionTimeout,
   type AgentOperationDefinitionMap,
-} from '@ta-agent/base-workflow';
+} from '@ta-agent/base-runtime';
+import { mergeStepOverrides, runWithExecutionTimeout } from '@ta-agent/workflow-core';
 import { composeRequestWorkflow } from './request-workflow.js';
 import { AgentCompositionError } from './composition-error.js';
 import type { ComposeAgentOptions } from './types.js';
@@ -180,16 +180,21 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
   });
   const compactionWorkflow =
     options.sessionCompactionWorkflow ??
-    createSessionCompactionWorkflow({
-      resources: compactionResources,
-      stepOverrides: mergeStepOverrides(
-        createDefaultSessionCompactionStepOverrides(),
-        options.sessionCompactionStepOverrides
-      ),
-      condition: options.sessionCompactionCondition ?? createShouldCompactSessionCondition(),
-      ...(options.createCompactionWorkflowRunId === undefined
-        ? {}
-        : { createRunId: options.createCompactionWorkflowRunId }),
+    bindAgentWorkflow({
+      workflow: createSessionCompactionWorkflow({
+        resources: compactionResources,
+        stepOverrides: mergeStepOverrides(
+          createDefaultSessionCompactionStepOverrides(),
+          options.sessionCompactionStepOverrides
+        ),
+        condition: options.sessionCompactionCondition ?? createShouldCompactSessionCondition(),
+        ...(options.createCompactionWorkflowRunId === undefined
+          ? {}
+          : { createRunId: options.createCompactionWorkflowRunId }),
+      }),
+      applyResult(context, result) {
+        if (result !== undefined) context.output = result;
+      },
     });
   const compactionOperation = defineAgentOperation<
     typeof SESSION_COMPACTION_AGENT_OPERATION_NAME,
@@ -224,7 +229,6 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     },
     createContext: (base): SessionCompactionAgentRunContext => ({
       ...base,
-      resources: compactionResources,
       output: Object.freeze({
         status: 'skipped',
         sessionId: base.input.sessionId,

@@ -13,7 +13,7 @@ import {
   defineProviderModelExecutionProvenance,
   defineProviderModelReference,
 } from '@ta-agent/base-model';
-import { RUN_WORKFLOW } from '@ta-agent/base-workflow';
+import { RUN_WORKFLOW } from '@ta-agent/workflow-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createDefaultSessionCompactionStepOverrides,
@@ -201,7 +201,6 @@ function createRunnableCompaction(options: {
     operations: Object.freeze({
       invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
     }),
-    resources,
   };
   return Object.freeze({ context, workflow });
 }
@@ -236,10 +235,9 @@ describe('Session compaction Workflow contracts', () => {
       operations: Object.freeze({
         invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
       }),
-      resources,
     };
 
-    await expect(workflow.run(context)).rejects.toMatchObject({
+    await expect(workflow.run({ input: context, signal: context.signal })).rejects.toMatchObject({
       code: 'SESSION_COMPACTION_NOT_CONFIGURED',
       stepName: 'inspectSession',
     });
@@ -282,12 +280,11 @@ describe('Session compaction Workflow contracts', () => {
       operations: Object.freeze({
         invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
       }),
-      resources,
     };
 
-    await expect(workflow.run(context)).resolves.toMatchObject({
-      status: 'completed',
-      result: { status: 'skipped', reason: 'not-needed' },
+    await expect(workflow.run({ input: context, signal: context.signal })).resolves.toMatchObject({
+      status: 'skipped',
+      reason: 'not-needed',
     });
   });
 
@@ -301,7 +298,10 @@ describe('Session compaction Workflow contracts', () => {
       signal: parentController.signal,
     });
 
-    const run = fixture.workflow.run(fixture.context);
+    const run = fixture.workflow.run({
+      input: fixture.context,
+      signal: fixture.context.signal,
+    });
     const expectation = expect(run).rejects.toMatchObject({
       code: 'SESSION_COMPACTION_TIMEOUT',
     });
@@ -322,7 +322,10 @@ describe('Session compaction Workflow contracts', () => {
       signal: new AbortController().signal,
     });
 
-    const run = fixture.workflow.run(fixture.context);
+    const run = fixture.workflow.run({
+      input: fixture.context,
+      signal: fixture.context.signal,
+    });
     const expectation = expect(run).rejects.toMatchObject({
       code: 'ACTOR_INVOCATION_TIMEOUT',
     });

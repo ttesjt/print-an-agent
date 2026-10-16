@@ -1,4 +1,4 @@
-import { STEP_CARDINALITY } from '@ta-agent/base-workflow';
+import { STEP_CARDINALITY } from '@ta-agent/workflow-core';
 import { describe, expect, it } from 'vitest';
 import { createDeterministicAgentAPI } from '../../src/index.js';
 

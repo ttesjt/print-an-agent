@@ -10,6 +10,7 @@ it.each(['result', 'condition', 'state'] as const)(
     const hook = vi.fn();
     const flow = new Workflow<'main', void, void, { close(): void }, void>({
       name: 'construction',
+      resources: { close },
       entryStep: 'main',
       createResult: () => {
         if (phase === 'result') throw failure;
@@ -28,7 +29,7 @@ it.each(['result', 'condition', 'state'] as const)(
     });
     const owned = async () => {
       try {
-        await flow.run({ ...runOptions, resources: { close } });
+        await flow.run(runOptions);
       } finally {
         close();
       }
@@ -51,6 +52,7 @@ it('leaves a shared database open for a later run and has no automatic release r
   };
   const flow = new Workflow<'write', void, void, typeof resources, void>({
     name: 'borrowed',
+    resources,
     entryStep: 'write',
     createState: () => undefined,
     createResult: () => undefined,
@@ -58,8 +60,8 @@ it('leaves a shared database open for a later run and has no automatic release r
       write: { skippable: false, cardinality: 'at-most-once', step: (c) => c.resources.write() },
     },
   });
-  await flow.run({ ...runOptions, resources });
-  await flow.run({ ...runOptions, resources });
+  await flow.run(runOptions);
+  await flow.run(runOptions);
   expect(writes).toBe(2);
   expect(close).not.toHaveBeenCalled();
 });

@@ -1,13 +1,8 @@
 import type { ResolvedResponsibility, ResponsibilityRouter } from '@ta-agent/base-actor';
 import type { AgentIdentity } from '@ta-agent/base-identity';
 import type { ContextModelMessage } from '@ta-agent/base-model';
-import type {
-  BaseAgentRunContext,
-  BaseWorkflowContext,
-  StepOverrides,
-  WorkflowCondition,
-  WorkflowDefinition,
-} from '@ta-agent/base-workflow';
+import type { BaseAgentRunContext } from '@ta-agent/base-runtime';
+import type { WorkflowContext, WorkflowDefinition } from '@ta-agent/workflow-core';
 import type { SessionBranchId, SessionSnapshot } from '../../types.js';
 import type { SessionExecutionLease } from '../../lifecycle/execution.js';
 import type {
@@ -33,15 +28,16 @@ export interface SessionCompactionAgentRunContext extends BaseAgentRunContext<
   SessionCompactionOutcome
 > {
   readonly identity: AgentIdentity;
-  readonly resources: SessionCompactionResources;
 }
 
-export interface SessionCompactionWorkflowContext extends BaseWorkflowContext<
+export type SessionCompactionWorkflowContext = WorkflowContext<
   SessionCompactionStepName,
   SessionCompactionAgentRunContext,
-  SessionCompactionOutcome
-> {
-  readonly resources: SessionCompactionResources;
+  SessionCompactionState,
+  SessionCompactionResources,
+  SessionCompactionOutcome | undefined
+>;
+export interface SessionCompactionState {
   snapshot?: SessionSnapshot;
   execution?: SessionExecutionLease;
   branchId?: SessionBranchId;
@@ -51,20 +47,15 @@ export interface SessionCompactionWorkflowContext extends BaseWorkflowContext<
   compactedContext?: ContextModelMessage;
 }
 
-export type SessionCompactionCondition = WorkflowCondition<SessionCompactionAgentRunContext>;
-
-export interface CreateSessionCompactionWorkflowOptions extends Omit<
-  WorkflowDefinition<
-    SessionCompactionStepName,
-    SessionCompactionAgentRunContext,
-    SessionCompactionWorkflowContext,
-    SessionCompactionOutcome
-  >,
-  'name' | 'entryStep' | 'stepDefinitions' | 'createContext' | 'applyResult'
-> {
-  readonly resources: SessionCompactionResources;
-  readonly stepOverrides?: StepOverrides<
-    SessionCompactionStepName,
-    SessionCompactionWorkflowContext
-  >;
-}
+export type SessionCompactionDefinition = WorkflowDefinition<
+  SessionCompactionStepName,
+  SessionCompactionAgentRunContext,
+  SessionCompactionState,
+  SessionCompactionResources,
+  SessionCompactionOutcome | undefined
+>;
+export type SessionCompactionCondition = NonNullable<SessionCompactionDefinition['condition']>;
+export type CreateSessionCompactionWorkflowOptions = Omit<
+  SessionCompactionDefinition,
+  'name' | 'entryStep' | 'stepDefinitions' | 'createState' | 'createResult'
+>;

@@ -52,7 +52,7 @@ export type AgentTraceEventDetails =
   | Readonly<{ type: 'agent-run-completed'; operationName: string }>
   | Readonly<{ type: 'agent-run-failed'; operationName: string; errorCode: string }>
   | Readonly<{ type: 'workflow-run-started' } & WorkflowReference>
-  | Readonly<{ type: 'workflow-run-skipped'; workflowName: string }>
+  | Readonly<{ type: 'workflow-run-skipped' } & WorkflowReference>
   | Readonly<{ type: 'workflow-run-completed' } & WorkflowReference>
   | Readonly<{ type: 'workflow-run-failed'; errorCode: string } & WorkflowReference>
   | Readonly<{ type: 'step-started' } & StepReference>

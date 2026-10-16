@@ -869,7 +869,7 @@ describe('assembled Agent Base request path', () => {
       },
       stepOverrides: {
         resolveInstructions: (context) => {
-          context.instructions = 'Overridden instructions.';
+          context.state.instructions = 'Overridden instructions.';
           return Promise.resolve();
         },
       },
@@ -1336,7 +1336,7 @@ describe('assembled Agent Base request path', () => {
       createRunId: () => `override-${++requestSequence}`,
       sessionCompactionStepOverrides: {
         buildCompactedContext: (context) => {
-          context.compactedContext = Object.freeze({
+          context.state.compactedContext = Object.freeze({
             role: 'context',
             text: 'replacement context',
             timestamp: 50,

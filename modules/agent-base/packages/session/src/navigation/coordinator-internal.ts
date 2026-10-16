@@ -20,12 +20,15 @@ export interface SessionNavigationExecutionState {
   readonly agentId: AgentId;
   readonly input: NavigateSessionInput;
   readonly resources: Readonly<{ session: SessionNavigationCoordinatorPort }>;
-  readonly signal: AbortSignal;
   sessionId?: SessionId;
   execution?: SessionExecutionLease;
   command?: ValidatedSessionNavigationCommand;
   snapshot?: SessionSnapshot;
-  result?: SessionNavigationOutcome;
+}
+
+interface SessionNavigationCommit {
+  readonly applied: AppliedSessionNavigation;
+  readonly result: Exclude<SessionNavigationOutcome, Readonly<{ status: 'inspected' }>>;
 }
 
 function invalid(message: string): never {
@@ -152,8 +155,11 @@ export function assertSessionNavigationActive(signal: AbortSignal): void {
   if (signal.aborted) cancelled(signal);
 }
 
-export function validateSessionNavigationState(state: SessionNavigationExecutionState): void {
-  assertSessionNavigationActive(state.signal);
+export function validateSessionNavigationState(
+  state: SessionNavigationExecutionState,
+  signal: AbortSignal
+): void {
+  assertSessionNavigationActive(signal);
   const record = navigationRecord(
     state.input,
     ['operation', 'sessionId'],
@@ -164,16 +170,17 @@ export function validateSessionNavigationState(state: SessionNavigationExecution
 }
 
 export async function inspectSessionNavigationState(
-  state: SessionNavigationExecutionState
-): Promise<void> {
+  state: SessionNavigationExecutionState,
+  signal: AbortSignal
+): Promise<SessionNavigationOutcome | undefined> {
   const { command, sessionId } = requireValidatedState(state);
-  assertSessionNavigationActive(state.signal);
+  assertSessionNavigationActive(signal);
   if (command.operation !== 'inspect' && supportsSessionExecution(state.resources.session)) {
     state.execution = await state.resources.session.acquireSessionExecution({
       agentId: state.agentId,
       sessionId,
     });
-    assertSessionNavigationActive(state.signal);
+    assertSessionNavigationActive(signal);
   }
   const snapshot = await state.resources.session.inspect({
     agentId: state.agentId,
@@ -186,9 +193,9 @@ export async function inspectSessionNavigationState(
     );
   }
   state.snapshot = snapshot;
-  assertSessionNavigationActive(state.signal);
+  assertSessionNavigationActive(signal);
   if (command.operation === 'inspect') {
-    state.result = Object.freeze({
+    return Object.freeze({
       status: 'inspected',
       navigation: toSessionNavigationSnapshot(snapshot),
     });
@@ -200,24 +207,24 @@ function outcomeStatus(operation: 'select' | 'fork' | 'rewind') {
 }
 
 export async function commitSessionNavigationState(
-  state: SessionNavigationExecutionState
-): Promise<AppliedSessionNavigation | undefined> {
-  if (state.result !== undefined) return undefined;
+  state: SessionNavigationExecutionState,
+  signal: AbortSignal
+): Promise<SessionNavigationCommit | undefined> {
   const { command, sessionId } = requireValidatedState(state);
   if (command.operation === 'inspect') return undefined;
-  assertSessionNavigationActive(state.signal);
+  assertSessionNavigationActive(signal);
   const applied = await state.resources.session.applyNavigation({
     agentId: state.agentId,
     sessionId,
     command,
     ...(state.execution === undefined ? {} : { execution: state.execution }),
   });
-  state.result = Object.freeze({
+  const result = Object.freeze({
     status: outcomeStatus(applied.operation),
     sessionId,
     selectedBranchId: applied.navigation.selectedBranchId,
     affectedBranchId: applied.affectedBranchId,
     revision: applied.navigation.revision,
   });
-  return applied;
+  return Object.freeze({ applied, result });
 }

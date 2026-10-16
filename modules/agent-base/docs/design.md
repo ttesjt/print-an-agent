@@ -53,11 +53,11 @@ profiles, and process delivery separate:
 
 ```text
 domain and adapter packages
-  identity, config, workflow, Session, Request, Pi and storage boundaries
+  identity, config, Session, Request, Pi and storage boundaries
                          │
                          ▼
-base-workflow
-  createAgent() primitive
+base-runtime → workflow-core
+  Agent Operations and bindings → domain-independent execution
                          │
                          ▼
 base-composition
@@ -284,42 +284,52 @@ carry table names.
 
 ## Workflow and Workflow Context
 
-A Workflow is a reusable class containing:
+Workflow execution belongs to `@ta-agent/workflow-core`, not Agent Base. A reusable `Workflow`
+contains a stable name, bound borrowed resources, an optional condition, one entry Step, Step definitions/overrides, pure
+result/state factories, lifecycle hooks, and an optional Step executor. It returns `TResult`
+directly; it knows nothing about Agent identity, Operations, result application or persistence.
 
-- its stable name;
-- an internal runtime condition;
-- one entry Step;
-- Step definitions and overrides;
-- a Workflow Context factory;
-- a Step Executor;
-- the rule that applies a completed Workflow result to the Agent Run Context.
-
-A Workflow declares only the minimum Agent Run Context contract it reads or mutates. The Agent
-Operation that selects it must provide a compatible Context. Workflows within one Agent share an
-execution protocol, not one exact Context shape, so the same Workflow definition can be reused by
-multiple compatible Operations.
-
-Every Workflow execution creates an isolated Workflow Context:
+Each invocation receives a framework-owned context:
 
 ```ts
-interface BaseWorkflowContext {
+interface WorkflowContext<N extends string, I, S, R, O> {
+  readonly input: I;
+  readonly state: S;
+  readonly resources: R;
+  result: O;
   readonly workflowName: string;
   readonly workflowRunId: string;
-  readonly agentRunContext: BaseAgentRunContext;
+  readonly parentRunId: string | undefined;
   readonly signal: AbortSignal;
-  readonly runStep: (stepName: string) => Promise<void>;
-  result?: unknown;
+  readonly runStep: (name: N) => Promise<void>;
+  readonly parallel: (names: readonly N[]) => Promise<void>;
 }
 ```
 
-The Workflow Context owns temporary Step state. The Agent Run Context carries intentional
-cross-Workflow state. A completed Workflow returns a typed result and an application function;
-Agent orchestration then explicitly applies that result to the same Agent Run Context. Results
-cannot be applied to a different Run's Context.
+`@ta-agent/base-runtime` supplies `bindAgentWorkflow({ workflow, applyResult })`.
+The Core Workflow's factory binds prepared resources at construction, alongside Step configuration.
+This binding passes the Agent Run Context as Core input, supplies
+cancellation and correlation, and projects metadata to Agent tracing. It does not run Steps,
+assemble business state, or acquire/close resources. Its result exposes `applyTo`, which refuses
+a different Agent Run Context. Agent Operation orchestration applies that result explicitly.
+Workflow Plans and Catalogs contain these bindings; one binding may be shared by compatible Operations
+that intentionally use the same bound capabilities. Each invocation retains its own state, result,
+signal and trace correlation. Different stores require separately assembled Workflows.
 
-`Workflow` is a class because it is a stable named domain object with encapsulated definitions and
-behavior. `createWorkflow()` remains a convenience for consumers that prefer factory composition.
-Subclassing is optional rather than the only extension mechanism.
+Request and compaction use `undefined` as an explicit no-change initial result. Their success hooks
+reject normal execution without a result, while a condition skip bypasses those hooks and preserves
+the existing Agent output. No fake successful response or context patch is manufactured.
+
+Step state lives under `context.state`; ports and policies are in `context.resources`. In an
+Agent-bound Workflow, `context.input` is the Agent Run Context. The effective `context.signal`
+may additionally include a parallel group's cancellation; pass it explicitly to adapters and child
+Operation invocations. The Agent Run's own signal remains owned by its Operation.
+
+Core tracks admitted Steps and drains them before hooks. Await `context.parallel(names)` when
+parallel children use a parent-owned resource: it cancels peers on failure and joins all children
+before the parent's cleanup. Resource ownership is never inferred from context references.
+Metadata observers are isolated and not awaited; the Agent trace emitter owns delivery sequencing.
+Safe failure classification is supplied by the binding, including recovered child failures.
 
 ## Workflow Catalog, override registries, and conditions
 
@@ -349,7 +359,7 @@ Workflow name uniqueness before any Run begins.
 Every execution unit inside a Workflow has the same shape:
 
 ```ts
-type Step<C extends BaseWorkflowContext> = (context: C) => Promise<void>;
+type Step<C> = (context: C) => Promise<void>;
 ```
 
 A leaf Step handles one explicit replaceable concern. A composite Step calls other Steps. The Workflow
@@ -519,10 +529,10 @@ One execution follows a deliberately small sequence:
 1. Caller selects one public Agent Operation and supplies typed input plus an optional AbortSignal.
 2. Agent creates one Agent Run ID, narrowed Operation invoker, trace emitter, and Run Context.
 3. Agent executes each exact Workflow reference in the Operation's fixed ordered plan.
-4. Each Workflow evaluates its internal condition.
-5. A running Workflow creates one Workflow Context and invokes its entry Step.
-6. Nested Steps share that Workflow Context and resolve through its Step Registry.
-7. Workflow produces a result; Agent applies it to the shared Agent Run Context.
+4. Core creates a legal initial result, then evaluates its internal condition.
+5. An active Workflow creates run-local state and invokes its entry Step.
+6. Nested Steps share state/resources/result with scope-local runners and effective signals.
+7. Core drains admitted work and runs hooks; the Agent binding applies the returned result.
 8. After the plan completes, Agent requires and returns the Agent Run Context output.
 ```
 
@@ -608,10 +618,9 @@ The current foundation contains:
   runtime ports, and structured failures;
 - `@ta-agent/base-session`: generic session/turn authority, navigation, and compaction behavior;
   separate Session lifecycle, execution-fence and optional purge/recovery contracts;
-- `@ta-agent/base-workflow`: single-owner Agent, typed Agent Operation and Run contracts, one
-  heterogeneous Workflow Catalog, minimum Run Context contracts, explicit Workflow Plans, two
-  run-scoped Context lifetimes, Step/override registries, Step Executor, and registry-based
-  composite composition;
+- `@ta-agent/base-runtime`: single-owner Agent, typed Agent Operation and Run contracts, one
+  heterogeneous Workflow Catalog, explicit Workflow Plans, invocation permissions, and typed
+  result/trace bindings to the domain-independent `@ta-agent/workflow-core`;
 - `@ta-agent/base-request`: the canonical
   `request Workflow -> runRequest -> prepareRequest/executeRequest` composition, stable Request Step
   names, fail-fast generic placeholders, concrete text-request Step overrides over injected ports, and
@@ -628,8 +637,9 @@ The current foundation contains:
   Memory, per-Agent directory, and shared-SQLite reference profiles consumed through narrow
   Services or raw Agents by the CLI and other hosts.
 
-The Workflow package accepts a product's already resolved typed config. It does not resolve or
-persist configuration itself. The composition architecture is formal, but memory persistence remains
+Agent Runtime accepts a product's already resolved typed config. Workflow Core receives only explicit
+input and borrowed capabilities; neither layer resolves or persists configuration itself.
+The composition architecture is formal, but memory persistence remains
 a development default for deterministic and ordinary-provider shortcuts. OAuth, durable credential storage,
 dynamic provider catalog persistence, broad provider qualification, automatic failover, hard delete,
 Agent ID rename, cross-root migration, and distributed lifecycle coordination remain bounded later

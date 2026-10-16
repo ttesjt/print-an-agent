@@ -36,4 +36,8 @@ export {
   type RequestWorkflowName,
 } from './workflow/names.js';
 export { createRequestStepDefinitions } from './workflow/step-definitions.js';
-export type { RequestWorkflowContext, RequestWorkflowOptions } from './workflow/types.js';
+export type {
+  RequestWorkflowContext,
+  RequestWorkflowOptions,
+  RequestWorkflowStateView,
+} from './workflow/types.js';

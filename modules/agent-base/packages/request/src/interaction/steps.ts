@@ -4,7 +4,7 @@ import {
   defineSessionTurnPresentation,
   supportsSessionPresentation,
 } from '@ta-agent/base-session';
-import type { StepOverrides } from '@ta-agent/base-workflow';
+import { composeExecutionSignal, type StepOverrides } from '@ta-agent/workflow-core';
 import type { OutputStreamEvent } from '../contracts.js';
 import type { DefaultRequestWorkflowContext } from '../default/context.js';
 import { requireValue } from '../default/context-value.js';
@@ -34,7 +34,7 @@ function createEventAccounting(
   return (event) => {
     if (event.type === 'reasoning-delta') {
       reasoningCharacters += event.delta.length;
-      if (reasoningCharacters > context.policy.maxReasoningCharacters) {
+      if (reasoningCharacters > context.resources.policy.maxReasoningCharacters) {
         throw new AgentModelError(
           'MODEL_REASONING_LIMIT_EXCEEDED',
           'Request interaction reasoning exceeded its character budget.'
@@ -45,8 +45,8 @@ function createEventAccounting(
     const characters =
       event.type === 'assistant-complete'
         ? event.message.text.length
-        : (context.outputCharacterCount ?? 0);
-    if (characters > context.policy.maxOutputCharacters) {
+        : (context.state.outputCharacterCount ?? 0);
+    if (characters > context.resources.policy.maxOutputCharacters) {
       throw new AgentModelError(
         'MODEL_OUTPUT_LIMIT_EXCEEDED',
         'Request interaction output exceeded its character budget.'
@@ -59,7 +59,7 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
   const accountEvent = createEventAccounting(context);
   const delivery = new InteractionEventDelivery({
     signal: context.signal,
-    capacity: context.policy.maxPendingInteractionEvents,
+    capacity: context.resources.policy.maxPendingInteractionEvents,
     dispatch: async (event) => {
       accountEvent(event);
       await traceAgentLoopEvent(context, event);
@@ -67,7 +67,7 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
       await context.runStep('dispatchInteractionEvent');
     },
   });
-  context.interaction = Object.seal({
+  context.state.interaction = Object.seal({
     signal: delivery.signal,
     emit: delivery.emit,
     get currentEvent() {
@@ -81,7 +81,7 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
   const closeTools = (): void => {
     if (toolsCloseAttempted) return;
     toolsCloseAttempted = true;
-    context.tools?.close();
+    context.state.tools?.close();
   };
   try {
     delivery.assertHealthy();
@@ -116,8 +116,8 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
     }
   } finally {
     delivery.dispose();
-    delete context.capturedReasoning;
-    delete context.turnPresentation;
+    delete context.state.capturedReasoning;
+    delete context.state.turnPresentation;
   }
   try {
     closeTools();
@@ -137,8 +137,8 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
 }
 
 async function openResponseStream(context: DefaultRequestWorkflowContext): Promise<void> {
-  const request = requireValue(context.request, 'request');
-  const session = requireValue(context.session, 'session');
+  const request = requireValue(context.state.request, 'request');
+  const session = requireValue(context.state.session, 'session');
   await traceOutputStarted(context, false);
   const signal = requireInteraction(context).signal;
   if (signal.aborted) {
@@ -150,9 +150,9 @@ async function openResponseStream(context: DefaultRequestWorkflowContext): Promi
   }
   try {
     await request.outputSink.open({
-      requestId: context.agentRunContext.runId,
+      requestId: context.input.runId,
       sessionId: session.sessionId,
-      branchId: requireValue(context.turn, 'turn').branchId,
+      branchId: requireValue(context.state.turn, 'turn').branchId,
     });
   } catch (cause: unknown) {
     await traceOutputFailed(context, 'open');
@@ -162,9 +162,9 @@ async function openResponseStream(context: DefaultRequestWorkflowContext): Promi
 
 async function invokeActorInteraction(context: DefaultRequestWorkflowContext): Promise<void> {
   const interaction = requireInteraction(context);
-  interaction.result = await requireValue(context.responsibility, 'responsibility').interact({
-    ...requireValue(context.modelRequest, 'modelRequest'),
-    signal: interaction.signal,
+  interaction.result = await requireValue(context.state.responsibility, 'responsibility').interact({
+    ...requireValue(context.state.modelRequest, 'modelRequest'),
+    signal: composeExecutionSignal([context.signal, interaction.signal]),
     emit: interaction.emit,
   });
 }
@@ -183,7 +183,7 @@ async function deliverStreamDelta(
 ): Promise<void> {
   const event = requireInteractionEvent(context, type);
   try {
-    await requireValue(context.request, 'request').outputSink.write(
+    await requireValue(context.state.request, 'request').outputSink.write(
       Object.freeze({ type: event.type, delta: event.delta })
     );
   } catch (cause: unknown) {
@@ -195,13 +195,13 @@ async function deliverStreamDelta(
 async function completeAssistantMessage(context: DefaultRequestWorkflowContext): Promise<void> {
   const event = requireInteractionEvent(context, 'assistant-complete');
   const request = {
-    ...requireValue(context.session, 'session'),
-    turnId: requireValue(context.turn, 'turn').turnId,
+    ...requireValue(context.state.session, 'session'),
+    turnId: requireValue(context.state.turn, 'turn').turnId,
     assistantMessage: event.message,
   };
   const session = context.resources.session;
   context.signal.throwIfAborted();
-  if (context.turnPresentation === undefined) {
+  if (context.state.turnPresentation === undefined) {
     await session.completeTurn(request);
     context.signal.throwIfAborted();
     return;
@@ -212,10 +212,10 @@ async function completeAssistantMessage(context: DefaultRequestWorkflowContext):
       'Session adapter cannot atomically commit turn presentation.'
     );
   }
-  const presentation = defineSessionTurnPresentation(context.turnPresentation);
+  const presentation = defineSessionTurnPresentation(context.state.turnPresentation);
   if (
     presentation.reasoningBlocks.reduce((sum, block) => sum + block.text.length, 0) >
-    context.policy.maxReasoningCharacters
+    context.resources.policy.maxReasoningCharacters
   ) {
     throw new AgentModelError(
       'MODEL_REASONING_LIMIT_EXCEEDED',
@@ -228,12 +228,12 @@ async function completeAssistantMessage(context: DefaultRequestWorkflowContext):
 
 function buildAgentResponse(context: DefaultRequestWorkflowContext): Promise<void> {
   const result = requireValue(requireInteraction(context).result, 'interaction.result');
-  context.response = Object.freeze({
-    requestId: context.agentRunContext.runId,
-    sessionId: requireValue(context.session, 'session').sessionId,
-    branchId: requireValue(context.turn, 'turn').branchId,
+  context.state.response = Object.freeze({
+    requestId: context.input.runId,
+    sessionId: requireValue(context.state.session, 'session').sessionId,
+    branchId: requireValue(context.state.turn, 'turn').branchId,
     message: result.message,
-    toolRun: requireValue(context.tools, 'tools').inspect(),
+    toolRun: requireValue(context.state.tools, 'tools').inspect(),
   });
   return Promise.resolve();
 }

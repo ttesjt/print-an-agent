@@ -20,6 +20,7 @@ export function execution(
   } as const;
   return new Workflow<Names, void, { visited: string[] }, void, string[]>({
     name: 'qualification',
+    resources: undefined,
     entryStep: 'entry',
     createState: () => ({ visited: [] }),
     createResult: () => [],
@@ -35,7 +36,7 @@ export function execution(
     ...(lifecycle === undefined ? {} : { lifecycle }),
   });
 }
-export const runOptions = { input: undefined, resources: undefined };
+export const runOptions = { input: undefined };
 export const gate = () => Promise.withResolvers<void>();
 export function onAbort(signal: AbortSignal): Promise<void> {
   if (signal.aborted) return Promise.resolve();

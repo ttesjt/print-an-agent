@@ -1,6 +1,6 @@
 import { AgentActorError, SESSION_COMPACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
 import type { ContextModelMessage, ModelMessage } from '@ta-agent/base-model';
-import { runWithExecutionTimeout, type StepOverrides } from '@ta-agent/base-workflow';
+import { runWithExecutionTimeout, type StepOverrides } from '@ta-agent/workflow-core';
 import { AgentSessionError } from '../../errors.js';
 import { supportsSessionExecution } from '../../lifecycle/execution.js';
 import { parseSessionBranchId, parseSessionId } from '../../identifiers.js';
@@ -9,22 +9,22 @@ import type { SessionCompactionStepName } from './names.js';
 import type { SessionCompactionWorkflowContext } from './types.js';
 
 function requireSnapshot(context: SessionCompactionWorkflowContext) {
-  if (context.snapshot === undefined) {
+  if (context.state.snapshot === undefined) {
     throw new AgentSessionError(
       'SESSION_COMPACTION_INVALID',
       'Session compaction context is missing its authoritative Session snapshot.'
     );
   }
-  return context.snapshot;
+  return context.state.snapshot;
 }
 
 async function inspectSession(context: SessionCompactionWorkflowContext): Promise<void> {
   const reference = {
-    agentId: context.agentRunContext.identity.id,
-    sessionId: parseSessionId(context.agentRunContext.input.sessionId),
+    agentId: context.input.identity.id,
+    sessionId: parseSessionId(context.input.input.sessionId),
   };
   if (supportsSessionExecution(context.resources.session)) {
-    context.execution = await context.resources.session.acquireSessionExecution(reference);
+    context.state.execution = await context.resources.session.acquireSessionExecution(reference);
   }
   const snapshot = await context.resources.session.inspect(reference);
   if (snapshot === undefined) {
@@ -34,31 +34,31 @@ async function inspectSession(context: SessionCompactionWorkflowContext): Promis
     );
   }
   const branchId =
-    context.agentRunContext.input.branchId === undefined
+    context.input.input.branchId === undefined
       ? snapshot.navigation.selectedBranchId
-      : parseSessionBranchId(context.agentRunContext.input.branchId);
+      : parseSessionBranchId(context.input.input.branchId);
   const compaction = await context.resources.session.readCompaction({ ...reference, branchId });
-  context.snapshot = snapshot;
-  context.branchId = branchId;
-  if (compaction !== undefined) context.previousCompaction = compaction;
+  context.state.snapshot = snapshot;
+  context.state.branchId = branchId;
+  if (compaction !== undefined) context.state.previousCompaction = compaction;
 }
 
 function selectCompactionSource(context: SessionCompactionWorkflowContext): Promise<void> {
   const selection = selectSessionCompactionSource(
     requireSnapshot(context),
-    context.branchId ?? requireSnapshot(context).navigation.selectedBranchId,
-    context.previousCompaction,
+    context.state.branchId ?? requireSnapshot(context).navigation.selectedBranchId,
+    context.state.previousCompaction,
     context.resources.policy
   );
   if (selection.status === 'skipped') {
     context.result = Object.freeze({
       status: 'skipped',
-      sessionId: context.agentRunContext.input.sessionId,
-      branchId: context.branchId ?? requireSnapshot(context).navigation.selectedBranchId,
+      sessionId: context.input.input.sessionId,
+      branchId: context.state.branchId ?? requireSnapshot(context).navigation.selectedBranchId,
       reason: 'not-needed',
     });
   } else {
-    context.source = selection.source;
+    context.state.source = selection.source;
   }
   return Promise.resolve();
 }
@@ -75,7 +75,7 @@ function readClock(clock: () => number): number {
 }
 
 function buildCompactionMessages(
-  source: NonNullable<SessionCompactionWorkflowContext['source']>
+  source: NonNullable<SessionCompactionWorkflowContext['state']['source']>
 ): readonly ModelMessage[] {
   const lastTimestamp =
     source.turns.at(-1)?.assistantMessage.timestamp ?? source.previousContext?.timestamp ?? 0;
@@ -92,7 +92,7 @@ function buildCompactionMessages(
 
 async function buildCompactedContext(context: SessionCompactionWorkflowContext): Promise<void> {
   if (context.result !== undefined) return;
-  const source = context.source;
+  const source = context.state.source;
   if (source === undefined) {
     throw new AgentSessionError(
       'SESSION_COMPACTION_INVALID',
@@ -116,8 +116,8 @@ async function buildCompactedContext(context: SessionCompactionWorkflowContext):
         const responsibility = await context.resources.responsibilities.resolve(
           SESSION_COMPACTION_RESPONSIBILITY_ID
         );
-        context.responsibility = responsibility;
-        await context.agentRunContext.traceEmitter?.record({
+        context.state.responsibility = responsibility;
+        await context.input.traceEmitter?.record({
           type: 'actor-resolved',
           workflowName: context.workflowName,
           workflowRunId: context.workflowRunId,
@@ -173,7 +173,7 @@ async function buildCompactedContext(context: SessionCompactionWorkflowContext):
       `Compacted context must contain 1-${context.resources.policy.maxContextCharacters} characters.`
     );
   }
-  context.compactedContext = Object.freeze({
+  context.state.compactedContext = Object.freeze({
     role: 'context',
     text,
     timestamp: readClock(context.resources.clock),
@@ -182,8 +182,8 @@ async function buildCompactedContext(context: SessionCompactionWorkflowContext):
 
 async function persistCompaction(context: SessionCompactionWorkflowContext): Promise<void> {
   if (context.result !== undefined) return;
-  const source = context.source;
-  const compactedContext = context.compactedContext;
+  const source = context.state.source;
+  const compactedContext = context.state.compactedContext;
   if (source === undefined || compactedContext === undefined) {
     throw new AgentSessionError(
       'SESSION_COMPACTION_INVALID',
@@ -197,7 +197,7 @@ async function persistCompaction(context: SessionCompactionWorkflowContext): Pro
     expectedRevision: source.expectedRevision,
     throughTurnId: source.throughTurnId,
     context: compactedContext,
-    ...(context.execution === undefined ? {} : { execution: context.execution }),
+    ...(context.state.execution === undefined ? {} : { execution: context.state.execution }),
   });
   context.result = Object.freeze({
     status: 'compacted',

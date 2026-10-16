@@ -4,6 +4,7 @@ import {
   type WorkflowDefinition,
   type StepOverrides,
   type RunnableWorkflow,
+  type WorkflowRunOptions,
 } from '@ta-agent/workflow-core';
 import { recordUpdate, type UpdateContext } from '../consumers/record-update.js';
 
@@ -32,6 +33,8 @@ export function verifyContext(context: Context, other: UpdateContext): void {
   context.runStep = () => Promise.resolve();
   // @ts-expect-error state reference cannot be replaced, only its business contents
   context.state = { count: 3 };
+  // @ts-expect-error a Step cannot replace the Workflow's bound resource reference
+  context.resources = { save: () => Promise.resolve() };
   // @ts-expect-error result is a number, not a string or untyped override bag
   context.result = 'wrong';
   // @ts-expect-error consumers need not share compatible input/resources/result
@@ -47,6 +50,7 @@ export const definitions: WorkflowDefinition<
   number
 > = {
   name: 'typed',
+  resources: { save: () => Promise.resolve() },
   entryStep: 'main',
   createState: () => ({ count: 0 }),
   createResult: () => 0,
@@ -63,8 +67,7 @@ export const definitions: WorkflowDefinition<
   },
 };
 const valid = new Workflow(definitions);
-export const publicRunnable: RunnableWorkflow<Context['input'], Context['resources'], number> =
-  valid;
+export const publicRunnable: RunnableWorkflow<Context['input'], number> = valid;
 export const invalidResult: typeof definitions = {
   ...definitions,
   // @ts-expect-error no uninitialized or fake-default result for a numeric result contract
@@ -75,6 +78,21 @@ export const invalidState: typeof definitions = {
   // @ts-expect-error a synchronous state factory cannot return a Promise of state
   createState: () => Promise.resolve({ count: 0 }),
 };
+export const invalidResources: typeof definitions = {
+  ...definitions,
+  // @ts-expect-error required resource capabilities are checked at assembly
+  resources: {},
+};
+export const resourceFactory: typeof definitions = {
+  ...definitions,
+  // @ts-expect-error Resources is a bound object, not a per-run factory
+  resources: () => ({ save: () => Promise.resolve() }),
+};
+export const unexpectedRunResources: WorkflowRunOptions<Context['input']> = {
+  input: { amount: 1 },
+  // @ts-expect-error execution options cannot replace assembly-bound capabilities
+  resources: definitions.resources,
+};
 export const invalidOverride: StepOverrides<Name, Context> = {
   // @ts-expect-error override cannot expect another consumer's context
   child: (context: UpdateContext) => context.runStep('commit'),
@@ -82,25 +100,28 @@ export const invalidOverride: StepOverrides<Name, Context> = {
 
 export function verifyCall(): void {
   // @ts-expect-error input must match the declared input shape
-  void valid.run({ input: 'wrong', resources: { save: () => Promise.resolve() } });
-  // @ts-expect-error required resource capability must be present
-  void valid.run({ input: { amount: 1 }, resources: {} });
+  void valid.run({ input: 'wrong' });
+  const { resources: _resources, ...unbound } = definitions;
+  // @ts-expect-error Workflow construction requires the Resources binding
+  new Workflow(unbound);
+  void _resources;
   void valid.run({
     input: { amount: 1 },
-    resources: { save: () => Promise.resolve() },
     // @ts-expect-error no caller-supplied state or framework context
     state: { count: 0 },
   });
-  const result = recordUpdate().run({
-    input: { enabled: false, id: 'a', title: 'a' },
-    resources: {
-      records: {
-        read: () => Promise.resolve({ revision: 1, title: 'a' }),
-        compareAndSwap: () => Promise.resolve({ revision: 2, title: 'b' }),
-      },
-      titleLimit: () => Promise.resolve(20),
-    },
+  void publicRunnable.run({
+    input: { amount: 1 },
+    // @ts-expect-error the public runnable also forbids per-run resource rebinding
+    resources: definitions.resources,
   });
+  const result = recordUpdate({
+    records: {
+      read: () => Promise.resolve({ revision: 1, title: 'a' }),
+      compareAndSwap: () => Promise.resolve({ revision: 2, title: 'b' }),
+    },
+    titleLimit: () => Promise.resolve(20),
+  }).run({ input: { enabled: false, id: 'a', title: 'a' } });
   // @ts-expect-error Workflow returns its consumer result, not a generic number or host context
   const wrong: Promise<number> = result;
   void wrong;

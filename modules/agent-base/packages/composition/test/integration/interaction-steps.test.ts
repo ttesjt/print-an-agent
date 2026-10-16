@@ -29,7 +29,7 @@ describe('interaction Composite Steps', () => {
           deliverTextDelta: async (context) => {
             const event = requireInteractionEvent(context, 'text-delta');
             calls.push(event.delta);
-            await context.request?.outputSink.write({
+            await context.state.request?.outputSink.write({
               type: 'text-delta',
               delta: event.delta.toLowerCase(),
             });
@@ -63,12 +63,12 @@ describe('interaction Composite Steps', () => {
     ).toMatchObject({ turns: [{ status: 'completed', assistantMessage: { text: 'AB' } }] });
     const context = contextAfterRun;
     if (context === undefined) throw new Error('Expected context.');
-    expect(context.interaction?.currentEvent).toBeUndefined();
+    expect(context.state.interaction?.currentEvent).toBeUndefined();
     expect(() => requireInteractionEvent(context, 'text-delta')).toThrowError(
       'Interaction Step requires a current "text-delta" event.'
     );
     await expect(
-      context.interaction?.emit({ type: 'text-delta', delta: 'late' })
+      context.state.interaction?.emit({ type: 'text-delta', delta: 'late' })
     ).rejects.toMatchObject({ code: 'REQUEST_INTERACTION_EVENT_DELIVERY_CLOSED' });
     const steps = fixture.trace
       .inspect({ agentRunId: 'interaction-run' })
@@ -246,9 +246,9 @@ describe('interaction Composite Steps', () => {
         stepOverrides: {
           buildTools: async (context) => {
             await defaultRequestStep('buildTools')(context);
-            const tools = context.tools;
+            const tools = context.state.tools;
             if (tools === undefined) throw new Error('Expected Tools.');
-            context.tools = {
+            context.state.tools = {
               tools: tools.tools,
               execute: tools.execute.bind(tools),
               inspect: tools.inspect.bind(tools),

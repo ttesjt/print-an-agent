@@ -2,7 +2,7 @@ import {
   MAX_EXECUTION_TIMEOUT_MILLISECONDS,
   NO_EXECUTION_TIMEOUT,
   type ExecutionTimeoutMilliseconds,
-} from '@ta-agent/base-workflow';
+} from '@ta-agent/workflow-core';
 import { AgentSessionError } from '../errors.js';
 import type { SessionCompactionPolicy } from './contracts.js';
 

@@ -24,6 +24,18 @@ function moduleRestrictions(forbiddenGroups) {
   };
 }
 
+const workflowDomainRestrictions = [
+  {
+    group: [
+      '@ta-agent/base-*',
+      '@ta-agent/workbench-*',
+      '@ta-agent/self-learn-*',
+      '@ta-agent/ui-*',
+    ],
+    message: 'Workflow must remain independent of Agent and product domains.',
+  },
+];
+
 export const boundaryConfigs = Object.freeze([
   {
     files: productionSource,
@@ -31,15 +43,15 @@ export const boundaryConfigs = Object.freeze([
   },
   {
     files: ['modules/workflow/**/src/**/*.{ts,tsx}'],
+    rules: moduleRestrictions(workflowDomainRestrictions),
+  },
+  {
+    files: ['modules/workflow/packages/core/src/**/*.{ts,tsx}'],
     rules: moduleRestrictions([
+      ...workflowDomainRestrictions,
       {
-        group: [
-          '@ta-agent/base-*',
-          '@ta-agent/workbench-*',
-          '@ta-agent/self-learn-*',
-          '@ta-agent/ui-*',
-        ],
-        message: 'Workflow must remain independent of Agent and product domains.',
+        group: ['@ta-agent/workflow-bundle', '@ta-agent/workflow-bundle/**'],
+        message: 'Workflow Core must not depend on Bundle assembly.',
       },
     ]),
   },

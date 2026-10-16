@@ -84,12 +84,21 @@ never moves a source head, reparents a turn, or deletes history. Cancellation ca
 before `applyNavigation()` begins; once adapter mutation starts, the coordinator waits for its real
 outcome and never reports a misleading cancelled result after a successful commit.
 
-The optional Session navigation Workflow remains available as a low-level building block for custom
-Agents that deliberately expose navigation as an Operation. Its default validation, inspection, and
+The optional Session navigation Workflow is a native `@ta-agent/workflow-core` Workflow. Construct it
+with `createSessionNavigationWorkflow({ resources: { session }, ... })`, then call
+`run({ input: { agentId, navigation, traceEmitter? }, signal })`. It returns its navigation outcome
+directly and needs no Agent Run Context. The Session port is bound once; the optional trace emitter,
+navigation state and execution lease belong to each individual invocation. Reusing a Workflow does
+not retain a preceding call's trace identity. Its default validation, inspection, and
 commit Steps delegate to the same package-internal domain phases as the coordinator, so the Workflow
 does not own a second navigation algorithm. Standard composition does not install it: ordinary
 navigation uses the out-of-band management Service and requires no Actor, provider, credential, Tool
 runtime, Agent trace, or materialized Agent.
+
+Navigation overrides return an already handled outcome through `context.result`. Default inspection
+and commit respect that result and do not replace it or start a navigation write. The shared domain
+phases return their outcomes directly; working state does not hold a second result slot. Any admitted
+execution lease still passes through the normal final cleanup.
 
 Raw completed turns remain authoritative through `loadHistory()`. Compactions are isolated per
 branch and store a revisioned projection through an exact completed ancestor. `loadContext()` then
@@ -105,6 +114,14 @@ assembled Agent supplies concrete overrides. `buildCompactedContext` resolves th
 `session-compaction` Responsibility and invokes its selected Actor in direct mode; Session owns no
 provider- or Pi-specific runtime contract. The Workflow is invoked explicitly and is never hidden
 inside foreground response production.
+
+The compaction factory returns a native Core Workflow with required `resources` bound at construction.
+Standard composition binds it to the Agent Operation through `bindAgentWorkflow()`: the input is the
+compaction Agent Run and mutable execution data lives in `context.state`. Ports and policy come from
+the Workflow's bound resources; the Agent Run need not provide another resource binding. Its
+`undefined` initial result means no change when the condition skips; normal execution must produce
+a compaction outcome. Execution leases are released by the Session lifecycle hook, not by closing
+bound Session ports.
 
 `SessionCompactionPolicy.timeoutMilliseconds` is an optional cooperative boundary expressed as a
 positive integer or `NO_SESSION_COMPACTION_TIMEOUT`. The standard policy defaults to no automatic

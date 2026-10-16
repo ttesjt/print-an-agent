@@ -40,7 +40,8 @@
     "@ta-agent/base-request": "workspace:*",
     "@ta-agent/base-session": "workspace:*",
     "@ta-agent/base-tool": "workspace:*",
-    "@ta-agent/base-workflow": "workspace:*"
+    "@ta-agent/base-runtime": "workspace:*",
+    "@ta-agent/workflow-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

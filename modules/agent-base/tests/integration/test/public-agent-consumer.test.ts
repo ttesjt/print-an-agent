@@ -68,7 +68,7 @@ async function interact(request: ActorEngineInteractionRequest) {
   return Object.freeze({ message });
 }
 
-function createConsumerAgent() {
+function createConsumerAgent(interaction: typeof interact = interact) {
   const actorCatalog = createActorCatalog({
     engines: [
       {
@@ -82,7 +82,7 @@ function createConsumerAgent() {
           cancellation: true,
           maxContextTokens: 8_192,
         },
-        interact,
+        interact: interaction,
         complete: ({ signal }) => {
           if (signal.aborted) {
             throw new AgentModelError(
@@ -176,21 +176,61 @@ describe('public Agent integration', () => {
   });
 
   it('propagates cancellation as a structured failure and fails the OutputSink once', async () => {
-    const { agent } = createConsumerAgent();
+    const started = Promise.withResolvers<void>();
+    const { agent } = createConsumerAgent((request) => {
+      started.resolve();
+      return new Promise((_resolve, reject) => {
+        request.signal.addEventListener(
+          'abort',
+          () => {
+            reject(
+              new AgentModelError('MODEL_INVOCATION_CANCELLED', 'Consumer Engine was cancelled.')
+            );
+          },
+          { once: true }
+        );
+      });
+    });
     const sink = new MemoryOutputSink();
+    const fail = vi.spyOn(sink, 'fail');
     const controller = new AbortController();
+    const run = agent.invoke(
+      'foreground',
+      { message: 'cancel me', outputSink: sink },
+      { signal: controller.signal }
+    );
+    const checked = expect(run).rejects.toMatchObject({ code: 'MODEL_INVOCATION_CANCELLED' });
+    await started.promise;
     controller.abort('consumer cancelled');
-
-    await expect(
-      agent.invoke(
-        'foreground',
-        { message: 'cancel me', outputSink: sink },
-        { signal: controller.signal }
-      )
-    ).rejects.toMatchObject({ code: 'MODEL_INVOCATION_CANCELLED' });
+    await checked;
+    expect(fail).toHaveBeenCalledOnce();
     expect(sink.inspect()).toMatchObject({
       status: 'failed',
       failure: { code: 'MODEL_INVOCATION_CANCELLED' },
     });
+  });
+
+  it('rejects an already-cancelled invocation before acquiring request resources or touching output', async () => {
+    const engine = vi.fn(interact);
+    const { agent, gatherExternalContext } = createConsumerAgent(engine);
+    const sink = new MemoryOutputSink();
+    const fail = vi.spyOn(sink, 'fail');
+    const open = vi.spyOn(sink, 'open');
+    const source = new AbortController();
+    const cancellation = new Error('cancel before admission');
+    source.abort(cancellation);
+    await expect(
+      agent.invoke(
+        'foreground',
+        { message: 'cancel me', outputSink: sink },
+        {
+          signal: source.signal,
+        }
+      )
+    ).rejects.toBe(cancellation);
+    expect(engine).not.toHaveBeenCalled();
+    expect(gatherExternalContext).not.toHaveBeenCalled();
+    expect(fail).not.toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
   });
 });

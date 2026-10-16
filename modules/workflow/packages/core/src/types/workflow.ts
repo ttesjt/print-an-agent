@@ -10,7 +10,8 @@ export function skipWorkflow(reason: string): WorkflowDecision {
   return Object.freeze({ status: 'skip', reason });
 }
 
-export interface WorkflowRunOptions<TInput, TResources> extends WorkflowInputs<TInput, TResources> {
+export interface WorkflowRunOptions<TInput> {
+  readonly input: TInput;
   readonly signal?: AbortSignal;
   readonly parentRunId?: string;
   readonly onEvent?: WorkflowObserver;
@@ -25,6 +26,8 @@ export interface WorkflowLifecycle<C> {
 
 export interface WorkflowDefinition<TStepName extends string, TInput, TState, TResources, TResult> {
   readonly name: string;
+  /** Bound during assembly and borrowed by every run; Core never closes these capabilities. */
+  readonly resources: TResources;
   readonly entryStep: TStepName;
   readonly stepDefinitions: StepDefinitions<
     TStepName,
@@ -50,7 +53,7 @@ export interface WorkflowDefinition<TStepName extends string, TInput, TState, TR
   readonly createRunId?: () => string;
 }
 
-export interface RunnableWorkflow<TInput, TResources, TResult> {
+export interface RunnableWorkflow<TInput, TResult> {
   readonly name: string;
-  run(options: WorkflowRunOptions<TInput, TResources>): Promise<TResult>;
+  run(options: WorkflowRunOptions<TInput>): Promise<TResult>;
 }

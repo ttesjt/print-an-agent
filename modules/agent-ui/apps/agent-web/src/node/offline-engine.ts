@@ -1,5 +1,5 @@
-import { defineActorEngine } from '@ta-agent/base-actor';
-import { defineAssistantModelMessage } from '@ta-agent/base-model';
+import { defineActorEngine } from '@ta-agent/model-invocation-core';
+import { defineAssistantModelMessage } from '@ta-agent/model-invocation-core';
 
 /** Explicit offline application profile; this is not a pretend remote provider. */
 export function createOfflineWebEngine() {

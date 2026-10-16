@@ -1,5 +1,6 @@
 import { createProviderRuntime, type ProviderRuntime } from '@ta-agent/base-composition';
-import { createActorCatalog, MAIN_ACTOR_ID, type ActorEngine } from '@ta-agent/base-actor';
+import { createActorCatalog, MAIN_ACTOR_ID } from '@ta-agent/base-actor';
+import { requireCompletionCapability, type ActorEngine } from '@ta-agent/model-invocation-core';
 import type { AgentWebConfig } from '../../application/agent-config.js';
 import { AgentConfigValidationError } from '../../application/agent-config-validation.js';
 
@@ -135,7 +136,7 @@ export async function testWebModelConnection(
       },
     ],
   }).resolve(MAIN_ACTOR_ID);
-  await actor.complete({
+  await requireCompletionCapability(actor).complete({
     instructions: '',
     messages: [{ role: 'user', text: 'Reply OK.', timestamp: Date.now() }],
     maxOutputCharacters: 4096,

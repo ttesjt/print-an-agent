@@ -13,7 +13,7 @@ import {
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import { parseRequestIdempotencyKey } from '@ta-agent/base-request';
 import { parseSessionId } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';

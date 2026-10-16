@@ -1,4 +1,4 @@
-import { defineAssistantModelMessage } from '@ta-agent/base-model';
+import { defineAssistantModelMessage } from '@ta-agent/model-invocation-core';
 import {
   AgentSessionError,
   type CompleteSessionTurnRequest,

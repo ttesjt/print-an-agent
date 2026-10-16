@@ -5,7 +5,7 @@ import {
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
 } from '@ta-agent/base-actor';
-import { createPiFauxRuntime } from '@ta-agent/base-pi';
+import { createPiFauxRuntime } from '@ta-agent/model-invocation-pi';
 import { createAgentAPI } from './agent-api.js';
 import { composeAgent } from './compose-agent.js';
 import type { CreateDeterministicAgentAPIOptions, DeterministicAgentAPI } from './types.js';

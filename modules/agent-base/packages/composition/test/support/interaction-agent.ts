@@ -3,8 +3,8 @@ import {
   createActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-  type ActorInteractionHandler,
 } from '@ta-agent/base-actor';
+import { type ActorInteractionHandler } from '@ta-agent/model-invocation-core';
 import {
   MemoryAgentTraceAdapter,
   MemoryOutputSink,
@@ -14,7 +14,7 @@ import {
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import {
   createDefaultRequestStepOverrides,
   type DefaultRequestWorkflowContext,

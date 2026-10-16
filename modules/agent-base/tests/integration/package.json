@@ -20,7 +20,7 @@
     "@ta-agent/base-config": "workspace:*",
     "@ta-agent/base-identity": "workspace:*",
     "@ta-agent/base-local-adapters": "workspace:*",
-    "@ta-agent/base-model": "workspace:*",
+    "@ta-agent/model-invocation-core": "workspace:*",
     "@ta-agent/base-observability": "workspace:*",
     "@ta-agent/base-request": "workspace:*",
     "@ta-agent/base-session": "workspace:*",
@@ -30,7 +30,8 @@
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "@ta-agent/model-invocation-pi": "workspace:*"
   },
   "license": "MIT",
   "engines": {

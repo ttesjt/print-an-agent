@@ -10,7 +10,7 @@ import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
   type ModelMessage,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import { parseSessionId } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 

@@ -1,8 +1,11 @@
-import { defineActorInvocationPolicy, type ActorInvocationPolicy } from '@ta-agent/base-actor';
+import {
+  defineActorInvocationPolicy,
+  type ActorInvocationPolicy,
+} from '@ta-agent/model-invocation-core';
 import {
   defineProviderTransportLivenessPolicy,
   type ProviderTransportLivenessPolicy,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import { DEFAULT_REQUEST_POLICY, validateRequestPolicy } from '@ta-agent/base-request';
 import {
   DEFAULT_SESSION_COMPACTION_POLICY,

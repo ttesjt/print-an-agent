@@ -1,4 +1,4 @@
-import type { AgentLoopEventSink } from '@ta-agent/base-model';
+import type { ModelInteractionEventSink } from '@ta-agent/model-invocation-core';
 import { describe, expect, it, vi } from 'vitest';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';
 
@@ -31,7 +31,7 @@ describe('interaction failure lifecycle', () => {
     const release = Promise.withResolvers<void>();
     const failure = new Error('Engine failed');
     const calls: string[] = [];
-    let lateEmit: AgentLoopEventSink | undefined;
+    let lateEmit: ModelInteractionEventSink | undefined;
     const fixture = await interactionAgent(async (request) => {
       lateEmit = request.emit;
       request.signal.addEventListener('abort', () => stopped.resolve(), { once: true });

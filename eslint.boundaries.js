@@ -28,6 +28,7 @@ const workflowDomainRestrictions = [
   {
     group: [
       '@ta-agent/base-*',
+      '@ta-agent/model-invocation-*',
       '@ta-agent/workbench-*',
       '@ta-agent/self-learn-*',
       '@ta-agent/ui-*',
@@ -36,10 +37,39 @@ const workflowDomainRestrictions = [
   },
 ];
 
-export const boundaryConfigs = Object.freeze([
+const modelInvocationDomainRestrictions = [
   {
-    files: productionSource,
-    rules: moduleRestrictions([]),
+    group: [
+      '@ta-agent/base-*',
+      '@ta-agent/workbench-*',
+      '@ta-agent/self-learn-*',
+      '@ta-agent/ui-*',
+      '@ta-agent/workflow-*',
+    ],
+    message: 'Model invocation must remain independent of Agent, Workflow and product domains.',
+  },
+];
+
+export const boundaryConfigs = Object.freeze([
+  { files: productionSource, rules: moduleRestrictions([]) },
+  {
+    files: ['modules/model-invocation/**/src/**/*.{ts,tsx}'],
+    rules: moduleRestrictions(modelInvocationDomainRestrictions),
+  },
+  {
+    files: ['modules/model-invocation/packages/core/src/**/*.{ts,tsx}'],
+    rules: moduleRestrictions([
+      ...modelInvocationDomainRestrictions,
+      {
+        group: [
+          '@ta-agent/model-invocation-pi',
+          '@ta-agent/model-invocation-pi/**',
+          '@earendil-works/pi-*',
+          'typebox',
+        ],
+        message: 'Invocation Core must not depend on its provider adapter or SDK.',
+      },
+    ]),
   },
   {
     files: ['modules/workflow/**/src/**/*.{ts,tsx}'],
@@ -83,7 +113,12 @@ export const boundaryConfigs = Object.freeze([
     files: ['modules/agent-ui/packages/*/src/**/*.{ts,tsx}'],
     rules: moduleRestrictions([
       {
-        group: ['@ta-agent/base-*', '@ta-agent/workbench-*', '@ta-agent/self-learn-*'],
+        group: [
+          '@ta-agent/base-*',
+          '@ta-agent/model-invocation-*',
+          '@ta-agent/workbench-*',
+          '@ta-agent/self-learn-*',
+        ],
         message: 'Reusable Agent UI packages must depend only on UI-owned contracts.',
       },
     ]),

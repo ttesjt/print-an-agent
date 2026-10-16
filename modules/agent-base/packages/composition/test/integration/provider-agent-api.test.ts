@@ -1,6 +1,9 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { MemoryAgentTraceAdapter, MemoryOutputSink } from '@ta-agent/base-local-adapters';
-import { AgentModelError, type ProviderCredentialResolutionRequest } from '@ta-agent/base-model';
+import {
+  ModelInvocationError,
+  type ProviderCredentialResolutionRequest,
+} from '@ta-agent/model-invocation-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createProviderAgentAPI } from '../../src/index.js';
 
@@ -217,7 +220,7 @@ describe('ordinary Pi Agent Base composition', () => {
       status: 'credential-unavailable',
     });
     await expect(agent.run({ message: 'hello', outputSink: sink })).rejects.toEqual(
-      expect.objectContaining<Partial<AgentModelError>>({ code: 'MODEL_CREDENTIAL_NOT_FOUND' })
+      expect.objectContaining<Partial<ModelInvocationError>>({ code: 'MODEL_CREDENTIAL_NOT_FOUND' })
     );
     expect(sink.inspect()).toMatchObject({
       status: 'failed',

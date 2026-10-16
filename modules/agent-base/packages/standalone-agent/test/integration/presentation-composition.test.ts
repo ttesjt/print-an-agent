@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import { supportsSessionPresentation, parseTurnId } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {

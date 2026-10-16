@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { MemoryOutputSink } from '@ta-agent/base-local-adapters';
-import { AgentModelError } from '@ta-agent/base-model';
+import { ModelInvocationError } from '@ta-agent/model-invocation-core';
 import { createAgentAPI } from '@ta-agent/base-composition';
 import {
   createStandaloneAgent,
@@ -158,7 +158,7 @@ describe('public standalone provider consumer', () => {
     await expect(
       agent.invoke('foreground', { message: 'fail safely', outputSink: sink })
     ).rejects.toEqual(
-      expect.objectContaining<Partial<AgentModelError>>({ code: 'MODEL_PROVIDER_FAILED' })
+      expect.objectContaining<Partial<ModelInvocationError>>({ code: 'MODEL_PROVIDER_FAILED' })
     );
     expect(sink.inspect()).toMatchObject({
       status: 'failed',

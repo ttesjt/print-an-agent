@@ -1,14 +1,19 @@
-import { defineAssistantModelMessage, type AssistantModelMessage } from '@ta-agent/base-model';
+import {
+  defineAssistantModelMessage,
+  type AssistantModelMessage,
+} from '@ta-agent/model-invocation-core';
 import { parseSessionBranchId, parseSessionId } from '@ta-agent/base-session';
 import {
   parseToolName,
   type ToolCallId,
-  type ToolDescriptor,
-  type ToolObjectSchema,
   type ToolRunInspection,
   type ToolRunRecord,
-  type ToolValueSchema,
 } from '@ta-agent/base-tool';
+import {
+  type ToolDescriptor,
+  type ToolObjectSchema,
+  type ToolValueSchema,
+} from '@ta-agent/model-invocation-core';
 import type { AgentResponse } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
 import { parseRequestJournalRequestId } from './identifiers.js';

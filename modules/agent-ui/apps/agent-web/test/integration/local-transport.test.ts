@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
-import { defineActorEngine } from '@ta-agent/base-actor';
+import { defineActorEngine } from '@ta-agent/model-invocation-core';
 import { createToolRegistry, defineTool } from '@ta-agent/base-tool';
 import type { ConversationInteractionEvent } from '@ta-agent/ui-contracts';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';

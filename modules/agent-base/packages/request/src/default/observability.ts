@@ -1,4 +1,4 @@
-import type { AgentLoopEvent, AssistantModelMessage } from '@ta-agent/base-model';
+import type { ModelInteractionEvent, AssistantModelMessage } from '@ta-agent/model-invocation-core';
 import { traceErrorCode } from '@ta-agent/base-observability';
 import type {
   OutputPublicationStage,
@@ -163,9 +163,9 @@ async function traceModelResponse(
   });
 }
 
-export async function traceAgentLoopEvent(
+export async function traceModelInteractionEvent(
   context: DefaultRequestWorkflowContext,
-  event: AgentLoopEvent
+  event: ModelInteractionEvent
 ): Promise<void> {
   if (event.type === 'turn-start') {
     context.state.modelTurnCount = (context.state.modelTurnCount ?? 0) + 1;

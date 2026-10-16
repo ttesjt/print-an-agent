@@ -1,74 +1,14 @@
+import type {
+  InteractionTools,
+  ToolDescriptor,
+  ToolObjectSchema,
+  ToolSchemaValue,
+} from '@ta-agent/model-invocation-core';
 declare const toolNameBrand: unique symbol;
 declare const toolCallIdBrand: unique symbol;
 
 export type ToolName = string & { readonly [toolNameBrand]: 'ToolName' };
 export type ToolCallId = string & { readonly [toolCallIdBrand]: 'ToolCallId' };
-
-export interface ToolStringSchema {
-  readonly type: 'string';
-  readonly minLength?: number;
-  readonly maxLength?: number;
-  readonly enum?: readonly string[];
-}
-
-export interface ToolNumberSchema {
-  readonly type: 'number';
-  readonly minimum?: number;
-  readonly maximum?: number;
-}
-
-export interface ToolIntegerSchema {
-  readonly type: 'integer';
-  readonly minimum?: number;
-  readonly maximum?: number;
-}
-
-export interface ToolBooleanSchema {
-  readonly type: 'boolean';
-}
-
-export interface ToolNullSchema {
-  readonly type: 'null';
-}
-
-export interface ToolArraySchema {
-  readonly type: 'array';
-  readonly items: ToolValueSchema;
-  readonly maxItems?: number;
-}
-
-export interface ToolObjectSchema {
-  readonly type: 'object';
-  readonly properties: Readonly<Record<string, ToolValueSchema>>;
-  readonly required: readonly string[];
-  readonly additionalProperties: false;
-}
-
-export type ToolValueSchema =
-  | ToolStringSchema
-  | ToolNumberSchema
-  | ToolIntegerSchema
-  | ToolBooleanSchema
-  | ToolNullSchema
-  | ToolArraySchema
-  | ToolObjectSchema;
-
-export type ToolSchemaValue<S extends ToolValueSchema> = S extends ToolStringSchema
-  ? string
-  : S extends ToolNumberSchema | ToolIntegerSchema
-    ? number
-    : S extends ToolBooleanSchema
-      ? boolean
-      : S extends ToolNullSchema
-        ? null
-        : S extends { readonly type: 'array'; readonly items: infer I extends ToolValueSchema }
-          ? readonly ToolSchemaValue<I>[]
-          : S extends {
-                readonly type: 'object';
-                readonly properties: infer P extends Readonly<Record<string, ToolValueSchema>>;
-              }
-            ? Readonly<{ [K in keyof P]: ToolSchemaValue<P[K]> }>
-            : never;
 
 export interface ToolExecutionRequest<TArguments> {
   readonly callId: ToolCallId;
@@ -98,22 +38,6 @@ export interface DefineToolInput<S extends ToolObjectSchema> {
   ) => Promise<ToolHandlerResult>;
 }
 
-export interface ToolDescriptor {
-  readonly name: ToolName;
-  readonly description: string;
-  readonly parameters: ToolObjectSchema;
-}
-
-export interface ToolCallProposal {
-  readonly callId: string;
-  readonly toolName: string;
-  readonly arguments: unknown;
-}
-
-export type ToolExecutionOutcome =
-  | Readonly<{ status: 'success'; text: string }>
-  | Readonly<{ status: 'handler-error'; text: string }>;
-
 export type ToolRunRecordStatus = 'success' | 'handler-error' | 'rejected';
 
 export interface ToolRunRecord {
@@ -133,22 +57,9 @@ export interface ToolRunInspection {
   readonly totalResultCharacters: number;
 }
 
-export interface ToolRuntime {
-  readonly tools: readonly ToolDescriptor[];
-  /**
-   * Per-call cancellation adds to, and never replaces, the runtime owner's cancellation.
-   * Propagate cancellation to the handler and await its settlement before returning a failure.
-   */
-  execute(
-    proposal: ToolCallProposal,
-    options?: ToolExecutionOptions
-  ): Promise<ToolExecutionOutcome>;
+export interface ToolRuntime extends InteractionTools {
   close(): void;
   inspect(): ToolRunInspection;
-}
-
-export interface ToolExecutionOptions {
-  readonly signal?: AbortSignal;
 }
 
 export interface ToolRegistry {

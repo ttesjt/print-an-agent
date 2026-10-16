@@ -46,10 +46,8 @@ Current foundation packages:
 
 - `@ta-agent/base-identity`: stable Agent identity values and lifecycle catalog contracts;
 - `@ta-agent/base-config`: storage-agnostic typed configuration lifecycle and adapter contracts;
-- `@ta-agent/base-actor`: immutable Actor/Engine contracts, technical capabilities, catalogs, and
-  Responsibility routing;
-- `@ta-agent/base-model`: provider-independent model, message, bounded execution-provenance,
-  streaming, and loop contracts;
+- `@ta-agent/base-actor`: Agent Actor tool permissions and Responsibility routing over the independent
+  `@ta-agent/model-invocation-core` Actor and model protocols;
 - `@ta-agent/base-observability`: privacy-safe correlated trace contracts and no-op sink;
 - `@ta-agent/base-session`: generic Session, append-only navigation, and branch-scoped compaction
   ports plus replaceable Workflows/Steps;
@@ -61,8 +59,6 @@ Current foundation packages:
   concrete request Steps over injected ports;
 - `@ta-agent/base-local-adapters`: official Memory, SQLite, local OutputSink, and bounded trace
   implementations for generic Agent Base ports;
-- `@ta-agent/base-pi`: the isolated Pi `0.82.1` adapter with deterministic faux, builtin, and
-  explicit OpenAI-compatible provider profiles;
 - `@ta-agent/base-composition`: the official Standard raw-Agent composition root, optional API
   template, and storage-neutral Agent management/runtime/Session Service contracts;
 - `@ta-agent/base-standalone-agent`: the current standalone reference Agent bootstrap and concrete

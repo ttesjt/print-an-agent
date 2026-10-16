@@ -2,6 +2,7 @@
 
 - [Agent Base](../modules/agent-base/README.md) owns agent execution, Sessions, and composition.
 - [Agent UI](../modules/agent-ui/README.md) owns reusable interface components and reference applications.
+- [Model Invocation](../modules/model-invocation/README.md) owns actor and model invocation contracts and adapters.
 - [Model Workbench](../modules/model-workbench/README.md) owns model execution, training, and artifact management.
 - [Workflow](../modules/workflow/README.md) owns workflow execution and resource binding.
 

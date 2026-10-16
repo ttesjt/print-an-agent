@@ -1,5 +1,5 @@
-import { createPiProviderRuntime } from '@ta-agent/base-pi';
-import type { ActorEngine } from '@ta-agent/base-actor';
+import { createPiProviderRuntime } from '@ta-agent/model-invocation-pi';
+import type { ActorEngine } from '@ta-agent/model-invocation-core';
 import type {
   ProviderReadiness,
   ProviderRuntimeInspection,

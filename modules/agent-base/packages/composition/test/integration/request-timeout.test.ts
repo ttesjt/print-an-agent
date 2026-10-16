@@ -1,4 +1,4 @@
-import { AgentModelError } from '@ta-agent/base-model';
+import { ModelInvocationError } from '@ta-agent/model-invocation-core';
 import { MemorySessionAdapter } from '@ta-agent/base-local-adapters';
 import { DEFAULT_REQUEST_POLICY, NO_REQUEST_TIMEOUT } from '@ta-agent/base-request';
 import { runWithExecutionTimeout } from '@ta-agent/workflow-core';
@@ -37,7 +37,7 @@ describe('Request timeout', () => {
             'abort',
             () => {
               reject(
-                new AgentModelError('MODEL_INVOCATION_TIMEOUT', 'Model invocation timed out.')
+                new ModelInvocationError('MODEL_INVOCATION_TIMEOUT', 'Model invocation timed out.')
               );
             },
             { once: true }

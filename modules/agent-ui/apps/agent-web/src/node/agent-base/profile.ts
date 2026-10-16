@@ -18,8 +18,8 @@ import {
   BUILT_IN_RESPONSIBILITIES,
   MAIN_ACTOR_ID,
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
-  type ActorEngine,
 } from '@ta-agent/base-actor';
+import { type ActorEngine } from '@ta-agent/model-invocation-core';
 import {
   createMemorySessionPersistence,
   createSqliteSessionPersistence,

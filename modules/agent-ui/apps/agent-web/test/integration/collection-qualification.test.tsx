@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { defineActorEngine, type ActorEngine } from '@ta-agent/base-actor';
+import { defineActorEngine, type ActorEngine } from '@ta-agent/model-invocation-core';
 import { beforeAll, afterAll, afterEach, expect, it } from 'vitest';
 import { LocalCollectionApplication } from '../../src/application/collection-composition.js';
 import { createDirectoryCollectionHost } from '../../src/node/collections/directory-host.js';

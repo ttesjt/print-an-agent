@@ -1,5 +1,6 @@
 import { AgentActorError, SESSION_COMPACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
-import type { ContextModelMessage, ModelMessage } from '@ta-agent/base-model';
+import { ActorError } from '@ta-agent/model-invocation-core';
+import type { ContextModelMessage, ModelMessage } from '@ta-agent/model-invocation-core';
 import { runWithExecutionTimeout, type StepOverrides } from '@ta-agent/workflow-core';
 import { AgentSessionError } from '../../errors.js';
 import { supportsSessionExecution } from '../../lifecycle/execution.js';
@@ -149,7 +150,7 @@ async function buildCompactedContext(context: SessionCompactionWorkflowContext):
         { cause }
       );
     }
-    if (cause instanceof AgentActorError) {
+    if (cause instanceof AgentActorError || cause instanceof ActorError) {
       if (cause.code === 'ACTOR_INVOCATION_TIMEOUT') throw cause;
       throw new AgentSessionError(
         'SESSION_COMPACTION_RUNTIME_FAILED',

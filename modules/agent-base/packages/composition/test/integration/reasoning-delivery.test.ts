@@ -1,4 +1,4 @@
-import type { AgentLoopEventSink } from '@ta-agent/base-model';
+import type { ModelInteractionEventSink } from '@ta-agent/model-invocation-core';
 import { DEFAULT_REQUEST_POLICY } from '@ta-agent/base-request';
 import { describe, expect, it, vi } from 'vitest';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';
@@ -12,7 +12,7 @@ describe('reasoning delivery lifecycle', () => {
       const emitted = Promise.withResolvers<void>();
       const release = Promise.withResolvers<void>();
       const calls: string[] = [];
-      let engineEmit: AgentLoopEventSink | undefined;
+      let engineEmit: ModelInteractionEventSink | undefined;
       const fixture = await interactionAgent(
         async (request) => {
           engineEmit = request.emit;

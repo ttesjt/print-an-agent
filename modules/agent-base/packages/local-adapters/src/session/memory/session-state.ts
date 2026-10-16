@@ -3,7 +3,7 @@ import {
   defineAssistantModelMessage,
   type ContextModelMessage,
   type ModelMessage,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import {
   AgentSessionError,
   MAX_SESSION_COMPACTION_CHARACTERS,

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { parseAgentId } from '@ta-agent/base-identity';
-import { defineAssistantModelMessage } from '@ta-agent/base-model';
+import { defineAssistantModelMessage } from '@ta-agent/model-invocation-core';
 import {
   parseSessionBranchId,
   parseSessionId,

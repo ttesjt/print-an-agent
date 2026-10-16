@@ -1,10 +1,6 @@
 import type {
   ToolCallId,
-  ToolCallProposal,
   ToolDefinition,
-  ToolDescriptor,
-  ToolExecutionOutcome,
-  ToolExecutionOptions,
   ToolExecutionPolicy,
   ToolName,
   ToolPermissionPolicy,
@@ -12,9 +8,15 @@ import type {
   ToolRunInspection,
   ToolRunRecord,
   ToolRuntime,
+} from '../contracts.js';
+import type {
+  ToolCallProposal,
+  ToolDescriptor,
+  ToolExecutionOutcome,
+  ToolExecutionOptions,
   ToolSchemaValue,
   ToolObjectSchema,
-} from '../contracts.js';
+} from '@ta-agent/model-invocation-core';
 import { AgentToolError, type AgentToolErrorCode } from '../errors.js';
 import { validateToolExecutionPolicy } from '../execution-policy.js';
 import { resolveEffectiveTools } from '../permission-policy.js';

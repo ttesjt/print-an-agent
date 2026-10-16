@@ -6,7 +6,7 @@ import {
   type OutputSink,
   type OutputStreamEvent,
 } from '@ta-agent/base-request';
-import { defineAssistantModelMessage } from '@ta-agent/base-model';
+import { defineAssistantModelMessage } from '@ta-agent/model-invocation-core';
 
 export type MemoryOutputSnapshot =
   | Readonly<{ status: 'pending'; events: readonly OutputStreamEvent[] }>

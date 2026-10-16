@@ -1,4 +1,4 @@
-import { AgentModelError, type AgentLoopEvent } from '@ta-agent/base-model';
+import { ModelInvocationError, type ModelInteractionEvent } from '@ta-agent/model-invocation-core';
 import {
   AgentSessionError,
   defineSessionTurnPresentation,
@@ -11,7 +11,7 @@ import { requireValue } from '../default/context-value.js';
 import {
   countOutputCharacters,
   traceAgentLoopCompleted,
-  traceAgentLoopEvent,
+  traceModelInteractionEvent,
   traceAgentLoopFailed,
   traceAgentLoopStarted,
   traceOutputFailed,
@@ -29,13 +29,13 @@ import {
 
 function createEventAccounting(
   context: DefaultRequestWorkflowContext
-): (event: AgentLoopEvent) => void {
+): (event: ModelInteractionEvent) => void {
   let reasoningCharacters = 0;
   return (event) => {
     if (event.type === 'reasoning-delta') {
       reasoningCharacters += event.delta.length;
       if (reasoningCharacters > context.resources.policy.maxReasoningCharacters) {
-        throw new AgentModelError(
+        throw new ModelInvocationError(
           'MODEL_REASONING_LIMIT_EXCEEDED',
           'Request interaction reasoning exceeded its character budget.'
         );
@@ -47,7 +47,7 @@ function createEventAccounting(
         ? event.message.text.length
         : (context.state.outputCharacterCount ?? 0);
     if (characters > context.resources.policy.maxOutputCharacters) {
-      throw new AgentModelError(
+      throw new ModelInvocationError(
         'MODEL_OUTPUT_LIMIT_EXCEEDED',
         'Request interaction output exceeded its character budget.'
       );
@@ -62,7 +62,7 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
     capacity: context.resources.policy.maxPendingInteractionEvents,
     dispatch: async (event) => {
       accountEvent(event);
-      await traceAgentLoopEvent(context, event);
+      await traceModelInteractionEvent(context, event);
       delivery.assertHealthy();
       await context.runStep('dispatchInteractionEvent');
     },
@@ -143,7 +143,7 @@ async function openResponseStream(context: DefaultRequestWorkflowContext): Promi
   const signal = requireInteraction(context).signal;
   if (signal.aborted) {
     const timedOut = signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError';
-    throw new AgentModelError(
+    throw new ModelInvocationError(
       timedOut ? 'MODEL_INVOCATION_TIMEOUT' : 'MODEL_INVOCATION_CANCELLED',
       timedOut ? 'Request interaction timed out.' : 'Request interaction was cancelled.'
     );
@@ -217,7 +217,7 @@ async function completeAssistantMessage(context: DefaultRequestWorkflowContext):
     presentation.reasoningBlocks.reduce((sum, block) => sum + block.text.length, 0) >
     context.resources.policy.maxReasoningCharacters
   ) {
-    throw new AgentModelError(
+    throw new ModelInvocationError(
       'MODEL_REASONING_LIMIT_EXCEEDED',
       'Reasoning presentation exceeded the request character budget.'
     );

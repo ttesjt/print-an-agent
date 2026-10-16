@@ -1,8 +1,8 @@
-import type { ActorInvocationConfig } from '@ta-agent/base-actor';
-import type { ModelMessage } from '@ta-agent/base-model';
+import type { ActorInvocationConfig } from '@ta-agent/model-invocation-core';
+import type { ModelMessage } from '@ta-agent/model-invocation-core';
 
 export interface DeterministicProviderRequestSnapshot {
-  readonly kind: 'agent-loop' | 'direct';
+  readonly kind: 'agent-loop' | 'direct' | 'stream';
   readonly callIndex: number;
   readonly instructions: string;
   readonly invocationConfig: ActorInvocationConfig;

@@ -1,13 +1,17 @@
-import type { AgentLoopEvent, AgentLoopEventSink, AgentLoopResult } from '@ta-agent/base-model';
+import type {
+  ModelInteractionEvent,
+  ModelInteractionEventSink,
+  ModelInteractionResult,
+} from '@ta-agent/model-invocation-core';
 import type { DefaultRequestWorkflowContext } from '../default/context.js';
 import { AgentRequestError } from '../errors.js';
 
 /** Shared interaction state; currentEvent is available only during its awaited dispatch. */
 export interface RequestInteractionState {
   readonly signal: AbortSignal;
-  readonly emit: AgentLoopEventSink;
-  readonly currentEvent: AgentLoopEvent | undefined;
-  result: AgentLoopResult | undefined;
+  readonly emit: ModelInteractionEventSink;
+  readonly currentEvent: ModelInteractionEvent | undefined;
+  result: ModelInteractionResult | undefined;
 }
 
 export function requireInteraction(
@@ -22,12 +26,12 @@ export function requireInteraction(
   return context.state.interaction;
 }
 
-export function requireInteractionEvent<T extends AgentLoopEvent['type']>(
+export function requireInteractionEvent<T extends ModelInteractionEvent['type']>(
   context: {
     readonly state: { readonly interaction?: Pick<RequestInteractionState, 'currentEvent'> };
   },
   type: T
-): Extract<AgentLoopEvent, { readonly type: T }> {
+): Extract<ModelInteractionEvent, { readonly type: T }> {
   const event = context.state.interaction?.currentEvent;
   if (event === undefined || event.type !== type) {
     throw new AgentRequestError(
@@ -35,5 +39,5 @@ export function requireInteractionEvent<T extends AgentLoopEvent['type']>(
       `Interaction Step requires a current "${type}" event.`
     );
   }
-  return event as Extract<AgentLoopEvent, { readonly type: T }>;
+  return event as Extract<ModelInteractionEvent, { readonly type: T }>;
 }

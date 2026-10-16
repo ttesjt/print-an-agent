@@ -4,7 +4,7 @@ import {
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
 } from '@ta-agent/base-actor';
-import { createPiFauxRuntime } from '@ta-agent/base-pi';
+import { createPiFauxRuntime } from '@ta-agent/model-invocation-pi';
 import {
   createDefaultRequestStepOverrides,
   createRequestWorkflow,

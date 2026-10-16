@@ -1,5 +1,6 @@
 import { isAbsolute } from 'node:path';
-import { defineActor, type ActorInvocationConfig } from '@ta-agent/base-actor';
+import { defineAgentActor } from '@ta-agent/base-actor';
+import { type ActorInvocationConfig } from '@ta-agent/model-invocation-core';
 import { defineProviderConfig } from '@ta-agent/base-composition';
 import type { AgentConfigCodec, ConfigValue } from '@ta-agent/base-config';
 import { defineAgentIdentity, type AgentIdentity } from '@ta-agent/base-identity';
@@ -117,7 +118,7 @@ function parseInvocationConfig(value: unknown): ActorInvocationConfig {
   if (maxOutputTokens !== undefined && typeof maxOutputTokens !== 'number') {
     throw new AgentBaseStandaloneError('Standalone Actor maxOutputTokens must be a number.');
   }
-  const definition = defineActor({
+  const definition = defineAgentActor({
     id: 'main',
     engineId: 'standalone-config-validation',
     invocationConfig: {
@@ -140,7 +141,7 @@ function parseMainActor(value: unknown): StandaloneMainActorConfig {
   if (instructions !== undefined && typeof instructions !== 'string') {
     throw new AgentBaseStandaloneError('Standalone main Actor instructions must be a string.');
   }
-  const definition = defineActor({
+  const definition = defineAgentActor({
     id: 'main',
     engineId: 'standalone-config-validation',
     ...(instructions === undefined ? {} : { instructions }),

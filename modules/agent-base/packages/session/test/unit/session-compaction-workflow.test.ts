@@ -3,16 +3,15 @@ import {
   createActorCatalog,
   createResponsibilityCatalog,
   createResponsibilityRouter,
-  defineActorEngine,
   MAIN_ACTOR_ID,
-  type ActorDirectHandler,
 } from '@ta-agent/base-actor';
+import { defineActorEngine, type ActorDirectHandler } from '@ta-agent/model-invocation-core';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import {
   defineAssistantModelMessage,
   defineProviderModelExecutionProvenance,
   defineProviderModelReference,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import { RUN_WORKFLOW } from '@ta-agent/workflow-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {

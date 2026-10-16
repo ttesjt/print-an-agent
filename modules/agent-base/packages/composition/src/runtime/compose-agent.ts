@@ -1,4 +1,5 @@
-import { createResponsibilityRouter, MAIN_ACTOR_ID, type ActorId } from '@ta-agent/base-actor';
+import { createResponsibilityRouter, MAIN_ACTOR_ID } from '@ta-agent/base-actor';
+import { type ActorId } from '@ta-agent/model-invocation-core';
 import { defineAgentIdentity } from '@ta-agent/base-identity';
 import { NOOP_AGENT_TRACE_SINK } from '@ta-agent/base-observability';
 import {

@@ -1,4 +1,4 @@
-import type { AgentLoopEventSink } from '@ta-agent/base-model';
+import type { ModelInteractionEventSink } from '@ta-agent/model-invocation-core';
 import {
   DEFAULT_REQUEST_POLICY,
   requireInteractionEvent,
@@ -81,7 +81,7 @@ describe('interaction Composite Steps', () => {
   it('drains concurrent, unawaited emits before terminal commit and rejects late Engine emission', async () => {
     const started = Promise.withResolvers<void>();
     const release = Promise.withResolvers<void>();
-    let lateEmit: AgentLoopEventSink | undefined;
+    let lateEmit: ModelInteractionEventSink | undefined;
     const fixture = await interactionAgent((request) => {
       lateEmit = request.emit;
       void request.emit({ type: 'text-delta', delta: 'A' });

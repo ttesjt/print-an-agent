@@ -2,7 +2,7 @@ import type {
   ActorInvocationConfig,
   ActorInvocationPolicy,
   ActorInvocationPolicyInput,
-} from '@ta-agent/base-actor';
+} from '@ta-agent/model-invocation-core';
 import type {
   ComposeAgentOptions,
   composeAgent,
@@ -13,7 +13,7 @@ import type { AgentIdentity, AgentIdentityInput } from '@ta-agent/base-identity'
 import type {
   ProviderTransportLivenessPolicy,
   ProviderTransportLivenessPolicyInput,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import type { RequestPolicy } from '@ta-agent/base-request';
 import type { SessionCompactionPolicy } from '@ta-agent/base-session';
 import type {

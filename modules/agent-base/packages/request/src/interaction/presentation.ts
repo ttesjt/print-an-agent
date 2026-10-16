@@ -1,4 +1,4 @@
-import { AgentModelError } from '@ta-agent/base-model';
+import { ModelInvocationError } from '@ta-agent/model-invocation-core';
 import {
   AgentSessionError,
   defineSessionTurnPresentation,
@@ -73,7 +73,7 @@ export function buildTurnPresentation(context: DefaultRequestWorkflowContext): P
 
 function assertPresentationSize(context: DefaultRequestWorkflowContext, characters: number): void {
   if (characters > context.resources.policy.maxReasoningCharacters) {
-    throw new AgentModelError(
+    throw new ModelInvocationError(
       'MODEL_REASONING_LIMIT_EXCEEDED',
       'Reasoning presentation exceeded the request character budget.'
     );

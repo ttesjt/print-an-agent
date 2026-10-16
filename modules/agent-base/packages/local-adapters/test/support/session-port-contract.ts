@@ -7,7 +7,7 @@ import {
   defineProviderModelReference,
   type AssistantModelMessage,
   type UserModelMessage,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import { describe, expect, it } from 'vitest';
 import {
   AgentSessionError,

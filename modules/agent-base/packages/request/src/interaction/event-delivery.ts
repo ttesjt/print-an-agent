@@ -1,14 +1,14 @@
 import {
-  AgentModelError,
-  type AgentLoopEvent,
-  type AgentLoopEventSink,
-} from '@ta-agent/base-model';
+  ModelInvocationError,
+  type ModelInteractionEvent,
+  type ModelInteractionEventSink,
+} from '@ta-agent/model-invocation-core';
 import { AgentRequestError } from '../errors.js';
 
 interface InteractionEventDeliveryOptions {
   readonly signal: AbortSignal;
   readonly capacity: number;
-  readonly dispatch: AgentLoopEventSink;
+  readonly dispatch: ModelInteractionEventSink;
 }
 
 /** Owns accepted work until it settles, even if the Engine ignores an emit Promise. */
@@ -19,8 +19,8 @@ export class InteractionEventDelivery {
   #pending = 0;
   #accepting = true;
   #failure: { readonly cause: unknown } | undefined;
-  #cancellation: AgentModelError | undefined;
-  #currentEvent: AgentLoopEvent | undefined;
+  #cancellation: ModelInvocationError | undefined;
+  #currentEvent: ModelInteractionEvent | undefined;
 
   constructor(options: InteractionEventDeliveryOptions) {
     if (!Number.isSafeInteger(options.capacity) || options.capacity < 1) {
@@ -37,14 +37,14 @@ export class InteractionEventDelivery {
   get signal(): AbortSignal {
     return this.#controller.signal;
   }
-  get currentEvent(): AgentLoopEvent | undefined {
+  get currentEvent(): ModelInteractionEvent | undefined {
     return this.#currentEvent;
   }
 
   readonly #onAbort = (): void => {
     const reason = this.#options.signal.reason as unknown;
     const timedOut = reason instanceof DOMException && reason.name === 'TimeoutError';
-    this.#cancellation = new AgentModelError(
+    this.#cancellation = new ModelInvocationError(
       timedOut ? 'MODEL_INVOCATION_TIMEOUT' : 'MODEL_INVOCATION_CANCELLED',
       timedOut ? 'Request interaction timed out.' : 'Request interaction was cancelled.'
     );
@@ -54,7 +54,7 @@ export class InteractionEventDelivery {
     this.#controller.abort(reason);
   };
 
-  readonly emit: AgentLoopEventSink = (event) => {
+  readonly emit: ModelInteractionEventSink = (event) => {
     if (this.#failure !== undefined) return this.#reject(this.#failure.cause);
     if (this.#cancellation !== undefined) return this.#reject(this.#cancellation);
     if (!this.#accepting) {

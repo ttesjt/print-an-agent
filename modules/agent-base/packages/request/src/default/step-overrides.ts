@@ -1,5 +1,5 @@
 import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
-import type { AgentLoopEvent } from '@ta-agent/base-model';
+import type { ModelInteractionEvent } from '@ta-agent/model-invocation-core';
 import { parseSessionId, parseTurnId, supportsSessionExecution } from '@ta-agent/base-session';
 import { createBoundedToolRuntime, defineToolPermissionPolicy } from '@ta-agent/base-tool';
 import { SKIP_STEP, type StepOverrides } from '@ta-agent/workflow-core';
@@ -267,7 +267,7 @@ function buildModelContext(context: DefaultRequestWorkflowContext): Promise<void
     maxModelTurns: context.resources.policy.maxModelTurns,
     maxOutputCharacters: context.resources.policy.maxOutputCharacters,
     signal: context.signal,
-    emit: (event: AgentLoopEvent) => requireInteraction(context).emit(event),
+    emit: (event: ModelInteractionEvent) => requireInteraction(context).emit(event),
   });
   return Promise.resolve();
 }

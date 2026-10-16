@@ -1,4 +1,7 @@
+import type { ModelToolProtocolErrorCode } from '@ta-agent/model-invocation-core';
+
 export type AgentToolErrorCode =
+  | ModelToolProtocolErrorCode
   | 'TOOL_DEFINITION_INVALID'
   | 'TOOL_SCHEMA_INVALID'
   | 'TOOL_REGISTRY_DUPLICATE'
@@ -8,9 +11,7 @@ export type AgentToolErrorCode =
   | 'TOOL_CALL_ID_INVALID'
   | 'TOOL_CALL_DUPLICATE'
   | 'TOOL_CALL_BUDGET_EXCEEDED'
-  | 'TOOL_NOT_AUTHORIZED'
   | 'TOOL_ARGUMENTS_TOO_LARGE'
-  | 'TOOL_ARGUMENTS_INVALID'
   | 'TOOL_EXECUTION_CANCELLED'
   | 'TOOL_EXECUTION_TIMEOUT'
   | 'TOOL_RESULT_INVALID'

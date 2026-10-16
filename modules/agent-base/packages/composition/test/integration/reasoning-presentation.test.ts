@@ -1,5 +1,5 @@
 import { MemoryOutputSink, MemorySessionAdapter } from '@ta-agent/base-local-adapters';
-import type { ActorInteractionRequest } from '@ta-agent/base-actor';
+import type { ActorInteractionRequest } from '@ta-agent/model-invocation-core';
 import {
   AgentSessionError,
   MAX_SESSION_PRESENTATION_CHARACTERS,

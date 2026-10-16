@@ -32,7 +32,7 @@
     "@ta-agent/base-observability": "workspace:*",
     "@ta-agent/base-actor": "workspace:*",
     "@ta-agent/base-identity": "workspace:*",
-    "@ta-agent/base-model": "workspace:*",
+    "@ta-agent/model-invocation-core": "workspace:*",
     "@ta-agent/base-runtime": "workspace:*",
     "@ta-agent/workflow-core": "workspace:*"
   },

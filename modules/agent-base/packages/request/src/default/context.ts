@@ -1,9 +1,6 @@
-import type {
-  ActorInteractionRequest,
-  ResolvedResponsibility,
-  ResponsibilityRouter,
-} from '@ta-agent/base-actor';
-import type { ModelMessage, UserModelMessage } from '@ta-agent/base-model';
+import type { ResolvedResponsibility, ResponsibilityRouter } from '@ta-agent/base-actor';
+import type { ActorInteractionRequest } from '@ta-agent/model-invocation-core';
+import type { ModelMessage, UserModelMessage } from '@ta-agent/model-invocation-core';
 import type {
   ActiveSessionTurn,
   ResolvedSessionReference,

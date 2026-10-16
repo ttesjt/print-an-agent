@@ -3,15 +3,15 @@ import {
   MAIN_ACTOR_ID,
   createActorCatalog,
   createResponsibilityCatalog,
-  type ActorEngineInteractionRequest,
 } from '@ta-agent/base-actor';
+import { type ActorEngineInteractionRequest } from '@ta-agent/model-invocation-core';
 import { composeAgent, createAgentAPI } from '@ta-agent/base-composition';
 import { MemoryAgentTraceAdapter, MemoryOutputSink } from '@ta-agent/base-local-adapters';
 import {
-  AgentModelError,
+  ModelInvocationError,
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import type { DefaultRequestWorkflowContext } from '@ta-agent/base-request';
 import { createToolRegistry, defineTool } from '@ta-agent/base-tool';
 import { describe, expect, it, vi } from 'vitest';
@@ -38,7 +38,7 @@ function createAssistantMessage(text: string) {
 
 async function interact(request: ActorEngineInteractionRequest) {
   if (request.signal.aborted) {
-    throw new AgentModelError('MODEL_INVOCATION_CANCELLED', 'Consumer Engine was cancelled.');
+    throw new ModelInvocationError('MODEL_INVOCATION_CANCELLED', 'Consumer Engine was cancelled.');
   }
   await request.emit({ type: 'interaction-start' });
   await request.emit({ type: 'turn-start' });
@@ -85,7 +85,7 @@ function createConsumerAgent(interaction: typeof interact = interact) {
         interact: interaction,
         complete: ({ signal }) => {
           if (signal.aborted) {
-            throw new AgentModelError(
+            throw new ModelInvocationError(
               'MODEL_INVOCATION_CANCELLED',
               'Consumer Engine was cancelled.'
             );
@@ -184,7 +184,10 @@ describe('public Agent integration', () => {
           'abort',
           () => {
             reject(
-              new AgentModelError('MODEL_INVOCATION_CANCELLED', 'Consumer Engine was cancelled.')
+              new ModelInvocationError(
+                'MODEL_INVOCATION_CANCELLED',
+                'Consumer Engine was cancelled.'
+              )
             );
           },
           { once: true }

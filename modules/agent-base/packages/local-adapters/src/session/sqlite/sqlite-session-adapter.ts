@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { parseAgentId } from '@ta-agent/base-identity';
 import type { DatabaseSync } from 'node:sqlite';
-import type { ModelMessage } from '@ta-agent/base-model';
+import type { ModelMessage } from '@ta-agent/model-invocation-core';
 import {
   parseSessionId,
   parseTurnId,

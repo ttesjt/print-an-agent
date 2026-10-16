@@ -10,7 +10,7 @@ import {
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import {
   createSharedSqliteStandaloneManagementService,
   createSharedSqliteStandaloneSessionNavigationService,

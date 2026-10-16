@@ -3,10 +3,12 @@ import type {
   ToolDefinition,
   ToolExecutionRequest,
   ToolName,
+} from './contracts.js';
+import type {
   ToolObjectSchema,
   ToolSchemaValue,
   ToolValueSchema,
-} from './contracts.js';
+} from '@ta-agent/model-invocation-core';
 import { AgentToolError } from './errors.js';
 
 const TOOL_NAME_MAX_LENGTH = 64;

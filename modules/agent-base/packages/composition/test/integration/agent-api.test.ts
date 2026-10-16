@@ -11,11 +11,11 @@ import {
   type ResponsibilityDefinitionInput,
 } from '@ta-agent/base-actor';
 import {
-  AgentModelError,
+  ModelInvocationError,
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
   type AssistantModelMessage,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import {
   MemoryAgentTraceAdapter,
   MemoryOutputSink,
@@ -669,7 +669,7 @@ describe('assembled Agent Base request path', () => {
         { signal: controller.signal }
       )
     ).rejects.toEqual(
-      expect.objectContaining<Partial<AgentModelError>>({
+      expect.objectContaining<Partial<ModelInvocationError>>({
         code: 'MODEL_INVOCATION_CANCELLED',
       })
     );
@@ -728,7 +728,7 @@ describe('assembled Agent Base request path', () => {
         outputSink: sink,
       })
     ).rejects.toEqual(
-      expect.objectContaining<Partial<AgentModelError>>({ code: 'MODEL_PROVIDER_FAILED' })
+      expect.objectContaining<Partial<ModelInvocationError>>({ code: 'MODEL_PROVIDER_FAILED' })
     );
     expect(sink.inspect()).toMatchObject({ status: 'failed' });
     expect(
@@ -856,7 +856,7 @@ describe('assembled Agent Base request path', () => {
     expect(received).toBeInstanceOf(AggregateError);
     const aggregate = received as AggregateError;
     expect(aggregate.errors[0]).toEqual(
-      expect.objectContaining<Partial<AgentModelError>>({ code: 'MODEL_PROVIDER_FAILED' })
+      expect.objectContaining<Partial<ModelInvocationError>>({ code: 'MODEL_PROVIDER_FAILED' })
     );
     expect(aggregate.errors[1]).toEqual(expect.objectContaining({ message: 'fail failed' }));
   });
@@ -1388,7 +1388,7 @@ describe('assembled Agent Base request path', () => {
                   request.signal.reason instanceof DOMException &&
                   request.signal.reason.name === 'TimeoutError';
                 reject(
-                  new AgentModelError(
+                  new ModelInvocationError(
                     timedOut ? 'MODEL_INVOCATION_TIMEOUT' : 'MODEL_INVOCATION_CANCELLED',
                     timedOut ? 'timed out' : 'cancelled'
                   )

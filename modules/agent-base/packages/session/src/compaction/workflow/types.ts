@@ -1,6 +1,6 @@
 import type { ResolvedResponsibility, ResponsibilityRouter } from '@ta-agent/base-actor';
 import type { AgentIdentity } from '@ta-agent/base-identity';
-import type { ContextModelMessage } from '@ta-agent/base-model';
+import type { ContextModelMessage } from '@ta-agent/model-invocation-core';
 import type { BaseAgentRunContext } from '@ta-agent/base-runtime';
 import type { WorkflowContext, WorkflowDefinition } from '@ta-agent/workflow-core';
 import type { SessionBranchId, SessionSnapshot } from '../../types.js';

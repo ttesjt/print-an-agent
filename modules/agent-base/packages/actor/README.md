@@ -1,10 +1,15 @@
 # `@ta-agent/base-actor`
 
-Agent Base-owned LLM Actor invocation and Responsibility routing.
+Agent Base Actor permissions and Responsibility routing over `@ta-agent/model-invocation-core`.
 
 An Actor is a named callable LLM participant backed by a replaceable Engine. A Responsibility is a
 registered semantic reason for an LLM call with an ordered configurable Actor candidate list.
 Workflow and Step remain the execution-planning authority.
+
+The independent invocation module owns Actor/Engine definitions, technical capabilities, messages,
+invocation deadlines and Engine protocol integrity. This package adds Agent-owned tool permissions
+and Responsibility selection. `defineAgentActor()` and the Agent Actor catalog compose those
+permissions with the same underlying Actor; they do not create another invocation implementation.
 
 The package contains no provider SDK and has no knowledge of Model Workbench or application runtimes.
 
@@ -15,6 +20,10 @@ Tool permission; omitted Actor and Responsibility Tool lists deny access.
 Interaction-capable Engines declare `interaction.streamable`; direct-only Engines carry no
 streamability field. The declaration is a routing promise that the interaction handler can emit
 incremental events, not a call-time switch. Direct completion is currently buffered.
+
+Single-generation Streaming is an independent Core capability with invocation mode `stream`.
+A Responsibility may select it explicitly; its optional `stream()` projection retains Responsibility
+instruction composition. Existing Completion/Interaction Engines need no additional method.
 
 Each Actor owns an independent `invocationPolicy`. Its `timeoutMilliseconds` is either a supported
 positive integer or `NO_ACTOR_INVOCATION_TIMEOUT`; omission and the standard default both mean no

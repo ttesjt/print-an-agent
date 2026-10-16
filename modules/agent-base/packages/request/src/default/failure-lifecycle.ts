@@ -1,5 +1,6 @@
 import { AgentActorError } from '@ta-agent/base-actor';
-import { AgentModelError } from '@ta-agent/base-model';
+import { ActorError } from '@ta-agent/model-invocation-core';
+import { ModelInvocationError } from '@ta-agent/model-invocation-core';
 import { AgentToolError } from '@ta-agent/base-tool';
 import { AgentSessionError, supportsSessionExecution } from '@ta-agent/base-session';
 import type { OutputFailure } from '../contracts.js';
@@ -11,7 +12,8 @@ function failureFrom(error: unknown): OutputFailure {
   if (error instanceof RequestReplayFailedError) return error.originalFailure;
   if (
     error instanceof AgentActorError ||
-    error instanceof AgentModelError ||
+    error instanceof ActorError ||
+    error instanceof ModelInvocationError ||
     error instanceof AgentRequestError ||
     error instanceof AgentToolError ||
     error instanceof AgentSessionError

@@ -1,5 +1,5 @@
 import { AgentSessionError } from '@ta-agent/base-session';
-import type { AgentLoopEvent } from '@ta-agent/base-model';
+import type { ModelInteractionEvent } from '@ta-agent/model-invocation-core';
 import {
   createDefaultRequestStepOverrides,
   createRequestStepDefinitions,
@@ -65,7 +65,7 @@ export class WebStreamSink implements OutputSink {
   fail(): Promise<void> {
     return Promise.resolve();
   }
-  async loopEvent(event: AgentLoopEvent): Promise<void> {
+  async loopEvent(event: ModelInteractionEvent): Promise<void> {
     if (event.type !== 'tool-call-start' && event.type !== 'tool-call-end') return;
     const activity: ConversationToolActivity = {
       callId: event.callId,

@@ -1,216 +1,49 @@
-import { type AgentLoopResult } from '@ta-agent/base-model';
+import {
+  defineActor as defineModelActor,
+  type ActorDefinition as ModelActorDefinition,
+  type ActorDefinitionInput as ModelActorDefinitionInput,
+  type ResolvedActor as ResolvedModelActor,
+} from '@ta-agent/model-invocation-core';
 import { parseToolName, type ToolName } from '@ta-agent/base-tool';
-import {
-  defineActorCapabilityLimits,
-  narrowActorCapabilities,
-  type ActorCapabilityLimits,
-  type ActorEngineCapabilities,
-} from './capabilities.js';
-import {
-  defineActorInvocationConfig,
-  type ActorDirectRequest,
-  type ActorDirectResult,
-  type ActorEngine,
-  type ActorInteractionRequest,
-  type ActorInvocationConfig,
-} from './engine.js';
 import { AgentActorError } from './errors.js';
-import {
-  defineActorInvocationPolicy,
-  type ActorInvocationPolicy,
-  type ActorInvocationPolicyInput,
-} from './invocation-policy.js';
-import { runActorInvocation } from './invocation-timeout.js';
-import { bindInteractionTools } from './interaction-tools.js';
-import {
-  parseActorEngineId,
-  parseActorId,
-  type ActorEngineId,
-  type ActorId,
-} from './identifiers.js';
-import { composeActorInstructions, parseActorInstructions } from './instructions.js';
-import { createActorInteractionProtocol, normalizeActorDirectResult } from './engine-protocol.js';
 
-export interface ActorDefinitionInput {
-  readonly id: string;
-  readonly engineId: string;
-  readonly instructions?: string;
-  readonly invocationConfig?: ActorInvocationConfig;
-  readonly invocationPolicy?: ActorInvocationPolicyInput;
-  readonly capabilityLimits?: ActorCapabilityLimits;
+export interface ActorDefinitionInput extends ModelActorDefinitionInput {
   readonly allowedTools?: readonly string[];
 }
-
-export interface ActorDefinition {
-  readonly id: ActorId;
-  readonly engineId: ActorEngineId;
-  readonly instructions?: string;
-  readonly invocationConfig: ActorInvocationConfig;
-  readonly invocationPolicy: ActorInvocationPolicy;
-  readonly capabilityLimits?: ActorCapabilityLimits;
+export interface ActorDefinition extends ModelActorDefinition {
   readonly allowedTools: readonly ToolName[];
 }
-
-export interface ResolvedActor {
-  readonly id: ActorId;
-  readonly engineId: ActorEngineId;
+export interface ResolvedActor extends ResolvedModelActor {
   readonly catalogRevision: number;
-  readonly capabilities: ActorEngineCapabilities;
   readonly allowedTools: readonly ToolName[];
-  interact(request: ActorInteractionRequest): Promise<AgentLoopResult>;
-  complete(request: ActorDirectRequest): Promise<ActorDirectResult>;
 }
 
-const ACTOR_KEYS = Object.freeze([
-  'id',
-  'engineId',
-  'instructions',
-  'invocationConfig',
-  'invocationPolicy',
-  'capabilityLimits',
-  'allowedTools',
-]);
-
-function parseAllowedTools(values: readonly string[] | undefined): readonly ToolName[] {
-  if (values === undefined) return Object.freeze([]);
-  if (!Array.isArray(values)) {
+/** Agent-owned permission policy layered over the independent Actor definition. */
+export function defineAgentActor(input: ActorDefinitionInput): ActorDefinition {
+  if (typeof input !== 'object' || input === null) {
+    throw new AgentActorError(
+      'ACTOR_DEFINITION_INVALID',
+      'Agent Actor definition must be an object.'
+    );
+  }
+  const { allowedTools, ...modelInput } = input;
+  const definition = defineModelActor(modelInput);
+  if (allowedTools !== undefined && !Array.isArray(allowedTools)) {
     throw new AgentActorError('ACTOR_DEFINITION_INVALID', 'Actor allowedTools must be an array.');
   }
-  let parsed: readonly ToolName[];
   try {
-    parsed = values.map(parseToolName);
-  } catch (cause: unknown) {
-    throw new AgentActorError(
-      'ACTOR_DEFINITION_INVALID',
-      'Actor allowedTools contains an invalid Tool name.',
-      { cause }
-    );
-  }
-  if (new Set(parsed).size !== parsed.length) {
-    throw new AgentActorError(
-      'ACTOR_DEFINITION_INVALID',
-      'Actor allowedTools contains duplicates.'
-    );
-  }
-  return Object.freeze(parsed);
-}
-
-export function defineActor(input: ActorDefinitionInput): ActorDefinition {
-  if (typeof input !== 'object' || input === null) {
-    throw new AgentActorError('ACTOR_DEFINITION_INVALID', 'Actor definition must be an object.');
-  }
-  const unexpected = Object.keys(input).find((key) => !ACTOR_KEYS.includes(key));
-  if (unexpected !== undefined) {
-    throw new AgentActorError(
-      'ACTOR_DEFINITION_INVALID',
-      `Actor definition contains unsupported field "${unexpected}".`
-    );
-  }
-  const instructions = parseActorInstructions(input.instructions, 'Actor instructions');
-  const capabilityLimits =
-    input.capabilityLimits === undefined
-      ? undefined
-      : defineActorCapabilityLimits(input.capabilityLimits);
-  return Object.freeze({
-    id: parseActorId(input.id),
-    engineId: parseActorEngineId(input.engineId),
-    ...(instructions === undefined ? {} : { instructions }),
-    invocationConfig: defineActorInvocationConfig(input.invocationConfig),
-    invocationPolicy: defineActorInvocationPolicy(input.invocationPolicy),
-    ...(capabilityLimits === undefined ? {} : { capabilityLimits }),
-    allowedTools: parseAllowedTools(input.allowedTools),
-  });
-}
-
-export function resolveActor(
-  definition: ActorDefinition,
-  engine: ActorEngine,
-  catalogRevision: number
-): ResolvedActor {
-  if (definition.engineId !== engine.id) {
-    throw new AgentActorError(
-      'ACTOR_ENGINE_NOT_FOUND',
-      `Actor "${definition.id}" references unavailable Engine "${definition.engineId}".`
-    );
-  }
-  const capabilities = narrowActorCapabilities(engine.capabilities, definition.capabilityLimits);
-  return Object.freeze({
-    id: definition.id,
-    engineId: definition.engineId,
-    catalogRevision,
-    capabilities,
-    allowedTools: definition.allowedTools,
-    async interact(request: ActorInteractionRequest): Promise<AgentLoopResult> {
-      const interact = engine.interact;
-      if (!capabilities.invocationModes.includes('interaction') || interact === undefined) {
-        throw new AgentActorError(
-          'ACTOR_INVOCATION_UNSUPPORTED',
-          `Actor "${definition.id}" does not support interaction invocation.`
-        );
-      }
-      if (request.tools.tools.length > 0 && !capabilities.toolCalling) {
-        throw new AgentActorError(
-          'ACTOR_INVOCATION_UNSUPPORTED',
-          `Actor "${definition.id}" does not support Tool calls.`
-        );
-      }
-      return runActorInvocation(
-        {
-          actorId: definition.id,
-          invocationKind: 'interact',
-          parentSignal: request.signal,
-          policy: definition.invocationPolicy,
-        },
-        async (signal, assertWithinDeadline) => {
-          const protocol = createActorInteractionProtocol((event) => {
-            assertWithinDeadline();
-            return request.emit(event);
-          }, request.maxModelTurns);
-          let result: unknown;
-          try {
-            result = await interact({
-              ...request,
-              tools: bindInteractionTools(request.tools, signal),
-              instructions: composeActorInstructions(definition.instructions, request.instructions),
-              invocationConfig: definition.invocationConfig,
-              signal,
-              emit: protocol.emit,
-            });
-          } catch (cause: unknown) {
-            protocol.assertValid();
-            throw cause;
-          } finally {
-            protocol.close();
-          }
-          return protocol.complete(result);
-        }
+    const parsed = (allowedTools ?? []).map(parseToolName);
+    if (new Set(parsed).size !== parsed.length) {
+      throw new AgentActorError(
+        'ACTOR_DEFINITION_INVALID',
+        'Actor allowedTools contains duplicates.'
       );
-    },
-    async complete(request: ActorDirectRequest): Promise<ActorDirectResult> {
-      const complete = engine.complete;
-      if (!capabilities.invocationModes.includes('direct') || complete === undefined) {
-        throw new AgentActorError(
-          'ACTOR_INVOCATION_UNSUPPORTED',
-          `Actor "${definition.id}" does not support direct invocation.`
-        );
-      }
-      return runActorInvocation(
-        {
-          actorId: definition.id,
-          invocationKind: 'complete',
-          parentSignal: request.signal,
-          policy: definition.invocationPolicy,
-        },
-        async (signal) => {
-          const result = await complete({
-            ...request,
-            instructions: composeActorInstructions(definition.instructions, request.instructions),
-            invocationConfig: definition.invocationConfig,
-            signal,
-          });
-          return normalizeActorDirectResult(result);
-        }
-      );
-    },
-  });
+    }
+    return Object.freeze({ ...definition, allowedTools: Object.freeze(parsed) });
+  } catch (cause) {
+    if (cause instanceof AgentActorError) throw cause;
+    throw new AgentActorError('ACTOR_DEFINITION_INVALID', 'Actor contains an invalid Tool name.', {
+      cause,
+    });
+  }
 }

@@ -273,7 +273,7 @@ Generic port-owning packages do not also own the official local implementations.
 `@ta-agent/base-local-adapters` contains reusable Memory, SQLite, local OutputSink, and bounded trace
 implementations and depends on the domain packages whose ports it implements. Domain packages never
 depend back on it. Standalone-owned namespace publication and manifest projection remain in the
-Standalone package, while Pi-backed Engine implementations remain in `@ta-agent/base-pi`.
+Standalone package, while Pi-backed Engine implementations remain in `@ta-agent/model-invocation-pi`.
 
 SQLite physical names belong to concrete adapter construction. Each adapter independently owns its
 typed prefix/override input, identifier validation and quoting, table keys, migrations, SQL,
@@ -564,8 +564,9 @@ and local resource cleanup.
   events.
 - **Actor direct invocation**: one buffered bounded completion without a tool loop.
 
-Agent Base exposes both modes through its owned Actor Engine contract. A Workflow selects an Actor by
-Responsibility; not every LLM call is forced through an Agent Loop.
+The independent `model-invocation` module owns Actor/Engine contracts and model protocols. Agent Base
+consumes those capabilities and adds tool permissions and Responsibility routing. A Workflow selects
+an Actor by Responsibility; a plain Completion consumer does not need an Agent or Agent Loop.
 
 ## Storage model
 
@@ -613,7 +614,7 @@ The current foundation contains:
   adapter contracts;
 - `@ta-agent/base-config`: generic codecs, closed JSON values, snapshots, CAS revisions, storage
   ports, and lifecycle behavior;
-- `@ta-agent/base-model`: Provider Model and credential references, an invocation-time credential
+- `@ta-agent/model-invocation-core`: Provider Model and credential references, an invocation-time credential
   resolver port, normalized text messages and usage, bounded Agent Loop events, execution targets,
   runtime ports, and structured failures;
 - `@ta-agent/base-session`: generic session/turn authority, navigation, and compaction behavior;
@@ -627,7 +628,7 @@ The current foundation contains:
   the OutputSink lifecycle;
 - `@ta-agent/base-local-adapters`: official process-local Memory and durable SQLite implementations
   for Identity, Config, Session, Request Journal, OutputSink, and trace ports;
-- `@ta-agent/base-pi`: the isolated low-level Pi `0.82.1` loop adapter with one shared Actor runtime,
+- `@ta-agent/model-invocation-pi`: the isolated low-level Pi `0.82.1` loop adapter with one shared Actor runtime,
   a deterministic faux profile, exact builtin provider/model binding, and explicit text-only
   OpenAI-compatible endpoints;
 - `@ta-agent/base-composition`: the official Standard Agent owner with public

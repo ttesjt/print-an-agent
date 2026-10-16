@@ -1,4 +1,4 @@
-import type { ActorEngineId } from '@ta-agent/base-actor';
+import type { ActorEngineId } from '@ta-agent/model-invocation-core';
 import type {
   ProviderCredentialResolver,
   ProviderId,
@@ -7,7 +7,7 @@ import type {
   ProviderModelReferenceInput,
   ProviderTransportLivenessPolicy,
   ProviderTransportLivenessPolicyInput,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 
 export interface BuiltinProviderConfigInput {
   readonly kind: 'builtin';

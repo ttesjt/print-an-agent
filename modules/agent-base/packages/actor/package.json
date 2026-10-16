@@ -29,7 +29,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/base-model": "workspace:*",
+    "@ta-agent/model-invocation-core": "workspace:*",
     "@ta-agent/base-tool": "workspace:*"
   },
   "devDependencies": {

@@ -6,7 +6,7 @@ import {
   defineAssistantModelMessage,
   defineProviderModelExecutionProvenance,
   defineProviderModelReference,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import { parseTurnId, supportsSessionExecution } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {

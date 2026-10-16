@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { ModelMessage } from '@ta-agent/base-model';
+import type { ModelMessage } from '@ta-agent/model-invocation-core';
 import { quoteSqliteIdentifier } from './table-names.js';
 import {
   AgentSessionError,

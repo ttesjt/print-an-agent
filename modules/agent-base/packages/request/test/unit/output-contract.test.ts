@@ -1,4 +1,4 @@
-import type { ReasoningDeltaEvent } from '@ta-agent/base-model';
+import type { ReasoningDeltaEvent } from '@ta-agent/model-invocation-core';
 import { expectTypeOf, it } from 'vitest';
 import type {
   OutputReasoningDeltaEvent,

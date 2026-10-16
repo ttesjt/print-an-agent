@@ -16,10 +16,21 @@ import { describe, expect, it } from 'vitest';
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url));
 
 const moduleRules = Object.freeze({
+  'model-invocation': {
+    packagePrefix: '@ta-agent/model-invocation-',
+    forbiddenPrefixes: [
+      '@ta-agent/base-',
+      '@ta-agent/workbench-',
+      '@ta-agent/self-learn-',
+      '@ta-agent/ui-',
+      '@ta-agent/workflow-',
+    ],
+  },
   workflow: {
     packagePrefix: '@ta-agent/workflow-',
     forbiddenPrefixes: [
       '@ta-agent/base-',
+      '@ta-agent/model-invocation-',
       '@ta-agent/workbench-',
       '@ta-agent/self-learn-',
       '@ta-agent/ui-',
@@ -271,7 +282,11 @@ describe('module architecture', () => {
     it(`${moduleName} is an explicit repository capsule`, () => {
       const moduleRoot = join(repositoryRoot, 'modules', moduleName);
       expect(existsSync(join(moduleRoot, 'README.md'))).toBe(true);
-      for (const requiredDirectory of ['apps', 'configs', 'docs', 'packages', 'tests']) {
+      const requiredDirectories =
+        moduleName === 'model-invocation'
+          ? ['docs', 'packages', 'tests']
+          : ['apps', 'configs', 'docs', 'packages', 'tests'];
+      for (const requiredDirectory of requiredDirectories) {
         expect(existsSync(join(moduleRoot, requiredDirectory))).toBe(true);
       }
     });
@@ -303,42 +318,50 @@ describe('module architecture', () => {
     });
   }
 
-  it('isolates exact Pi dependencies and imports to the Agent Base Pi adapter', () => {
-    const packagesRoot = join(repositoryRoot, 'modules', 'agent-base', 'packages');
-    for (const entry of readdirSync(packagesRoot, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const manifestPath = join(packagesRoot, entry.name, 'package.json');
-      if (!existsSync(manifestPath)) continue;
-      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as PackageManifest;
-      const piDependencies = declaredDependencies(manifest).filter((dependency) =>
-        dependency.startsWith('@earendil-works/pi-')
-      );
-      const typeboxDependency = manifest.dependencies?.typebox;
+  it('isolates exact Pi dependencies and imports to the independent Pi adapter', () => {
+    for (const moduleName of ['agent-base', 'model-invocation']) {
+      const packagesRoot = join(repositoryRoot, 'modules', moduleName, 'packages');
+      for (const entry of readdirSync(packagesRoot, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const manifestPath = join(packagesRoot, entry.name, 'package.json');
+        if (!existsSync(manifestPath)) continue;
+        const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as PackageManifest;
+        const piDependencies = declaredDependencies(manifest).filter((dependency) =>
+          dependency.startsWith('@earendil-works/pi-')
+        );
+        const typeboxDependency = manifest.dependencies?.typebox;
 
-      if (entry.name === 'pi') {
-        expect(manifest.dependencies?.['@earendil-works/pi-ai']).toBe('0.82.1');
-        expect(manifest.dependencies?.['@earendil-works/pi-agent-core']).toBe('0.82.1');
-        expect(piDependencies).toEqual(['@earendil-works/pi-agent-core', '@earendil-works/pi-ai']);
-        expect(typeboxDependency).toBe('1.1.38');
-        for (const publicSource of ['index.ts', 'types.ts']) {
-          const source = readFileSync(join(packagesRoot, entry.name, 'src', publicSource), 'utf8');
-          expect(source).not.toContain('@earendil-works/pi-');
-          expect(source).not.toContain("from 'typebox'");
+        if (manifest.name === '@ta-agent/model-invocation-pi') {
+          expect(manifest.dependencies?.['@earendil-works/pi-ai']).toBe('0.82.1');
+          expect(manifest.dependencies?.['@earendil-works/pi-agent-core']).toBe('0.82.1');
+          expect(piDependencies).toEqual([
+            '@earendil-works/pi-agent-core',
+            '@earendil-works/pi-ai',
+          ]);
+          expect(typeboxDependency).toBe('1.1.38');
+          for (const publicSource of ['index.ts', 'types.ts']) {
+            const source = readFileSync(
+              join(packagesRoot, entry.name, 'src', publicSource),
+              'utf8'
+            );
+            expect(source).not.toContain('@earendil-works/pi-');
+            expect(source).not.toContain("from 'typebox'");
+          }
+          continue;
         }
-        continue;
-      }
 
-      expect(piDependencies, `${manifest.name ?? entry.name} must not depend on Pi`).toEqual([]);
-      expect(typeboxDependency, `${manifest.name ?? entry.name} must not depend on TypeBox`).toBe(
-        undefined
-      );
-      expect(
-        containsTextInTypeScript(join(packagesRoot, entry.name, 'src'), '@earendil-works/pi-'),
-        `${manifest.name ?? entry.name} production source must not import Pi`
-      ).toBe(false);
-      expect(
-        containsTextInTypeScript(join(packagesRoot, entry.name, 'src'), "from 'typebox'")
-      ).toBe(false);
+        expect(piDependencies, `${manifest.name ?? entry.name} must not depend on Pi`).toEqual([]);
+        expect(typeboxDependency, `${manifest.name ?? entry.name} must not depend on TypeBox`).toBe(
+          undefined
+        );
+        expect(
+          containsTextInTypeScript(join(packagesRoot, entry.name, 'src'), '@earendil-works/pi-'),
+          `${manifest.name ?? entry.name} production source must not import Pi`
+        ).toBe(false);
+        expect(
+          containsTextInTypeScript(join(packagesRoot, entry.name, 'src'), "from 'typebox'")
+        ).toBe(false);
+      }
     }
   });
 
@@ -377,10 +400,10 @@ describe('module architecture', () => {
     expect(Object.keys(localManifest.dependencies ?? {}).sort()).toEqual([
       '@ta-agent/base-config',
       '@ta-agent/base-identity',
-      '@ta-agent/base-model',
       '@ta-agent/base-observability',
       '@ta-agent/base-request',
       '@ta-agent/base-session',
+      '@ta-agent/model-invocation-core',
     ]);
   });
 
@@ -395,8 +418,8 @@ describe('module architecture', () => {
 
     expect(agentBaseRuntimeDependencies).toEqual(['@ta-agent/base-standalone-agent']);
     for (const forbiddenImport of [
-      '@ta-agent/base-pi',
-      '@ta-agent/base-model',
+      '@ta-agent/model-invocation-pi',
+      '@ta-agent/model-invocation-core',
       '@ta-agent/base-request',
       '@ta-agent/base-session',
       '@ta-agent/base-composition',
@@ -802,8 +825,10 @@ describe('module architecture', () => {
       readFileSync(join(standaloneRoot, 'package.json'), 'utf8')
     ) as PackageManifest;
 
-    expect(declaredDependencies(manifest)).not.toContain('@ta-agent/base-pi');
-    expect(containsTextInTypeScript(join(standaloneRoot, 'src'), '@ta-agent/base-pi')).toBe(false);
+    expect(declaredDependencies(manifest)).not.toContain('@ta-agent/model-invocation-pi');
+    expect(
+      containsTextInTypeScript(join(standaloneRoot, 'src'), '@ta-agent/model-invocation-pi')
+    ).toBe(false);
     expect(containsTextInTypeScript(join(standaloneRoot, 'src'), '@earendil-works/pi-')).toBe(
       false
     );
@@ -1010,7 +1035,7 @@ describe('module architecture', () => {
     if (existsSync(managementRoot)) {
       const forbiddenManagementImports = [
         '@ta-agent/base-local-adapters',
-        '@ta-agent/base-pi',
+        '@ta-agent/model-invocation-pi',
         '@ta-agent/base-standalone-agent',
         'node:fs',
         'node:path',
@@ -1048,7 +1073,7 @@ describe('module architecture', () => {
       ...typeScriptFiles(join(compositionSource, 'management')),
     ]) {
       const source = readFileSync(publicContractFile, 'utf8');
-      expect(source).not.toContain('@ta-agent/base-pi');
+      expect(source).not.toContain('@ta-agent/model-invocation-pi');
       expect(source).not.toMatch(/\bPi[A-Z]/);
     }
   });
@@ -1070,7 +1095,7 @@ describe('module architecture', () => {
           const source = readFileSync(declaration, 'utf8');
           for (const forbidden of [
             '@earendil-works/pi-',
-            '@ta-agent/base-pi',
+            '@ta-agent/model-invocation-pi',
             "from 'typebox'",
             'from "typebox"',
             "from 'node:sqlite'",
@@ -1100,7 +1125,7 @@ describe('module architecture', () => {
     for (const sourceFile of typeScriptFiles(join(consumerRoot, 'test'))) {
       for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
         if (!specifier.startsWith('@ta-agent/')) continue;
-        expect(specifier).toMatch(/^@ta-agent\/base-[^/]+$/);
+        expect(specifier).toMatch(/^@ta-agent\/(?:base-|model-invocation-)[^/]+$/);
       }
       expect(normalize(sourceFile)).not.toContain(`${normalize('/src/')}`);
     }

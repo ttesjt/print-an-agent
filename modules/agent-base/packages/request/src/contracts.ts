@@ -2,7 +2,7 @@ import type {
   AssistantModelMessage,
   TextDeltaEvent,
   ReasoningDeltaEvent,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import type { SessionBranchId, SessionId } from '@ta-agent/base-session';
 import type { ToolRunInspection } from '@ta-agent/base-tool';
 import type { ExecutionTimeoutMilliseconds } from '@ta-agent/workflow-core';

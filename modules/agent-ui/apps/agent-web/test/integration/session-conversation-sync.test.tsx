@@ -1,4 +1,4 @@
-import { defineActorEngine, type ActorEngine } from '@ta-agent/base-actor';
+import { defineActorEngine, type ActorEngine } from '@ta-agent/model-invocation-core';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';

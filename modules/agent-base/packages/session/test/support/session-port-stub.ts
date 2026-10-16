@@ -1,4 +1,4 @@
-import type { ModelMessage } from '@ta-agent/base-model';
+import type { ModelMessage } from '@ta-agent/model-invocation-core';
 import type {
   ActiveSessionTurn,
   AppliedSessionNavigation,

@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { defineActorEngine } from '@ta-agent/base-actor';
+import { defineActorEngine } from '@ta-agent/model-invocation-core';
 import type { ConversationInteractionEvent } from '@ta-agent/ui-contracts';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { createOfflineWebEngine } from '../../src/node/offline-engine.js';

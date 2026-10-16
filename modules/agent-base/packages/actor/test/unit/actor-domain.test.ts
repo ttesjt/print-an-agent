@@ -1,19 +1,22 @@
 import { describe, expect, it } from 'vitest';
+import { requireInteractionCapability } from '@ta-agent/model-invocation-core';
 import {
   parseModelExecutionProvenanceType,
   type AssistantModelMessage,
-} from '@ta-agent/base-model';
+} from '@ta-agent/model-invocation-core';
 import {
   AgentActorError,
   createActorCatalog,
-  defineActor,
+  defineAgentActor,
+  MAIN_ACTOR_ID,
+} from '../../src/index.js';
+import {
   defineActorEngine,
   defineActorEngineCapabilities,
   defineActorInvocationPolicy,
-  MAIN_ACTOR_ID,
   narrowActorCapabilities,
   parseActorId,
-} from '../../src/index.js';
+} from '@ta-agent/model-invocation-core';
 import { EMPTY_TOOL_RUNTIME, fakeEngine, type FakeEngineInspection } from '../support/fixtures.js';
 
 function inspection(): FakeEngineInspection {
@@ -162,7 +165,7 @@ describe('Actor domain', () => {
   });
 
   it('keeps optional Actor extensions empty and Tool permission denied by omission', () => {
-    expect(defineActor({ id: 'minimal', engineId: 'engine' })).toEqual({
+    expect(defineAgentActor({ id: 'minimal', engineId: 'engine' })).toEqual({
       id: 'minimal',
       engineId: 'engine',
       invocationConfig: {},
@@ -206,7 +209,7 @@ describe('Actor domain', () => {
   it('rejects unknown invocation config and normalizes Actor-owned Tool errors', () => {
     expectActorError(
       () =>
-        defineActor({
+        defineAgentActor({
           id: 'invalid-config',
           engineId: 'engine',
           invocationConfig: { temperature: 0.2, seed: 1 } as never,
@@ -215,7 +218,7 @@ describe('Actor domain', () => {
     );
     expectActorError(
       () =>
-        defineActor({
+        defineAgentActor({
           id: 'invalid-tool',
           engineId: 'engine',
           allowedTools: ['bad tool'],
@@ -313,7 +316,7 @@ describe('Actor domain', () => {
     });
     const actor = await catalog.resolve(MAIN_ACTOR_ID);
     let emitted: AssistantModelMessage | undefined;
-    const result = await actor.interact({
+    const result = await requireInteractionCapability(actor).interact({
       instructions: '',
       history: [],
       prompt: { role: 'user', text: 'hello', timestamp: 1 },
@@ -354,28 +357,8 @@ describe('Actor domain', () => {
       engines: [directOnly],
     });
     const actor = await catalog.resolve(MAIN_ACTOR_ID);
-    await expect(
-      actor.interact({
-        instructions: '',
-        history: [],
-        prompt: { role: 'user', text: 'hello', timestamp: 1 },
-        tools: {
-          tools: [],
-          execute: () => Promise.resolve({ status: 'success', text: '' }),
-          close: () => undefined,
-          inspect: () => ({
-            status: 'open',
-            effectiveTools: [],
-            records: [],
-            totalResultCharacters: 0,
-          }),
-        },
-        maxModelTurns: 1,
-        maxOutputCharacters: 100,
-        signal: new AbortController().signal,
-        emit: () => Promise.resolve(),
-      })
-    ).rejects.toMatchObject({ code: 'ACTOR_INVOCATION_UNSUPPORTED' });
+    expect(actor).not.toHaveProperty('interact');
+    expectActorError(() => requireInteractionCapability(actor), 'ACTOR_INVOCATION_UNSUPPORTED');
     expect(calls.interactionRequests).toHaveLength(0);
   });
 });

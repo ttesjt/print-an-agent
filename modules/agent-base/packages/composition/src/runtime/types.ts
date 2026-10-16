@@ -1,10 +1,10 @@
 import type {
   ActorCatalogPort,
   ActorDefinitionInput,
-  ActorId,
   ResponsibilityCatalogPort,
   ResponsibilityDefinitionInput,
 } from '@ta-agent/base-actor';
+import type { ActorId } from '@ta-agent/model-invocation-core';
 import type { AgentIdentityInput } from '@ta-agent/base-identity';
 import type { AgentTraceRuntimeOptions } from '@ta-agent/base-observability';
 import type {

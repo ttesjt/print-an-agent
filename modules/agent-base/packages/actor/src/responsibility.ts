@@ -1,4 +1,11 @@
-import type { AgentLoopResult } from '@ta-agent/base-model';
+import {
+  parseActorId,
+  requireCompletionCapability,
+  requireInteractionCapability,
+  requireStreamingCapability,
+  type ActorId,
+} from '@ta-agent/model-invocation-core';
+import type { ModelInteractionResult } from '@ta-agent/model-invocation-core';
 import { parseToolName, type ToolName } from '@ta-agent/base-tool';
 import {
   ACTOR_INPUT_MEDIA_TYPES,
@@ -6,17 +13,17 @@ import {
   satisfiesActorRequirements,
   type ActorCapabilityRequirements,
   type ActorInputMediaType,
-} from './capabilities.js';
+} from '@ta-agent/model-invocation-core';
 import type { ResolvedActor } from './actor.js';
-import type { ActorDirectRequest, ActorDirectResult, ActorInteractionRequest } from './engine.js';
+import type {
+  ActorDirectRequest,
+  ActorDirectResult,
+  ActorInteractionRequest,
+  ActorStreamingRequest,
+} from '@ta-agent/model-invocation-core';
 import { AgentActorError } from './errors.js';
-import {
-  parseActorId,
-  parseResponsibilityId,
-  type ActorId,
-  type ResponsibilityId,
-} from './identifiers.js';
-import { composeActorInstructions, parseActorInstructions } from './instructions.js';
+import { parseResponsibilityId, type ResponsibilityId } from './identifiers.js';
+import { composeActorInstructions, parseActorInstructions } from '@ta-agent/model-invocation-core';
 
 export interface ResponsibilityActorCandidateInput {
   readonly actorId: string;
@@ -51,8 +58,9 @@ export interface ResolvedResponsibility {
   readonly candidateIndex: number;
   readonly allowedTools: readonly ToolName[];
   readonly effectiveCandidates: readonly ResponsibilityActorCandidate[];
-  interact(request: ActorInteractionRequest): Promise<AgentLoopResult>;
+  interact(request: ActorInteractionRequest): Promise<ModelInteractionResult>;
   complete(request: ActorDirectRequest): Promise<ActorDirectResult>;
+  stream?(request: ActorStreamingRequest): Promise<ActorDirectResult>;
 }
 
 const RESPONSIBILITY_KEYS = Object.freeze([
@@ -62,6 +70,18 @@ const RESPONSIBILITY_KEYS = Object.freeze([
   'requiredCapabilities',
   'allowedTools',
 ]);
+
+function parseResponsibilityInstructions(value: unknown): string | undefined {
+  try {
+    return parseActorInstructions(value, 'Responsibility instructions');
+  } catch (cause) {
+    throw new AgentActorError(
+      'RESPONSIBILITY_DEFINITION_INVALID',
+      'Responsibility instructions are invalid.',
+      { cause }
+    );
+  }
+}
 const REQUIREMENT_KEYS = Object.freeze([
   'invocationMode',
   'inputMediaTypes',
@@ -241,11 +261,7 @@ export function defineResponsibility(
     );
   }
   const actors = parseCandidates(input.actors);
-  const instructions = parseActorInstructions(
-    input.instructions,
-    'Responsibility instructions',
-    'RESPONSIBILITY_DEFINITION_INVALID'
-  );
+  const instructions = parseResponsibilityInstructions(input.instructions);
   return Object.freeze({
     id: parseResponsibilityId(input.id),
     ...(actors === undefined ? {} : { actors }),
@@ -276,14 +292,23 @@ export function resolveResponsibility(
     allowedTools: definition.allowedTools,
     effectiveCandidates,
     interact: (request: ActorInteractionRequest) =>
-      actor.interact({
+      requireInteractionCapability(actor).interact({
         ...request,
         instructions: composeActorInstructions(definition.instructions, request.instructions),
       }),
     complete: (request: ActorDirectRequest) =>
-      actor.complete({
+      requireCompletionCapability(actor).complete({
         ...request,
         instructions: composeActorInstructions(definition.instructions, request.instructions),
       }),
+    ...(actor.stream === undefined
+      ? {}
+      : {
+          stream: (request: ActorStreamingRequest) =>
+            requireStreamingCapability(actor).stream({
+              ...request,
+              instructions: composeActorInstructions(definition.instructions, request.instructions),
+            }),
+        }),
   });
 }

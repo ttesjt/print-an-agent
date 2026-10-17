@@ -32,6 +32,8 @@ const workflowDomainRestrictions = [
       '@ta-agent/workbench-*',
       '@ta-agent/self-learn-*',
       '@ta-agent/ui-*',
+      '@ta-agent/context-memory*',
+      '@ta-agent/retrieval-memory*',
     ],
     message: 'Workflow must remain independent of Agent and product domains.',
   },
@@ -45,13 +47,49 @@ const modelInvocationDomainRestrictions = [
       '@ta-agent/self-learn-*',
       '@ta-agent/ui-*',
       '@ta-agent/workflow-*',
+      '@ta-agent/context-memory*',
+      '@ta-agent/retrieval-memory*',
     ],
     message: 'Model invocation must remain independent of Agent, Workflow and product domains.',
   },
 ];
 
+const memoryDomainRestrictions = [
+  {
+    group: [
+      '@ta-agent/base-*',
+      '@ta-agent/self-learn-*',
+      '@ta-agent/workbench-*',
+      '@ta-agent/ui-*',
+      '@ta-agent/model-invocation-pi',
+      '@earendil-works/pi-*',
+    ],
+    message: 'Memory capabilities must remain independent of Agent/product domains and providers.',
+  },
+];
+
 export const boundaryConfigs = Object.freeze([
   { files: productionSource, rules: moduleRestrictions([]) },
+  {
+    files: ['modules/agent-memory/**/src/**/*.{ts,tsx}'],
+    rules: moduleRestrictions(memoryDomainRestrictions),
+  },
+  {
+    files: ['modules/agent-memory/packages/context-memory/src/**/*.{ts,tsx}'],
+    rules: moduleRestrictions([
+      ...memoryDomainRestrictions,
+      {
+        group: [
+          'node:sqlite',
+          'better-sqlite3',
+          '@ta-agent/context-memory-sqlite',
+          '@ta-agent/retrieval-memory*',
+        ],
+        message:
+          'Context Memory domain must not depend on storage or sibling capability implementations.',
+      },
+    ]),
+  },
   {
     files: ['modules/model-invocation/**/src/**/*.{ts,tsx}'],
     rules: moduleRestrictions(modelInvocationDomainRestrictions),

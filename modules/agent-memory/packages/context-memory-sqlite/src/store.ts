@@ -1,0 +1,162 @@
+import { DatabaseSync } from 'node:sqlite';
+import {
+  assertMemoryNotAborted,
+  ContextMemoryError,
+  parseStoreCommit,
+  type MemoryStore,
+  type MemorySnapshot,
+  type MemoryReceipt,
+  type StoreCommit,
+} from '@ta-agent/context-memory';
+import { initializeMemorySchema } from './schema.js';
+import { readSnapshot, readReceipt } from './records.js';
+import { commitTransaction } from './transaction.js';
+
+export const DEFAULT_SQLITE_BUSY_TIMEOUT_MS = 5000;
+export type SqliteMemoryStoreOptions =
+  | { readonly path: string; readonly busyTimeoutMs?: number; readonly database?: never }
+  | { readonly database: DatabaseSync; readonly path?: never; readonly busyTimeoutMs?: never };
+
+function openMemoryDatabase(path: string, timeout: number): DatabaseSync {
+  try {
+    return new DatabaseSync(path, { timeout });
+  } catch (cause) {
+    throw new ContextMemoryError('STORAGE_FAILED', 'Memory database could not be opened.', {
+      cause,
+    });
+  }
+}
+
+/** Owns connections opened by path; explicitly supplied connections are always borrowed. */
+export class SqliteMemoryStore implements MemoryStore {
+  readonly #database;
+  readonly #owned;
+  #closed = false;
+  #cleanupFailure: ContextMemoryError | undefined;
+  constructor(options: SqliteMemoryStoreOptions) {
+    if (options.database !== undefined) {
+      this.#database = options.database;
+      this.#owned = false;
+    } else {
+      if (typeof options.path !== 'string' || options.path.length === 0)
+        throw new ContextMemoryError('CONFIG_INVALID', 'SQLite path is required.');
+      const timeout = options.busyTimeoutMs ?? DEFAULT_SQLITE_BUSY_TIMEOUT_MS;
+      if (!Number.isSafeInteger(timeout) || timeout < 0)
+        throw new ContextMemoryError(
+          'CONFIG_INVALID',
+          'SQLite busy timeout must be a nonnegative safe integer.'
+        );
+      this.#database = openMemoryDatabase(options.path, timeout);
+      this.#owned = true;
+    }
+    try {
+      if (this.#database.isTransaction)
+        throw new Error('Cannot initialize inside a caller-owned transaction.');
+      initializeMemorySchema(this.#database);
+    } catch (cause) {
+      if (this.#owned) {
+        try {
+          this.#database.close();
+        } catch (cleanup) {
+          throw new ContextMemoryError(
+            'CLEANUP_FAILED',
+            'Memory store initialization and connection cleanup failed.',
+            {
+              cause: new AggregateError([cause, cleanup], 'Initialization cleanup failed.', {
+                cause,
+              }),
+            }
+          );
+        }
+      }
+      throw new ContextMemoryError(
+        'STORAGE_FAILED',
+        'Memory store schema could not be initialized.',
+        { cause }
+      );
+    }
+  }
+  async read(memoryId: string, signal?: AbortSignal): Promise<MemorySnapshot | undefined> {
+    // Admit asynchronously, then keep all SQLite work synchronous and non-interleaved.
+    await Promise.resolve();
+    this.#assertOpen();
+    assertMemoryNotAborted(signal);
+    this.#identity(memoryId);
+    return readSnapshot(this.#database, memoryId);
+  }
+  async getReceipt(
+    memoryId: string,
+    requestId: string,
+    signal?: AbortSignal
+  ): Promise<MemoryReceipt | undefined> {
+    await Promise.resolve();
+    this.#assertOpen();
+    assertMemoryNotAborted(signal);
+    this.#identity(memoryId);
+    this.#identity(requestId);
+    return readReceipt(this.#database, memoryId, requestId);
+  }
+  async commit(value: StoreCommit, signal?: AbortSignal): Promise<MemoryReceipt> {
+    await Promise.resolve();
+    this.#assertOpen();
+    assertMemoryNotAborted(signal);
+    let change: StoreCommit;
+    try {
+      change = parseStoreCommit(value);
+    } catch (cause) {
+      throw new ContextMemoryError('INPUT_INVALID', 'Invalid memory store commit.', {
+        cause,
+        commit: { status: 'not-committed' },
+      });
+    }
+    try {
+      return commitTransaction(this.#database, change, signal);
+    } catch (error) {
+      if (error instanceof ContextMemoryError && error.code === 'CLEANUP_FAILED')
+        this.#cleanupFailure = error;
+      throw error;
+    }
+  }
+  close(): void {
+    if (!this.#closed) {
+      try {
+        if (this.#owned) this.#database.close();
+      } catch (cause) {
+        throw new ContextMemoryError('CLEANUP_FAILED', 'Memory connection could not be closed.', {
+          cause:
+            this.#cleanupFailure === undefined
+              ? cause
+              : new AggregateError(
+                  [this.#cleanupFailure, cause],
+                  'Transaction cleanup and connection close failed.',
+                  { cause }
+                ),
+          ...(this.#cleanupFailure?.commit === undefined
+            ? {}
+            : { commit: this.#cleanupFailure.commit }),
+        });
+      }
+      this.#closed = true;
+    }
+    if (this.#cleanupFailure !== undefined) throw this.#cleanupFailure;
+  }
+  #assertOpen(): void {
+    if (this.#cleanupFailure !== undefined)
+      throw new ContextMemoryError(
+        'CLEANUP_FAILED',
+        'Memory store has unresolved cleanup failure.',
+        {
+          cause: this.#cleanupFailure,
+          commit: { status: 'not-committed' },
+        }
+      );
+    if (this.#closed || !this.#database.isOpen)
+      throw new ContextMemoryError('STORAGE_FAILED', 'Memory store is closed.', {
+        commit: { status: 'not-committed' },
+      });
+  }
+  #identity(value: string): void {
+    if (typeof value !== 'string' || value.trim() === '' || value.includes('\0'))
+      throw new ContextMemoryError('INPUT_INVALID', 'Memory/request identity must be nonempty.');
+  }
+}

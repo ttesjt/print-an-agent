@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "rootDir": "./src", "outDir": "./dist", "composite": true },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "references": [{ "path": "../context-memory/tsconfig.build.json" }]
+}

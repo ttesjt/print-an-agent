@@ -1,6 +1,7 @@
 # Repository architecture
 
 - [Agent Base](../modules/agent-base/README.md) owns agent execution, Sessions, and composition.
+- [Agent Memory](../modules/agent-memory/README.md) owns memory contracts, persistence, and Workflows.
 - [Agent UI](../modules/agent-ui/README.md) owns reusable interface components and reference applications.
 - [Model Invocation](../modules/model-invocation/README.md) owns actor and model invocation contracts and adapters.
 - [Model Workbench](../modules/model-workbench/README.md) owns model execution, training, and artifact management.

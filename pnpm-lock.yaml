@@ -459,6 +459,34 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
 
+  modules/agent-memory/packages/context-memory:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
+
+  modules/agent-memory/packages/context-memory-sqlite:
+    dependencies:
+      '@ta-agent/context-memory':
+        specifier: workspace:*
+        version: link:../context-memory
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
+
   modules/agent-ui/apps/agent-web:
     dependencies:
       '@ta-agent/base-actor':

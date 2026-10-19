@@ -467,6 +467,12 @@ importers:
       '@ta-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
+      '@ta-agent/workflow-bundle':
+        specifier: workspace:*
+        version: link:../../../workflow/packages/bundle
+      '@ta-agent/workflow-core':
+        specifier: workspace:*
+        version: link:../../../workflow/packages/core
     devDependencies:
       '@ta-agent/model-invocation-token-counters':
         specifier: workspace:*
@@ -490,6 +496,36 @@ importers:
       '@ta-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
+      '@ta-agent/workflow-core':
+        specifier: workspace:*
+        version: link:../../../workflow/packages/core
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
+
+  modules/agent-memory/tests/qualification:
+    devDependencies:
+      '@ta-agent/context-memory':
+        specifier: workspace:*
+        version: link:../../packages/context-memory
+      '@ta-agent/context-memory-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/context-memory-sqlite
+      '@ta-agent/model-invocation-core':
+        specifier: workspace:*
+        version: link:../../../model-invocation/packages/core
+      '@ta-agent/model-invocation-token-counters':
+        specifier: workspace:*
+        version: link:../../../model-invocation/packages/token-counters
+      '@ta-agent/workflow-core':
+        specifier: workspace:*
+        version: link:../../../workflow/packages/core
       '@types/node':
         specifier: 'catalog:'
         version: 24.12.4

@@ -17,8 +17,8 @@ import { assertMemoryNotAborted, ContextMemoryError } from '../errors.js';
 import type { MemoryMeter } from '../rendering/meter.js';
 import { identity, jsonValue, keys, record } from '../validation/value.js';
 import { parseItemCommands, parseItemContent } from '../validation/commands.js';
-import { loadMutationBase, mutationResult, persistMemory, replayMutation } from './access.js';
-import { assertMemoryBudget } from './budget.js';
+import { loadMutationBase, mutationResult, replayMutation } from './access.js';
+import { publishMemoryCandidate } from './publish.js';
 import { applyItemCommands } from './commands.js';
 
 export interface MemoryMutationResources {
@@ -124,17 +124,14 @@ export class MemoryMutations {
     commandOutcomes: readonly CommandOutcome[],
     signal: AbortSignal
   ): Promise<MutationResult> {
-    // All constraints are enforced here, independently of replaceable Workflow Steps.
-    for (const item of items) {
-      await this.#resources.validateItem?.(item, signal);
-      assertMemoryNotAborted(signal);
-    }
-    const { measurement } = await this.#resources.meter.measure(items, config, signal);
-    assertMemoryBudget(items, config, measurement);
-    assertMemoryNotAborted(signal);
-    return persistMemory(
-      this.#resources.store,
-      { request, expectedRevision, state: { config, items, measurement }, commandOutcomes },
+    return publishMemoryCandidate(
+      this.#resources,
+      request,
+      expectedRevision,
+      config,
+      items,
+      commandOutcomes,
+      [],
       signal
     );
   }

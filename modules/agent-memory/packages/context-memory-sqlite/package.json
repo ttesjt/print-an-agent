@@ -27,6 +27,7 @@
     "@ta-agent/context-memory": "workspace:*"
   },
   "devDependencies": {
+    "@ta-agent/workflow-core": "workspace:*",
     "@ta-agent/model-invocation-core": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",

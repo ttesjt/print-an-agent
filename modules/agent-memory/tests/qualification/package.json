@@ -1,0 +1,26 @@
+{
+  "name": "@ta-agent/context-memory-qualification",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent public-package consumers qualifying Context Memory composition and recovery.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@ta-agent/context-memory": "workspace:*",
+    "@ta-agent/context-memory-sqlite": "workspace:*",
+    "@ta-agent/model-invocation-core": "workspace:*",
+    "@ta-agent/model-invocation-token-counters": "workspace:*",
+    "@ta-agent/workflow-core": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  }
+}

@@ -24,6 +24,8 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@ta-agent/workflow-core": "workspace:*",
+    "@ta-agent/workflow-bundle": "workspace:*",
     "@ta-agent/model-invocation-core": "workspace:*"
   },
   "devDependencies": {

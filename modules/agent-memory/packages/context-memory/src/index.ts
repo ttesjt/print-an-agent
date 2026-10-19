@@ -2,7 +2,61 @@ export type * from './contracts/document.js';
 export type * from './contracts/receipt.js';
 export type * from './contracts/ports.js';
 export type * from './contracts/inputs.js';
+export type * from './contracts/model.js';
+export {
+  createCompletionMemoryPlanner,
+  DEFAULT_MEMORY_INSTRUCTIONS,
+  DEFAULT_MEMORY_MAX_OUTPUT_CHARACTERS,
+} from './model/planner.js';
+export type { CompletionMemoryPlannerOptions } from './model/planner.js';
+export { createModelMemoryResources } from './workflows/model-resources.js';
+export type {
+  ModelMemoryResources,
+  ModelMemoryResourceOptions,
+} from './workflows/model-resources.js';
+export {
+  createMemoryObserveDefinition,
+  createMemoryEditDefinition,
+  createMemoryCompactDefinition,
+} from './workflows/model-definition.js';
+export { modelMemorySignal } from './workflows/model-types.js';
+export type {
+  ModelMemoryDefinition,
+  ModelMemoryWorkflowOptions,
+  ModelMemoryContext,
+  ModelMemoryState,
+  ModelMemoryStepName,
+} from './workflows/model-types.js';
+export type {
+  ModelContextMemoryBundleOptions,
+  ModelMemoryWorkflowDefinitions,
+} from './workflows/bundle.js';
+export { refineMemoryCompactionTarget } from './planning/feedback.js';
+export type { MemoryCompactionFeedback } from './planning/feedback.js';
+export type { MemoryCandidateAssessment, MemoryBudgetViolation } from './planning/assessment.js';
+export type { MemoryUpdate } from './domain/update.js';
 export { ContextMemoryError, assertMemoryNotAborted } from './errors.js';
+export { createContextMemoryResources } from './workflows/resources.js';
+export type {
+  GetMemoryReceiptInput,
+  MemoryOperations,
+  MemoryWorkflowResources,
+} from './workflows/resources.js';
+export type {
+  MemoryStepName,
+  MemoryDefinition,
+  MemoryWorkflowOptions,
+  MemoryWorkflowState,
+} from './workflows/definition.js';
+export {
+  createMemoryCreateDefinition,
+  createMemoryApplyDefinition,
+  createMemoryConfigureDefinition,
+  createMemoryReadContextDefinition,
+  createMemoryGetReceiptDefinition,
+} from './workflows/deterministic.js';
+export { createContextMemoryBundle } from './workflows/bundle.js';
+export type { ContextMemoryBundleOptions, MemoryWorkflowDefinitions } from './workflows/bundle.js';
 export type { ContextMemoryErrorCode } from './errors.js';
 export { DEFAULT_MEMORY_OPTIONS, DEFAULT_EXECUTION_POLICY } from './config/defaults.js';
 export { resolveMemoryConfig, resolveExecutionPolicy, parseRenderOptions } from './config/parse.js';

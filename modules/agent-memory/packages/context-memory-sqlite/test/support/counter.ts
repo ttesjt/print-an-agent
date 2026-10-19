@@ -7,10 +7,11 @@ import {
 
 /** Test-only vocabulary, not a production estimate. */
 export function testCounter(
-  count: (text: string) => Promise<number> = (text) => Promise.resolve(text.length)
+  count: (text: string) => Promise<number> = (text) => Promise.resolve(text.length),
+  ref = 'chars'
 ): TokenCounter<TextTokenInput> {
   return createTokenCounter({
-    measurementRef: 'chars',
+    measurementRef: ref,
     inputContract: TEXT_TOKEN_INPUT_CONTRACT,
     measure: async (input) => ({ tokens: await count(input.text), accuracy: 'exact' }),
   });

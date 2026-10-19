@@ -72,6 +72,22 @@ const memoryDomainRestrictions = [
 export const boundaryConfigs = Object.freeze([
   { files: productionSource, rules: moduleRestrictions([]) },
   {
+    files: ['modules/agent-memory/tests/qualification/**/*.ts'],
+    rules: moduleRestrictions([
+      {
+        group: [
+          '@ta-agent/base-*',
+          '@ta-agent/self-learn-*',
+          '@ta-agent/workbench-*',
+          '@ta-agent/ui-*',
+          '@ta-agent/model-invocation-pi',
+          '@earendil-works/pi-*',
+        ],
+        message: 'Memory qualification must be an independent public-package consumer.',
+      },
+    ]),
+  },
+  {
     files: ['modules/agent-memory/**/src/**/*.{ts,tsx}'],
     rules: moduleRestrictions(memoryDomainRestrictions),
   },

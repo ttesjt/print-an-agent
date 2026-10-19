@@ -41,6 +41,30 @@ const config: StandaloneAgentConfigInput = {
   },
 };
 
+it('rejects malformed host tokenization before creating a resource namespace', () => {
+  expect(() =>
+    createStandaloneMemoryDefinition({
+      readEnvironmentVariable: () => undefined,
+      sessionCompactionTokenCounter: {
+        descriptor: {
+          measurementRef: '   ',
+          inputProtocolRef: 'token-input:text',
+          scope: 'text',
+          inputKinds: ['text'],
+        },
+        measure: () =>
+          Promise.resolve({
+            tokens: 1,
+            accuracy: 'exact',
+            measurementRef: '   ',
+            inputProtocolRef: 'token-input:text',
+            scope: 'text',
+          }),
+      },
+    })
+  ).toThrow();
+});
+
 async function verifyDefinition<TNamespaceHandle>(
   definition: SessionManagedAgentCompositionDefinition<
     StandaloneAgentConfig,

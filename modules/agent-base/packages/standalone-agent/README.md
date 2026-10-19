@@ -36,6 +36,44 @@ Standalone entry points validate this host-owned wiring before provisioning. Inv
 Step overrides, or credential-reader shape therefore fail with `STANDALONE_CONFIG_INVALID` before
 Identity/Config authority can be committed.
 
+`sessionCompaction` stores the complete normalized token policy: source limits, `maxContextTokens`,
+`target`, `maxGenerationAttempts`, `maxGenerationCharacters`, `retrySafetyFactor`,
+`minimumTargetTokens`, and `timeoutMilliseconds`. Input may omit non-timeout fields to use official
+defaults; an explicitly provided section must declare its timeout. Runtime host wiring cannot
+silently override this durable policy. Per-call `target` parameters may request tighter goals without
+mutating Config or relaxing its hard token limit.
+
+Measurement is declared beside the provider binding, separately from provider wire configuration:
+
+```json
+{
+  "provider": {
+    "config": {
+      "kind": "builtin",
+      "reference": { "provider": "openai", "model": "gpt-4o", "credentialRef": "credentials/main" }
+    },
+    "textTokenCounter": { "kind": "tiktoken", "encoding": "o200k_base" }
+  },
+  "credential": { "reference": "credentials/main", "environmentVariable": "AGENT_API_KEY" }
+}
+```
+
+`provider.textTokenCounter` is optional. It accepts `tiktoken` with explicit `cl100k_base`/`o200k_base`,
+`character-estimator` with optional `charactersPerToken` (default 4), or
+`reference` with a complete `measurementRef`. Named references require a synchronous, preloaded host
+`resolveTextTokenCounter(ref)` lookup in runtime options. JSON never loads arbitrary code.
+Counter selection survives Config codec, manifest projection, import/CAS and runtime reopen;
+`createStandaloneProviderService().inspect().textTokenCounter` exposes its non-secret descriptor.
+Config/inspection identity changes when counting behavior changes. No provider catalog capability,
+tokenizer-model mapping or accuracy is inferred. Exact text counting is not whole-request counting.
+
+Each materialization resolves this declaration into the provider Engine's optional `textTokenCounter`;
+the main Actor inherits it, and compaction follows the foreground consumer's binding. Estimated
+measurements may be useful for reporting but cannot satisfy compaction's hard token acceptance.
+`sessionCompactionTokenCounter: TokenCounter<TextTokenInput>` remains an explicit host-only compaction
+override, never serialized. Without either binding, foreground interaction still works and eligible
+compaction fails with `SESSION_COMPACTION_TOKENIZER_NOT_CONFIGURED`.
+
 ## Create and open
 
 ```ts

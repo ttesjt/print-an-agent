@@ -3,6 +3,8 @@ import { finalizeSessionExecution } from '../../lifecycle/workflow-execution.js'
 import { AgentSessionError } from '../../errors.js';
 import { SESSION_COMPACTION_WORKFLOW_NAME } from './names.js';
 import { createSessionCompactionStepDefinitions } from './step-definitions.js';
+import { validateSessionCompactionPolicy } from '../policy.js';
+import { bindSessionCompactionTokenCounter } from '../planning/measurement.js';
 import type {
   CreateSessionCompactionWorkflowOptions,
   SessionCompactionWorkflowContext,
@@ -11,6 +13,15 @@ import type {
 export function createSessionCompactionWorkflow(options: CreateSessionCompactionWorkflowOptions) {
   return new Workflow({
     ...options,
+    resources: Object.freeze({
+      ...options.resources,
+      policy: validateSessionCompactionPolicy(options.resources.policy),
+      ...(options.resources.tokenCounter === undefined
+        ? {}
+        : {
+            tokenCounter: bindSessionCompactionTokenCounter(options.resources.tokenCounter),
+          }),
+    }),
     name: SESSION_COMPACTION_WORKFLOW_NAME,
     entryStep: 'runSessionCompaction',
     stepDefinitions: createSessionCompactionStepDefinitions(),

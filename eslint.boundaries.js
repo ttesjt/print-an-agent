@@ -62,6 +62,7 @@ const memoryDomainRestrictions = [
       '@ta-agent/workbench-*',
       '@ta-agent/ui-*',
       '@ta-agent/model-invocation-pi',
+      '@ta-agent/model-invocation-token-counters',
       '@earendil-works/pi-*',
     ],
     message: 'Memory capabilities must remain independent of Agent/product domains and providers.',

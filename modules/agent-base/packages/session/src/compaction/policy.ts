@@ -5,6 +5,13 @@ import {
 } from '@ta-agent/workflow-core';
 import { AgentSessionError } from '../errors.js';
 import type { SessionCompactionPolicy } from './contracts.js';
+import {
+  defineSessionCompactionTarget,
+  resolveSessionCompactionTarget,
+  DEFAULT_SESSION_COMPACTION_TARGET_RATIO,
+  DEFAULT_SESSION_COMPACTION_RESERVE_TOKENS,
+} from './planning/target.js';
+import { compactionRatio, compactionRecord } from './planning/validation.js';
 
 const MAX_POLICY_INTEGER = 1_000_000;
 export const MAX_SESSION_COMPACTION_CHARACTERS = MAX_POLICY_INTEGER;
@@ -15,7 +22,15 @@ export const DEFAULT_SESSION_COMPACTION_POLICY: SessionCompactionPolicy = Object
   retainRecentTurns: 2,
   maxSourceTurns: 32,
   maxSourceCharacters: 32_768,
-  maxContextCharacters: 4_096,
+  maxContextTokens: 4_096,
+  target: Object.freeze({
+    ratio: DEFAULT_SESSION_COMPACTION_TARGET_RATIO,
+    reserveTokens: DEFAULT_SESSION_COMPACTION_RESERVE_TOKENS,
+  }),
+  maxGenerationAttempts: 3,
+  maxGenerationCharacters: 65_536,
+  retrySafetyFactor: 0.9,
+  minimumTargetTokens: 1,
   timeoutMilliseconds: NO_SESSION_COMPACTION_TIMEOUT,
 });
 
@@ -72,7 +87,11 @@ export function validateSessionCompactionPolicy(policy: unknown): SessionCompact
       'Session compaction policy must be an object.'
     );
   }
-  const candidate = policy as Partial<Record<keyof SessionCompactionPolicy, unknown>>;
+  const candidate = compactionRecord(
+    policy,
+    Object.keys(DEFAULT_SESSION_COMPACTION_POLICY),
+    'Session compaction policy'
+  );
   const minimumCompletedTurns = requirePositiveInteger(
     candidate.minimumCompletedTurns,
     'minimumCompletedTurns'
@@ -87,6 +106,19 @@ export function validateSessionCompactionPolicy(policy: unknown): SessionCompact
       'minimumCompletedTurns must be greater than retainRecentTurns.'
     );
   }
+  const maxContextTokens = requirePositiveInteger(candidate.maxContextTokens, 'maxContextTokens');
+  const target = defineSessionCompactionTarget(candidate.target);
+  const resolvedTarget = resolveSessionCompactionTarget(maxContextTokens, target);
+  const minimumTargetTokens = requirePositiveInteger(
+    candidate.minimumTargetTokens,
+    'minimumTargetTokens'
+  );
+  if (minimumTargetTokens > resolvedTarget) {
+    throw new AgentSessionError(
+      'SESSION_COMPACTION_INVALID',
+      'Minimum planner target exceeds the acceptance target.'
+    );
+  }
   return Object.freeze({
     minimumCompletedTurns,
     retainRecentTurns,
@@ -95,10 +127,18 @@ export function validateSessionCompactionPolicy(policy: unknown): SessionCompact
       candidate.maxSourceCharacters,
       'maxSourceCharacters'
     ),
-    maxContextCharacters: requirePositiveInteger(
-      candidate.maxContextCharacters,
-      'maxContextCharacters'
+    maxContextTokens,
+    target,
+    maxGenerationAttempts: requirePositiveInteger(
+      candidate.maxGenerationAttempts,
+      'maxGenerationAttempts'
     ),
+    maxGenerationCharacters: requirePositiveInteger(
+      candidate.maxGenerationCharacters,
+      'maxGenerationCharacters'
+    ),
+    retrySafetyFactor: compactionRatio(candidate.retrySafetyFactor, 'retrySafetyFactor'),
+    minimumTargetTokens,
     timeoutMilliseconds: requireTimeoutMilliseconds(candidate.timeoutMilliseconds),
   });
 }

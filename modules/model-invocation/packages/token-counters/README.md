@@ -17,3 +17,21 @@ Measurement identity includes algorithm/version, vocabulary and counting options
 whether estimated accuracy is acceptable. Host code owns counter lifetime; no dispose is needed.
 Cancellation is checked before and after local work; synchronous encoding cannot be interrupted
 mid-call by JavaScript. Unsupported inputs fail instead of being partially counted.
+
+## Declarative selection
+
+`defineTextTokenCounterConfig(unknown)` validates and freezes one of:
+
+```ts
+{ kind: 'tiktoken', encoding: 'cl100k_base' } // or o200k_base
+{ kind: 'character-estimator', charactersPerToken: 4 }
+{ kind: 'reference', measurementRef: 'my-encoding:options-identity' }
+```
+
+The corresponding `TEXT_TOKEN_COUNTER_KIND` constants are exported for TypeScript callers.
+`resolveTextTokenCounterConfig(config, resolveReference?)` materializes the official implementations
+or performs an explicit synchronous host lookup of an already-loaded capability. The returned
+descriptor must match the requested reference. There is no global registry, model-name guessing,
+fallback, arbitrary module loading, or credential discovery. Initialize asynchronous custom resources
+before passing their lookup to composition. Unknown/unavailable bindings fail with
+`TOKEN_MEASUREMENT_BINDING_INVALID`. Encoding/rank loading stays lazy and local.

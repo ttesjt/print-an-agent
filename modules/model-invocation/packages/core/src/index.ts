@@ -29,6 +29,7 @@ export {
   requireCompletionCapability,
   requireInteractionCapability,
   requireStreamingCapability,
+  requireActorTextTokenCounter,
 } from './actor/actor.js';
 export type * from './actor/actor.js';
 export { createActorCatalog } from './actor/catalog.js';
@@ -55,6 +56,8 @@ export type {
 export { TokenMeasurementError } from './token-measurement/errors.js';
 export type { TokenMeasurementErrorCode } from './token-measurement/errors.js';
 export { createTokenCounter } from './token-measurement/counter.js';
+export { bindTextTokenCounter } from './token-measurement/text-counter-binding.js';
+export { parseMeasurementReference as parseTokenMeasurementReference } from './token-measurement/validation.js';
 export { parseTextTokenInput, TEXT_TOKEN_INPUT_CONTRACT } from './token-measurement/text-input.js';
 export { parseTokenMeasurement } from './token-measurement/result.js';
 export { requireTokenMeasurement } from './token-measurement/requirements.js';

@@ -3,12 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach } from 'vitest';
-import {
-  MemoryMeter,
-  MemoryMutations,
-  type MemoryStore,
-  type TokenCounter,
-} from '@ta-agent/context-memory';
+import { MemoryMeter, MemoryMutations, type MemoryStore } from '@ta-agent/context-memory';
+import type { TokenCounter, TextTokenInput } from '@ta-agent/model-invocation-core';
+import { testCounter } from './counter.js';
 import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
 
 const cleanup: (() => void | Promise<void>)[] = [];
@@ -24,7 +21,7 @@ export function borrowed(database = new DatabaseSync(':memory:')) {
 }
 export function domain(
   store: MemoryStore,
-  counter: TokenCounter = { count: (text) => Promise.resolve(text.length) },
+  counter: TokenCounter<TextTokenInput> = testCounter(),
   createItemId?: () => string
 ) {
   const meter = new MemoryMeter({ counter, maxCacheEntries: 0 });
@@ -33,7 +30,7 @@ export function domain(
     mutations: new MemoryMutations({
       store,
       meter,
-      defaults: { tokenizerRef: 'chars' },
+      defaults: { measurementRef: 'chars' },
       ...(createItemId === undefined ? {} : { createItemId }),
     }),
   };

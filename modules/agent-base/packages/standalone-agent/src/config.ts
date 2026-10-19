@@ -5,6 +5,7 @@ import { defineProviderConfig } from '@ta-agent/base-composition';
 import type { AgentConfigCodec, ConfigValue } from '@ta-agent/base-config';
 import { defineAgentIdentity, type AgentIdentity } from '@ta-agent/base-identity';
 import { AgentBaseStandaloneError } from './errors.js';
+import { defineTextTokenCounterConfig } from '@ta-agent/model-invocation-token-counters';
 import {
   parseStandaloneActorInvocationPolicy,
   parseStandaloneProviderTransportLivenessPolicy,
@@ -44,7 +45,7 @@ const AGENT_CONFIG_KEYS = Object.freeze([
 const MANIFEST_KEYS = Object.freeze(['schemaVersion', 'identity', 'config']);
 const IDENTITY_KEYS = Object.freeze(['id', 'displayName']);
 const CREDENTIAL_KEYS = Object.freeze(['reference', 'environmentVariable']);
-const PROVIDER_KEYS = Object.freeze(['config', 'transportLivenessPolicy']);
+const PROVIDER_KEYS = Object.freeze(['config', 'transportLivenessPolicy', 'textTokenCounter']);
 const MAIN_ACTOR_KEYS = Object.freeze(['instructions', 'invocationConfig', 'invocationPolicy']);
 const INVOCATION_CONFIG_KEYS = Object.freeze(['temperature', 'maxOutputTokens']);
 const MEMORY_PERSISTENCE_KEYS = Object.freeze(['kind']);
@@ -168,6 +169,13 @@ function parseProvider(value: unknown): StandaloneProviderConfig {
   }
   return Object.freeze({
     config: defineProviderConfig(config),
+    ...(Object.hasOwn(record, 'textTokenCounter')
+      ? {
+          textTokenCounter: defineTextTokenCounterConfig(
+            readOptionalDataField(record, 'textTokenCounter', 'Standalone text token counter')
+          ),
+        }
+      : {}),
     transportLivenessPolicy: parseStandaloneProviderTransportLivenessPolicy(
       readOptionalDataField(
         record,
@@ -350,6 +358,9 @@ function encodeStandaloneAgentConfig(config: StandaloneAgentConfig): ConfigValue
   return {
     provider: {
       config: encodeProviderConfig(config.provider.config),
+      ...(config.provider.textTokenCounter === undefined
+        ? {}
+        : { textTokenCounter: { ...config.provider.textTokenCounter } }),
       transportLivenessPolicy: {
         responseStartTimeoutMilliseconds:
           config.provider.transportLivenessPolicy.responseStartTimeoutMilliseconds,
@@ -361,7 +372,8 @@ function encodeStandaloneAgentConfig(config: StandaloneAgentConfig): ConfigValue
     mainActor,
     request: { timeoutMilliseconds: config.request.timeoutMilliseconds },
     sessionCompaction: {
-      timeoutMilliseconds: config.sessionCompaction.timeoutMilliseconds,
+      ...config.sessionCompaction,
+      target: { ...config.sessionCompaction.target },
     },
   };
 }

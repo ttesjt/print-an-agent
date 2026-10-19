@@ -7,8 +7,8 @@ import {
 } from '@ta-agent/base-request';
 import { mergeStepOverrides, resolveStepRegistry } from '@ta-agent/workflow-core';
 import {
-  DEFAULT_SESSION_COMPACTION_POLICY,
   validateSessionCompactionPolicy,
+  bindSessionCompactionTokenCounter,
   type SessionCompactionPolicy,
 } from '@ta-agent/base-session';
 import { AgentBaseStandaloneError } from './errors.js';
@@ -52,10 +52,7 @@ export function resolveStandaloneRequestPolicy(
 export function resolveStandaloneSessionCompactionPolicy(
   config: StandaloneSessionCompactionExecutionConfig
 ): SessionCompactionPolicy {
-  return validateSessionCompactionPolicy({
-    ...DEFAULT_SESSION_COMPACTION_POLICY,
-    timeoutMilliseconds: config.timeoutMilliseconds,
-  });
+  return validateSessionCompactionPolicy(config);
 }
 
 export function assertStandaloneRuntimeOptions(options: StandaloneRuntimeOptions): void {
@@ -79,6 +76,14 @@ export function assertStandaloneRuntimeOptions(options: StandaloneRuntimeOptions
       { timeoutMilliseconds: DEFAULT_REQUEST_POLICY.timeoutMilliseconds },
       options.requestLimits
     );
+    if (options.sessionCompactionTokenCounter !== undefined) {
+      bindSessionCompactionTokenCounter(options.sessionCompactionTokenCounter);
+    }
+    if (
+      options.resolveTextTokenCounter !== undefined &&
+      typeof options.resolveTextTokenCounter !== 'function'
+    )
+      throw new AgentBaseStandaloneError('Standalone text counter resolver must be a function.');
     resolveStepRegistry(
       createRequestStepDefinitions(),
       mergeStepOverrides(createDefaultRequestStepOverrides(), options.stepOverrides)

@@ -34,8 +34,12 @@ import { composeActorInstructions, parseActorInstructions } from './instructions
 import { createActorInteractionProtocol } from './engine-protocol.js';
 import { normalizeActorDirectResult } from './result-protocol.js';
 import { invokeActorStream } from './stream-invocation.js';
+import { bindTextTokenCounter } from '../token-measurement/text-counter-binding.js';
+import type { TokenCounter, TextTokenInput } from '../token-measurement/contracts.js';
 
 export interface ActorDefinitionInput {
+  /** Optional borrowed override; absence inherits the Engine's text measurement capability. */
+  readonly textTokenCounter?: TokenCounter<TextTokenInput>;
   readonly id: string;
   readonly engineId: string;
   readonly instructions?: string;
@@ -45,6 +49,7 @@ export interface ActorDefinitionInput {
 }
 
 export interface ActorDefinition {
+  readonly textTokenCounter?: TokenCounter<TextTokenInput>;
   readonly id: ActorId;
   readonly engineId: ActorEngineId;
   readonly instructions?: string;
@@ -54,6 +59,7 @@ export interface ActorDefinition {
 }
 
 export interface ResolvedActor {
+  readonly textTokenCounter?: TokenCounter<TextTokenInput>;
   readonly id: ActorId;
   readonly engineId: ActorEngineId;
   readonly catalogRevision?: number;
@@ -64,6 +70,7 @@ export interface ResolvedActor {
 }
 
 const ACTOR_KEYS = Object.freeze([
+  'textTokenCounter',
   'id',
   'engineId',
   'instructions',
@@ -90,6 +97,9 @@ export function defineActor(input: ActorDefinitionInput): ActorDefinition {
       : defineActorCapabilityLimits(input.capabilityLimits);
   return Object.freeze({
     id: parseActorId(input.id),
+    ...(input.textTokenCounter === undefined
+      ? {}
+      : { textTokenCounter: bindTextTokenCounter(input.textTokenCounter) }),
     engineId: parseActorEngineId(input.engineId),
     ...(instructions === undefined ? {} : { instructions }),
     invocationConfig: defineActorInvocationConfig(input.invocationConfig),
@@ -110,7 +120,9 @@ export function resolveActor(
     );
   }
   const capabilities = narrowActorCapabilities(engine.capabilities, definition.capabilityLimits);
+  const textTokenCounter = definition.textTokenCounter ?? engine.textTokenCounter;
   const resolved = {
+    ...(textTokenCounter === undefined ? {} : { textTokenCounter }),
     id: definition.id,
     engineId: definition.engineId,
     ...(catalogRevision === undefined ? {} : { catalogRevision }),
@@ -278,4 +290,15 @@ export function requireInteractionCapability<T extends ResolvedActor>(
 
 function hasInteraction<T extends ResolvedActor>(actor: T): actor is T & InteractionCapability {
   return typeof actor.interact === 'function';
+}
+
+/** Measurement is optional and independent of the Actor's invocation modes. */
+export function requireActorTextTokenCounter(actor: ResolvedActor): TokenCounter<TextTokenInput> {
+  if (actor.textTokenCounter === undefined) {
+    throw new ActorError(
+      'ACTOR_TOKEN_MEASUREMENT_UNAVAILABLE',
+      'Actor has no text token counter bound.'
+    );
+  }
+  return actor.textTokenCounter;
 }

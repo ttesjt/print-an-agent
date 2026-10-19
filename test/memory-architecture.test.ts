@@ -10,6 +10,7 @@ it.each([
   '@ta-agent/workbench-application',
   '@ta-agent/ui-contracts',
   '@ta-agent/model-invocation-pi',
+  '@ta-agent/model-invocation-token-counters',
   '@earendil-works/pi-ai',
   '@ta-agent/context-memory-sqlite',
   '@ta-agent/retrieval-memory',

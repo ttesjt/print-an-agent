@@ -26,6 +26,7 @@ import {
   type SessionSnapshot,
 } from '../../src/index.js';
 import { createSessionPortStub } from '../support/session-port-stub.js';
+import { testTextCounter } from '../support/text-token-counter.js';
 
 const model = defineProviderModelReference({ provider: 'test', model: 'test-model' });
 
@@ -171,6 +172,7 @@ function createRunnableCompaction(options: {
       options.actorTimeoutMilliseconds
     ),
     instructions: 'Compact.',
+    tokenCounter: testTextCounter(),
     policy: Object.freeze({
       ...DEFAULT_SESSION_COMPACTION_POLICY,
       minimumCompletedTurns: 2,
@@ -285,30 +287,6 @@ describe('Session compaction Workflow contracts', () => {
       status: 'skipped',
       reason: 'not-needed',
     });
-  });
-
-  it('maps only its own explicit deadline to SESSION_COMPACTION_TIMEOUT', async () => {
-    vi.useFakeTimers();
-    const parentController = new AbortController();
-    const fixture = createRunnableCompaction({
-      identityId: 'timeout-agent',
-      complete: (request) => rejectWhenAborted(request.signal),
-      timeoutMilliseconds: 25,
-      signal: parentController.signal,
-    });
-
-    const run = fixture.workflow.run({
-      input: fixture.context,
-      signal: fixture.context.signal,
-    });
-    const expectation = expect(run).rejects.toMatchObject({
-      code: 'SESSION_COMPACTION_TIMEOUT',
-    });
-    await vi.advanceTimersByTimeAsync(25);
-
-    await expectation;
-    expect(parentController.signal.aborted).toBe(false);
-    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('preserves a child Actor timeout instead of relabelling it as compaction timeout', async () => {

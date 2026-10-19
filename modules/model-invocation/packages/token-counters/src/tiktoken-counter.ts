@@ -20,17 +20,21 @@ export interface TiktokenTextCounterOptions {
   readonly encoding: TiktokenEncoding;
 }
 
-/** Loads only the selected bundled vocabulary on first measurement; never downloads ranks. */
-export function createTiktokenTextCounter(
-  options: TiktokenTextCounterOptions
-): TokenCounter<TextTokenInput> {
-  const { encoding } = readCounterOptions(options, ['encoding']);
+export function parseTiktokenEncoding(encoding: unknown): TiktokenEncoding {
   if (encoding !== TIKTOKEN_ENCODING.CL100K_BASE && encoding !== TIKTOKEN_ENCODING.O200K_BASE) {
     throw new TokenMeasurementError(
       'TOKEN_MEASUREMENT_BINDING_INVALID',
       'An explicit supported tiktoken encoding is required.'
     );
   }
+  return encoding;
+}
+
+/** Loads only the selected bundled vocabulary on first measurement; never downloads ranks. */
+export function createTiktokenTextCounter(
+  options: TiktokenTextCounterOptions
+): TokenCounter<TextTokenInput> {
+  const encoding = parseTiktokenEncoding(readCounterOptions(options, ['encoding']).encoding);
   let tokenizer: Promise<Tiktoken> | undefined;
   async function load(): Promise<Tiktoken> {
     const { Tiktoken } = await import('js-tiktoken/lite');

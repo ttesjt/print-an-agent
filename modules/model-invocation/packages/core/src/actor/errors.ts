@@ -10,6 +10,7 @@ export type ActorErrorCode =
   | 'ACTOR_CATALOG_INVALID'
   | 'ACTOR_NOT_FOUND'
   | 'ACTOR_ENGINE_NOT_FOUND'
+  | 'ACTOR_TOKEN_MEASUREMENT_UNAVAILABLE'
   | 'ACTOR_INVOCATION_UNSUPPORTED';
 
 export class ActorError extends Error {

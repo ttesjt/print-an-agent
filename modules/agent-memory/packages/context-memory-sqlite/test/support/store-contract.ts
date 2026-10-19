@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { MemoryMeter, MemoryMutations, type MemoryStore } from '@ta-agent/context-memory';
+import { testCounter } from './counter.js';
 
 /** Adapter-neutral assertions; setup owns per-test cleanup and supplies a fresh store. */
 export function memoryStoreContract(name: string, setup: () => MemoryStore): void {
   describe(`${name}: public MemoryStore contract`, () => {
     const fixture = () => {
       const store = setup();
-      const meter = new MemoryMeter({ counter: { count: (text) => Promise.resolve(text.length) } });
-      const mutations = new MemoryMutations({ store, meter, defaults: { tokenizerRef: 'chars' } });
+      const meter = new MemoryMeter({ counter: testCounter() });
+      const mutations = new MemoryMutations({
+        store,
+        meter,
+        defaults: { measurementRef: 'chars' },
+      });
       return { store, mutations };
     };
     it('returns isolated values and persists configure at a single new revision', async () => {

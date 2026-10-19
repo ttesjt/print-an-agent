@@ -45,7 +45,10 @@ export function readClosedRecord(
   }
 }
 
-export function parseMeasurementReference(value: unknown, code: TokenMeasurementErrorCode): string {
+export function parseMeasurementReference(
+  value: unknown,
+  code: TokenMeasurementErrorCode = 'TOKEN_MEASUREMENT_BINDING_INVALID'
+): string {
   if (
     typeof value !== 'string' ||
     value.length > MAX_REFERENCE_LENGTH ||

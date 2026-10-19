@@ -1,18 +1,16 @@
 import { expect, it } from 'vitest';
-import type { TokenCounter } from '@ta-agent/context-memory';
+import { testCounter } from './support/counter.js';
 import { domain, fileStores, gate } from './support/fixtures.js';
 
 function synchronize() {
   const ready = gate();
   const release = gate();
   let arrived = 0;
-  const counter: TokenCounter = {
-    count: async (text) => {
-      if (++arrived === 2) ready.release();
-      await release.promise;
-      return text.length;
-    },
-  };
+  const counter = testCounter(async (text) => {
+    if (++arrived === 2) ready.release();
+    await release.promise;
+    return text.length;
+  });
   return { counter, ready, release };
 }
 it('two connections preparing the same revision cannot overwrite each other', async () => {

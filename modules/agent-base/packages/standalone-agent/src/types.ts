@@ -20,6 +20,11 @@ import type {
   StandaloneManagedSqliteTableNamingInput,
   StandaloneSharedSqliteTableNamingInput,
 } from './resources/sqlite-table-naming.js';
+import type {
+  TextTokenCounterConfig,
+  TextTokenCounterConfigInput,
+  TextTokenCounterReferenceResolver,
+} from '@ta-agent/model-invocation-token-counters';
 
 export interface StandaloneCredentialBindingInput {
   readonly reference: string;
@@ -43,11 +48,13 @@ export interface StandaloneMainActorConfig {
 }
 
 export interface StandaloneProviderConfigInput {
+  readonly textTokenCounter?: TextTokenCounterConfigInput;
   readonly config: ProviderConfigInput;
   readonly transportLivenessPolicy?: ProviderTransportLivenessPolicyInput;
 }
 
 export interface StandaloneProviderConfig {
+  readonly textTokenCounter?: TextTokenCounterConfig;
   readonly config: DefinedProviderConfig;
   readonly transportLivenessPolicy: ProviderTransportLivenessPolicy;
 }
@@ -60,13 +67,12 @@ export interface StandaloneRequestExecutionConfig {
   readonly timeoutMilliseconds: RequestPolicy['timeoutMilliseconds'];
 }
 
-export interface StandaloneSessionCompactionExecutionConfigInput {
-  readonly timeoutMilliseconds: SessionCompactionPolicy['timeoutMilliseconds'];
-}
+export type StandaloneSessionCompactionExecutionConfigInput = Readonly<
+  Partial<Omit<SessionCompactionPolicy, 'timeoutMilliseconds'>> &
+    Pick<SessionCompactionPolicy, 'timeoutMilliseconds'>
+>;
 
-export interface StandaloneSessionCompactionExecutionConfig {
-  readonly timeoutMilliseconds: SessionCompactionPolicy['timeoutMilliseconds'];
-}
+export type StandaloneSessionCompactionExecutionConfig = SessionCompactionPolicy;
 
 export interface StandaloneAgentBootstrapConfigInput {
   readonly schemaVersion: 1;
@@ -98,7 +104,15 @@ export interface StandaloneCredentialRuntimeOptions {
   readonly readEnvironmentVariable: (name: string) => string | undefined;
 }
 
-export interface StandaloneRuntimeOptions extends StandaloneCredentialRuntimeOptions {
+export interface StandaloneTokenCounterRuntimeOptions {
+  /** Synchronous lookup of host-preloaded capabilities; no executable code is read from Config. */
+  readonly resolveTextTokenCounter?: TextTokenCounterReferenceResolver;
+}
+
+export interface StandaloneRuntimeOptions
+  extends StandaloneCredentialRuntimeOptions, StandaloneTokenCounterRuntimeOptions {
+  /** Borrowed tokenizer for explicit compaction; never serialized or inferred. */
+  readonly sessionCompactionTokenCounter?: ComposeAgentOptions['sessionCompactionTokenCounter'];
   /** Executable host composition, never part of durable Agent JSON configuration. */
   readonly stepOverrides?: ComposeAgentOptions['stepOverrides'];
   /** Non-timeout Request limits; durable Agent configuration owns the timeout. */

@@ -17,7 +17,7 @@ export type { MemoryMutationResources } from './domain/mutations.js';
 export { readMemoryContext } from './domain/read-context.js';
 export { assertMemoryBudget } from './domain/budget.js';
 export { MemoryMeter, DEFAULT_MEASUREMENT_CACHE_ENTRIES } from './rendering/meter.js';
-export type { MemoryMeterOptions } from './rendering/meter.js';
+export type { MemoryMeterOptions, MemoryCounterResolver } from './rendering/meter.js';
 export { DEFAULT_MEMORY_RENDERER } from './rendering/default-renderer.js';
 export { parseMemoryItems } from './validation/items.js';
 export { parseMemoryState, parseMemorySnapshot } from './validation/state.js';

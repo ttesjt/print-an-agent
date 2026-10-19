@@ -49,7 +49,7 @@ export function resolveMemoryConfig(
     const input = record(value, 'config', 'CONFIG_INVALID');
     const inherited = record(defaults, 'default config', 'CONFIG_INVALID');
     const fields = [
-      'tokenizerRef',
+      'measurementRef',
       'render',
       'maxContextTokens',
       'maxItems',
@@ -60,7 +60,7 @@ export function resolveMemoryConfig(
     keys(inherited, fields, 'CONFIG_INVALID');
     const merged: Record<string, unknown> = { ...DEFAULT_MEMORY_OPTIONS, ...inherited, ...input };
     return {
-      tokenizerRef: identity(merged.tokenizerRef, 'tokenizerRef'),
+      measurementRef: identity(merged.measurementRef, 'measurementRef'),
       render: parseRenderOptions(merged.render),
       maxContextTokens: limit(merged.maxContextTokens, 'maxContextTokens'),
       maxItems: limit(merged.maxItems, 'maxItems'),

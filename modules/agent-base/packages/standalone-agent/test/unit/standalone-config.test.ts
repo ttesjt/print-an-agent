@@ -1,3 +1,4 @@
+import { DEFAULT_SESSION_COMPACTION_POLICY } from '@ta-agent/base-session';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -63,6 +64,48 @@ function expectStandaloneConfigInvalid(action: () => unknown): void {
 }
 
 describe('standalone Agent Base configuration', () => {
+  it('round-trips the complete token compaction policy without executable tokenizer state', () => {
+    const input = validConfig();
+    const policy = {
+      timeoutMilliseconds: null,
+      maxContextTokens: 2000,
+      target: { limitTokens: 2000, ratio: 0.75, reserveTokens: 100 },
+      maxGenerationAttempts: 5,
+      retrySafetyFactor: 0.7,
+      maxGenerationCharacters: 8000,
+    };
+    input.sessionCompaction = policy;
+    const config = defineStandaloneAgentBootstrapConfig(input);
+    expect(config.sessionCompaction).toMatchObject(policy);
+    const encoded = STANDALONE_AGENT_CONFIG_CODEC.encode({
+      provider: config.provider,
+      ...(config.credential === undefined ? {} : { credential: config.credential }),
+      mainActor: config.mainActor,
+      request: config.request,
+      sessionCompaction: config.sessionCompaction,
+    });
+    const decoded = STANDALONE_AGENT_CONFIG_CODEC.decode(encoded);
+    expect(decoded.sessionCompaction).toEqual(config.sessionCompaction);
+    expect(JSON.stringify(encoded)).not.toContain('counter');
+    expect(Object.isFrozen(decoded.sessionCompaction.target)).toBe(true);
+  });
+
+  it('rejects getters in non-timeout compaction fields before reading them', () => {
+    const input = validConfig();
+    const policy = { timeoutMilliseconds: null };
+    let evaluated = false;
+    Object.defineProperty(policy, 'maxContextTokens', {
+      enumerable: true,
+      get() {
+        evaluated = true;
+        return 20;
+      },
+    });
+    input.sessionCompaction = policy;
+    expectStandaloneConfigInvalid(() => defineStandaloneAgentBootstrapConfig(input));
+    expect(evaluated).toBe(false);
+  });
+
   it('normalizes and freezes the closed versioned configuration', () => {
     const config = defineStandaloneAgentBootstrapConfig(validConfig());
 
@@ -121,7 +164,7 @@ describe('standalone Agent Base configuration', () => {
     });
     expect(config.mainActor.invocationPolicy).toEqual({ timeoutMilliseconds: null });
     expect(config.request).toEqual({ timeoutMilliseconds: null });
-    expect(config.sessionCompaction).toEqual({ timeoutMilliseconds: null });
+    expect(config.sessionCompaction).toEqual(DEFAULT_SESSION_COMPACTION_POLICY);
 
     const encoded = STANDALONE_AGENT_CONFIG_CODEC.encode({
       provider: config.provider,

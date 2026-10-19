@@ -6,8 +6,9 @@ import {
   type MemoryStore,
 } from '@ta-agent/context-memory';
 import { TestMemoryStore, gate } from './support/store.js';
+import { testCounter } from './support/counter.js';
 
-const meter = () => new MemoryMeter({ counter: { count: (text) => Promise.resolve(text.length) } });
+const meter = () => new MemoryMeter({ counter: testCounter() });
 it('does not call an invalid returned receipt a known uncommitted rejection', async () => {
   const actual = new TestMemoryStore();
   const faulty: MemoryStore = {
@@ -21,7 +22,7 @@ it('does not call an invalid returned receipt a known uncommitted rejection', as
   const mutations = new MemoryMutations({
     store: faulty,
     meter: meter(),
-    defaults: { tokenizerRef: 'chars' },
+    defaults: { measurementRef: 'chars' },
   });
   await expect(mutations.create({ memoryId: 'a', requestId: 'create' })).rejects.toMatchObject({
     code: 'COMMIT_STATUS_UNKNOWN',
@@ -35,7 +36,7 @@ it('preserves committed cleanup failure even if cancellation also arrives', asyn
   const mutations = new MemoryMutations({
     store,
     meter: meter(),
-    defaults: { tokenizerRef: 'chars' },
+    defaults: { measurementRef: 'chars' },
   });
   store.afterCommit = () => {
     const receipt = [...store.receipts.values()][0];
@@ -58,18 +59,16 @@ it('observes cancellation before the mutation after waiting for token counting',
   const release = gate();
   const controller = new AbortController();
   const counting = new MemoryMeter({
-    counter: {
-      count: async (text) => {
-        entered.release();
-        await release.promise;
-        return text.length;
-      },
-    },
+    counter: testCounter('chars', async (text) => {
+      entered.release();
+      await release.promise;
+      return text.length;
+    }),
   });
   const mutations = new MemoryMutations({
     store,
     meter: counting,
-    defaults: { tokenizerRef: 'chars' },
+    defaults: { measurementRef: 'chars' },
   });
   const operation = mutations.create(
     { memoryId: 'a', requestId: 'create', items: [{ content: 'pending' }] },
@@ -89,7 +88,7 @@ it('applies optional item rules at the real boundary and allows disabled budgets
   const mutations = new MemoryMutations({
     store,
     meter: meter(),
-    defaults: { tokenizerRef: 'chars', maxContextTokens: null },
+    defaults: { measurementRef: 'chars', maxContextTokens: null },
     validateItem: (item) => {
       if (item.content.includes('reject')) throw new Error('host policy');
     },
@@ -103,5 +102,5 @@ it('applies optional item rules at the real boundary and allows disabled budgets
     requestId: 'valid',
     items: [{ content: 'x'.repeat(5000) }],
   });
-  expect((await store.read('a'))?.measurement.tokenCount).toBe(5000);
+  expect((await store.read('a'))?.measurement.tokens).toBe(5000);
 });

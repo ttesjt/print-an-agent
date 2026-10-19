@@ -10,6 +10,7 @@ import type { RequestJournalPort } from '@ta-agent/base-request';
 import type { CompactableSessionPort } from '@ta-agent/base-session';
 import { createStandaloneCredentialResolver } from '../credential-resolver.js';
 import { AgentBaseStandaloneError } from '../errors.js';
+import { resolveStandaloneTextTokenCounter } from './token-counter.js';
 import {
   resolveStandaloneRequestPolicy,
   resolveStandaloneSessionCompactionPolicy,
@@ -46,7 +47,9 @@ export function materializeStandaloneAgentRuntime(
       ? undefined
       : createStandaloneCredentialResolver(input.config.credential, input.options);
 
+  const textTokenCounter = resolveStandaloneTextTokenCounter(input.config.provider, input.options);
   const provider = createProviderRuntime({
+    ...(textTokenCounter === undefined ? {} : { textTokenCounter }),
     config: input.config.provider.config,
     transportLivenessPolicy: input.config.provider.transportLivenessPolicy,
     ...(credentialResolver === undefined ? {} : { credentialResolver }),
@@ -72,5 +75,10 @@ export function materializeStandaloneAgentRuntime(
     sessionCompactionPolicy: resolveStandaloneSessionCompactionPolicy(
       input.config.sessionCompaction
     ),
+    ...(input.options.sessionCompactionTokenCounter === undefined
+      ? {}
+      : {
+          sessionCompactionTokenCounter: input.options.sessionCompactionTokenCounter,
+        }),
   });
 }

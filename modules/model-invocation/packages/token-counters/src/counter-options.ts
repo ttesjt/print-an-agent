@@ -18,7 +18,6 @@ export function readCounterOptions(
     }
     return Object.freeze(result);
   } catch (cause: unknown) {
-    if (cause instanceof TokenMeasurementError) throw cause;
     throw new TokenMeasurementError(
       'TOKEN_MEASUREMENT_BINDING_INVALID',
       'Counter options could not be inspected.',

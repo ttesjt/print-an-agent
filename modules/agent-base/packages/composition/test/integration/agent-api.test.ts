@@ -1,3 +1,4 @@
+import { TEST_COMPACTION_TOKEN_COUNTER } from '../support/compaction-token-counter.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -109,6 +110,7 @@ describe('assembled Agent Base request path', () => {
       execute: handler,
     });
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       createRunId: () => 'trace-request',
       createWorkflowRunId: () => 'trace-workflow',
@@ -259,6 +261,7 @@ describe('assembled Agent Base request path', () => {
       execute: handler,
     });
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       toolRegistry: createToolRegistry([tool]),
       provider: {
@@ -280,6 +283,7 @@ describe('assembled Agent Base request path', () => {
   it('fails an all-disabled foreground Responsibility before invoking an Engine', async () => {
     const session = new MemorySessionAdapter();
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'disabled-responsibility-agent' },
       session,
       createRunId: () => 'disabled-responsibility-run',
@@ -322,6 +326,7 @@ describe('assembled Agent Base request path', () => {
     const runIds = ['history-first-run', 'history-second-run'];
     let runIndex = 0;
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant', displayName: 'Assistant' },
       createRunId: () => runIds[runIndex++] ?? 'unexpected-history-run',
       session,
@@ -394,6 +399,7 @@ describe('assembled Agent Base request path', () => {
     try {
       const firstSession = new SqliteSessionAdapter({ databasePath });
       const firstAgent = createDeterministicAgentAPI({
+        sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
         identity: { id: 'durable-assistant' },
         session: firstSession,
         provider: { responses: [{ status: 'success', text: 'Remembered.' }] },
@@ -408,6 +414,7 @@ describe('assembled Agent Base request path', () => {
 
       const reopenedSession = new SqliteSessionAdapter({ databasePath });
       const reopenedAgent = createDeterministicAgentAPI({
+        sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
         identity: { id: 'durable-assistant' },
         session: reopenedSession,
         provider: {
@@ -467,6 +474,7 @@ describe('assembled Agent Base request path', () => {
       const firstJournal = new SqliteRequestJournalAdapter({ databasePath });
       const firstTrace = new MemoryAgentTraceAdapter({ maxEvents: 256 });
       const firstAgent = createDeterministicAgentAPI({
+        sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
         identity: { id: 'replay-assistant' },
         session: firstSession,
         requestJournal: firstJournal,
@@ -498,6 +506,7 @@ describe('assembled Agent Base request path', () => {
       const reopenedJournal = new SqliteRequestJournalAdapter({ databasePath });
       const replayTrace = new MemoryAgentTraceAdapter({ maxEvents: 128 });
       const reopenedAgent = createDeterministicAgentAPI({
+        sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
         identity: { id: 'replay-assistant' },
         session: reopenedSession,
         requestJournal: reopenedJournal,
@@ -562,6 +571,7 @@ describe('assembled Agent Base request path', () => {
     const runIds = ['active-retry', 'failed-retry', 'conflict-retry'];
     let runIndex = 0;
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'replay-guard' },
       session,
       requestJournal: journal,
@@ -643,6 +653,7 @@ describe('assembled Agent Base request path', () => {
     const controller = new AbortController();
     const sink = new CancellingOutputSink(controller);
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       createRunId: () => 'cancelled-run',
       session,
@@ -707,6 +718,7 @@ describe('assembled Agent Base request path', () => {
     const journal = new MemoryRequestJournalAdapter(() => 1);
     const trace = new MemoryAgentTraceAdapter({ maxEvents: 128 });
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       createRunId: () => 'provider-failure-run',
       requestJournal: journal,
@@ -759,6 +771,7 @@ describe('assembled Agent Base request path', () => {
     const trace = new MemoryAgentTraceAdapter({ maxEvents: 128 });
     const sink = new FailingCloseOutputSink();
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       createRunId: () => 'close-failure-run',
       session,
@@ -810,6 +823,7 @@ describe('assembled Agent Base request path', () => {
     const session = new MemorySessionAdapter();
     const sink = new FailingWriteOutputSink();
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       session,
       provider: { responses: [{ status: 'success', text: 'not published' }] },
@@ -840,6 +854,7 @@ describe('assembled Agent Base request path', () => {
   it('preserves provider and OutputSink cleanup failures in deterministic order', async () => {
     const sink = new FailingFailureOutputSink();
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       provider: { responses: [{ status: 'failure', message: 'provider failed' }] },
     });
@@ -863,6 +878,7 @@ describe('assembled Agent Base request path', () => {
 
   it('propagates an individual Step override through the unchanged request composition', async () => {
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       provider: {
         responses: [(request) => ({ status: 'success', text: request.instructions })],
@@ -885,6 +901,7 @@ describe('assembled Agent Base request path', () => {
   it('isolates a failed trace sink from the assembled request result', async () => {
     const observedFailures: string[] = [];
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       observability: {
         sink: { record: () => Promise.reject(new Error('trace unavailable')) },
@@ -905,6 +922,7 @@ describe('assembled Agent Base request path', () => {
 
   it('fails invalid request input before invoking Pi', async () => {
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       provider: { responses: [{ status: 'success', text: 'unused' }] },
     });
@@ -925,6 +943,7 @@ describe('assembled Agent Base request path', () => {
     let compactionConfigurationError: unknown;
     try {
       createDeterministicAgentAPI({
+        sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
         identity: { id: 'assistant' },
         sessionCompactionInstructions: '   ',
         provider: { responses: [{ status: 'success', text: 'unused' }] },
@@ -946,6 +965,7 @@ describe('assembled Agent Base request path', () => {
     let requestSequence = 0;
     try {
       const first = createDeterministicAgentAPI({
+        sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
         identity: { id: 'assistant' },
         session: new SqliteSessionAdapter({ databasePath, clock: () => 10 }),
         createRunId: () => `request-${++requestSequence}`,
@@ -983,6 +1003,7 @@ describe('assembled Agent Base request path', () => {
 
       const reopenedSession = new SqliteSessionAdapter({ databasePath, clock: () => 30 });
       const reopened = createDeterministicAgentAPI({
+        sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
         identity: { id: 'assistant' },
         session: reopenedSession,
         createRunId: () => `request-${++requestSequence}`,
@@ -1022,7 +1043,14 @@ describe('assembled Agent Base request path', () => {
         'runSessionCompaction',
         'inspectSession',
         'selectCompactionSource',
+        'resolveCompactionTarget',
+        'resolveCompactionTokenCounter',
+        'resolveCompactionActor',
         'buildCompactedContext',
+        'prepareCompactionAttempt',
+        'generateCompactionCandidate',
+        'measureCompactionCandidate',
+        'validateCompactionCandidate',
         'persistCompaction',
       ]);
       const serializedTrace = JSON.stringify(compactionEvents);
@@ -1038,6 +1066,7 @@ describe('assembled Agent Base request path', () => {
   it('skips compaction before policy eligibility without consuming a Pi response', async () => {
     let requestSequence = 0;
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       createRunId: () => `short-${++requestSequence}`,
       provider: {
@@ -1127,6 +1156,7 @@ describe('assembled Agent Base request path', () => {
     });
     let requestSequence = 0;
     const agent = composeAgent({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'custom-engine-agent' },
       actorCatalog,
       responsibilityCatalog,
@@ -1184,6 +1214,7 @@ describe('assembled Agent Base request path', () => {
         clock: () => 10,
       });
       const first = createDeterministicAgentAPI({
+        sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
         identity: { id: 'navigation-assistant' },
         session: firstSession,
         requestJournal: new SqliteRequestJournalAdapter({
@@ -1280,6 +1311,7 @@ describe('assembled Agent Base request path', () => {
         clock: () => 20,
       });
       const reopened = createDeterministicAgentAPI({
+        sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
         identity: { id: 'navigation-assistant' },
         session: reopenedSession,
         requestJournal: new SqliteRequestJournalAdapter({
@@ -1332,6 +1364,7 @@ describe('assembled Agent Base request path', () => {
   it('allows one compaction leaf Step to be replaced without invoking its Actor', async () => {
     let requestSequence = 0;
     const agent = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       createRunId: () => `override-${++requestSequence}`,
       sessionCompactionStepOverrides: {
@@ -1401,6 +1434,7 @@ describe('assembled Agent Base request path', () => {
       ],
     });
     const agent = composeAgent({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'assistant' },
       createRunId: () => 'timeout-run',
       actorCatalog,

@@ -2,6 +2,7 @@ import { STEP_CARDINALITY, type Step, type StepDefinitions } from '@ta-agent/wor
 import { SessionCompactionStepNotImplementedError } from '../../errors.js';
 import type { SessionCompactionLeafStepName, SessionCompactionStepName } from './names.js';
 import type { SessionCompactionWorkflowContext } from './types.js';
+import { buildCompactedContext } from './composites.js';
 
 function createPlaceholderStep(
   stepName: SessionCompactionLeafStepName
@@ -10,13 +11,19 @@ function createPlaceholderStep(
 }
 
 const runSessionCompaction: Step<SessionCompactionWorkflowContext> = async (context) => {
-  const steps: readonly SessionCompactionLeafStepName[] = [
+  const steps: readonly SessionCompactionStepName[] = [
     'inspectSession',
     'selectCompactionSource',
+    'resolveCompactionTarget',
+    'resolveCompactionTokenCounter',
+    'resolveCompactionActor',
     'buildCompactedContext',
     'persistCompaction',
   ];
-  for (const stepName of steps) await context.runStep(stepName);
+  for (const stepName of steps) {
+    await context.runStep(stepName);
+    if (context.result !== undefined) return;
+  }
 };
 
 export function createSessionCompactionStepDefinitions(): StepDefinitions<
@@ -40,8 +47,48 @@ export function createSessionCompactionStepDefinitions(): StepDefinitions<
       skippable: false,
     },
     buildCompactedContext: {
-      step: createPlaceholderStep('buildCompactedContext'),
+      step: buildCompactedContext,
       cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: false,
+    },
+    resolveCompactionTarget: {
+      step: createPlaceholderStep('resolveCompactionTarget'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: false,
+    },
+    resolveCompactionTokenCounter: {
+      step: createPlaceholderStep('resolveCompactionTokenCounter'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: false,
+    },
+    resolveCompactionActor: {
+      step: createPlaceholderStep('resolveCompactionActor'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: false,
+    },
+    prepareCompactionAttempt: {
+      step: createPlaceholderStep('prepareCompactionAttempt'),
+      cardinality: STEP_CARDINALITY.REPEATABLE,
+      skippable: false,
+    },
+    generateCompactionCandidate: {
+      step: createPlaceholderStep('generateCompactionCandidate'),
+      cardinality: STEP_CARDINALITY.REPEATABLE,
+      skippable: false,
+    },
+    measureCompactionCandidate: {
+      step: createPlaceholderStep('measureCompactionCandidate'),
+      cardinality: STEP_CARDINALITY.REPEATABLE,
+      skippable: false,
+    },
+    validateCompactionCandidate: {
+      step: createPlaceholderStep('validateCompactionCandidate'),
+      cardinality: STEP_CARDINALITY.REPEATABLE,
+      skippable: false,
+    },
+    refineCompactionPlan: {
+      step: createPlaceholderStep('refineCompactionPlan'),
+      cardinality: STEP_CARDINALITY.REPEATABLE,
       skippable: false,
     },
     persistCompaction: {

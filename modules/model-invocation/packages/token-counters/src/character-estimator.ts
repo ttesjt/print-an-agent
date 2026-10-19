@@ -14,27 +14,27 @@ export interface CharacterTokenEstimatorOptions {
   readonly charactersPerToken?: number;
 }
 
-/** UTF-16 length heuristic, not a tokenizer or provider-specific context/billing count. */
-export function createCharacterTokenEstimator(
-  options: CharacterTokenEstimatorOptions = {}
-): TokenCounter<TextTokenInput> {
+export function parseCharactersPerToken(options: unknown): number {
   const record = readCounterOptions(options, ['charactersPerToken']);
   const ratio = Object.hasOwn(record, 'charactersPerToken')
     ? record.charactersPerToken
     : DEFAULT_CHARACTERS_PER_TOKEN;
-  if (
-    typeof ratio !== 'number' ||
-    !Number.isFinite(ratio) ||
-    ratio < 1 ||
-    ratio > Number.MAX_SAFE_INTEGER
-  ) {
+  if (typeof ratio !== 'number' || !Number.isFinite(ratio) || ratio <= 0) {
     throw new TokenMeasurementError(
       'TOKEN_MEASUREMENT_BINDING_INVALID',
-      'charactersPerToken must be between one and the maximum safe integer.'
+      'charactersPerToken must be finite and positive.'
     );
   }
+  return ratio;
+}
+
+/** UTF-16 length heuristic, not a tokenizer or provider-specific context/billing count. */
+export function createCharacterTokenEstimator(
+  options: CharacterTokenEstimatorOptions = {}
+): TokenCounter<TextTokenInput> {
+  const ratio = parseCharactersPerToken(options);
   return createTokenCounter({
-    measurementRef: `estimate:utf16-code-units:ceil:per-token:${ratio}`,
+    measurementRef: `estimate:utf16-code-units:ceil:per-token:${String(ratio).replace('+', '')}`,
     inputContract: TEXT_TOKEN_INPUT_CONTRACT,
     measure: (input, signal) => {
       signal.throwIfAborted();

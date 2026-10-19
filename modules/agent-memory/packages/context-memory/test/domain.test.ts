@@ -9,15 +9,16 @@ import {
 } from '@ta-agent/context-memory';
 import { TestMemoryStore, gate } from './support/store.js';
 import { errorCode } from './support/errors.js';
+import { testCounter } from './support/counter.js';
 
 function fixture() {
   const store = new TestMemoryStore();
-  const meter = new MemoryMeter({ counter: { count: (text) => Promise.resolve(text.length) } });
+  const meter = new MemoryMeter({ counter: testCounter('characters') });
   let next = 0;
   const mutations = new MemoryMutations({
     store,
     meter,
-    defaults: { tokenizerRef: 'characters' },
+    defaults: { measurementRef: 'characters' },
     createItemId: () => `item-${++next}`,
   });
   return { store, meter, mutations };
@@ -151,24 +152,24 @@ it('recounts alternate tokenizers, returns full report, and rejects unrecognized
     config: { maxContextTokens: 10 },
   });
   const meter = new MemoryMeter({
-    counter: { count: (text) => Promise.resolve(text.length * 10) },
+    counter: testCounter('other', (text) => Promise.resolve(text.length * 10)),
   });
   await expect(
-    readMemoryContext({ store, meter }, { memoryId: 'a', tokenizerRef: 'other' })
+    readMemoryContext({ store, meter }, { memoryId: 'a', measurementRef: 'other' })
   ).rejects.toMatchObject({ code: 'BUDGET_EXCEEDED' });
   const report = await readMemoryContext(
     { store, meter },
-    { memoryId: 'a', tokenizerRef: 'other', budgetPolicy: 'report' }
+    { memoryId: 'a', measurementRef: 'other', budgetPolicy: 'report' }
   );
   expect(report.text).toBe('hello');
   expect(report.budget.status).toBe('exceeded');
   expect(report.snapshot.revision).toBe(1);
-  expect(report.measurement.tokenizerRef).toBe('other');
+  expect(report.measurement.measurementRef).toBe('other');
   const invalid = { memoryId: 'a', render: { format: 'json' } };
   await expect(readMemoryContext({ store, meter }, invalid)).rejects.toBeInstanceOf(
     ContextMemoryError
   );
-  expect((await store.read('a'))?.config.tokenizerRef).toBe('characters');
+  expect((await store.read('a'))?.config.measurementRef).toBe('characters');
 });
 
 it('cancels after slow reads before committing and preserves successful results after commit', async () => {

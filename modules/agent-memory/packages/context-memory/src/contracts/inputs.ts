@@ -28,7 +28,7 @@ export interface ConfigureMemoryInput {
 }
 export interface ReadContextInput {
   readonly memoryId: string;
-  readonly tokenizerRef?: string;
+  readonly measurementRef?: string;
   readonly maxTokens?: number;
   readonly budgetPolicy?: 'enforce' | 'report';
 }
@@ -42,5 +42,5 @@ export interface ReadContextResult {
 }
 export type CompactionTarget = TokenTarget & {
   readonly render?: RenderOptions;
-  readonly tokenizerRef?: string;
+  readonly measurementRef?: string;
 };

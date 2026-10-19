@@ -1,3 +1,4 @@
+import { TEST_COMPACTION_TOKEN_COUNTER } from '../support/compaction-token-counter.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -158,6 +159,7 @@ it.each(['compaction', 'navigation'] as const)(
     });
     let sequence = 0;
     const api = createDeterministicAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'maintenance-owner' },
       session: persistence.session,
       requestJournal: persistence.requestJournal,

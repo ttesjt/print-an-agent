@@ -81,6 +81,17 @@ export {
 export { createSessionNavigationStepDefinitions } from './navigation/workflow/step-definitions.js';
 export type * from './navigation/workflow/types.js';
 export type * from './compaction/contracts.js';
+export type * from './compaction/planning/contracts.js';
+export { SESSION_COMPACTION_REJECTION_REASON } from './compaction/planning/contracts.js';
+export {
+  defineSessionCompactionTarget,
+  resolveSessionCompactionTarget,
+} from './compaction/planning/target.js';
+export { refineSessionCompactionPromptTarget } from './compaction/planning/feedback.js';
+export {
+  bindSessionCompactionTokenCounter,
+  measureSessionCompactionText,
+} from './compaction/planning/measurement.js';
 export {
   DEFAULT_SESSION_COMPACTION_POLICY,
   MAX_SESSION_COMPACTION_CHARACTERS,
@@ -94,6 +105,8 @@ export {
 export { createShouldCompactSessionCondition } from './compaction/workflow/condition.js';
 export { createSessionCompactionWorkflow } from './compaction/workflow/create-workflow.js';
 export { createDefaultSessionCompactionStepOverrides } from './compaction/workflow/default-steps.js';
+export { SessionCompactionAttemptsExhaustedError } from './compaction/errors.js';
+export type { SessionCompactionExhaustion } from './compaction/errors.js';
 export {
   SESSION_COMPACTION_STEP_NAMES,
   SESSION_COMPACTION_WORKFLOW_NAME,

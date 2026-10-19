@@ -1,10 +1,6 @@
 import type { MemoryItem, MemorySnapshot, RenderOptions } from './document.js';
 import type { MemoryReceipt, StoreCommit } from './receipt.js';
 
-/** Host-owned capability; identities must distinguish vocabulary, configuration and semantics. */
-export interface TokenCounter {
-  count(text: string, tokenizerRef: string, signal: AbortSignal): Promise<number>;
-}
 export interface MemoryRenderer {
   /** Stable implementation identity; options are also included in measurement identity. */
   readonly id: string;

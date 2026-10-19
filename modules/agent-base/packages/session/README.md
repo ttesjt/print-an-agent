@@ -106,29 +106,67 @@ returns that branch's context message followed by its completed raw tail. CAS pr
 compactions from replacing a newer revision, and no compaction deletes or rewrites a turn. A child
 inherits a source projection only when its boundary remains an ancestor of the branch point.
 
-`compactSession` is a public Agent Operation backed by an ordinary replaceable Workflow. Its
-composite Step resolves the registered
-`inspectSession`, `selectCompactionSource`, `buildCompactedContext`, and `persistCompaction` leaf
-Steps. The default Condition is replaceable, raw leaf definitions fail fast, and the official
-assembled Agent supplies concrete overrides. `buildCompactedContext` resolves the registered
-`session-compaction` Responsibility and invokes its selected Actor in direct mode; Session owns no
-provider- or Pi-specific runtime contract. The Workflow is invoked explicitly and is never hidden
-inside foreground response production.
+`compactSession` is a public Agent Operation backed by a native, replaceable Core Workflow.
+The official composition supplies registered Steps for Session inspection/source selection, target
+and Actor resolution, candidate construction, generation, token measurement, validation, feedback
+and publication. Raw leaf definitions fail fast. Each generation uses the `session-compaction`
+Responsibility's Completion capability; Session owns no provider-specific compaction algorithm.
 
-The compaction factory returns a native Core Workflow with required `resources` bound at construction.
-Standard composition binds it to the Agent Operation through `bindAgentWorkflow()`: the input is the
-compaction Agent Run and mutable execution data lives in `context.state`. Ports and policy come from
-the Workflow's bound resources; the Agent Run need not provide another resource binding. Its
-`undefined` initial result means no change when the condition skips; normal execution must produce
-a compaction outcome. Execution leases are released by the Session lifecycle hook, not by closing
-bound Session ports.
+Compaction borrows a `TokenCounter<TextTokenInput>` from Model Invocation Core. Resources supply
+either `tokenCounter` or `resolveTokenCounter(signal)`, never both. The replaceable
+`resolveCompactionTokenCounter` Step freezes the binding for candidate planning. Official Agent
+composition resolves the counter from the foreground Responsibility's selected consuming Actor,
+not from the summary-generating Actor; explicit host wiring can override that selection.
+No encoding inference or character/token fallback is supplied. Missing capability fails eligible compaction with
+`SESSION_COMPACTION_TOKENIZER_NOT_CONFIGURED` but does not prevent ordinary foreground interaction.
+Counting/identity failures use `SESSION_COMPACTION_TOKENIZER_FAILED`; estimated results fail with
+`SESSION_COMPACTION_MEASUREMENT_INEXACT`. Publication resolves the canonical binding again, rejects
+identity drift and recounts exact final text, even when candidate validation is overridden.
+The counter is borrowed and never closed by a Workflow.
+This budget is not a claim about full provider chat-template/context-window cost.
 
-`SessionCompactionPolicy.timeoutMilliseconds` is an optional cooperative boundary expressed as a
-positive integer or `NO_SESSION_COMPACTION_TIMEOUT`. The standard policy defaults to no automatic
-deadline. When configured, compaction maps only the deadline it owns to
-`SESSION_COMPACTION_TIMEOUT`; parent cancellation remains `SESSION_COMPACTION_CANCELLED`, and a
-narrower Actor deadline remains `ACTOR_INVOCATION_TIMEOUT`. This policy does not replace an Actor's
-independent invocation policy and does not impose a timeout on Session persistence Steps.
+`SessionCompactionPolicy` separates token acceptance from generation/source character safety guards.
+Defaults are 4096 context tokens, target ratio .8 with no reserve, three generations including the
+first, retry safety factor .9, minimum planner target 1, 65536 generation characters, and the configured
+whole-turn source limits. `CompactSessionInput.target` optionally selects either `{ maxTokens }` or
+`{ limitTokens?, ratio?, reserveTokens? }`. Calculated targets use floor(limit × ratio) − reserve.
+Overrides never change policy or relax its token hard limit; invalid or contradictory values fail.
+
+One Run freezes its source, exact branch boundary, target and tokenizer binding. The at-most-once
+`buildCompactedContext` Composite invokes repeatable `prepareCompactionAttempt`,
+`generateCompactionCandidate`, `measureCompactionCandidate`, `validateCompactionCandidate` and
+`refineCompactionPlan` Steps. Complete oversized candidates are Run-local drafts; the next prompt
+contains the fixed original reference and at most the current draft. Empty/truncated or interrupted
+output is not reused. No partial candidate is persisted. This is an explicit domain loop, not a
+Workflow Executor retry policy, and overrides remain ordinary Step Registry entries.
+
+The final acceptance target T remains fixed. The default feedback Step tightens soft planner target P
+using max(minimum, floor(min(P, measured F) × T/F × retrySafetyFactor)) for an oversized candidate.
+Custom feedback can choose any valid soft target within configured bounds; the heuristic is not
+baked into the Composite. The model may ignore a target or lose facts: deterministic validation proves
+completion/size constraints, not semantic completeness. Exhaustion uses
+`SessionCompactionAttemptsExhaustedError` with stable code `SESSION_COMPACTION_ATTEMPTS_EXHAUSTED`,
+generation count, rejection reason, target and available actual token count, without summary text.
+Provider/protocol/tokenizer/configuration failures are terminal, not automatic retries.
+
+Only accepted output reaches `persistCompaction`, which independently remeasures the final text and
+checks its target before one authority/CAS commit. Replacing a validator does not bypass publication
+limits. Conflicts and storage failures do not regenerate or blindly retry writes. Raw turns are
+unchanged; failed builds leave the old projection intact. Once non-cancellable commit I/O starts,
+cancellation/failure may leave a committed projection: ordinary cancellation after an acknowledged
+successful write preserves success, while an owned expired deadline still reports timeout.
+Inspect authoritative state before deciding
+whether to run again, never infer rollback from a rejected invocation.
+
+Resources bind once at Workflow construction; working state is isolated per Run. Standard composition
+uses `bindAgentWorkflow()` and the existing Operation execution boundary to apply
+`SessionCompactionPolicy.timeoutMilliseconds` across the whole invocation, without resetting it for
+new candidates. The default is `NO_SESSION_COMPACTION_TIMEOUT`. Only an owned deadline maps to
+`SESSION_COMPACTION_TIMEOUT`; parent cancellation maps to `SESSION_COMPACTION_CANCELLED` and a
+narrower Actor deadline remains `ACTOR_INVOCATION_TIMEOUT`. Direct native Workflow consumers own their
+outer deadline boundary and pass its effective signal to `run()`. Session lifecycle cleanup releases
+admitted execution leases without closing bound ports. Foreground requests never trigger compaction
+implicitly.
 
 This durable profile intentionally retains a bounded navigation surface. Branch merge, rename,
 delete, pruning, retention, cross-Session clone, backup policy, encryption, automatic compaction

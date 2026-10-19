@@ -6,7 +6,7 @@ Item IDs are system-generated. Ordinary commands add, replace or remove items at
 
 ## Contracts
 
-- `resolveMemoryConfig` binds an actual `tokenizerRef`; no universal token estimator is assumed.
+- `resolveMemoryConfig` binds an actual `measurementRef`; no universal token estimator is assumed.
 - Text rendering defaults to a newline separator; JSON rendering includes IDs and content.
   Rendering is document configuration, not an implicit per-read override.
 - `resolveExecutionPolicy` centralizes finite defaults (three compaction passes, two CAS retries)
@@ -35,15 +35,25 @@ stale apply/configure revision, the boundary rechecks its receipt to recover con
 this does not retry the edit or relax CAS for genuinely stale writes.
 Empty additions are ignored; blank replacements remove their target; invalid commands publish nothing.
 
-`MemoryMeter` borrows a counter and renderer. It caches only completed text counts in a bounded cache
-(`maxCacheEntries`, default 128, zero disables caching), separately keyed by tokenizer and exact text.
+`MemoryMeter` borrows a `TokenCounter<TextTokenInput>` from `@ta-agent/model-invocation-core` and a
+renderer. Use `new MemoryMeter({ counter })`, for example with an Actor's `textTokenCounter`, or inject
+`resolveCounter(measurementRef, signal)` for explicit host-owned selection. The requested identity must
+match the resolved descriptor; no alias, model-name inference or fallback is performed.
+It caches only completed measurements in a bounded cache
+(`maxCacheEntries`, default 128, zero disables caching), keyed by the full counter descriptor and text.
 Every full measurement includes renderer/configuration and item digests. Item counts are planning
 hints, never a substitute for the full rendered count. Custom renderers use explicit identities.
+Snapshot measurements use the shared `tokens`, `accuracy`, `measurementRef`, `inputProtocolRef` and
+`scope` fields, including per-item results. Persistence preserves and validates this evidence.
+Finite context/item token budgets require `exact` accuracy; estimates fail with
+`TOKEN_MEASUREMENT_INEXACT` before commit. Unbounded documents may store estimates.
 
 `readMemoryContext({ store, meter }, input)` returns an entire snapshot and its actual rendered text.
-Reads can select a tokenizer but not a temporary renderer/separator. Default `enforce` rejects an
+Reads can select a `measurementRef` but not a temporary renderer/separator. Default `enforce` rejects an
 oversized result; explicit `report` returns it with budget status. No read truncates, invokes a model,
 changes configuration or advances revision. Disabled budgets return `unbounded`, not a fake pass.
+`report` may return estimated results; its budget comparison is descriptive, not proof of exact fit.
+Even a cached estimated count cannot satisfy a later finite `enforce` read.
 
 The host should give Workflow consumers this domain boundary rather than a raw store writer. The
 store port and persistence decision helpers are for adapter composition and contract testing; they

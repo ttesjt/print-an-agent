@@ -4,7 +4,7 @@ import type {
   ResponsibilityCatalogPort,
   ResponsibilityDefinitionInput,
 } from '@ta-agent/base-actor';
-import type { ActorId } from '@ta-agent/model-invocation-core';
+import type { ActorId, TokenCounter, TextTokenInput } from '@ta-agent/model-invocation-core';
 import type { AgentIdentityInput } from '@ta-agent/base-identity';
 import type { AgentTraceRuntimeOptions } from '@ta-agent/base-observability';
 import type {
@@ -59,6 +59,8 @@ export interface ComposeAgentOptions {
   readonly createRunId?: () => string;
   readonly createWorkflowRunId?: () => string;
   readonly sessionCompactionPolicy?: SessionCompactionPolicy;
+  /** Host-owned executable capability; never inferred from provider/model names. */
+  readonly sessionCompactionTokenCounter?: TokenCounter<TextTokenInput>;
   readonly sessionCompactionInstructions?: string;
   readonly sessionCompactionCondition?: SessionCompactionCondition;
   readonly sessionCompactionStepOverrides?: StepOverrides<

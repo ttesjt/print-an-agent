@@ -35,6 +35,7 @@
     "@ta-agent/base-identity": "workspace:*",
     "@ta-agent/base-local-adapters": "workspace:*",
     "@ta-agent/model-invocation-core": "workspace:*",
+    "@ta-agent/model-invocation-token-counters": "workspace:*",
     "@ta-agent/base-request": "workspace:*",
     "@ta-agent/base-session": "workspace:*",
     "@ta-agent/workflow-core": "workspace:*"

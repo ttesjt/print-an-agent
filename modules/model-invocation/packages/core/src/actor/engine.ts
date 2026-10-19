@@ -14,6 +14,8 @@ import {
 } from './capabilities.js';
 import { ActorError } from './errors.js';
 import { parseActorEngineId, type ActorEngineId } from './identifiers.js';
+import { bindTextTokenCounter } from '../token-measurement/text-counter-binding.js';
+import type { TokenCounter, TextTokenInput } from '../token-measurement/contracts.js';
 
 export interface ActorInvocationConfig {
   readonly temperature?: number;
@@ -69,6 +71,7 @@ export type ActorInteractionHandler = (
 export type ActorDirectHandler = (request: ActorEngineDirectRequest) => Promise<ActorDirectResult>;
 
 export interface ActorEngineInput {
+  readonly textTokenCounter?: TokenCounter<TextTokenInput>;
   readonly id: string;
   readonly capabilities: ActorEngineCapabilitiesInput;
   readonly interact?: ActorInteractionHandler;
@@ -77,6 +80,7 @@ export interface ActorEngineInput {
 }
 
 export interface ActorEngine {
+  readonly textTokenCounter?: TokenCounter<TextTokenInput>;
   readonly id: ActorEngineId;
   readonly capabilities: ActorEngineCapabilities;
   readonly interact?: ActorInteractionHandler;
@@ -84,7 +88,14 @@ export interface ActorEngine {
   readonly stream?: ActorStreamingHandler;
 }
 
-const ENGINE_KEYS = Object.freeze(['id', 'capabilities', 'interact', 'complete', 'stream']);
+const ENGINE_KEYS = Object.freeze([
+  'id',
+  'capabilities',
+  'interact',
+  'complete',
+  'stream',
+  'textTokenCounter',
+]);
 const INVOCATION_CONFIG_KEYS = Object.freeze(['temperature', 'maxOutputTokens']);
 
 function assertExactKeys(
@@ -172,6 +183,9 @@ export function defineActorEngine(input: ActorEngineInput): ActorEngine {
   return Object.freeze({
     id,
     capabilities,
+    ...(input.textTokenCounter === undefined
+      ? {}
+      : { textTokenCounter: bindTextTokenCounter(input.textTokenCounter) }),
     ...(input.interact === undefined ? {} : { interact: input.interact }),
     ...(input.complete === undefined ? {} : { complete: input.complete }),
     ...(input.stream === undefined ? {} : { stream: input.stream }),

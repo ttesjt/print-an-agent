@@ -12,6 +12,8 @@ import { builtinModels } from '@earendil-works/pi-ai/providers/all';
 import {
   ModelInvocationError,
   defineProviderTransportLivenessPolicy,
+  defineActorEngine,
+  type TokenCounterDescriptor,
 } from '@ta-agent/model-invocation-core';
 import { createPiActorEngine, PiActorRuntime } from '../runtime/pi-actor-runtime.js';
 import {
@@ -119,9 +121,11 @@ function createInspection(
   config: DefinedPiProviderConfig,
   model: Model<Api>,
   actorEngineId: PiProviderRuntimeInspection['actorEngineId'],
-  transportLivenessPolicy: PiProviderRuntimeInspection['transportLivenessPolicy']
+  transportLivenessPolicy: PiProviderRuntimeInspection['transportLivenessPolicy'],
+  textTokenCounter: TokenCounterDescriptor | undefined
 ): PiProviderRuntimeInspection {
   const common = {
+    ...(textTokenCounter === undefined ? {} : { textTokenCounter }),
     provider: config.reference.provider,
     model: config.reference.model,
     baseUrl: model.baseUrl,
@@ -159,12 +163,22 @@ export function createPiProviderRuntime(
       : { credentialResolver: options.credentialResolver }),
     transportLivenessPolicy,
   });
-  const actorEngine = createPiActorEngine(
+  const baseEngine = createPiActorEngine(
     runtime,
     options.actorEngineId ?? DEFAULT_ACTOR_ENGINE_ID,
     model.contextWindow
   );
-  const inspection = createInspection(config, model, actorEngine.id, transportLivenessPolicy);
+  const actorEngine =
+    options.textTokenCounter === undefined
+      ? baseEngine
+      : defineActorEngine({ ...baseEngine, textTokenCounter: options.textTokenCounter });
+  const inspection = createInspection(
+    config,
+    model,
+    actorEngine.id,
+    transportLivenessPolicy,
+    actorEngine.textTokenCounter?.descriptor
+  );
 
   return Object.freeze({
     runtime,

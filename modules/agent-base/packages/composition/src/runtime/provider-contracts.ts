@@ -1,4 +1,9 @@
-import type { ActorEngineId } from '@ta-agent/model-invocation-core';
+import type {
+  ActorEngineId,
+  TokenCounter,
+  TextTokenInput,
+  TokenCounterDescriptor,
+} from '@ta-agent/model-invocation-core';
 import type {
   ProviderCredentialResolver,
   ProviderId,
@@ -51,6 +56,7 @@ export type DefinedProviderConfig =
   | DefinedOpenAICompatibleProviderConfig;
 
 export interface ProviderRuntimeOptions {
+  readonly textTokenCounter?: TokenCounter<TextTokenInput>;
   readonly config: ProviderConfigInput;
   readonly credentialResolver?: ProviderCredentialResolver;
   readonly actorEngineId?: string;
@@ -59,6 +65,7 @@ export interface ProviderRuntimeOptions {
 }
 
 export interface ProviderRuntimeInspectionBase {
+  readonly textTokenCounter?: TokenCounterDescriptor;
   readonly provider: ProviderId;
   readonly model: ProviderModelId;
   readonly baseUrl: string;

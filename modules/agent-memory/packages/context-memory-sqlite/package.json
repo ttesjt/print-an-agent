@@ -27,6 +27,7 @@
     "@ta-agent/context-memory": "workspace:*"
   },
   "devDependencies": {
+    "@ta-agent/model-invocation-core": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

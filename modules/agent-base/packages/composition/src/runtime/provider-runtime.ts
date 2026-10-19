@@ -15,6 +15,9 @@ export interface ProviderRuntime {
 
 export function createProviderRuntime(options: ProviderRuntimeOptions): ProviderRuntime {
   const runtime = createPiProviderRuntime({
+    ...(options.textTokenCounter === undefined
+      ? {}
+      : { textTokenCounter: options.textTokenCounter }),
     provider: options.config,
     ...(options.credentialResolver === undefined
       ? {}

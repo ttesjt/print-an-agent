@@ -238,6 +238,21 @@ Actor invocation deadlines. The official composition forwards the policy to its 
 adapter and exposes the normalized values through `inspectProvider()` without leaking Pi types.
 Composition does not own durable provider configuration. The Standalone profile deliberately stores
 this liveness policy in its authoritative Config and supplies it during runtime materialization.
+`createProviderRuntime({ config, textTokenCounter })` optionally binds a borrowed Core text counter to
+the Engine. Inspection includes its frozen non-secret descriptor. This does not change model
+generation, install a tokenizer or guess an encoding; callers select an implementation explicitly.
+
+Explicit Session compaction accepts `sessionCompactionPolicy`,
+`sessionCompactionTokenCounter: TokenCounter<TextTokenInput>`, per-Step overrides and a full Workflow
+replacement. Without an explicit override, `resolveCompactionTokenCounter` uses the foreground
+Responsibility's selected Actor's `textTokenCounter`, not the compaction Actor's counter. No tokenizer
+is guessed from a Provider model. Without a matching bound counter, ordinary interaction still works
+but eligible compaction fails explicitly. Estimates cannot satisfy its token target.
+A call may select a stricter token
+target through `compactSession({ sessionId, target: { maxTokens: 3000 } })` or the calculated
+`{ limitTokens, ratio, reserveTokens }` form. Candidate loops remain bounded and publish only a
+successfully completed, measured context. The compaction Operation owns its one overall optional
+deadline; it is not renewed for each model call. See the Session package for Step and failure contracts.
 
 Generic Identity lifecycle and Config-authority coordination belong to `composition/management`.
 Concrete adapter selection, filesystem layout, SQLite schemas and table naming, Standalone Config

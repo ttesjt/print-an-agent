@@ -41,6 +41,12 @@ function requireRecord(value: unknown, label: string): UnknownRecord {
 }
 
 function assertExactKeys(value: UnknownRecord, allowed: readonly string[], label: string): void {
+  for (const key of Reflect.ownKeys(value)) {
+    const property = Object.getOwnPropertyDescriptor(value, key);
+    if (property === undefined || !property.enumerable || !('value' in property)) {
+      throw new AgentBaseStandaloneError(`${label} must contain enumerable data fields.`);
+    }
+  }
   const unexpected = Reflect.ownKeys(value).find(
     (key) => typeof key !== 'string' || !allowed.includes(key)
   );
@@ -121,19 +127,22 @@ export function parseStandaloneSessionCompactionExecution(
   value: unknown
 ): StandaloneSessionCompactionExecutionConfig {
   if (value === undefined) {
-    return Object.freeze({
-      timeoutMilliseconds: DEFAULT_SESSION_COMPACTION_POLICY.timeoutMilliseconds,
-    });
+    return DEFAULT_SESSION_COMPACTION_POLICY;
   }
   const record = requireRecord(value, 'Standalone Session compaction execution');
-  assertExactKeys(record, EXECUTION_TIMEOUT_KEYS, 'Standalone Session compaction execution');
+  assertExactKeys(
+    record,
+    Object.keys(DEFAULT_SESSION_COMPACTION_POLICY),
+    'Standalone Session compaction execution'
+  );
   const policy = validateSessionCompactionPolicy({
     ...DEFAULT_SESSION_COMPACTION_POLICY,
+    ...record,
     timeoutMilliseconds: readTimeoutField(
       record,
       'timeoutMilliseconds',
       'Standalone Session compaction timeoutMilliseconds'
     ),
   });
-  return Object.freeze({ timeoutMilliseconds: policy.timeoutMilliseconds });
+  return policy;
 }

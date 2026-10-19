@@ -7,10 +7,10 @@ receipt table records request outcomes; there is no per-item SQL schema or full 
 import { MemoryMeter, MemoryMutations, readMemoryContext } from '@ta-agent/context-memory';
 import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
 
-// tokenizerRef is resolved by a host-supplied TokenCounter, not by this adapter.
+// measurementRef is resolved by a host-supplied TokenCounter, not by this adapter.
 const store = new SqliteMemoryStore({ path: '/existing/directory/memory.sqlite' });
 const meter = new MemoryMeter({ counter });
-const memory = new MemoryMutations({ store, meter, defaults: { tokenizerRef: 'my-tokenizer' } });
+const memory = new MemoryMutations({ store, meter, defaults: { measurementRef: 'my-tokenizer' } });
 try {
   await memory.create({ memoryId: 'project:a', requestId: 'create:1' });
   await memory.apply({

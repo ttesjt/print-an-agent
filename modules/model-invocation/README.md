@@ -75,6 +75,19 @@ packages, local provider fixtures, public contracts and enforced dependency dire
 
 ## Token measurement
 
+Engine definitions may bind a borrowed `textTokenCounter`. Actors inherit it unless an explicit
+Actor `textTokenCounter` overrides it. `requireActorTextTokenCounter(actor)` requires that optional
+capability; ordinary completion, streaming and interaction remain usable without any counter.
+Measurement never calls the model and is not governed by the Actor's generation timeout. The caller
+supplies its own cancellation signal. Host code owns initialization, sharing and disposal of custom
+counters. `bindTextTokenCounter()` validates and freezes the standalone-text descriptor, preserves the
+implementation receiver and validates each returned identity and result. Text, content and request
+scopes are not interchangeable. Optional official local implementations live in
+`@ta-agent/model-invocation-token-counters`; Core does not import them.
+The Pi adapter accepts an optional runtime `textTokenCounter` and exposes its descriptor through
+inspection without changing provider requests or discovering an encoding. High-level Standalone
+configuration resolves explicit declarations; neither Pi nor Core owns a model-to-tokenizer registry.
+
 Core also exposes independent `TokenCounter<TInput>` capabilities. A counter needs no Actor, Engine,
 Agent, Session or Workflow. Exact counters and estimators use the same interface; each result records
 `tokens`, `accuracy`, `measurementRef`, `inputProtocolRef` and `scope`. Exactness applies only to the

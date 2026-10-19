@@ -1,3 +1,4 @@
+import { TEST_COMPACTION_TOKEN_COUNTER } from '../support/compaction-token-counter.js';
 import { MemorySessionAdapter } from '@ta-agent/base-local-adapters';
 import type { CompactableSessionPort, SessionExecutionPort } from '@ta-agent/base-session';
 import { SKIP_STEP } from '@ta-agent/workflow-core';
@@ -21,6 +22,7 @@ it('runs foreground and compaction with a Session port that cannot apply navigat
   });
   let requestSequence = 0;
   const api = createDeterministicAgentAPI({
+    sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
     identity: { id: 'runtime-session-owner' },
     session,
     stepOverrides: { captureReasoningPresentation: SKIP_STEP },

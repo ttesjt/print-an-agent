@@ -1,3 +1,4 @@
+import { TEST_COMPACTION_TOKEN_COUNTER } from '../support/compaction-token-counter.js';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { MemoryAgentTraceAdapter, MemoryOutputSink } from '@ta-agent/base-local-adapters';
 import {
@@ -107,6 +108,7 @@ describe('ordinary Pi Agent Base composition', () => {
       ),
     };
     const agent = createProviderAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'ordinary-agent' },
       instructionContributors: [() => 'PRIVATE_AGENT_INSTRUCTION'],
       observability: { sink: trace, clock: () => 1 },
@@ -116,7 +118,12 @@ describe('ordinary Pi Agent Base composition', () => {
         retainRecentTurns: 1,
         maxSourceTurns: 8,
         maxSourceCharacters: 8_192,
-        maxContextCharacters: 1_024,
+        maxContextTokens: 1_024,
+        target: { maxTokens: 1_024 },
+        maxGenerationAttempts: 3,
+        maxGenerationCharacters: 65_536,
+        retrySafetyFactor: 0.9,
+        minimumTargetTokens: 1,
         timeoutMilliseconds: 5_000,
       },
       provider: {
@@ -168,7 +175,7 @@ describe('ordinary Pi Agent Base composition', () => {
     expect(JSON.stringify(server.requests()[1])).toContain('ordinary agent response');
     expect(JSON.stringify(server.requests()[1])).toContain('second turn');
     expect(JSON.stringify(server.requests()[2])).toContain(
-      'Produce the compacted session context.'
+      'Return only the complete context text.'
     );
     expect(resolver.resolve).toHaveBeenCalledTimes(4);
     const firstResolution = resolver.resolve.mock.calls[0]?.[0];
@@ -197,6 +204,7 @@ describe('ordinary Pi Agent Base composition', () => {
   it('fails before provider I/O when the configured credential is unavailable', async () => {
     const sink = new MemoryOutputSink();
     const agent = createProviderAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'ordinary-agent' },
       provider: {
         config: {
@@ -231,6 +239,7 @@ describe('ordinary Pi Agent Base composition', () => {
   it('keeps an earlier Actor deadline authoritative over a longer provider deadline', async () => {
     const server = await startServer(100);
     const agent = createProviderAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'actor-deadline-agent' },
       mainActor: { invocationPolicy: { timeoutMilliseconds: 20 } },
       provider: {
@@ -261,6 +270,7 @@ describe('ordinary Pi Agent Base composition', () => {
   it('keeps an earlier provider deadline distinct from a longer Actor deadline', async () => {
     const server = await startServer(100);
     const agent = createProviderAgentAPI({
+      sessionCompactionTokenCounter: TEST_COMPACTION_TOKEN_COUNTER,
       identity: { id: 'provider-deadline-agent' },
       mainActor: { invocationPolicy: { timeoutMilliseconds: 80 } },
       provider: {

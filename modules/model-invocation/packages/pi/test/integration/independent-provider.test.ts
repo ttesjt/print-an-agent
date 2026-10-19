@@ -3,6 +3,9 @@ import {
   createActor,
   requireCompletionCapability,
   requireInteractionCapability,
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+  requireActorTextTokenCounter,
 } from '@ta-agent/model-invocation-core';
 import { createPiFauxRuntime, createPiProviderRuntime } from '../../src/index.js';
 import { completionServer } from '../support/completion-server.js';
@@ -11,6 +14,11 @@ it('completes through the real Pi provider boundary without any Agent Base packa
   const server = await completionServer();
   try {
     const profile = createPiProviderRuntime({
+      textTokenCounter: createTokenCounter({
+        measurementRef: 'test:standalone-text',
+        inputContract: TEXT_TOKEN_INPUT_CONTRACT,
+        measure: (input) => Promise.resolve({ tokens: input.text.length, accuracy: 'exact' }),
+      }),
       provider: {
         kind: 'openai-compatible',
         reference: { provider: 'fixture', model: 'fixture', baseUrl: server.baseUrl },
@@ -23,6 +31,12 @@ it('completes through the real Pi provider boundary without any Agent Base packa
     const actor = requireCompletionCapability(
       createActor({ id: 'proposer', engine: profile.actorEngine })
     );
+    const counter = requireActorTextTokenCounter(actor);
+    expect(
+      (await counter.measure({ kind: 'text', text: 'hello' }, new AbortController().signal)).tokens
+    ).toBe(5);
+    expect(profile.inspect().textTokenCounter).toEqual(counter.descriptor);
+    expect(server.requests).toHaveLength(0);
     const result = await actor.complete({
       instructions: 'Propose an update.',
       messages: [{ role: 'user', text: 'New experience.', timestamp: 1 }],

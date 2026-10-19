@@ -9,3 +9,13 @@ export {
   type TiktokenEncoding,
   type TiktokenTextCounterOptions,
 } from './tiktoken-counter.js';
+export {
+  defineTextTokenCounterConfig,
+  resolveTextTokenCounterConfig,
+  TEXT_TOKEN_COUNTER_KIND,
+} from './config.js';
+export type {
+  TextTokenCounterConfigInput,
+  TextTokenCounterConfig,
+  TextTokenCounterReferenceResolver,
+} from './config.js';

@@ -1,6 +1,7 @@
 import type { ContextModelMessage, ModelMessage } from '@ta-agent/model-invocation-core';
 import type { ExecutionTimeoutMilliseconds } from '@ta-agent/workflow-core';
 import type { SessionWriteAuthority } from '../lifecycle/execution.js';
+import type { SessionCompactionTarget } from './planning/contracts.js';
 import type {
   CompletedSessionTurn,
   InspectableSessionPort,
@@ -14,7 +15,12 @@ export interface SessionCompactionPolicy {
   readonly retainRecentTurns: number;
   readonly maxSourceTurns: number;
   readonly maxSourceCharacters: number;
-  readonly maxContextCharacters: number;
+  readonly maxContextTokens: number;
+  readonly target: SessionCompactionTarget;
+  readonly maxGenerationAttempts: number;
+  readonly maxGenerationCharacters: number;
+  readonly retrySafetyFactor: number;
+  readonly minimumTargetTokens: number;
   readonly timeoutMilliseconds: ExecutionTimeoutMilliseconds;
 }
 
@@ -56,6 +62,7 @@ export interface SessionCompactionSource extends SessionBranchReference {
 export interface CompactSessionInput {
   readonly sessionId: string;
   readonly branchId?: string;
+  readonly target?: SessionCompactionTarget;
 }
 
 export type SessionCompactionSkipReason = 'not-needed';

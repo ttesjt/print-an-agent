@@ -23,8 +23,11 @@
     "lint": "eslint .",
     "format:check": "prettier --check ."
   },
-  "dependencies": {},
+  "dependencies": {
+    "@ta-agent/model-invocation-core": "workspace:*"
+  },
   "devDependencies": {
+    "@ta-agent/model-invocation-token-counters": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

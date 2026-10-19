@@ -24,6 +24,9 @@ import {
   parseSessionBranchId,
   parseSessionId,
   validateSessionCompactionPolicy,
+  defineSessionCompactionTarget,
+  resolveSessionCompactionTarget,
+  bindSessionCompactionTokenCounter,
   type CompactSessionInput,
   type SessionCompactionAgentRunContext,
 } from '@ta-agent/base-session';
@@ -43,6 +46,11 @@ import {
 import { mergeStepOverrides, runWithExecutionTimeout } from '@ta-agent/workflow-core';
 import { composeRequestWorkflow } from './request-workflow.js';
 import { AgentCompositionError } from './composition-error.js';
+import {
+  compactionRecord,
+  executeCompactionRun,
+  resolveConsumerTokenCounter,
+} from './compaction-operation.js';
 import type { ComposeAgentOptions } from './types.js';
 
 const DEFAULT_INSTRUCTIONS = 'Respond helpfully and concisely.';
@@ -70,6 +78,7 @@ function validateCompactionInstructions(value: unknown): string {
 }
 
 function validateCompactionInput(input: CompactSessionInput): void {
+  compactionRecord(input);
   if (
     typeof input !== 'object' ||
     input === null ||
@@ -178,6 +187,14 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     instructions: compactionInstructions,
     policy: compactionPolicy,
     clock: options.clock ?? Date.now,
+    ...(options.sessionCompactionTokenCounter === undefined
+      ? {
+          resolveTokenCounter: (signal: AbortSignal) =>
+            resolveConsumerTokenCounter(responsibilityRouter, signal),
+        }
+      : {
+          tokenCounter: bindSessionCompactionTokenCounter(options.sessionCompactionTokenCounter),
+        }),
   });
   const compactionWorkflow =
     options.sessionCompactionWorkflow ??
@@ -210,8 +227,21 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     config: compactionPolicy,
     resources: compactionResources,
     workflowPlan: [compactionWorkflow],
+    executeRun: ({ config, signal, execute }) =>
+      executeCompactionRun({ policy: config, signal, execute }),
     prepareRun: async ({ identity: operationIdentity, input }) => {
       validateCompactionInput(input);
+      const target = resolveSessionCompactionTarget(
+        compactionPolicy.maxContextTokens,
+        compactionPolicy.target,
+        input.target
+      );
+      if (target < compactionPolicy.minimumTargetTokens) {
+        throw new AgentSessionError(
+          'SESSION_COMPACTION_INVALID',
+          'Target is below the minimum planner target.'
+        );
+      }
       const sessionId = parseSessionId(input.sessionId);
       const snapshot = await session.inspect({ agentId: operationIdentity.id, sessionId });
       if (snapshot === undefined) {
@@ -225,7 +255,13 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
           ? snapshot.navigation.selectedBranchId
           : parseSessionBranchId(input.branchId);
       return Object.freeze({
-        input: Object.freeze({ ...input, sessionId, branchId }),
+        input: Object.freeze({
+          sessionId,
+          branchId,
+          ...(input.target === undefined
+            ? {}
+            : { target: defineSessionCompactionTarget(input.target) }),
+        }),
       });
     },
     createContext: (base): SessionCompactionAgentRunContext => ({

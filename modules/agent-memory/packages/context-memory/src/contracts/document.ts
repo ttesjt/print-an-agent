@@ -1,3 +1,5 @@
+import type { TokenMeasurement } from '@ta-agent/model-invocation-core';
+
 export type JsonValue = null | boolean | number | string | readonly JsonValue[] | JsonObject;
 export interface JsonObject {
   readonly [key: string]: JsonValue;
@@ -39,7 +41,7 @@ export type TokenTarget =
     };
 
 export interface MemoryConfig {
-  readonly tokenizerRef: string;
+  readonly measurementRef: string;
   readonly render: RenderOptions;
   readonly maxContextTokens: number | null;
   readonly maxItems: number | null;
@@ -61,17 +63,14 @@ export interface ExecutionPolicy {
   readonly timeoutMs: number | null;
 }
 
-export interface ItemTokenCount {
+export interface ItemTokenCount extends TokenMeasurement {
   readonly itemId: string;
   readonly contentDigest: string;
-  readonly tokenCount: number;
 }
-export interface MemoryMeasurement {
-  readonly tokenizerRef: string;
+export interface MemoryMeasurement extends TokenMeasurement {
   readonly rendererRef: string;
   readonly renderDigest: string;
   readonly itemsDigest: string;
-  readonly tokenCount: number;
   readonly itemTokenCounts: readonly ItemTokenCount[];
 }
 export interface MemoryState {

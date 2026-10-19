@@ -7,7 +7,7 @@ import {
 } from '@ta-agent/context-memory';
 import { errorCode } from './support/errors.js';
 
-const config = () => resolveMemoryConfig({ tokenizerRef: 'counter:v1' });
+const config = () => resolveMemoryConfig({ measurementRef: 'counter:v1' });
 it('centralizes defaults without choosing a fake model tokenizer', () => {
   expect(errorCode(() => resolveMemoryConfig())).toBe('CONFIG_INVALID');
   expect(config()).toMatchObject({
@@ -30,7 +30,7 @@ it.each([
   { render: { format: 'json', separator: '\n' } },
   { compactionTarget: { maxTokens: 2, ratio: 0.8 } },
 ])('rejects invalid config %s', (input) => {
-  expect(errorCode(() => resolveMemoryConfig({ tokenizerRef: 'counter', ...input }))).toBe(
+  expect(errorCode(() => resolveMemoryConfig({ measurementRef: 'counter', ...input }))).toBe(
     'CONFIG_INVALID'
   );
 });
@@ -43,7 +43,7 @@ it('resolves direct/calculated targets without relaxing authority', () => {
   expect(() => resolveCompactionTarget(config(), { maxTokens: 5000 })).toThrow();
   expect(() =>
     resolveCompactionTarget(
-      resolveMemoryConfig({ tokenizerRef: 'counter', maxContextTokens: null })
+      resolveMemoryConfig({ measurementRef: 'counter', maxContextTokens: null })
     )
   ).toThrow();
 });

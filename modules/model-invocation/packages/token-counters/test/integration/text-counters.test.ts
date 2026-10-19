@@ -40,6 +40,15 @@ it('marks estimates and differentiates every counting option in identity', async
   });
   expect((await a.measure({ kind: 'text', text: '' }, signal())).tokens).toBe(0);
 });
+it.each([0.5, 1e-7, 1e20])(
+  'accepts an explicit positive heuristic ratio %s without assuming one token per character',
+  async (charactersPerToken) => {
+    const counter = createCharacterTokenEstimator({ charactersPerToken });
+    expect((await counter.measure({ kind: 'text', text: '中' }, signal())).tokens).toBe(
+      Math.ceil(1 / charactersPerToken)
+    );
+  }
+);
 it.each([
   (): unknown => Reflect.apply(createTiktokenTextCounter, undefined, [{ encoding: 'other' }]),
   () => createCharacterTokenEstimator({ charactersPerToken: 0 }),

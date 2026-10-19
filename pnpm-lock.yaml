@@ -369,6 +369,9 @@ importers:
       '@ta-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
+      '@ta-agent/model-invocation-token-counters':
+        specifier: workspace:*
+        version: link:../../../model-invocation/packages/token-counters
       '@ta-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
@@ -460,7 +463,14 @@ importers:
         version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
 
   modules/agent-memory/packages/context-memory:
+    dependencies:
+      '@ta-agent/model-invocation-core':
+        specifier: workspace:*
+        version: link:../../../model-invocation/packages/core
     devDependencies:
+      '@ta-agent/model-invocation-token-counters':
+        specifier: workspace:*
+        version: link:../../../model-invocation/packages/token-counters
       '@types/node':
         specifier: 'catalog:'
         version: 24.12.4
@@ -477,6 +487,9 @@ importers:
         specifier: workspace:*
         version: link:../context-memory
     devDependencies:
+      '@ta-agent/model-invocation-core':
+        specifier: workspace:*
+        version: link:../../../model-invocation/packages/core
       '@types/node':
         specifier: 'catalog:'
         version: 24.12.4

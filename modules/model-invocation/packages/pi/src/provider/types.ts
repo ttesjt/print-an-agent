@@ -1,4 +1,10 @@
-import type { ActorEngine, ActorEngineId } from '@ta-agent/model-invocation-core';
+import type {
+  ActorEngine,
+  ActorEngineId,
+  TokenCounter,
+  TextTokenInput,
+  TokenCounterDescriptor,
+} from '@ta-agent/model-invocation-core';
 import type {
   ModelInteractionRuntime,
   ProviderCredentialResolver,
@@ -35,6 +41,7 @@ export type PiProviderConfigInput =
   | PiOpenAICompatibleProviderConfigInput;
 
 export interface PiProviderRuntimeOptions {
+  readonly textTokenCounter?: TokenCounter<TextTokenInput>;
   readonly provider: PiProviderConfigInput;
   readonly credentialResolver?: ProviderCredentialResolver;
   readonly actorEngineId?: string;
@@ -43,6 +50,7 @@ export interface PiProviderRuntimeOptions {
 }
 
 export interface PiProviderRuntimeInspectionBase {
+  readonly textTokenCounter?: TokenCounterDescriptor;
   readonly provider: ProviderId;
   readonly model: ProviderModelId;
   readonly baseUrl: string;

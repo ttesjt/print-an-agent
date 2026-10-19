@@ -1,12 +1,13 @@
 import { expect, it, vi } from 'vitest';
 import { MemoryMeter, MemoryMutations, type MemoryStore } from '@ta-agent/context-memory';
+import { testCounter } from './support/counter.js';
 import { TestMemoryStore } from './support/store.js';
 
 function mutations(store: MemoryStore) {
   return new MemoryMutations({
     store,
-    defaults: { tokenizerRef: 'chars' },
-    meter: new MemoryMeter({ counter: { count: (text) => Promise.resolve(text.length) } }),
+    defaults: { measurementRef: 'chars' },
+    meter: new MemoryMeter({ counter: testCounter() }),
   });
 }
 const cases = [

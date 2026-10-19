@@ -10,6 +10,8 @@ import { AgentRequestError } from '../errors.js';
 export interface RequestInteractionState {
   readonly signal: AbortSignal;
   readonly emit: ModelInteractionEventSink;
+  /** Stop ingress/cancel delivery without releasing already accepted work. */
+  readonly stop: (cause: unknown) => unknown;
   readonly currentEvent: ModelInteractionEvent | undefined;
   result: ModelInteractionResult | undefined;
 }

@@ -1,7 +1,7 @@
 import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
-import type { ModelInteractionEvent } from '@ta-agent/model-invocation-core';
 import { parseSessionId, parseTurnId, supportsSessionExecution } from '@ta-agent/base-session';
-import { createBoundedToolRuntime, defineToolPermissionPolicy } from '@ta-agent/base-tool';
+import { defineToolPermissionPolicy } from '@ta-agent/base-tool';
+import { buildRequestTools } from '../preparation/tools.js';
 import { SKIP_STEP, type StepOverrides } from '@ta-agent/workflow-core';
 import type { OutputSink, ValidatedAgentRequest } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
@@ -11,9 +11,11 @@ import { RequestReplayFailedError } from '../replay/replay-error.js';
 import type { RequestJournalClaim } from '../replay/contracts.js';
 import type { RequestStepName } from '../workflow/names.js';
 import type { DefaultRequestWorkflowContext } from './context.js';
-import { requireValue } from './context-value.js';
+import { requireValue } from '../preparation/state-value.js';
+import { resolveRequestInstructions } from '../preparation/instructions.js';
+import { validateRequestMessage } from '../preparation/message.js';
+import { buildInteractionRequest } from '../preparation/interaction-request.js';
 import { createInteractionStepOverrides } from '../interaction/steps.js';
-import { requireInteraction } from '../interaction/state.js';
 import {
   countOutputCharacters,
   traceActorResolved,
@@ -47,16 +49,10 @@ function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> 
     idempotencyKey: unknown;
     outputSink: unknown;
   }>;
-  if (
-    typeof candidate.message !== 'string' ||
-    candidate.message.trim().length === 0 ||
-    candidate.message.length > context.resources.policy.maxMessageCharacters
-  ) {
-    throw new AgentRequestError(
-      'REQUEST_INPUT_INVALID',
-      `Request message must contain 1-${context.resources.policy.maxMessageCharacters} characters.`
-    );
-  }
+  const message = validateRequestMessage(
+    candidate.message,
+    context.resources.policy.maxMessageCharacters
+  );
   if (candidate.sessionId !== undefined && typeof candidate.sessionId !== 'string') {
     throw new AgentRequestError('REQUEST_INPUT_INVALID', 'Request sessionId must be a string.');
   }
@@ -83,7 +79,7 @@ function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> 
     );
   }
   context.state.request = Object.freeze({
-    message: candidate.message,
+    message,
     ...(sessionId === undefined ? {} : { sessionId }),
     ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
     outputSink,
@@ -213,23 +209,6 @@ async function resolveExecutionTarget(context: DefaultRequestWorkflowContext): P
   await traceActorResolved(context);
 }
 
-async function resolveInstructions(context: DefaultRequestWorkflowContext): Promise<void> {
-  const request = requireValue(context.state.request, 'request');
-  const contributions: string[] = [];
-  for (const contributor of context.resources.instructionContributors) {
-    const contribution = (await contributor({ request })).trim();
-    if (contribution.length > 0) contributions.push(contribution);
-  }
-  const instructions = contributions.join('\n\n');
-  if (instructions.length > context.resources.policy.maxInstructionsCharacters) {
-    throw new AgentRequestError(
-      'REQUEST_INSTRUCTIONS_INVALID',
-      `Resolved instructions exceed ${context.resources.policy.maxInstructionsCharacters} characters.`
-    );
-  }
-  context.state.instructions = instructions;
-}
-
 async function loadSessionContext(context: DefaultRequestWorkflowContext): Promise<void> {
   const session = requireValue(context.state.session, 'session');
   const turn = requireValue(context.state.turn, 'turn');
@@ -242,34 +221,14 @@ async function loadSessionContext(context: DefaultRequestWorkflowContext): Promi
 
 async function buildTools(context: DefaultRequestWorkflowContext): Promise<void> {
   const responsibility = requireValue(context.state.responsibility, 'responsibility');
-  context.state.tools = createBoundedToolRuntime({
-    registry: context.resources.toolRegistry,
-    permissionPolicy: defineToolPermissionPolicy({
-      responsibility: responsibility.allowedTools,
-      actor: responsibility.actor.allowedTools,
-      product: context.resources.productToolAllowList,
-      runtime: context.resources.runtimeToolAllowList,
-    }),
-    executionPolicy: context.resources.toolExecutionPolicy,
-    signal: context.signal,
-    clock: context.resources.clock,
+  context.state.toolPermissionPolicy = defineToolPermissionPolicy({
+    responsibility: responsibility.allowedTools,
+    actor: responsibility.actor.allowedTools,
+    product: context.resources.productToolAllowList,
+    runtime: context.resources.runtimeToolAllowList,
   });
+  await buildRequestTools(context);
   await traceToolsResolved(context);
-}
-
-function buildModelContext(context: DefaultRequestWorkflowContext): Promise<void> {
-  requireValue(context.state.tools, 'tools');
-  context.state.modelRequest = Object.freeze({
-    instructions: requireValue(context.state.instructions, 'instructions'),
-    history: requireValue(context.state.history, 'history'),
-    prompt: requireValue(context.state.userMessage, 'userMessage'),
-    tools: requireValue(context.state.tools, 'tools'),
-    maxModelTurns: context.resources.policy.maxModelTurns,
-    maxOutputCharacters: context.resources.policy.maxOutputCharacters,
-    signal: context.signal,
-    emit: (event: ModelInteractionEvent) => requireInteraction(context).emit(event),
-  });
-  return Promise.resolve();
 }
 
 async function completeResponse(context: DefaultRequestWorkflowContext): Promise<void> {
@@ -312,11 +271,11 @@ export function createDefaultRequestStepOverrides(): StepOverrides<
     resolveRequestReplay,
     beginRequest,
     resolveExecutionTarget,
-    resolveInstructions,
+    resolveInstructions: resolveRequestInstructions,
     loadSessionContext,
     gatherExternalContext: SKIP_STEP,
     buildTools,
-    buildModelContext,
+    buildModelContext: buildInteractionRequest,
     ...createInteractionStepOverrides(),
     completeResponse,
   });

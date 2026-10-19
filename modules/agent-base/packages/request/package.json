@@ -1,7 +1,7 @@
 {
   "name": "@ta-agent/base-request",
   "version": "0.1.0",
-  "description": "Canonical request Workflow, output contracts, and replay journal adapters for Agent Base.",
+  "description": "Session-aware and Sessionless request Workflows, reusable Steps, and output contracts.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

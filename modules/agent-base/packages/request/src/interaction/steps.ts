@@ -1,15 +1,19 @@
-import { ModelInvocationError, type ModelInteractionEvent } from '@ta-agent/model-invocation-core';
+import { ModelInvocationError } from '@ta-agent/model-invocation-core';
 import {
   AgentSessionError,
   defineSessionTurnPresentation,
   supportsSessionPresentation,
 } from '@ta-agent/base-session';
-import { composeExecutionSignal, type StepOverrides } from '@ta-agent/workflow-core';
-import type { OutputStreamEvent } from '../contracts.js';
+import { type StepOverrides } from '@ta-agent/workflow-core';
+import { invokeRequestInteraction } from './invoke.js';
+import { createInteractionEventAccounting } from './budgets.js';
 import type { DefaultRequestWorkflowContext } from '../default/context.js';
-import { requireValue } from '../default/context-value.js';
+import { requireValue } from '../preparation/state-value.js';
 import {
-  countOutputCharacters,
+  deliverTextDelta as writeTextDelta,
+  deliverReasoningDelta as writeReasoningDelta,
+} from '../delivery/steps.js';
+import {
   traceAgentLoopCompleted,
   traceModelInteractionEvent,
   traceAgentLoopFailed,
@@ -27,36 +31,8 @@ import {
   type RequestInteractionState,
 } from './state.js';
 
-function createEventAccounting(
-  context: DefaultRequestWorkflowContext
-): (event: ModelInteractionEvent) => void {
-  let reasoningCharacters = 0;
-  return (event) => {
-    if (event.type === 'reasoning-delta') {
-      reasoningCharacters += event.delta.length;
-      if (reasoningCharacters > context.resources.policy.maxReasoningCharacters) {
-        throw new ModelInvocationError(
-          'MODEL_REASONING_LIMIT_EXCEEDED',
-          'Request interaction reasoning exceeded its character budget.'
-        );
-      }
-    }
-    if (event.type === 'text-delta') countOutputCharacters(context, event.delta.length);
-    const characters =
-      event.type === 'assistant-complete'
-        ? event.message.text.length
-        : (context.state.outputCharacterCount ?? 0);
-    if (characters > context.resources.policy.maxOutputCharacters) {
-      throw new ModelInvocationError(
-        'MODEL_OUTPUT_LIMIT_EXCEEDED',
-        'Request interaction output exceeded its character budget.'
-      );
-    }
-  };
-}
-
 async function runAgentInteraction(context: DefaultRequestWorkflowContext): Promise<void> {
-  const accountEvent = createEventAccounting(context);
+  const accountEvent = createInteractionEventAccounting(context);
   const delivery = new InteractionEventDelivery({
     signal: context.signal,
     capacity: context.resources.policy.maxPendingInteractionEvents,
@@ -70,6 +46,7 @@ async function runAgentInteraction(context: DefaultRequestWorkflowContext): Prom
   context.state.interaction = Object.seal({
     signal: delivery.signal,
     emit: delivery.emit,
+    stop: (cause: unknown) => delivery.stop(cause),
     get currentEvent() {
       return delivery.currentEvent;
     },
@@ -161,34 +138,29 @@ async function openResponseStream(context: DefaultRequestWorkflowContext): Promi
 }
 
 async function invokeActorInteraction(context: DefaultRequestWorkflowContext): Promise<void> {
-  const interaction = requireInteraction(context);
-  interaction.result = await requireValue(context.state.responsibility, 'responsibility').interact({
-    ...requireValue(context.state.modelRequest, 'modelRequest'),
-    signal: composeExecutionSignal([context.signal, interaction.signal]),
-    emit: interaction.emit,
-  });
+  await invokeRequestInteraction(
+    context,
+    requireValue(context.state.responsibility, 'responsibility')
+  );
 }
 
 async function deliverTextDelta(context: DefaultRequestWorkflowContext): Promise<void> {
-  await deliverStreamDelta(context, 'text-delta');
+  await deliverStreamDelta(context, writeTextDelta);
 }
 
 async function deliverReasoningDelta(context: DefaultRequestWorkflowContext): Promise<void> {
-  await deliverStreamDelta(context, 'reasoning-delta');
+  await deliverStreamDelta(context, writeReasoningDelta);
 }
 
 async function deliverStreamDelta(
   context: DefaultRequestWorkflowContext,
-  type: OutputStreamEvent['type']
+  write: typeof writeTextDelta
 ): Promise<void> {
-  const event = requireInteractionEvent(context, type);
   try {
-    await requireValue(context.state.request, 'request').outputSink.write(
-      Object.freeze({ type: event.type, delta: event.delta })
-    );
+    await write(context);
   } catch (cause: unknown) {
     await traceOutputFailed(context, 'write');
-    throw new AgentRequestError('REQUEST_OUTPUT_FAILED', 'OutputSink failed to write.', { cause });
+    throw cause;
   }
 }
 

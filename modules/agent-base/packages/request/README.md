@@ -1,6 +1,13 @@
 # `@ta-agent/base-request`
 
-The canonical foreground Request Workflow skeleton for Agent Base.
+Session-aware foreground and Sessionless Request Workflows for Agent Base, with reusable narrow
+preparation, invocation, tool and delivery Steps.
+
+`createSessionlessRequestWorkflow()` runs directly over an independent Actor with caller-supplied
+history, using `direct`, `stream` or bounded `interaction` mode. It requires no Agent, Session,
+Request Journal or persistence. Read the [Sessionless guide](./docs/sessionless.md) for construction,
+Step replacement, output, permission and lifetime contracts. The following sections describe the
+Session-aware foreground Workflow.
 
 `createRequestWorkflow({ resources, ... })` creates a native `@ta-agent/workflow-core` Workflow with
 its ports and policy bound at construction. Call it with `run({ input, signal })`; it returns the

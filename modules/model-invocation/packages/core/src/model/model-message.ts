@@ -1,6 +1,6 @@
 import { ModelInvocationError } from './errors.js';
 import { defineModelExecutionProvenance } from './model-execution-provenance.js';
-import type { AssistantModelMessage, ModelUsage } from './types.js';
+import type { AssistantModelMessage, ModelMessage, ModelUsage } from './types.js';
 
 const ASSISTANT_MESSAGE_KEYS = Object.freeze([
   'provenance',
@@ -116,6 +116,26 @@ export function defineAssistantModelMessage(input: unknown): AssistantModelMessa
     timestamp: requireNonNegativeSafeInteger(
       requireDataProperty(record, 'timestamp', 'Assistant message timestamp'),
       'Assistant message timestamp'
+    ),
+  });
+}
+
+/** Normalizes caller-supplied history without changing message roles or provenance. */
+export function defineModelMessage(input: unknown): ModelMessage {
+  const record = requirePlainRecord(input, 'Model message');
+  const role = requireDataProperty(record, 'role', 'Model message role');
+  if (role === 'assistant') return defineAssistantModelMessage(input);
+  if (role !== 'user' && role !== 'context') throw invalid('Model message role is invalid.');
+  assertExactKeys(record, ['role', 'text', 'timestamp'], 'Model message');
+  return Object.freeze({
+    role,
+    text: requireString(
+      requireDataProperty(record, 'text', 'Model message text'),
+      'Model message text'
+    ),
+    timestamp: requireNonNegativeSafeInteger(
+      requireDataProperty(record, 'timestamp', 'Model message timestamp'),
+      'Model message timestamp'
     ),
   });
 }

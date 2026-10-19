@@ -55,8 +55,8 @@ Current foundation packages:
   run-scoped Tool Broker;
 - `@ta-agent/base-runtime`: single-owner Agent, typed Operation/Run, Workflow Catalog, invocation
   permissions, and result/trace bindings to `@ta-agent/workflow-core`;
-- `@ta-agent/base-request`: canonical foreground Request Workflow, OutputSink, Request Journal, and
-  concrete request Steps over injected ports;
+- `@ta-agent/base-request`: Session-aware foreground and independently callable Sessionless
+  Workflows, OutputSink/Journal contracts, and reusable narrow-context request Steps;
 - `@ta-agent/base-local-adapters`: official Memory, SQLite, local OutputSink, and bounded trace
   implementations for generic Agent Base ports;
 - `@ta-agent/base-composition`: the official Standard raw-Agent composition root, optional API

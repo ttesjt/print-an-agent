@@ -8,7 +8,13 @@ import type {
   SessionTurnPresentation,
   SessionWriteAuthority,
 } from '@ta-agent/base-session';
-import type { ToolExecutionPolicy, ToolName, ToolRegistry, ToolRuntime } from '@ta-agent/base-tool';
+import type {
+  ToolExecutionPolicy,
+  ToolName,
+  ToolRegistry,
+  ToolRuntime,
+  ToolPermissionPolicy,
+} from '@ta-agent/base-tool';
 import type { BaseAgentRunContext } from '@ta-agent/base-runtime';
 import type { WorkflowContext } from '@ta-agent/workflow-core';
 import type { RequestStepName } from '../workflow/names.js';
@@ -63,6 +69,7 @@ export interface RequestWorkflowState {
   instructions?: string;
   history?: readonly ModelMessage[];
   tools?: ToolRuntime;
+  toolPermissionPolicy?: ToolPermissionPolicy;
   userMessage?: UserModelMessage;
   modelRequest?: ActorInteractionRequest;
   interaction?: RequestInteractionState;

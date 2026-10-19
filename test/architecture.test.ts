@@ -256,6 +256,33 @@ describe('module architecture', () => {
     expect(existsSync(join(repositoryRoot, 'modules', 'self-learn-agent'))).toBe(false);
   });
 
+  it('keeps Sessionless request implementation free of Agent owners and concrete persistence', () => {
+    const requestRoot = join(repositoryRoot, 'modules/agent-base/packages/request/src');
+    const files = typeScriptFiles(join(requestRoot, 'sessionless'));
+    expect(files.length).toBeGreaterThan(0);
+    const forbidden = [
+      '@ta-agent/base-runtime',
+      '@ta-agent/base-session',
+      '@ta-agent/base-local-adapters',
+      '@ta-agent/base-identity',
+      '@ta-agent/model-invocation-pi',
+      'node:fs',
+      'node:sqlite',
+    ];
+    for (const file of files) {
+      for (const specifier of moduleSpecifiers(readFileSync(file, 'utf8'))) {
+        expect(
+          forbidden.some((prefix) => specifier === prefix || specifier.startsWith(`${prefix}/`)),
+          `${file}: ${specifier}`
+        ).toBe(false);
+        const target = resolveSourceModuleTarget(file, specifier);
+        if (target !== undefined)
+          expect(isPathWithin(target, join(requestRoot, 'default')), `${file}: ${specifier}`).toBe(
+            false
+          );
+      }
+    }
+  });
   it('recognizes static, side-effect, re-export, and dynamic module specifiers', () => {
     expect(
       [

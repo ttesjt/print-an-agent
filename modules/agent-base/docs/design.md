@@ -164,6 +164,18 @@ boundary, not a claim that every injected adapter operation can be interrupted.
 
 ## Runtime hierarchy
 
+Request orchestration does not require that hierarchy for every consumer.
+`createSessionlessRequestWorkflow()` runs a real Core Workflow directly over a borrowed Actor and
+caller-supplied messages, using direct generation, single-generation streaming, or bounded
+Interaction. It creates no Agent/Session/Journal authority and performs no implicit conversation
+persistence. Host code owns configuration resolution and optional whole-call deadlines.
+
+Session-aware foreground and Sessionless Workflows own different plans/state/results while sharing
+semantically identical narrow-context Steps and execution helpers. Session/replay admission, commits,
+trace projection and response metadata stay in the Session-aware domain. No parent Response
+Workflow, universal Context, second model protocol or alternate tool loop is introduced. See the
+[Sessionless request guide](../packages/request/docs/sessionless.md).
+
 ```text
 Agent
   → Agent Operation

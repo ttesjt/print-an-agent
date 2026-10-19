@@ -7,7 +7,7 @@ export {
   MODEL_EXECUTION_PROVENANCE_LIMITS,
   parseModelExecutionProvenanceType,
 } from './model-execution-provenance.js';
-export { defineAssistantModelMessage } from './model-message.js';
+export { defineAssistantModelMessage, defineModelMessage } from './model-message.js';
 export { defineModelInteractionEvent } from './interaction-event.js';
 export { defineModelGenerationEvent } from './generation-event.js';
 export { defineProviderModelReference } from './provider-model-reference.js';

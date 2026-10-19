@@ -1,4 +1,36 @@
 export type * from './contracts.js';
+export {
+  createSessionlessRequestWorkflow,
+  type SessionlessRequestWorkflowOptions,
+} from './sessionless/create-workflow.js';
+export type * from './sessionless/interaction/contracts.js';
+export {
+  DEFAULT_SESSIONLESS_INTERACTION_POLICY,
+  defineSessionlessInteractionPolicy,
+} from './sessionless/interaction/resources.js';
+export { buildRequestTools, type ToolPreparationContext } from './preparation/tools.js';
+export {
+  invokeRequestInteraction,
+  type InteractionInvocationContext,
+} from './interaction/invoke.js';
+export {
+  DEFAULT_SESSIONLESS_GENERATION_POLICY,
+  defineSessionlessGenerationPolicy,
+} from './sessionless/validation.js';
+export type * from './sessionless/contracts.js';
+export {
+  resolveRequestInstructions,
+  type InstructionsStepContext,
+} from './preparation/instructions.js';
+export {
+  buildInteractionRequest,
+  type InteractionRequestContext,
+} from './preparation/interaction-request.js';
+export {
+  deliverTextDelta,
+  deliverReasoningDelta,
+  type DeltaDeliveryContext,
+} from './delivery/steps.js';
 export type * from './default/context.js';
 export { failRequest, releaseRequestExecution } from './default/failure-lifecycle.js';
 export { REQUEST_EXECUTION_INTERRUPTED } from './replay/maintenance.js';

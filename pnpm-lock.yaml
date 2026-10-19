@@ -763,6 +763,25 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
 
+  modules/model-invocation/packages/token-counters:
+    dependencies:
+      '@ta-agent/model-invocation-core':
+        specifier: workspace:*
+        version: link:../core
+      js-tiktoken:
+        specifier: 1.0.21
+        version: 1.0.21
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.4
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
+
   modules/model-workbench/apps/cli:
     dependencies:
       '@ta-agent/workbench-application':
@@ -3147,6 +3166,12 @@ packages:
         integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==,
       }
 
+  js-tiktoken@1.0.21:
+    resolution:
+      {
+        integrity: sha512-biOj/6M5qdgx5TKjDnFT1ymSpM5tbd3ylwDtrQvFQSu0Z7bBYko2dF+W/aUkXUPuk6IVpRxk/3Q2sHOzGlS36g==,
+      }
+
   js-tokens@10.0.0:
     resolution:
       {
@@ -5369,6 +5394,10 @@ snapshots:
       '@isaacs/cliui': 8.0.2
     optionalDependencies:
       '@pkgjs/parseargs': 0.11.0
+
+  js-tiktoken@1.0.21:
+    dependencies:
+      base64-js: 1.5.1
 
   js-tokens@10.0.0: {}
 

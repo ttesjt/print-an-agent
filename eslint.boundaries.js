@@ -102,6 +102,8 @@ export const boundaryConfigs = Object.freeze([
         group: [
           '@ta-agent/model-invocation-pi',
           '@ta-agent/model-invocation-pi/**',
+          '@ta-agent/model-invocation-token-counters',
+          '@ta-agent/model-invocation-token-counters/**',
           '@earendil-works/pi-*',
           'typebox',
         ],

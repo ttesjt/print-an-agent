@@ -72,3 +72,63 @@ not become assistant text, persistence, or model history automatically.
 
 Run `pnpm test:model-invocation-qualification` from the repository root to verify the independent
 packages, local provider fixtures, public contracts and enforced dependency direction.
+
+## Token measurement
+
+Core also exposes independent `TokenCounter<TInput>` capabilities. A counter needs no Actor, Engine,
+Agent, Session or Workflow. Exact counters and estimators use the same interface; each result records
+`tokens`, `accuracy`, `measurementRef`, `inputProtocolRef` and `scope`. Exactness applies only to the
+declared measurement implementation/configuration and input protocol, not automatically to provider
+billing or a complete chat request. No concrete model tokenizer is selected or included in Core.
+
+```ts
+const counter = createTokenCounter({
+  measurementRef: 'my-encoding:fixed-options',
+  inputContract: TEXT_TOKEN_INPUT_CONTRACT,
+  measure: async (input, signal) => ({
+    tokens: await myEncoding.count(input.text, signal),
+    accuracy: TOKEN_MEASUREMENT_ACCURACY.EXACT,
+  }),
+});
+const measurement = await counter.measure({ kind: TOKEN_INPUT_KIND.TEXT, text }, signal);
+requireTokenMeasurement(measurement, {
+  measurementRef: counter.descriptor.measurementRef,
+  scope: TOKEN_MEASUREMENT_SCOPE.TEXT,
+  accuracy: TOKEN_MEASUREMENT_ACCURACY.EXACT,
+});
+```
+
+`createTokenCounter()` freezes a detached binding descriptor, validates inputs and implementation
+results, and attaches binding identity itself. The implementation returns only `{ tokens, accuracy }`;
+it cannot override identity or scope. Counts must be non-negative safe integers. Requirement fields
+are equality checks, not conversions, budgets, model routing, or publication authority.
+`parseTokenMeasurement()` validates detached/stored results; it does not authenticate their origin or
+prove that an implementation's exactness claim is true.
+
+`TokenInputContract<TInput>` supplies a stable `ref`, one semantic `scope`, nonempty unique
+`inputKinds`, and a synchronous `parse(unknown)` function. Core checks each original/parsed root's
+own data `kind`; the parser owns the remaining schema and must produce a stable invocation view
+without changing kind. References and kinds use 1–256 ASCII characters, beginning with an
+alphanumeric character and otherwise allowing letters, digits, `.`, `_`, `:`, `/` and `-`.
+
+The only built-in input protocol is `TEXT_TOKEN_INPUT_CONTRACT`: a closed `{ kind: 'text', text }`
+record that preserves all text, including whitespace. Explicit custom protocols may describe media,
+mixed content or whole requests using the same generic counter interface. The named scopes are
+`TEXT`, `CONTENT` and `REQUEST`; a scope does not imply a built-in media schema or counting algorithm.
+Unsupported input kinds and missing media information must fail, never be silently discarded.
+Core performs no file/URL access and does not assume counts are additive across input fragments.
+
+Input contracts and implementations are trusted borrowed code. Core validates envelopes and kind
+consistency, not arbitrary custom payload semantics. It does not clone large media payloads, choose
+codecs, load resources, serialize calls, cache results, retry failures or create timers. Shared
+implementations must isolate concurrent invocation state; the host owns resource disposal after work
+settles.
+
+Every call requires an `AbortSignal`. Pre-aborted calls do not invoke the parser or implementation;
+checks after parsing and implementation settlement preserve the parent's exact cancellation reason.
+Cancellation remains cooperative and does not stop waiting for uncooperative in-flight work.
+Unknown implementation failures become `TOKEN_MEASUREMENT_FAILED` with the original `cause`;
+structured measurement errors are retained. Malformed bindings, inputs, results and requirements have
+separate stable error codes, as do unsupported inputs and unsatisfied requirements. Factory validation
+messages do not contain input content or backend diagnostics. Implementations remain responsible for
+safe messages when deliberately throwing their own structured measurement errors.

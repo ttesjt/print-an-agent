@@ -1,0 +1,37 @@
+{
+  "name": "@ta-agent/model-invocation-token-counters",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Optional local text tokenizers and explicit token estimators.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "typecheck": "pnpm run build && tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@ta-agent/model-invocation-core": "workspace:*",
+    "js-tiktoken": "1.0.21"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  }
+}

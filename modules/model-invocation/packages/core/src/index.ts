@@ -34,3 +34,27 @@ export type * from './actor/actor.js';
 export { createActorCatalog } from './actor/catalog.js';
 export type * from './actor/catalog.js';
 export { composeActorInstructions, parseActorInstructions } from './actor/instructions.js';
+export {
+  TOKEN_INPUT_KIND,
+  TOKEN_MEASUREMENT_ACCURACY,
+  TOKEN_MEASUREMENT_SCOPE,
+} from './token-measurement/contracts.js';
+export type {
+  TextTokenInput,
+  TokenCounter,
+  TokenCounterDefinition,
+  TokenCounterDescriptor,
+  TokenCountResult,
+  TokenInputContract,
+  TokenMeasurement,
+  TokenMeasurementAccuracy,
+  TokenMeasurementInput,
+  TokenMeasurementRequirements,
+  TokenMeasurementScope,
+} from './token-measurement/contracts.js';
+export { TokenMeasurementError } from './token-measurement/errors.js';
+export type { TokenMeasurementErrorCode } from './token-measurement/errors.js';
+export { createTokenCounter } from './token-measurement/counter.js';
+export { parseTextTokenInput, TEXT_TOKEN_INPUT_CONTRACT } from './token-measurement/text-input.js';
+export { parseTokenMeasurement } from './token-measurement/result.js';
+export { requireTokenMeasurement } from './token-measurement/requirements.js';

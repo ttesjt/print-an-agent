@@ -10,6 +10,8 @@ it.each([
   ['core', '@ta-agent/base-runtime'],
   ['core', '@ta-agent/workflow-core'],
   ['core', '@ta-agent/model-invocation-pi'],
+  ['core', '@ta-agent/model-invocation-token-counters'],
+  ['token-counters', '@ta-agent/base-runtime'],
   ['core', '@earendil-works/pi-ai'],
   ['core', 'typebox'],
   ['pi', '@ta-agent/base-tool'],

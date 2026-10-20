@@ -7,6 +7,7 @@ import { createDeterministicAgentManagement } from '../adapters/deterministic-ag
 import { createDeterministicSessionManagement } from '../adapters/deterministic-session-management.js';
 import { createDeterministicConversationManagement } from '../adapters/deterministic-conversation-management.js';
 import { DEFAULT_AGENT_CONFIG } from './agent-config.js';
+import { createDeterministicTemporaryConversation } from '../adapters/deterministic-temporary-conversation.js';
 export function createBrowserComposition(url: string) {
   const mode = new URL(url).searchParams.get('mode') ?? 'local';
   if (mode === 'local') return { label: 'Local Agent Base', ports: createHttpAgentWebPorts() };
@@ -19,6 +20,7 @@ export function createBrowserComposition(url: string) {
       model: { kind: 'engine' as const, engineId: 'agent-web.offline' },
     },
     ports: {
+      temporaryConversations: createDeterministicTemporaryConversation(),
       agents: createDeterministicAgentManagement(),
       sessions,
       conversations: createDeterministicConversationManagement(sessions),

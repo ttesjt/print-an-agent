@@ -4,6 +4,7 @@ import type { AgentWebConfig } from '../application/agent-config.js';
 import { commands, type CommandName } from '../transport/commands.js';
 import { TransportProtocolError, type Decoder } from '../transport/decoder.js';
 import { AgentConfigValidationError } from '../application/agent-config-validation.js';
+import { createHttpTemporaryConversationPort } from '../transport/temporary-conversation/browser.js';
 
 export interface HttpAgentWebOptions {
   /** Relative same-origin URL in browsers; an absolute URL is useful for Node qualification. */
@@ -49,6 +50,7 @@ export function createHttpAgentWebPorts(
     }
   };
   return {
+    temporaryConversations: createHttpTemporaryConversationPort(options),
     agents: {
       renameAgent: (input) => rpc('renameAgent', input, commands.renameAgent.output),
       inspectModel: (i) => rpc('inspectModel', i, commands.inspectModel.output),

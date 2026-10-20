@@ -34,7 +34,7 @@ import type { ToolRegistry } from '@ta-agent/base-tool';
 import type { AgentWebConfig } from '../../application/agent-config.js';
 import { WEB_AGENT_CONFIG_CODEC } from './config.js';
 import { presentationStepOverrides } from './stream-sink.js';
-import { createWebModelRuntime, actorInvocation } from './model-runtime.js';
+import { createWebModelRuntime, actorInvocation, webActorInstructions } from './model-runtime.js';
 import { DEFAULT_REQUEST_POLICY } from '@ta-agent/base-request';
 import { validatePresentationWait } from './presentation-wait.js';
 
@@ -104,7 +104,7 @@ function assembleServices<Handle>(
           {
             id: MAIN_ACTOR_ID,
             engineId: engine.id,
-            instructions: `${config.instructions}\nResponse style: ${config.responseStyle}.`,
+            instructions: webActorInstructions(config),
             invocationConfig: actorInvocation(config),
             invocationPolicy: { timeoutMilliseconds: config.execution.actorTimeoutMilliseconds },
             allowedTools: toolNames,

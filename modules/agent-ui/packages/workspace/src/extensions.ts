@@ -11,6 +11,8 @@ export interface WorkspaceEditBoundary {
 }
 
 export interface WorkspaceSurfaces {
+  /** Application-owned actions; the workspace does not interpret their domain behavior. */
+  readonly headerActions?: ReactNode;
   readonly settings?: ReactNode;
   readonly inspector?: ReactNode;
   readonly createDialog?: ReactNode;

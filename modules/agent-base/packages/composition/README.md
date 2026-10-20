@@ -8,11 +8,44 @@ boundary. Consumers continue to import `@ta-agent/base-composition` and must not
 internals. Runtime implementation remains self-contained: it does not import through the package
 root or depend on another composition feature's implementation.
 
-`src/runtime/` and `src/management/` are isolated peer features. Runtime owns the official Standard
+`src/runtime/`, `src/management/` and `src/sessionless/` are isolated peer features. Runtime owns the official Standard
 Agent assembly. Management owns only storage-neutral application contracts and coordination over
 injected ports. Neither feature imports the other, management does not import local adapters or
 concrete storage, and the package as a whole does not depend on the Standalone profile. Repository
 architecture tests enforce these rules for static, exported, type-only, and dynamic imports.
+
+## Sessionless requests
+
+`createSessionlessRequestService()` resolves caller-owned resources and returns an actual Request
+Workflow. It does not create an Agent, Session, Journal, execution facade or resource registry.
+The profile (`direct`, `stream` or `interaction`) is chosen at composition time; each retains its
+own typed resources, Step overrides and result contract. The resolver need not use an Agent ID.
+
+```ts
+const service = createSessionlessRequestService<string>({
+  workflow: { mode: 'stream', name: 'website.response' },
+  resolveResources: async ({ target, signal }) => {
+    signal.throwIfAborted();
+    return resolveWebsiteResources(target, signal);
+  },
+});
+const workflow = await service.open('website', { signal });
+const response = await workflow.run({ input: { message: 'Show me projects' }, signal });
+```
+
+`resolveWebsiteResources` is host-owned and returns the stream profile's typed resources, including
+a streaming-capable Actor and a per-Run OutputSink factory. The host retains ownership of borrowed
+Actors/Engines and credentials. Construction performs no I/O; `open()` resolves resources without
+invoking the model. Cancellation is checked before and after resolution, then the caller passes the
+same effective signal to `run()`. A host needing one deadline across resolution and execution wraps
+both in its execution boundary. No resource cache, retry or fallback is implied.
+
+Callers supply any prior context explicitly and decide how to store successful results. Generation
+does not require a ToolRuntime; `interaction` instead requires its explicit tools and bounded loop
+policy. Output close and Workflow success are distinct: consumers must await actual Run settlement
+before publishing successful application history.
+
+## Managed Agent composition
 
 The package also exposes a storage-neutral application management composition contract through
 `defineManagedAgentComposition()`. Its immutable `ManagedAgentCompositionDefinition` groups Config

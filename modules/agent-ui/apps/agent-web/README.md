@@ -30,6 +30,38 @@ does not leak the deterministic implementation into controllers. Agent, Session,
 orchestration live in shared workspace controllers while `App` remains a thin composition boundary.
 The app-owned model configuration extension does not duplicate Session/conversation state.
 
+## Temporary conversation
+
+Select an Agent and choose **Temporary conversation** in the header. The independent modal supports
+continuous questions using successful text pairs held only in this Collection's page memory. It uses
+the selected Agent's published instructions, generation settings and execution deadlines, but does
+not create an Agent runtime, Session, Turn or Request Journal. The Node adapter runs a Sessionless
+generation-streaming Workflow: no tools or agentic loop. The configured Engine must support direct
+streaming; an unsupported Engine fails explicitly, without a fallback.
+
+Closing only hides the panel: active work continues under its Collection-owned controller, even when
+another Agent is selected. Reopening the same Agent/revision restores current progress or the settled
+result, including manual Thinking expansion. Use **Cancel response** to stop an active response.
+Only completed text pairs enter subsequent input; reasoning and failed/cancelled partial responses
+never do.
+**Clear conversation**, changing Collection, or reloading discards temporary content. It is not written
+to localStorage, IndexedDB, the URL or recent-Collection records. Changing Agent or published config
+requires confirmation before replacing existing temporary content. Each send rechecks authority;
+a config conflict/disabled target blocks sending until clear/reload. Clearing cancels obsolete work
+and prevents its late callbacks from repopulating the conversation.
+
+Temporary history is bounded (64 successful pairs, 128 visible attempts, plus message/aggregate limits);
+there is no silent truncation or automatic summarization. The host receives the supplied transcript
+as ordinary untrusted context, not as fabricated model execution history. Output completion is
+provisional until the stream validates and settles. There is no replay, durable recovery, Fork or
+Rewind for temporary conversations. Cancellation is cooperative, not a guarantee that external
+provider work can be forcibly stopped.
+
+The `?mode=deterministic` profile also exposes this feature through an explicit browser fixture.
+Its responses demonstrate presentation only, not model quality or provider behavior.
+
+## Persisted conversations
+
 The composition treats configuration and lifecycle mutations as independent operations. Revision
 conflicts reload an authoritative snapshot before retry, structured validation remains attached to
 its owning fields, and delayed mutation results cannot replace a newer Agent selection.

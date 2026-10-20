@@ -12,6 +12,7 @@ import { useDefaultConfiguration } from '../agent/use-default-configuration.js';
 import { useModelManagement } from '../agent/use-model-management.js';
 import { AgentProfile } from '../components/agent-profile.js';
 import { AgentConfigurationFields } from '../components/agent-workspace.js';
+import { TemporaryConversationFeature } from '../temporary-conversation/feature.js';
 
 export function createDefaultConnection(
   ports: AgentWebPorts<AgentWebConfig>,
@@ -50,6 +51,15 @@ function DefaultExtension({
     [dirty, configEdit, createIdentity, createConfig]
   );
   return children({
+    headerActions:
+      ports.temporaryConversations === undefined ? undefined : (
+        <TemporaryConversationFeature
+          port={ports.temporaryConversations}
+          agents={ports.agents}
+          agent={agent}
+          allowed={model.ready}
+        />
+      ),
     settings: <AgentProfile agents={agents} model={model} />,
     requestCreate: () => agents.setCreateOpen(true),
     boundary: {

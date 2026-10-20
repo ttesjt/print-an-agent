@@ -583,6 +583,9 @@ importers:
       '@ta-agent/ui-workspace':
         specifier: workspace:*
         version: link:../../packages/workspace
+      '@ta-agent/workflow-core':
+        specifier: workspace:*
+        version: link:../../../workflow/packages/core
       react:
         specifier: 19.3.0
         version: 19.3.0

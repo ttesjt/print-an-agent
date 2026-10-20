@@ -12,6 +12,7 @@ import { fail, object, text, TransportProtocolError } from '../../transport/deco
 import { WEB_TRANSPORT_LIMITS } from '../../transport/limits.js';
 import { serveStatic } from './static.js';
 import type { DirectoryCollectionHost } from '../collections/directory-host.js';
+import { writeTemporaryConversationResponse } from './temporary-conversations.js';
 
 export interface LocalServerOptions {
   /** Explicit fixed binding for embedded applications/qualification. */
@@ -82,12 +83,16 @@ export async function startLocalAgentWebServer(options: LocalServerOptions) {
         await serveStatic(options.publicDirectory, path, response);
         return;
       }
-      const scoped = /^\/api\/collections\/([a-zA-Z0-9-]+)\/(commands|interactions)$/u.exec(path);
+      const scoped =
+        /^\/api\/collections\/([a-zA-Z0-9-]+)\/(commands|interactions|temporary-conversations)$/u.exec(
+          path
+        );
       if (
         request.method !== 'POST' ||
         (path !== '/api/collections' &&
           path !== '/api/commands' &&
           path !== '/api/interactions' &&
+          path !== '/api/temporary-conversations' &&
           scoped === null)
       )
         return sendError(response, 404);
@@ -123,6 +128,17 @@ export async function startLocalAgentWebServer(options: LocalServerOptions) {
         const value = await command.run(ports, envelope.input, controller.signal);
         controller.signal.throwIfAborted();
         writeJsonResponse(response, value);
+      } else if (
+        path === '/api/temporary-conversations' ||
+        scoped?.[2] === 'temporary-conversations'
+      ) {
+        if (ports.temporaryConversations === undefined) return sendError(response, 404);
+        await writeTemporaryConversationResponse(
+          ports.temporaryConversations,
+          body,
+          response,
+          controller.signal
+        );
       } else {
         await writeInteractionResponse(ports.conversations, body, response, controller.signal);
       }

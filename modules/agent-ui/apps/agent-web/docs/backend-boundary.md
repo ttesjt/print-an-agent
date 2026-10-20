@@ -47,6 +47,12 @@ client must reconcile authoritative history. No default wall-clock deadline is i
 
 ## Explicit current limits
 
+- Temporary conversations use an independent generation-streaming path without Agent materialization,
+  Session/Turn admission, Journal replay or storage. Identity/Config authority is read on every send.
+  Their browser-owned transcript is ordinary untrusted model context, not authoritative model history.
+  They cannot restore history, recover an interrupted response or perform branch operations. This
+  distinction does not weaken the persisted conversation guarantees described above.
+
 - Tool activity has safe labels/status only; raw arguments, results, trace and provider payloads
   are never projected. Session does not persist tool presentation, so reopened history has no tool
   activity records. This is not an assertion that no tools ran.

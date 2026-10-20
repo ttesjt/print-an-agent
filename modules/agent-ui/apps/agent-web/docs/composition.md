@@ -11,6 +11,12 @@ Browser public components + optional stylesheet
         → Identity / Config authority
         → Session management and navigation services
         → materialized Agent and foreground Operation
+
+Temporary branch (same authority, different execution path):
+Browser-memory controller → app-owned temporary port / NDJSON protocol
+    → inspect active Identity + published Config/revision
+    → Sessionless Request Service → Actor → generation-streaming Workflow
+    → validated output → successful browser-memory history
 ```
 
 The Node backend factory is app-owned, not a new exported framework package. It can receive any
@@ -45,6 +51,33 @@ credential reference/environment binding, Actor instructions/generation and exec
 It is not an arbitrary JSON editor or executable adapter loader. The host owns the secret resolver
 and tool implementations. An explicitly installed custom Engine can be bound by ID in qualification
 profiles; it is never a fallback. Config updates affect subsequent materialization, not in-flight calls.
+
+## Temporary response boundary
+
+The optional app-owned `temporaryConversations` port is independent of persisted conversation ports.
+`createWebTemporaryConversationPort()` receives only Identity/Config inspection and model-host
+resources; it cannot open the managed runtime or provision Session/Journal ports. Each call resolves
+one immutable published config snapshot, a borrowed model Engine and a per-call OutputSink through
+`createSessionlessRequestService()`. Request deadline covers resource resolution and execution;
+Actor and provider liveness policies retain their own error ownership. Defaults impose no deadline.
+
+The frontend pins Agent/config revision. Caller-supplied successful text pairs are serialized as
+untrusted context, not reconstructed assistant messages with invented provenance. Reasoning is
+display-only and ephemeral. No model/credential configuration is accepted in the temporary payload.
+The app validates exact output receipt, IDs and revision; `completed` is provisional until clean EOF
+and successful port settlement. A late failure cannot admit a successful history pair.
+
+Fixed hosts expose `/api/temporary-conversations`; Collection hosts use the same route under their
+immutable `/api/collections/<key>` binding. Existing origin, body/frame/stream bounds, disconnect
+cancellation and shutdown drainage apply. Only neutral NDJSON framing is shared with persisted
+transport; Temporary DTOs and protocol policy remain app-owned.
+
+The app installs its modal through the optional Workspace `headerActions` slot, reusing public
+Conversation/Composer/reasoning components. The slot does not give Workspace ownership of temporary
+state or introduce a generic sessionless domain into reusable UI packages. Changing Collection
+unmounts this feature and cancels its owned work. Closing the modal only hides it: the same controller
+continues receiving output and records settlement while hidden. Reopening the same target does not
+start another request. Explicit cancellation, clear/reset, or unmount still cancel owned execution.
 
 ## Reusing components independently
 

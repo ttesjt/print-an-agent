@@ -7,6 +7,34 @@
   scrollbar-gutter: stable;
 }
 
+/* Opt-in composition: a bounded transcript with reachable composer in a modal Drawer. */
+:where(.ta-ui-conversation-drawer)[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+:where(.ta-ui-conversation-drawer) > :where(.ta-ui-drawer__header, .ta-ui-drawer__footer) {
+  flex-shrink: 0;
+}
+:where(.ta-ui-conversation-drawer) > .ta-ui-drawer__body {
+  display: flex;
+  flex: 1;
+  min-block-size: 0;
+  overflow: hidden;
+}
+:where(.ta-ui-conversation-drawer) > .ta-ui-drawer__body > .ta-ui-stack {
+  flex: 1;
+  min-block-size: 0;
+}
+:where(.ta-ui-conversation-drawer) :where(.ta-ui-conversation-scroll-region) {
+  flex: 1;
+  min-block-size: 0;
+  max-block-size: none;
+}
+:where(.ta-ui-conversation-drawer) :where(.ta-ui-conversation-composer) {
+  flex-shrink: 0;
+}
+
 :where(.ta-ui-conversation-scroll-region__jump) {
   position: sticky;
   inset-block-end: var(--ta-ui-space-3);

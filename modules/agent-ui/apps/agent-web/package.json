@@ -21,6 +21,7 @@
     "serve": "node dist/server/node/main.js"
   },
   "dependencies": {
+    "@ta-agent/workflow-core": "workspace:*",
     "@ta-agent/ui-workspace": "workspace:*",
     "@ta-agent/base-actor": "workspace:*",
     "@ta-agent/base-composition": "workspace:*",

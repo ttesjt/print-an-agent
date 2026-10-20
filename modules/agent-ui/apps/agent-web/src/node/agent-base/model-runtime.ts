@@ -22,6 +22,9 @@ export function actorInvocation(config: AgentWebConfig) {
       : { maxOutputTokens: config.invocation.maxOutputTokens }),
   };
 }
+export function webActorInstructions(config: AgentWebConfig): string {
+  return `${config.instructions}\nResponse style: ${config.responseStyle}.`;
+}
 export function createWebModelRuntime(
   config: AgentWebConfig,
   host: WebModelHost

@@ -230,6 +230,7 @@ function WorkspaceLayout({
               <span>{agents.selected?.displayName ?? 'Choose an Agent'}</span>
             </Cluster>
             <Cluster space="small">
+              {surfaces.headerActions}
               {onRequestCollections !== undefined && (
                 <Button appearance="text" onClick={onRequestCollections}>
                   Collections

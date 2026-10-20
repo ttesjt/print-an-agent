@@ -9,6 +9,8 @@ import { WEB_TRANSPORT_LIMITS } from './limits.js';
 import { interactionEvent, interactionInput } from './schemas.js';
 import { workspaceCommands } from './commands.js';
 import type { WorkspaceTransportCapabilities } from './capabilities.js';
+import { readNdjsonResponse } from './ndjson.js';
+export { readNdjsonResponse } from './ndjson.js';
 export interface HttpTransportOptions {
   readonly baseUrl?: string;
   readonly fetch?: typeof globalThis.fetch;
@@ -198,22 +200,8 @@ async function stream(
       body: JSON.stringify(interactionInput.decode(payload)),
       ...(signal === undefined ? {} : { signal }),
     });
-    if (
-      !response.ok ||
-      !response.headers.get('content-type')?.startsWith('application/x-ndjson') ||
-      response.body === null
-    )
-      return fail();
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8', { fatal: true });
-    let buffer = '';
-    let bytes = 0;
     const accept = async (line: string) => {
-      if (
-        terminalEvent !== undefined ||
-        new TextEncoder().encode(line).byteLength > WEB_TRANSPORT_LIMITS.frameBytes
-      )
-        return fail();
+      if (terminalEvent !== undefined) return fail();
       const event = interactionEvent.decode(JSON.parse(line));
       if (
         event.interactionId !== input.interactionId ||
@@ -233,31 +221,12 @@ async function stream(
         await consume(event);
       }
     };
-    try {
-      while (true) {
-        const chunk = await reader.read();
-        if (chunk.done) break;
-        bytes += chunk.value.byteLength;
-        if (bytes > WEB_TRANSPORT_LIMITS.streamBytes) return fail();
-        buffer += decoder.decode(chunk.value, { stream: true });
-        let newline = buffer.indexOf('\n');
-        while (newline >= 0) {
-          await accept(buffer.slice(0, newline));
-          buffer = buffer.slice(newline + 1);
-          newline = buffer.indexOf('\n');
-        }
-        if (buffer.length > WEB_TRANSPORT_LIMITS.frameBytes) return fail();
-      }
-      buffer += decoder.decode();
-      if (buffer.length !== 0 || terminalEvent === undefined) return fail();
-      signal?.throwIfAborted();
-      // A terminal frame is authoritative only after clean EOF, with no trailing data.
-      terminalDelivered = true;
-      await consume(terminalEvent);
-    } finally {
-      await reader.cancel().catch(() => undefined);
-      reader.releaseLock();
-    }
+    await readNdjsonResponse(response, accept, signal);
+    if (terminalEvent === undefined) return fail();
+    signal?.throwIfAborted();
+    // A terminal frame is authoritative only after clean EOF, with no trailing data.
+    terminalDelivered = true;
+    await consume(terminalEvent);
   } catch (error) {
     if (terminalDelivered) throw error;
     await consume(

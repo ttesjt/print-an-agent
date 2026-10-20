@@ -1016,8 +1016,8 @@ describe('module architecture', () => {
       .sort();
     expect(rootDirectories).toContain('runtime');
     expect(
-      rootDirectories.every(
-        (directoryName) => directoryName === 'runtime' || directoryName === 'management'
+      rootDirectories.every((directoryName) =>
+        ['runtime', 'management', 'sessionless'].includes(directoryName)
       )
     ).toBe(true);
 
@@ -1026,14 +1026,16 @@ describe('module architecture', () => {
     );
     expect(rootSpecifiers).toContain('./runtime/index.js');
     expect(
-      rootSpecifiers.every(
-        (specifier) => specifier === './runtime/index.js' || specifier === './management/index.js'
+      rootSpecifiers.every((specifier) =>
+        ['./runtime/index.js', './management/index.js', './sessionless/index.js'].includes(
+          specifier
+        )
       )
     ).toBe(true);
 
     const assertFeatureIsolation = (
-      featureName: 'runtime' | 'management',
-      forbiddenPeer: 'runtime' | 'management'
+      featureName: 'runtime' | 'management' | 'sessionless',
+      forbiddenPeer: 'runtime' | 'management' | 'sessionless'
     ) => {
       const featureRoot = join(compositionSource, featureName);
       if (!existsSync(featureRoot)) return;
@@ -1055,8 +1057,11 @@ describe('module architecture', () => {
       }
     };
 
-    assertFeatureIsolation('runtime', 'management');
-    assertFeatureIsolation('management', 'runtime');
+    for (const feature of ['runtime', 'management', 'sessionless'] as const) {
+      for (const peer of ['runtime', 'management', 'sessionless'] as const) {
+        if (feature !== peer) assertFeatureIsolation(feature, peer);
+      }
+    }
 
     const managementRoot = join(compositionSource, 'management');
     if (existsSync(managementRoot)) {

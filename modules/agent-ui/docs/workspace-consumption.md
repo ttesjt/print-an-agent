@@ -126,6 +126,13 @@ owners, including streams still cleaning up after a terminal event. Other target
 
 ## Interaction and presentation authority
 
+An application extension may provide optional `headerActions` React content for independent features,
+such as Agent Web's temporary conversation modal. Workspace only places this content in its header;
+the extension owns state, ports, cancellation and Collection-scoped cleanup. Do not reuse persisted
+conversation identity, receipts or controllers for features without those semantics. Public
+Conversation primitives can still render independent transcripts. The optional default stylesheet's
+`ta-ui-conversation-drawer` class gives a Drawer a bounded scrolling transcript with a reachable footer.
+
 Stream order is `interaction-started`, authoritative `session-admitted`, presentation events, one
 terminal event, then successful port settlement. Session identity exists before model output; never
 wait for a first token to admit it. Model-turn indices preserve reasoning boundaries. Tool events

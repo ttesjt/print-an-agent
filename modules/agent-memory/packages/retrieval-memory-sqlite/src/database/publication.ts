@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import {
   validatePublication,
+  assertReceiptMatches,
   decideRetrievalPublication,
   RetrievalMemoryError,
   type RetrievalPublication,
@@ -21,6 +22,11 @@ export function publish(
   try {
     return transaction(db, 'write', flag, () => {
       const receipt = readReceipt(db, memoryId, requestId);
+      if (receipt !== undefined) {
+        assertReceiptMatches(receipt, mutation);
+        recovered = receipt;
+        return receipt;
+      }
       const currentSpace = readSpace(db, memoryId);
       const entryId =
         candidate.entry?.entryId ?? ('entryId' in mutation.input ? mutation.input.entryId : null);
@@ -47,24 +53,26 @@ export function publish(
         );
         if (decision.stored !== null) {
           const { entry, representation } = decision.stored;
+          const { chunks, ...header } = representation;
           db.prepare('INSERT INTO rm_entries VALUES(?,?,?,?,?)').run(
             memoryId,
             entryId,
             encode(entry),
-            encode(representation),
+            encode(header),
             encode(entry.metadata)
           );
           const chunkInsert = db.prepare(
-            'INSERT INTO rm_chunks(memory_id,entry_id,chunk_json) VALUES(?,?,?)'
+            'INSERT INTO rm_chunks(memory_id,entry_id,chunk_json,vector) VALUES(?,?,?,?)'
           );
           const vectorInsert = db.prepare(
             `INSERT INTO ${table}(row_id,embedding,memory_id,generation_id) VALUES(?,?,?,?)`
           );
-          for (const { vector, ...chunk } of representation.chunks) {
-            const result = chunkInsert.run(memoryId, entryId, encode(chunk));
+          for (const { vector, ...chunk } of chunks) {
+            const binary = new Float32Array(vector);
+            const result = chunkInsert.run(memoryId, entryId, encode(chunk), binary);
             vectorInsert.run(
               BigInt(result.lastInsertRowid),
-              new Float32Array(vector),
+              binary,
               memoryId,
               space.index.generationId
             );

@@ -9,18 +9,31 @@ import { openDatabase } from './database/schema.js';
 import { readEntry, readReceipt, readSpace } from './database/records.js';
 import { publish } from './database/publication.js';
 import { listEntries, searchEntries } from './database/queries.js';
-import { checkCancellation } from './database/transaction.js';
+import { checkCancellation, transaction } from './database/transaction.js';
 import type { WorkerConfiguration, WorkerRequest, WorkerReply } from './protocol.js';
 import { failureDetails } from './failures.js';
 const port = parentPort;
 if (port === null) throw new Error('SQLite retrieval worker needs a host.');
 const db = openDatabase(workerData as WorkerConfiguration);
-const cleanupFailures: Error[] = [];
+let cleanupFailure: RetrievalMemoryError | undefined;
 port.postMessage({ ready: true });
 port.on('message', (request: WorkerRequest) => {
   const flag = new Int32Array(request.cancellation);
   const send = (reply: WorkerReply) => port.postMessage(reply);
   try {
+    // A failed rollback can leave transaction-local rows visible on this connection.
+    // Fence even already-queued reads/receipt recovery; only the host may close it.
+    if (request.operation !== 'close' && cleanupFailure !== undefined)
+      throw new RetrievalMemoryError(
+        'CLEANUP_FAILED',
+        'SQLite connection is fenced after cleanup failure.',
+        {
+          cause: cleanupFailure,
+          ...(request.operation === 'publish'
+            ? { commit: { status: 'not-committed' } as const }
+            : {}),
+        }
+      );
     checkCancellation(flag);
     const [a, b] = request.args;
     let value: unknown;
@@ -29,7 +42,7 @@ port.on('message', (request: WorkerRequest) => {
         value = readSpace(db, identifier(a));
         break;
       case 'get':
-        value = readEntry(db, identifier(a), identifier(b));
+        value = transaction(db, 'read', flag, () => readEntry(db, identifier(a), identifier(b)));
         break;
       case 'getReceipt':
         value = readReceipt(db, identifier(a), identifier(b));
@@ -45,12 +58,7 @@ port.on('message', (request: WorkerRequest) => {
         break;
       case 'close':
         db.close();
-        if (cleanupFailures.length > 0)
-          throw new RetrievalMemoryError(
-            'CLEANUP_FAILED',
-            'Earlier SQLite cleanup failures remain unresolved.',
-            { cause: new AggregateError(cleanupFailures) }
-          );
+        if (cleanupFailure !== undefined) throw cleanupFailure;
         send({ id: request.id, value: undefined });
         port.close();
         return;
@@ -64,14 +72,18 @@ port.on('message', (request: WorkerRequest) => {
     send({ id: request.id, value });
   } catch (cause) {
     const error =
-      cause instanceof RetrievalMemoryError
-        ? cause
-        : new RetrievalMemoryError(
-            request.operation === 'close' ? 'CLEANUP_FAILED' : 'STORAGE_FAILED',
-            'SQLite retrieval operation failed.',
-            { cause }
-          );
-    if (error.code === 'CLEANUP_FAILED') cleanupFailures.push(error);
+      request.operation === 'close' && cleanupFailure !== undefined && cause !== cleanupFailure
+        ? new RetrievalMemoryError('CLEANUP_FAILED', 'SQLite cleanup and close failed.', {
+            cause: new AggregateError([cleanupFailure, cause]),
+          })
+        : cause instanceof RetrievalMemoryError
+          ? cause
+          : new RetrievalMemoryError(
+              request.operation === 'close' ? 'CLEANUP_FAILED' : 'STORAGE_FAILED',
+              'SQLite retrieval operation failed.',
+              { cause }
+            );
+    if (error.code === 'CLEANUP_FAILED') cleanupFailure ??= error;
     send({
       id: request.id,
       error: {

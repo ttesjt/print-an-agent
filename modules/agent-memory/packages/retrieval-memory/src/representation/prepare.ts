@@ -64,13 +64,21 @@ export async function embedTexts(
       throw new RetrievalMemoryError(
         cause instanceof EmbeddingError && cause.code === 'EMBEDDING_INVOCATION_TIMEOUT'
           ? 'OPERATION_TIMED_OUT'
-          : 'EMBEDDING_FAILED',
+          : cause instanceof EmbeddingError && cause.code === 'EMBEDDING_RESPONSE_INVALID'
+            ? 'EMBEDDING_INVALID'
+            : 'EMBEDDING_FAILED',
         'Embedding invocation failed.',
         { cause }
       );
     }
     assertNotAborted(signal);
-    record(result);
+    try {
+      record(result);
+    } catch (cause) {
+      throw new RetrievalMemoryError('EMBEDDING_INVALID', 'Embedding result is malformed.', {
+        cause,
+      });
+    }
     if (
       result.representationRef !== space.index.embeddingRef ||
       result.task !== task ||

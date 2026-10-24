@@ -17,6 +17,7 @@ import {
 import { requireStoredSpace } from './records.js';
 import { SQLITE_RETRIEVAL_LIMITS, vectorTable } from './schema.js';
 import { transaction } from './transaction.js';
+import { compileMetadataFilter } from './filters.js';
 function bound(value: number, maximum: number): void {
   if (!Number.isSafeInteger(value) || value < 1 || value > maximum)
     throw new RetrievalMemoryError(
@@ -118,11 +119,12 @@ export function searchEntries(
         'Space representation configuration changed.'
       );
     const table = vectorTable(space.index.dimensions);
+    const eligibility = filter === undefined ? undefined : compileMetadataFilter(filter);
     // Eligibility participates in KNN itself. Never fetch global topK and discard mismatches afterwards.
     const sql = `SELECT v.distance,c.chunk_json,e.entry_json FROM ${table} v
       JOIN rm_chunks c ON c.row_id=v.row_id JOIN rm_entries e ON e.memory_id=c.memory_id AND e.entry_id=c.entry_id
       WHERE v.embedding MATCH ? AND k=? AND v.memory_id=? AND v.generation_id=?
-      ${filter === undefined ? '' : 'AND v.row_id IN (SELECT c2.row_id FROM rm_chunks c2 JOIN rm_entries e2 ON e2.memory_id=c2.memory_id AND e2.entry_id=c2.entry_id WHERE c2.memory_id=? AND rm_matches(e2.metadata_json,?)=1)'}
+      ${filter === undefined ? '' : `AND v.row_id IN (SELECT row_id FROM rm_chunks WHERE memory_id=? AND entry_id IN (SELECT entry_id FROM rm_entries e2 INDEXED BY rm_metadata_scan WHERE memory_id=? AND ${eligibility!.sql}))`}
       ORDER BY v.distance`;
     const params = [
       new Float32Array(input.vector),
@@ -133,7 +135,9 @@ export function searchEntries(
     const rows =
       filter === undefined
         ? db.prepare(sql).all(...params)
-        : db.prepare(sql).all(...params, space.memoryId, JSON.stringify(filter));
+        : db
+            .prepare(sql)
+            .all(...params, space.memoryId, space.memoryId, ...eligibility!.parameters);
     const hits: RetrievalHit[] = rows.map((row) => {
       if (
         typeof row.distance !== 'number' ||

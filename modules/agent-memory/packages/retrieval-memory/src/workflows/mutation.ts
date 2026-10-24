@@ -71,6 +71,10 @@ export function createRetrievalMutationDefinition<I>(
             context.state.input,
             context.state.signal ?? context.signal
           );
+          // Replaying a matched durable receipt already establishes commit, before
+          // the next Step's cancellation check or this Step's executor post-processing.
+          if ('receipt' in context.state.candidate)
+            context.state.receipt = structuredClone(context.state.candidate.receipt);
         },
       },
       publish: {

@@ -9,7 +9,8 @@ function preserve(cause: unknown, state: CommittedRunState): unknown {
   if (
     cause instanceof RetrievalMemoryError &&
     cause.commit !== undefined &&
-    cause.commit.status !== 'not-committed'
+    cause.commit.status !== 'not-committed' &&
+    state.receipt === undefined
   )
     return cause;
   const commit: CommitEvidence =

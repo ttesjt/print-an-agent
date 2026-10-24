@@ -1,7 +1,10 @@
 import { WorkflowBundle } from '@ta-agent/workflow-bundle';
 import * as definitions from './definitions.js';
 import type { RetrievalWorkflowResources } from './resources.js';
+import { createRetrievalReadContextDefinition } from './context.js';
 export interface RetrievalWorkflowDefinitions {
+  readonly readContext: ReturnType<typeof createRetrievalReadContextDefinition>;
+  readonly reindex: ReturnType<typeof definitions.createRetrievalReindexDefinition>;
   readonly create: ReturnType<typeof definitions.createRetrievalCreateDefinition>;
   readonly ingest: ReturnType<typeof definitions.createRetrievalIngestDefinition>;
   readonly update: ReturnType<typeof definitions.createRetrievalUpdateDefinition>;
@@ -20,6 +23,8 @@ export function createRetrievalMemoryBundle(options: RetrievalBundleOptions) {
   return new WorkflowBundle({
     resources: options.resources,
     workflows: {
+      readContext: options.workflows?.readContext ?? createRetrievalReadContextDefinition(),
+      reindex: options.workflows?.reindex ?? definitions.createRetrievalReindexDefinition(),
       create: options.workflows?.create ?? definitions.createRetrievalCreateDefinition(),
       ingest: options.workflows?.ingest ?? definitions.createRetrievalIngestDefinition(),
       update: options.workflows?.update ?? definitions.createRetrievalUpdateDefinition(),

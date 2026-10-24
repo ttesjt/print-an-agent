@@ -71,8 +71,7 @@ it('provides an optional owned deadline without a default model timeout or aband
   });
   const resources = createRetrievalWorkflowResources(
     { ...f.resources, embeddings: { resolve: () => embedder } },
-    {},
-    { timeoutMilliseconds: 20 }
+    { execution: { timeoutMilliseconds: 20 } }
   );
   const w = createRetrievalMemoryBundle({ resources }).workflows;
   await expect(

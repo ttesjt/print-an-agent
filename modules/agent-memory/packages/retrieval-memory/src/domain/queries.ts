@@ -28,7 +28,7 @@ export function createRetrievalQueries(
 ): RetrievalQueryOperations {
   const policy = defineRetrievalPolicy(options);
   return {
-    inspect(value, signal) {
+    async inspect(value, signal) {
       const input = parseSpaceInput(value, policy);
       return requireSpace(resources.backend, input.memoryId, signal);
     },

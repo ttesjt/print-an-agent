@@ -28,7 +28,10 @@ export { createCodepointChunker } from './representation/chunker.js';
 export { createRetrievalQueries } from './domain/queries.js';
 export type { RetrievalQueryOperations } from './domain/queries.js';
 export { createRetrievalWorkflowResources } from './workflows/resources.js';
-export type { RetrievalWorkflowResources } from './workflows/resources.js';
+export type {
+  RetrievalWorkflowResources,
+  RetrievalWorkflowResourceOptions,
+} from './workflows/resources.js';
 export * from './workflows/definitions.js';
 export { createRetrievalMemoryBundle } from './workflows/bundle.js';
 export type { RetrievalWorkflowDefinitions, RetrievalBundleOptions } from './workflows/bundle.js';
@@ -51,3 +54,13 @@ export {
   defineRetrievalExecutionPolicy,
 } from './workflows/execution.js';
 export type { RetrievalExecutionPolicy } from './workflows/execution.js';
+export type * from './contracts/context.js';
+export { createRetrievalContext } from './context/operations.js';
+export type { RetrievalContextOperations } from './context/operations.js';
+export { DEFAULT_RETRIEVAL_RENDERER } from './context/renderer.js';
+export { createRetrievalReadContextDefinition } from './workflows/context.js';
+export type {
+  RetrievalContextDefinition,
+  RetrievalContextWorkflowOptions,
+  ContextStepName,
+} from './workflows/context.js';

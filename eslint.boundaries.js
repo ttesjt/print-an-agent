@@ -73,7 +73,7 @@ const memoryDomainRestrictions = [
 export const boundaryConfigs = Object.freeze([
   { files: productionSource, rules: moduleRestrictions([]) },
   {
-    files: ['modules/agent-memory/tests/qualification/**/*.ts'],
+    files: ['modules/agent-memory/tests/{qualification,retrieval-memory-qualification}/**/*.ts'],
     rules: moduleRestrictions([
       {
         group: [

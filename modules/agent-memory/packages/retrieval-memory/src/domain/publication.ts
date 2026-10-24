@@ -47,7 +47,7 @@ export function decideRetrievalPublication(
     (expected !== null || entry?.revision !== 1 || current !== undefined)
   )
     reject('REVISION_CONFLICT');
-  if (expected !== null && current === undefined) reject('ENTRY_NOT_FOUND');
+  if (expected !== null && current === undefined) reject('REVISION_CONFLICT');
   if (
     expected !== null &&
     current !== undefined &&
@@ -81,6 +81,17 @@ export function decideRetrievalPublication(
     fail('REPRESENTATION_INVALID', 'Reindex cannot modify authoritative content.');
   if (unchanged && !equal(current?.representation, representation))
     fail('REPRESENTATION_INVALID', 'Unchanged update cannot replace representation.');
+  if (current !== undefined && representation !== null && !unchanged) {
+    const oldChunks = new Set(current.representation.chunks.map((chunk) => chunk.chunkId));
+    if (
+      representation.representationId === current.representation.representationId ||
+      representation.chunks.some((chunk) => oldChunks.has(chunk.chunkId))
+    )
+      fail(
+        'REPRESENTATION_INVALID',
+        'A replaced representation requires fresh representation and chunk identities.'
+      );
+  }
   if (
     mutation.operation === 'reindex' &&
     current?.representation.representationId === representation?.representationId

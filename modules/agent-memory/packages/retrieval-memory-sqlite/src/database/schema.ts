@@ -1,12 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { load } from 'sqlite-vec';
-import {
-  matchesMetadata,
-  parseMetadataFilter,
-  DEFAULT_RETRIEVAL_POLICY,
-  type JsonObject,
-  RetrievalMemoryError,
-} from '@ta-agent/retrieval-memory';
+import { RetrievalMemoryError } from '@ta-agent/retrieval-memory';
 import type { WorkerConfiguration } from '../protocol.js';
 import { SQLITE_RETRIEVAL_LIMITS } from '../capabilities.js';
 export { SQLITE_RETRIEVAL_LIMITS } from '../capabilities.js';
@@ -30,24 +24,10 @@ export function openDatabase(config: WorkerConfiguration): DatabaseSync {
     db.exec(`PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;
       CREATE TABLE IF NOT EXISTS rm_spaces(memory_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS rm_entries(memory_id TEXT NOT NULL, entry_id TEXT NOT NULL, entry_json TEXT NOT NULL, representation_json TEXT NOT NULL, metadata_json TEXT NOT NULL, PRIMARY KEY(memory_id,entry_id), FOREIGN KEY(memory_id) REFERENCES rm_spaces(memory_id));
-      CREATE TABLE IF NOT EXISTS rm_chunks(row_id INTEGER PRIMARY KEY AUTOINCREMENT, memory_id TEXT NOT NULL, entry_id TEXT NOT NULL, chunk_json TEXT NOT NULL, FOREIGN KEY(memory_id,entry_id) REFERENCES rm_entries(memory_id,entry_id) ON DELETE CASCADE);
+      CREATE TABLE IF NOT EXISTS rm_chunks(row_id INTEGER PRIMARY KEY AUTOINCREMENT, memory_id TEXT NOT NULL, entry_id TEXT NOT NULL, chunk_json TEXT NOT NULL, vector BLOB NOT NULL, FOREIGN KEY(memory_id,entry_id) REFERENCES rm_entries(memory_id,entry_id) ON DELETE CASCADE);
       CREATE INDEX IF NOT EXISTS rm_chunk_scope ON rm_chunks(memory_id,entry_id);
+      CREATE INDEX IF NOT EXISTS rm_metadata_scan ON rm_entries(memory_id,metadata_json,entry_id);
       CREATE TABLE IF NOT EXISTS rm_receipts(memory_id TEXT NOT NULL, request_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(memory_id,request_id));`);
-    db.function('rm_matches', { deterministic: true }, (encoded, filter) => {
-      if (typeof encoded !== 'string' || typeof filter !== 'string')
-        throw new Error('Invalid stored filter payload.');
-      const metadata = JSON.parse(encoded) as JsonObject;
-      return matchesMetadata(
-        metadata,
-        parseMetadataFilter(JSON.parse(filter), {
-          ...DEFAULT_RETRIEVAL_POLICY,
-          maxFilterDepth: null,
-          maxFilterLeaves: null,
-        })
-      )
-        ? 1
-        : 0;
-    });
     return db;
   } catch (cause) {
     try {

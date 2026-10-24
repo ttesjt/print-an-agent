@@ -20,7 +20,8 @@ export function createCodepointChunker(
       for (let start = 0; start < points.length; start += window - overlap) {
         const end = Math.min(start + window, points.length);
         const span = { start: offsets[start]!, end: offsets[end]! };
-        chunks.push({ text: content.slice(span.start, span.end), span });
+        const chunkText = content.slice(span.start, span.end);
+        if (chunkText.trim() !== '') chunks.push({ text: chunkText, span });
         if (end === points.length) break;
       }
       return Promise.resolve(chunks);

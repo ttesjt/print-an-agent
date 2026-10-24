@@ -2,9 +2,22 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { ESLint } from 'eslint';
 import { expect, it } from 'vitest';
+import ts from 'typescript';
 const root = new URL('../', import.meta.url).pathname;
 const path = join(root, 'modules/agent-memory/packages/retrieval-memory');
 const eslint = new ESLint({ cwd: root });
+const consumer = join(root, 'modules/agent-memory/tests/retrieval-memory-qualification');
+function sources(directory: string): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((item) =>
+    item.name === 'node_modules' || item.name === 'dist'
+      ? []
+      : item.isDirectory()
+        ? sources(join(directory, item.name))
+        : item.name.endsWith('.ts')
+          ? [join(directory, item.name)]
+          : []
+  );
+}
 it.each([
   'node:sqlite',
   'sqlite-vec',
@@ -23,6 +36,60 @@ it.each([
       .flatMap((item) => item.messages)
       .some((message) => message.ruleId === 'no-restricted-imports')
   ).toBe(true);
+});
+it('qualifies a test-only second consumer against package-root exports', () => {
+  const pkg = JSON.parse(readFileSync(join(consumer, 'package.json'), 'utf8')) as {
+    dependencies?: object;
+    exports?: object;
+    devDependencies: Record<string, string>;
+  };
+  expect(pkg.dependencies).toBeUndefined();
+  expect(pkg.exports).toBeUndefined();
+  for (const file of sources(consumer)) {
+    const tree = ts.createSourceFile(
+      file,
+      readFileSync(file, 'utf8'),
+      ts.ScriptTarget.Latest,
+      true
+    );
+    const visit = (node: ts.Node) => {
+      if (
+        (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+        node.moduleSpecifier !== undefined &&
+        ts.isStringLiteral(node.moduleSpecifier) &&
+        node.moduleSpecifier.text.startsWith('@ta-agent/')
+      ) {
+        const specifier = node.moduleSpecifier.text;
+        expect(specifier.split('/')).toHaveLength(2);
+        expect(pkg.devDependencies).toHaveProperty(specifier);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(tree);
+  }
+});
+it.each([
+  '@ta-agent/retrieval-memory/src/index.js',
+  '@ta-agent/base-runtime',
+  '@ta-agent/self-learn-api',
+  '@ta-agent/workbench-application',
+])('rejects independent consumer importing %s', async (dependency) => {
+  const result = await eslint.lintText(`import '${dependency}';`, {
+    filePath: join(consumer, 'test/backend-contract.test.ts'),
+  });
+  expect(
+    result
+      .flatMap((item) => item.messages)
+      .some((message) => message.ruleId === 'no-restricted-imports')
+  ).toBe(true);
+});
+it('keeps retrieval production files focused and independent from Context Memory', () => {
+  const adapter = join(root, 'modules/agent-memory/packages/retrieval-memory-sqlite');
+  for (const source of [...sources(join(path, 'src')), ...sources(join(adapter, 'src'))]) {
+    const text = readFileSync(source, 'utf8');
+    expect(text.trimEnd().split('\n').length, source).toBeLessThanOrEqual(200);
+    expect(text).not.toMatch(/as unknown as|@ta-agent\/context-memory/);
+  }
 });
 it('keeps one native Workflow foundation and no unsafe type bridges', () => {
   const visit = (directory: string): string[] =>

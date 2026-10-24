@@ -1,8 +1,8 @@
 import type { RetrievalSpace, SearchResult } from '../contracts/data.js';
 import { RETRIEVAL_PROTOCOL_POLICY } from '../config.js';
-import { fail } from '../errors.js';
+import { fail, RetrievalMemoryError } from '../errors.js';
 import { entryBody } from './input.js';
-import { equal, identifier, integer, record, text } from './json.js';
+import { equal, exact, identifier, integer, record, text } from './json.js';
 import { parseRetrievalSpace } from './state.js';
 export function parseSearchResult(
   value: SearchResult,
@@ -20,6 +20,26 @@ export function parseSearchResult(
   const ids = new Set<string>();
   if (value.hits.length > topK) fail('SEARCH_FAILED', 'Backend exceeded requested hit count.');
   const hits = value.hits.map((hit) => {
+    try {
+      exact(record(hit), [
+        'memoryId',
+        'entryId',
+        'entryRevision',
+        'generationId',
+        'representationId',
+        'chunkId',
+        'ordinal',
+        'text',
+        'span',
+        'source',
+        'ranking',
+      ]);
+      exact(record(hit.ranking), ['metricRef', 'value', 'order', 'strategyRef']);
+    } catch (cause) {
+      throw new RetrievalMemoryError('SEARCH_FAILED', 'Backend returned unsupported hit fields.', {
+        cause,
+      });
+    }
     const { source } = entryBody(
       { content: hit.text, source: hit.source },
       RETRIEVAL_PROTOCOL_POLICY

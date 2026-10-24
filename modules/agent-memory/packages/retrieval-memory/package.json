@@ -1,0 +1,38 @@
+{
+  "name": "@ta-agent/retrieval-memory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "clean": "tsc --build tsconfig.build.json --clean",
+    "typecheck": "pnpm run build && tsc --noEmit",
+    "test": "pnpm run build && vitest run",
+    "lint": "eslint .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@ta-agent/model-invocation-core": "workspace:*",
+    "@ta-agent/workflow-core": "workspace:*",
+    "@ta-agent/workflow-bundle": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  }
+}

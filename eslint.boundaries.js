@@ -109,6 +109,22 @@ export const boundaryConfigs = Object.freeze([
     ]),
   },
   {
+    files: ['modules/agent-memory/packages/retrieval-memory/src/**/*.{ts,tsx}'],
+    rules: moduleRestrictions([
+      ...memoryDomainRestrictions,
+      {
+        group: [
+          'node:sqlite',
+          'sqlite-vec',
+          '@ta-agent/retrieval-memory-sqlite',
+          '@ta-agent/context-memory*',
+        ],
+        message:
+          'Retrieval Memory domain cannot depend on a concrete store or sibling memory capability.',
+      },
+    ]),
+  },
+  {
     files: ['modules/model-invocation/**/src/**/*.{ts,tsx}'],
     rules: moduleRestrictions(modelInvocationDomainRestrictions),
   },

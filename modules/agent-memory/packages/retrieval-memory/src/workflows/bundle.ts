@@ -1,0 +1,34 @@
+import { WorkflowBundle } from '@ta-agent/workflow-bundle';
+import * as definitions from './definitions.js';
+import type { RetrievalWorkflowResources } from './resources.js';
+export interface RetrievalWorkflowDefinitions {
+  readonly create: ReturnType<typeof definitions.createRetrievalCreateDefinition>;
+  readonly ingest: ReturnType<typeof definitions.createRetrievalIngestDefinition>;
+  readonly update: ReturnType<typeof definitions.createRetrievalUpdateDefinition>;
+  readonly remove: ReturnType<typeof definitions.createRetrievalRemoveDefinition>;
+  readonly inspect: ReturnType<typeof definitions.createRetrievalInspectDefinition>;
+  readonly get: ReturnType<typeof definitions.createRetrievalGetDefinition>;
+  readonly getReceipt: ReturnType<typeof definitions.createRetrievalReceiptDefinition>;
+  readonly list: ReturnType<typeof definitions.createRetrievalListDefinition>;
+  readonly search: ReturnType<typeof definitions.createRetrievalSearchDefinition>;
+}
+export interface RetrievalBundleOptions {
+  readonly resources: RetrievalWorkflowResources;
+  readonly workflows?: Partial<RetrievalWorkflowDefinitions>;
+}
+export function createRetrievalMemoryBundle(options: RetrievalBundleOptions) {
+  return new WorkflowBundle({
+    resources: options.resources,
+    workflows: {
+      create: options.workflows?.create ?? definitions.createRetrievalCreateDefinition(),
+      ingest: options.workflows?.ingest ?? definitions.createRetrievalIngestDefinition(),
+      update: options.workflows?.update ?? definitions.createRetrievalUpdateDefinition(),
+      remove: options.workflows?.remove ?? definitions.createRetrievalRemoveDefinition(),
+      inspect: options.workflows?.inspect ?? definitions.createRetrievalInspectDefinition(),
+      get: options.workflows?.get ?? definitions.createRetrievalGetDefinition(),
+      getReceipt: options.workflows?.getReceipt ?? definitions.createRetrievalReceiptDefinition(),
+      list: options.workflows?.list ?? definitions.createRetrievalListDefinition(),
+      search: options.workflows?.search ?? definitions.createRetrievalSearchDefinition(),
+    },
+  });
+}

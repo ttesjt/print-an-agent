@@ -123,6 +123,7 @@ it.each([
   '@ta-agent/ui-contracts',
   '@ta-agent/model-invocation-pi',
   '@ta-agent/model-invocation-token-counters',
+  '@ta-agent/model-invocation-embedding-http',
   '@earendil-works/pi-ai',
   '@ta-agent/context-memory-sqlite',
   '@ta-agent/retrieval-memory',

@@ -61,3 +61,24 @@ export { parseMeasurementReference as parseTokenMeasurementReference } from './t
 export { parseTextTokenInput, TEXT_TOKEN_INPUT_CONTRACT } from './token-measurement/text-input.js';
 export { parseTokenMeasurement } from './token-measurement/result.js';
 export { requireTokenMeasurement } from './token-measurement/requirements.js';
+export {
+  EMBEDDING_TASK,
+  MAX_EMBEDDING_TIMEOUT_MILLISECONDS,
+  NO_EMBEDDING_TIMEOUT,
+} from './embedding/contracts.js';
+export type {
+  EmbeddingTask,
+  TextEmbedderDefinition,
+  TextEmbeddingCapability,
+  TextEmbeddingDescriptor,
+  TextEmbeddingInput,
+  TextEmbeddingInvocationPolicy,
+  TextEmbeddingLimits,
+  TextEmbeddingRepresentation,
+  TextEmbeddingRequest,
+  TextEmbeddingResult,
+  TextEmbeddingVector,
+} from './embedding/contracts.js';
+export { EmbeddingError } from './embedding/errors.js';
+export type { EmbeddingErrorCode } from './embedding/errors.js';
+export { createTextEmbedder } from './embedding/embedder.js';

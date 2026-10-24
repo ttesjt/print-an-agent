@@ -1,0 +1,38 @@
+{
+  "name": "@ta-agent/model-invocation-embedding-http",
+  "version": "0.1.0",
+  "description": "Explicit OpenAI-compatible HTTP text embedding capability.",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "pnpm run build && tsc --noEmit",
+    "lint": "eslint .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@ta-agent/model-invocation-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  }
+}

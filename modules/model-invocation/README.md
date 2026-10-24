@@ -2,6 +2,7 @@
 
 Independent, named Actor invocation through replaceable Engines. Consumers can request Completion
 or Interaction capabilities without creating an Agent, Session, tool registry, or Workflow.
+Independent text Embedding and Token Measurement capabilities are also available without an Actor.
 
 `@ta-agent/model-invocation-core` owns messages, usage, execution provenance, capability declarations,
 Actor definitions and bindings, invocation deadlines, and validated Engine protocols. It has no
@@ -72,6 +73,18 @@ not become assistant text, persistence, or model history automatically.
 
 Run `pnpm test:model-invocation-qualification` from the repository root to verify the independent
 packages, local provider fixtures, public contracts and enforced dependency direction.
+
+## Text embedding
+
+Core provides `TextEmbeddingCapability` and `createTextEmbedder()` separately from generation.
+Requests contain a document/query task, uniquely identified texts and an `AbortSignal`; successful
+results contain a complete, ordered batch of immutable numeric vectors and the binding's stable
+representation reference. The optional `@ta-agent/model-invocation-embedding-http` package provides
+explicit OpenAI-compatible HTTP embedding, including keyless or credential-reference authentication.
+It does not use the Pi generation interface or require generation capabilities.
+
+See [Text embedding](docs/text-embedding.md) for the public contracts, model-version commitments,
+limits, errors, cancellation, resource ownership and standalone examples.
 
 ## Token measurement
 

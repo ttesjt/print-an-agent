@@ -10,6 +10,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./resource-registry": {
+      "types": "./dist/resource-registry/index.d.ts",
+      "import": "./dist/resource-registry/index.js"
     }
   },
   "files": [

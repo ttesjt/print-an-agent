@@ -475,13 +475,16 @@ describe('module architecture', () => {
     expect(moduleSpecifiers(executableEntryPoint)).toContain('./host-loaders.js');
   });
 
-  it('keeps cross-package Agent Base consumers on package-root public APIs', () => {
+  it('keeps cross-package Agent Base consumers on declared public entry points', () => {
     const modulesRoot = join(repositoryRoot, 'modules');
     const deepImports: string[] = [];
 
     for (const sourceFile of typeScriptFiles(modulesRoot)) {
       for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
-        if (/^@ta-agent\/base-[^/]+\//u.test(specifier)) {
+        if (
+          /^@ta-agent\/base-[^/]+\//u.test(specifier) &&
+          specifier !== '@ta-agent/base-composition/resource-registry'
+        ) {
           deepImports.push(`${normalize(relative(repositoryRoot, sourceFile))}: ${specifier}`);
         }
       }
@@ -1017,7 +1020,7 @@ describe('module architecture', () => {
     expect(rootDirectories).toContain('runtime');
     expect(
       rootDirectories.every((directoryName) =>
-        ['runtime', 'management', 'sessionless'].includes(directoryName)
+        ['runtime', 'management', 'sessionless', 'resource-registry'].includes(directoryName)
       )
     ).toBe(true);
 
@@ -1034,8 +1037,8 @@ describe('module architecture', () => {
     ).toBe(true);
 
     const assertFeatureIsolation = (
-      featureName: 'runtime' | 'management' | 'sessionless',
-      forbiddenPeer: 'runtime' | 'management' | 'sessionless'
+      featureName: 'runtime' | 'management' | 'sessionless' | 'resource-registry',
+      forbiddenPeer: 'runtime' | 'management' | 'sessionless' | 'resource-registry'
     ) => {
       const featureRoot = join(compositionSource, featureName);
       if (!existsSync(featureRoot)) return;
@@ -1057,8 +1060,8 @@ describe('module architecture', () => {
       }
     };
 
-    for (const feature of ['runtime', 'management', 'sessionless'] as const) {
-      for (const peer of ['runtime', 'management', 'sessionless'] as const) {
+    for (const feature of ['runtime', 'management', 'sessionless', 'resource-registry'] as const) {
+      for (const peer of ['runtime', 'management', 'sessionless', 'resource-registry'] as const) {
         if (feature !== peer) assertFeatureIsolation(feature, peer);
       }
     }

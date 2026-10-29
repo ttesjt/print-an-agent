@@ -15,10 +15,7 @@ function moduleRestrictions(forbiddenGroups) {
     'no-restricted-imports': [
       'error',
       {
-        patterns: [
-          ...publicImportRestrictions,
-          ...forbiddenGroups.map(({ group, message }) => ({ group, message })),
-        ],
+        patterns: [...publicImportRestrictions, ...forbiddenGroups],
       },
     ],
   };
@@ -70,8 +67,36 @@ const memoryDomainRestrictions = [
   },
 ];
 
+const registryQualificationRestrictions = [
+  {
+    regex:
+      '^@ta-agent/(?:base-(?!composition/resource-registry$)|self-learn-|workbench-|ui-|model-invocation-pi(?:/|$))|^@earendil-works/pi-',
+    message: 'Registry examples consume the public Composition subpath, not Agent/product APIs.',
+  },
+];
+
 export const boundaryConfigs = Object.freeze([
   { files: productionSource, rules: moduleRestrictions([]) },
+  {
+    files: ['modules/agent-base/tests/integration/test/resource-registry/**/*.ts'],
+    rules: moduleRestrictions(registryQualificationRestrictions),
+  },
+  {
+    // Responsibility-based example: neutral implementation and generic entry stay independent,
+    // while profile.ts is an assembly/resource-resolution Service and may import Registry.
+    files: [
+      'modules/agent-base/tests/integration/test/resource-registry/examples/service-provisioning/{service,workflow}.ts',
+    ],
+    rules: moduleRestrictions([
+      ...registryQualificationRestrictions,
+      {
+        group: ['@ta-agent/base-composition/resource-registry', '**/resource-registry/**'],
+        message:
+          'Generic Services use Definition provisioning; Workflows use explicit resources. Profile resource-resolution Services may use Registry.',
+      },
+    ]),
+  },
+
   {
     files: ['modules/agent-memory/tests/{qualification,retrieval-memory-qualification}/**/*.ts'],
     rules: moduleRestrictions([
@@ -205,6 +230,52 @@ export const boundaryConfigs = Object.freeze([
       {
         group: ['@ta-agent/workbench-*', '@ta-agent/self-learn-*'],
         message: 'Generic Agent UI applications must not depend on product-specific modules.',
+      },
+    ]),
+  },
+  {
+    files: [
+      'modules/agent-base/packages/{runtime,request,session,actor,config,identity,tool}/src/**/*.ts',
+    ],
+    rules: moduleRestrictions([
+      {
+        group: [
+          '@ta-agent/base-composition/resource-registry',
+          '@ta-agent/base-composition/resource-registry/**',
+        ],
+        message: 'Execution and authority domains must remain independent of composition Registry.',
+      },
+      {
+        group: ['@ta-agent/workbench-*', '@ta-agent/self-learn-*'],
+        message: 'Agent Base must remain independent of product domains.',
+      },
+    ]),
+  },
+  {
+    files: [
+      'modules/agent-base/packages/composition/src/{management,runtime,sessionless}/**/*.ts',
+      'modules/agent-base/packages/composition/src/index.ts',
+      'modules/agent-base/packages/standalone-agent/src/{runtime,services,workflows,steps}/**/*.ts',
+    ],
+    rules: moduleRestrictions([
+      {
+        group: ['@ta-agent/base-composition/resource-registry', '**/resource-registry/**'],
+        message:
+          'Generic application Services use Definition factories/resolvers; concrete Profile resource-resolution Services may use Registry.',
+      },
+      {
+        group: ['@ta-agent/workbench-*', '@ta-agent/self-learn-*'],
+        message: 'Agent Base must remain independent of product domains.',
+      },
+    ]),
+  },
+  {
+    // Keep this after the module-wide Base rule so relocation cannot add domain dependencies.
+    files: ['modules/agent-base/packages/composition/src/resource-registry/**/*.ts'],
+    rules: moduleRestrictions([
+      {
+        group: ['@ta-agent/*'],
+        message: 'Composition Registry internals remain domain independent.',
       },
     ]),
   },

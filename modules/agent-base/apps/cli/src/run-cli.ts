@@ -1,4 +1,5 @@
 import { AgentBaseCliError } from './errors.js';
+import { withCliRuntime } from './owned-runtime.js';
 import { parseAgentBaseCliCommand, type AgentBaseCliCommand } from './parse-command.js';
 import type { AgentBaseCliDependencies } from './contracts.js';
 import {
@@ -171,47 +172,51 @@ async function executeCommand(
     return isCredentialUnavailable(outcome) ? 3 : 0;
   }
   if (command.kind === 'run') {
-    const runtime = await dependencies.loadRuntime(command.runtime);
-    const message =
-      command.messageSource.kind === 'argument'
-        ? command.messageSource.value
-        : await dependencies.readStandardInput(signal);
-    if (message.length === 0) {
-      throw new AgentBaseCliError('CLI_INPUT_INVALID', 'Run message cannot be empty.');
-    }
-    await runtime.run(
-      {
-        message,
-        ...(command.sessionId === undefined ? {} : { sessionId: command.sessionId }),
-        ...(command.idempotencyKey === undefined ? {} : { idempotencyKey: command.idempotencyKey }),
-      },
-      {
-        signal,
-        writeTextDelta: (delta) => dependencies.standardOutput.write(delta),
-        sessionOpened: (sessionId) =>
-          command.sessionId === undefined
-            ? dependencies.standardError.write(
-                `${JSON.stringify({ type: 'session-created', sessionId })}\n`
-              )
-            : Promise.resolve(),
+    return withCliRuntime(await dependencies.loadRuntime(command.runtime), async (runtime) => {
+      const message =
+        command.messageSource.kind === 'argument'
+          ? command.messageSource.value
+          : await dependencies.readStandardInput(signal);
+      if (message.length === 0) {
+        throw new AgentBaseCliError('CLI_INPUT_INVALID', 'Run message cannot be empty.');
       }
-    );
-    await dependencies.standardOutput.write('\n');
-    return 0;
+      await runtime.run(
+        {
+          message,
+          ...(command.sessionId === undefined ? {} : { sessionId: command.sessionId }),
+          ...(command.idempotencyKey === undefined
+            ? {}
+            : { idempotencyKey: command.idempotencyKey }),
+        },
+        {
+          signal,
+          writeTextDelta: (delta) => dependencies.standardOutput.write(delta),
+          sessionOpened: (sessionId) =>
+            command.sessionId === undefined
+              ? dependencies.standardError.write(
+                  `${JSON.stringify({ type: 'session-created', sessionId })}\n`
+                )
+              : Promise.resolve(),
+        }
+      );
+      await dependencies.standardOutput.write('\n');
+      return 0;
+    });
   }
   if (command.kind === 'session-compact') {
-    const runtime = await dependencies.loadRuntime(command.runtime);
-    await writeJson(
-      dependencies,
-      await runtime.compactSession(
-        {
-          sessionId: command.sessionId,
-          ...(command.branchId === undefined ? {} : { branchId: command.branchId }),
-        },
-        signal
-      )
-    );
-    return 0;
+    return withCliRuntime(await dependencies.loadRuntime(command.runtime), async (runtime) => {
+      await writeJson(
+        dependencies,
+        await runtime.compactSession(
+          {
+            sessionId: command.sessionId,
+            ...(command.branchId === undefined ? {} : { branchId: command.branchId }),
+          },
+          signal
+        )
+      );
+      return 0;
+    });
   }
   const navigation = await dependencies.loadSessionNavigator(command.agent);
   if (command.kind === 'session-inspect') {

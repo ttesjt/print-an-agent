@@ -1,3 +1,4 @@
+import { bootstrapTestAgent } from '../support/owned-setup.js';
 import { DEFAULT_SESSION_COMPACTION_POLICY } from '@ta-agent/base-session';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -7,7 +8,6 @@ import { describe, expect, it } from 'vitest';
 import {
   AgentBaseStandaloneError,
   createSharedSqliteStandaloneDefinition,
-  createStandaloneAgent,
   createStandaloneProviderService,
   createStandaloneDirectoryDefinition,
   defineStandaloneAgentBootstrapConfig,
@@ -242,7 +242,7 @@ describe('standalone Agent Base configuration', () => {
       maxModelTurns: 5,
       maxPendingInteractionEvents: 6,
     };
-    const agent = await createStandaloneAgent(config, {
+    const agent = await bootstrapTestAgent(config, {
       readEnvironmentVariable: () => undefined,
       requestLimits,
     });
@@ -273,7 +273,7 @@ describe('standalone Agent Base configuration', () => {
       ...legacyOptions,
       databasePath: '/tmp/standalone-timeout-authority.sqlite',
     };
-    await expect(createStandaloneAgent(config, legacyOptions)).rejects.toMatchObject({
+    await expect(bootstrapTestAgent(config, legacyOptions)).rejects.toMatchObject({
       code: 'STANDALONE_CONFIG_INVALID',
     });
     expectStandaloneConfigInvalid(() => createStandaloneDirectoryDefinition(directoryOptions));
@@ -281,7 +281,7 @@ describe('standalone Agent Base configuration', () => {
 
     const limitsWithTimeout = { ...requestLimits, timeoutMilliseconds: 1 };
     await expect(
-      createStandaloneAgent(config, {
+      bootstrapTestAgent(config, {
         readEnvironmentVariable: () => undefined,
         requestLimits: limitsWithTimeout,
       })
@@ -421,10 +421,10 @@ describe('standalone Agent Base configuration', () => {
     const directory = await mkdtemp(join(tmpdir(), 'standalone-agent-'));
     const environment = { TA_AGENT_TEST_API_KEY: 'PRIVATE_TEST_KEY' };
     try {
-      const memoryAgent = await createStandaloneAgent(validConfig(), {
+      const memoryAgent = await bootstrapTestAgent(validConfig(), {
         readEnvironmentVariable: (name) => environment[name as keyof typeof environment],
       });
-      const sqliteAgent = await createStandaloneAgent(
+      const sqliteAgent = await bootstrapTestAgent(
         {
           ...validConfig(),
           persistence: {
@@ -489,14 +489,14 @@ describe('standalone Agent Base configuration', () => {
 
   it('rejects SQLite naming options for Memory persistence and cross-domain collisions', async () => {
     await expect(
-      createStandaloneAgent(validConfig(), {
+      bootstrapTestAgent(validConfig(), {
         readEnvironmentVariable: () => undefined,
         sqlite: { tablePrefix: 'unused_' },
       })
     ).rejects.toMatchObject({ code: 'STANDALONE_CONFIG_INVALID' });
 
     await expect(
-      createStandaloneAgent(
+      bootstrapTestAgent(
         {
           ...validConfig(),
           persistence: { kind: 'sqlite', databasePath: '/tmp/collision-agent.sqlite' },

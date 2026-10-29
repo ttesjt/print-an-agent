@@ -6,16 +6,14 @@ import type {
   CreateMemoryInput,
 } from '../contracts/inputs.js';
 import type { MemoryStore } from '../contracts/ports.js';
-import type {
-  MutationRequest,
-  MutationResult,
-  MemoryOperation,
-  CommandOutcome,
-} from '../contracts/receipt.js';
+import type { MutationRequest, MutationResult, CommandOutcome } from '../contracts/receipt.js';
 import { resolveMemoryConfig } from '../config/parse.js';
 import { assertMemoryNotAborted, ContextMemoryError } from '../errors.js';
 import type { MemoryMeter } from '../rendering/meter.js';
-import { identity, jsonValue, keys, record } from '../validation/value.js';
+import {
+  parseDeterministicMemoryRequest,
+  type DeterministicMemoryMutation,
+} from './deterministic-request.js';
 import { parseItemCommands, parseItemContent } from '../validation/commands.js';
 import { loadMutationBase, mutationResult, replayMutation } from './access.js';
 import { publishMemoryCandidate } from './publish.js';
@@ -41,7 +39,6 @@ export class MemoryMutations {
     return this.#run(
       'create',
       input,
-      ['items', 'config'],
       async (request, data, effective) => {
         const config = resolveMemoryConfig(
           'config' in data ? data.config : {},
@@ -65,7 +62,6 @@ export class MemoryMutations {
     return this.#run(
       'apply',
       input,
-      ['expectedRevision', 'commands'],
       async (request, data, effective) => {
         const base = await loadMutationBase(
           this.#resources.store,
@@ -97,7 +93,6 @@ export class MemoryMutations {
     return this.#run(
       'configure',
       input,
-      ['expectedRevision', 'config'],
       async (request, data, effective) => {
         const base = await loadMutationBase(
           this.#resources.store,
@@ -136,9 +131,8 @@ export class MemoryMutations {
     );
   }
   async #run(
-    operation: MemoryOperation,
+    operation: DeterministicMemoryMutation['operation'],
     input: unknown,
-    fields: readonly string[],
     execute: (
       request: MutationRequest,
       data: Record<string, unknown>,
@@ -149,20 +143,8 @@ export class MemoryMutations {
     let memoryId: string | undefined;
     try {
       assertMemoryNotAborted(signal);
-      const data = record(jsonValue(input), 'mutation input');
-      keys(data, ['memoryId', 'requestId', ...fields]);
-      memoryId = identity(data.memoryId, 'memoryId');
-      const requestId = identity(data.requestId, 'requestId');
-      const request = {
-        memoryId,
-        requestId,
-        operation,
-        input: jsonValue(
-          Object.fromEntries(
-            Object.entries(data).filter(([key]) => key !== 'memoryId' && key !== 'requestId')
-          )
-        ),
-      };
+      const { data, request } = parseDeterministicMemoryRequest(operation, input);
+      memoryId = request.memoryId;
       const receipt = await replayMutation(this.#resources.store, request, signal);
       if (receipt !== undefined) return mutationResult(receipt);
       return await execute(request, data, signal);

@@ -22,10 +22,10 @@ export interface RetrievalQueryOperations {
   list(input: unknown, signal: AbortSignal): Promise<EntryPage>;
   search(input: unknown, signal: AbortSignal): Promise<SearchResult>;
 }
-export function createRetrievalQueries(
-  resources: Pick<RetrievalResources, 'backend' | 'embeddings'>,
+export function createRetrievalContentQueries(
+  resources: Pick<RetrievalResources, 'backend'>,
   options: Partial<RetrievalPolicy> = {}
-): RetrievalQueryOperations {
+): Pick<RetrievalQueryOperations, 'inspect' | 'get' | 'getReceipt' | 'list'> {
   const policy = defineRetrievalPolicy(options);
   return {
     async inspect(value, signal) {
@@ -65,6 +65,16 @@ export function createRetrievalQueries(
       if (result.nextCursor !== null) identifier(result.nextCursor, policy.maxCursorBytes);
       return structuredClone(result);
     },
+  };
+}
+
+export function createRetrievalQueries(
+  resources: Pick<RetrievalResources, 'backend' | 'embeddings'>,
+  options: Partial<RetrievalPolicy> = {}
+): RetrievalQueryOperations {
+  const policy = defineRetrievalPolicy(options);
+  return {
+    ...createRetrievalContentQueries(resources, policy),
     async search(value, signal) {
       const input = parseSearchInput(value, policy);
       const space = await requireSpace(resources.backend, input.memoryId, signal);

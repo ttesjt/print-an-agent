@@ -23,39 +23,40 @@ export const createRetrievalUpdateDefinition = (
   options: RetrievalMutationOptions<UpdateInput> = {}
 ) => createRetrievalMutationDefinition('update', options);
 export const createRetrievalRemoveDefinition = (
-  options: RetrievalMutationOptions<EntryMutationInput> = {}
+  options: RetrievalMutationOptions<EntryMutationInput, 'remove'> = {}
 ) => createRetrievalMutationDefinition('remove', options);
 export const createRetrievalReindexDefinition = (
   options: RetrievalMutationOptions<EntryMutationInput> = {}
 ) => createRetrievalMutationDefinition('reindex', options);
 export const createRetrievalInspectDefinition = (
-  options: RetrievalQueryOptions<SpaceInput, RetrievalSpace> = {}
+  options: RetrievalQueryOptions<SpaceInput, RetrievalSpace, 'inspect'> = {}
 ) =>
-  createRetrievalQueryDefinition(
+  createRetrievalQueryDefinition<SpaceInput, RetrievalSpace, 'inspect'>(
     'inspect',
     (r, input, signal) => r.queries.inspect(input, signal),
     options
   );
 export const createRetrievalGetDefinition = (
-  options: RetrievalQueryOptions<EntryInput, RetrievalEntry> = {}
+  options: RetrievalQueryOptions<EntryInput, RetrievalEntry, 'get'> = {}
 ) =>
-  createRetrievalQueryDefinition(
+  createRetrievalQueryDefinition<EntryInput, RetrievalEntry, 'get'>(
     'get',
     (r, input, signal) => r.queries.get(input, signal),
     options
   );
 export const createRetrievalReceiptDefinition = (
-  options: RetrievalQueryOptions<ReceiptInput, RetrievalReceipt | undefined> = {}
+  options: RetrievalQueryOptions<ReceiptInput, RetrievalReceipt | undefined, 'getReceipt'> = {}
 ) =>
-  createRetrievalQueryDefinition(
+  createRetrievalQueryDefinition<ReceiptInput, RetrievalReceipt | undefined, 'getReceipt'>(
     'getReceipt',
     (r, input, signal) => r.queries.getReceipt(input, signal),
-    options
+    options,
+    (value) => value
   );
 export const createRetrievalListDefinition = (
-  options: RetrievalQueryOptions<ListInput, EntryPage> = {}
+  options: RetrievalQueryOptions<ListInput, EntryPage, 'list'> = {}
 ) =>
-  createRetrievalQueryDefinition(
+  createRetrievalQueryDefinition<ListInput, EntryPage, 'list'>(
     'list',
     (r, input, signal) => r.queries.list(input, signal),
     options

@@ -8,7 +8,7 @@ import {
 import { parseAgentId } from '@ta-agent/base-identity';
 import { parseSessionId } from '@ta-agent/base-session';
 import {
-  createStandaloneMemoryDefinition,
+  createStandaloneMemorySetup,
   type StandaloneAgentConfig,
   type StandaloneRawAgent,
 } from '../../src/index.js';
@@ -17,7 +17,8 @@ type Equal<TLeft, TRight> =
   (<T>() => T extends TLeft ? 1 : 2) extends <T>() => T extends TRight ? 1 : 2 ? true : false;
 type Expect<T extends true> = T;
 
-const definition = createStandaloneMemoryDefinition({ readEnvironmentVariable: () => undefined });
+const setup = createStandaloneMemorySetup({ readEnvironmentVariable: () => undefined });
+const definition = setup.definition;
 const opened = createAgentRuntimeService(definition).open(parseAgentId('memory-agent'));
 void opened;
 void createSessionManagementService(definition).list({ agentId: parseAgentId('memory-agent') });
@@ -33,7 +34,7 @@ export type RawAgentIsPreserved = Expect<
 >;
 export type OpenedRawAgentIsPreserved = Expect<Equal<Awaited<typeof opened>, StandaloneRawAgent>>;
 
-createStandaloneMemoryDefinition({
+createStandaloneMemorySetup({
   readEnvironmentVariable: () => undefined,
   // @ts-expect-error Memory provisioning does not require or accept a filesystem root.
   rootDirectory: '/unused',

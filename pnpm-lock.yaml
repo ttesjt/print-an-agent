@@ -129,12 +129,18 @@ importers:
       '@ta-agent/base-tool':
         specifier: workspace:*
         version: link:../tool
+      '@ta-agent/context-memory':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/context-memory
       '@ta-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
       '@ta-agent/model-invocation-pi':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/pi
+      '@ta-agent/retrieval-memory':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/retrieval-memory
       '@ta-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
@@ -366,12 +372,27 @@ importers:
       '@ta-agent/base-session':
         specifier: workspace:*
         version: link:../session
+      '@ta-agent/context-memory':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/context-memory
+      '@ta-agent/context-memory-sqlite':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/context-memory-sqlite
       '@ta-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
       '@ta-agent/model-invocation-token-counters':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/token-counters
+      '@ta-agent/retrieval-memory':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/retrieval-memory
+      '@ta-agent/retrieval-memory-sqlite':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/retrieval-memory-sqlite
+      '@ta-agent/workflow-bundle':
+        specifier: workspace:*
+        version: link:../../../workflow/packages/bundle
       '@ta-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
@@ -443,12 +464,30 @@ importers:
       '@ta-agent/base-tool':
         specifier: workspace:*
         version: link:../../packages/tool
+      '@ta-agent/context-memory':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/context-memory
+      '@ta-agent/context-memory-sqlite':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/context-memory-sqlite
       '@ta-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
       '@ta-agent/model-invocation-pi':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/pi
+      '@ta-agent/model-invocation-token-counters':
+        specifier: workspace:*
+        version: link:../../../model-invocation/packages/token-counters
+      '@ta-agent/retrieval-memory':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/retrieval-memory
+      '@ta-agent/retrieval-memory-sqlite':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/retrieval-memory-sqlite
+      '@ta-agent/workflow-bundle':
+        specifier: workspace:*
+        version: link:../../../workflow/packages/bundle
       '@types/node':
         specifier: 'catalog:'
         version: 24.12.4
@@ -2981,6 +3020,7 @@ packages:
         integrity: sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ==,
       }
     engines: { node: ^18.18.0 || ^20.9.0 || >=21.1.0 }
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'

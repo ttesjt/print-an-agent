@@ -1,3 +1,4 @@
+import { bootstrapTestAgent } from './support/owned-setup.js';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -5,10 +6,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { MemoryOutputSink } from '@ta-agent/base-local-adapters';
 import { ModelInvocationError } from '@ta-agent/model-invocation-core';
 import { createAgentAPI } from '@ta-agent/base-composition';
-import {
-  createStandaloneAgent,
-  createSharedSqliteStandaloneRuntimeService,
-} from '@ta-agent/base-standalone-agent';
+import { createSharedSqliteStandaloneRuntimeService } from '@ta-agent/base-standalone-agent';
 import { afterEach, describe, expect, it } from 'vitest';
 import { startLoopbackProvider, type LoopbackProvider } from './support/loopback-provider.js';
 
@@ -70,7 +68,7 @@ describe('public standalone provider consumer', () => {
       },
     } as const;
     const firstSink = new MemoryOutputSink();
-    const firstAgent = createAgentAPI(await createStandaloneAgent(config, runtimeOptions));
+    const firstAgent = createAgentAPI(await bootstrapTestAgent(config, runtimeOptions));
     const { sessionId } = await firstAgent.agent.resources.session.resolve({
       agentId: firstAgent.identity.id,
     });
@@ -132,7 +130,7 @@ describe('public standalone provider consumer', () => {
     const provider = await startLoopbackProvider([{ status: 'failure', statusCode: 503 }]);
     providers.push(provider);
     const sink = new MemoryOutputSink();
-    const agent = await createStandaloneAgent(
+    const agent = await bootstrapTestAgent(
       {
         schemaVersion: 1,
         identity: { id: 'failing-consumer' },

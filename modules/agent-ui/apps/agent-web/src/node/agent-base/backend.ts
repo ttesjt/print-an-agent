@@ -6,9 +6,13 @@ import { createWebBackendServices, type WebBackendOptions } from './profile.js';
 import { createWebSessionManagement } from './sessions.js';
 import { createWebTemporaryConversationPort } from './temporary-conversation/service.js';
 
-export function createAgentBaseWebPorts(options: WebBackendOptions): AgentWebPorts<AgentWebConfig> {
+/** Host-owned backend. Drain business requests before closing; injected transports only borrow ports. */
+export function createAgentBaseWebPorts(
+  options: WebBackendOptions
+): AgentWebPorts<AgentWebConfig> & { close(): Promise<void> } {
   const services = createWebBackendServices(options);
   return Object.freeze({
+    close: services.close,
     temporaryConversations: createWebTemporaryConversationPort({
       agents: services.agents,
       modelHost: services.modelHost,

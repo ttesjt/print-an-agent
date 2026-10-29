@@ -3,6 +3,8 @@ export interface AgentBaseCliWriter {
 }
 
 export interface AgentBaseCliRuntime {
+  /** Present when the loader transferred an owning setup to this CLI host handle. */
+  close?(): Promise<void>;
   run(
     input: Readonly<{
       message: string;

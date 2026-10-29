@@ -15,16 +15,26 @@ export { projectStandaloneSessionNavigationService } from './services/session-na
 export type * from './services/session-navigation-service.js';
 export {
   createStandaloneDirectoryDefinition,
+  createStandaloneDirectorySetup,
   createStandaloneDirectoryManagementService,
   createStandaloneDirectoryRuntimeService,
   createStandaloneDirectorySessionNavigationService,
   createStandaloneDirectorySessionService,
 } from './profiles/directory.js';
 export type { StandaloneDirectoryDefinition } from './profiles/directory.js';
-export { createStandaloneMemoryDefinition } from './profiles/memory.js';
-export type { StandaloneMemoryDefinition } from './profiles/memory.js';
+export { createStandaloneMemorySetup } from './profiles/memory.js';
+export type { StandaloneMemoryDefinition, StandaloneMemorySetup } from './profiles/memory.js';
+export type { MemoryAgentResourceNamespace } from './resources/memory/provisioner.js';
+export type { FilesystemAgentResourceNamespace } from './resources/filesystem/types.js';
+export type { SharedSqliteAgentResourceNamespace } from './resources/shared-sqlite/types.js';
+export type { StandaloneSetup } from './profiles/setup.js';
+export type {
+  MemoryAuthorityFactory,
+  MemorySessionPersistenceFactory,
+} from './resources/memory/contracts.js';
 export {
   createSharedSqliteStandaloneDefinition,
+  createSharedSqliteStandaloneSetup,
   createSharedSqliteStandaloneManagementService,
   createSharedSqliteStandaloneRuntimeService,
   createSharedSqliteStandaloneSessionNavigationService,
@@ -60,3 +70,13 @@ export type {
 } from './runtime/materialize-standalone-agent.js';
 export { materializeStandaloneAgentRuntime } from './runtime/materialize-standalone-agent.js';
 export type * from './types.js';
+export type {
+  StandaloneMemoryManagementOptions,
+  StandaloneContextMemoryOptions,
+  StandaloneRetrievalMemoryOptions,
+  MemoryStorageAcquisition,
+  MemoryCapabilityAcquirer,
+  MemoryTextCounter,
+} from './resources/agent-memory/contracts.js';
+export { DEFAULT_MEMORY_MEASUREMENT_REF } from './resources/agent-memory/recipe.js';
+export type { MemoryManagedStandaloneDefinition } from './resources/agent-memory/setup.js';

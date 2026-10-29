@@ -1,3 +1,4 @@
+import { testMemoryDefinition } from '../support/owned-setup.js';
 import {
   createAgentManagementService,
   createAgentRuntimeService,
@@ -16,7 +17,6 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createSharedSqliteStandaloneDefinition,
   createStandaloneDirectoryDefinition,
-  createStandaloneMemoryDefinition,
   defineStandaloneAgentConfig,
   type StandaloneAgentConfigInput,
   type StandaloneAgentConfig,
@@ -43,7 +43,7 @@ const config: StandaloneAgentConfigInput = {
 
 it('rejects malformed host tokenization before creating a resource namespace', () => {
   expect(() =>
-    createStandaloneMemoryDefinition({
+    testMemoryDefinition({
       readEnvironmentVariable: () => undefined,
       sessionCompactionTokenCounter: {
         descriptor: {
@@ -120,7 +120,7 @@ describe('Standalone managed profile Definitions', () => {
   it('installs the same narrow Services over a shared Memory provisioning scope', async () => {
     const readEnvironmentVariable = vi.fn(() => undefined);
     await verifyDefinition(
-      createStandaloneMemoryDefinition({ readEnvironmentVariable }),
+      testMemoryDefinition({ readEnvironmentVariable }),
       'not-configured',
       readEnvironmentVariable
     );

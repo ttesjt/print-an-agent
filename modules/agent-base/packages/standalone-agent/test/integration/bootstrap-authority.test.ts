@@ -1,10 +1,10 @@
+import { bootstrapTestAgent } from '../support/owned-setup.js';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createAgentAPI } from '@ta-agent/base-composition';
 import { describe, expect, it } from 'vitest';
 import {
-  createStandaloneAgent,
   createSharedSqliteStandaloneManagementService,
   createSharedSqliteStandaloneSessionNavigationService,
   createSharedSqliteStandaloneRuntimeService,
@@ -24,8 +24,8 @@ describe('authoritative Standalone bootstrap', () => {
       persistence: { kind: 'memory' },
     };
     const options = resourceProfileRuntimeOptions(() => undefined);
-    const first = await createStandaloneAgent(bootstrap, options);
-    const second = await createStandaloneAgent(bootstrap, options);
+    const first = await bootstrapTestAgent(bootstrap, options);
+    const second = await bootstrapTestAgent(bootstrap, options);
     expect(first).not.toHaveProperty('agent');
     expect(first.resources.session).not.toBe(second.resources.session);
     expect(first.resources.requestJournal).not.toBe(second.resources.requestJournal);
@@ -65,7 +65,7 @@ describe('authoritative Standalone bootstrap', () => {
       persistence: { kind: 'sqlite', databasePath },
     };
     try {
-      const first = await createStandaloneAgent(bootstrap, options);
+      const first = await bootstrapTestAgent(bootstrap, options);
       const response = await first.invoke('foreground', { message: 'preserve history' });
       const management = createSharedSqliteStandaloneManagementService({
         databasePath,
@@ -81,7 +81,7 @@ describe('authoritative Standalone bootstrap', () => {
         sqlite: options.sqlite,
       });
       await expect(
-        createStandaloneAgent({ ...bootstrap, ...resourceProfileConfig('Replacement.') }, options)
+        bootstrapTestAgent({ ...bootstrap, ...resourceProfileConfig('Replacement.') }, options)
       ).rejects.toMatchObject({ code: 'MANAGED_AGENT_ALREADY_EXISTS' });
       expect((await management.inspect('bootstrap')).config).toMatchObject({
         revision: 1,
@@ -120,7 +120,7 @@ describe('authoritative Standalone bootstrap', () => {
         input: resourceProfileConfig('Imported.'),
       });
       await management.disable({ agentId: 'bootstrap', expectedIdentityRevision: 1 });
-      await expect(createStandaloneAgent(bootstrap, options)).rejects.toMatchObject({
+      await expect(bootstrapTestAgent(bootstrap, options)).rejects.toMatchObject({
         code: 'MANAGED_AGENT_ALREADY_EXISTS',
       });
       await expect(runtimes.open('bootstrap')).rejects.toMatchObject({
@@ -164,7 +164,7 @@ describe('authoritative Standalone bootstrap', () => {
         sessionCompaction: { timeoutMilliseconds: null },
       };
       await expect(
-        createStandaloneAgent(
+        bootstrapTestAgent(
           {
             schemaVersion: 1,
             identity: { id: 'bootstrap' },
@@ -205,7 +205,7 @@ describe('authoritative Standalone bootstrap', () => {
     const options = resourceProfileRuntimeOptions(() => undefined);
     try {
       await expect(
-        createStandaloneAgent(bootstrap, {
+        bootstrapTestAgent(bootstrap, {
           ...options,
           requestLimits: {
             maxMessageCharacters: 1000,
@@ -220,7 +220,7 @@ describe('authoritative Standalone bootstrap', () => {
       await expect(
         createSharedSqliteStandaloneManagementService({ databasePath }).inspect('bootstrap')
       ).rejects.toMatchObject({ code: 'MANAGED_AGENT_NOT_FOUND' });
-      await expect(createStandaloneAgent(bootstrap, options)).resolves.toMatchObject({
+      await expect(bootstrapTestAgent(bootstrap, options)).resolves.toMatchObject({
         identity: { id: 'bootstrap' },
       });
       expect(

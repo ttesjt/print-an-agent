@@ -2,7 +2,7 @@ import type { BundleWorkflowDefinition } from '@ta-agent/workflow-bundle';
 import type { MutationOperation } from '../contracts/inputs.js';
 import type { MutationResult } from '../contracts/publication.js';
 import type { PreparedMutation } from '../domain/mutations.js';
-import type { RetrievalWorkflowResources } from './resources.js';
+import type { RetrievalMutationResources } from './resources.js';
 import { jsonSnapshot } from '../validation/json.js';
 import { fail } from '../errors.js';
 import { runRetrievalExecution } from './execution.js';
@@ -18,21 +18,24 @@ export interface MutationState<I> extends CommittedRunState {
   input?: I;
   candidate?: PreparedMutation;
 }
-export type RetrievalMutationDefinition<I> = BundleWorkflowDefinition<
+export type RetrievalMutationDefinition<
+  I,
+  K extends MutationOperation = MutationOperation,
+> = BundleWorkflowDefinition<
   MutationStepName,
   I,
   MutationState<I>,
-  RetrievalWorkflowResources,
+  RetrievalMutationResources<K>,
   RetrievalMutationOutcome
 >;
-export type RetrievalMutationOptions<I> = Pick<
-  RetrievalMutationDefinition<I>,
+export type RetrievalMutationOptions<I, K extends MutationOperation = MutationOperation> = Pick<
+  RetrievalMutationDefinition<I, K>,
   'stepOverrides' | 'executeStep' | 'condition' | 'lifecycle' | 'createRunId'
 >;
-export function createRetrievalMutationDefinition<I>(
-  operation: MutationOperation,
-  options: RetrievalMutationOptions<I> = {}
-): RetrievalMutationDefinition<I> {
+export function createRetrievalMutationDefinition<
+  I,
+  K extends MutationOperation = MutationOperation,
+>(operation: K, options: RetrievalMutationOptions<I, K> = {}): RetrievalMutationDefinition<I, K> {
   return {
     ...options,
     name: `retrieval-memory:${operation}`,

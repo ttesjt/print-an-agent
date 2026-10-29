@@ -11,6 +11,10 @@ import type {
 } from '@ta-agent/base-composition';
 import type { AgentIdentity, AgentIdentityInput } from '@ta-agent/base-identity';
 import type {
+  MemoryAuthorityFactory,
+  MemorySessionPersistenceFactory,
+} from './resources/memory/contracts.js';
+import type {
   ProviderTransportLivenessPolicy,
   ProviderTransportLivenessPolicyInput,
 } from '@ta-agent/model-invocation-core';
@@ -119,10 +123,6 @@ export interface StandaloneRuntimeOptions
   readonly requestLimits?: Omit<RequestPolicy, 'timeoutMilliseconds'>;
 }
 
-export interface CreateStandaloneAgentOptions extends StandaloneRuntimeOptions {
-  readonly sqlite?: StandaloneSharedSqliteTableNamingInput;
-}
-
 export type StandaloneRawAgent = ReturnType<typeof composeAgent>;
 
 export interface StandaloneAgentConfigInput {
@@ -162,6 +162,10 @@ export interface CreateStandaloneDirectoryProfileOptions extends StandaloneRunti
 
 export interface CreateStandaloneMemoryProfileOptions extends StandaloneRuntimeOptions {
   readonly clock?: () => number;
+  /** Allocation authority is prepared before stage returns; never supplied by a business Run. */
+  readonly acquireAuthority?: MemoryAuthorityFactory;
+  /** Profile recipe, fixed at setup construction. Each allocation owns its acquisition. */
+  readonly acquireSessionPersistence?: MemorySessionPersistenceFactory;
 }
 
 export type CreateStandaloneDirectoryManagementServiceOptions = Omit<

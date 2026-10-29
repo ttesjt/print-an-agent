@@ -8,6 +8,22 @@ import type {
 import type { MemoryReceipt, MutationResult } from '../contracts/receipt.js';
 import { memoryDefinition, type MemoryWorkflowOptions } from './definition.js';
 import type { GetMemoryReceiptInput } from './resources.js';
+import type { MemorySnapshot } from '../contracts/document.js';
+
+export function createMemoryInspectDefinition(
+  options: MemoryWorkflowOptions<
+    { readonly memoryId: string },
+    MemorySnapshot | undefined,
+    'inspect'
+  > = {}
+) {
+  return memoryDefinition(
+    'context-memory.inspect',
+    (): MemorySnapshot | undefined => undefined,
+    (r, input: { readonly memoryId: string }, signal) => r.memory.inspect(input, signal),
+    options
+  );
+}
 
 const skipped = (): MutationResult => ({ status: 'skipped', reason: 'condition-not-met' });
 export function createMemoryCreateDefinition(
@@ -68,6 +84,7 @@ export function createMemoryGetReceiptDefinition(
     'context-memory.getReceipt',
     (): MemoryReceipt | undefined => undefined,
     (r, input: GetMemoryReceiptInput, signal) => r.memory.getReceipt(input, signal),
-    options
+    options,
+    true
   );
 }

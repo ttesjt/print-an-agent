@@ -17,6 +17,10 @@ import type {
   SessionNavigationPortFactory,
 } from './contracts/session-navigation.js';
 import { ManagedAgentCompositionError } from './errors.js';
+import type {
+  ContextMemoryManagementCapability,
+  RetrievalMemoryManagementCapability,
+} from './contracts/memory.js';
 
 interface ManagedAgentCompositionDefinitionInputShape<
   TConfig,
@@ -116,6 +120,8 @@ export type SessionNavigationAgentCompositionDefinition<
 
 /** Closed capability input vocabulary; capability combinations are inferred rather than enumerated. */
 export interface ManagedAgentCompositionCapabilitiesInput<TNamespaceHandle> {
+  readonly contextMemoryManagement?: ContextMemoryManagementCapability<TNamespaceHandle>['contextMemoryManagement'];
+  readonly retrievalMemoryManagement?: RetrievalMemoryManagementCapability<TNamespaceHandle>['retrievalMemoryManagement'];
   readonly sessionManagement?: Readonly<{
     createPorts: SessionManagementPortFactory<TNamespaceHandle, unknown>;
   }>;
@@ -286,6 +292,8 @@ export function defineManagedAgentComposition(input: unknown): unknown {
     'projection',
     'sessionManagement',
     'sessionNavigation',
+    'contextMemoryManagement',
+    'retrievalMemoryManagement',
   ]);
 
   const config = requireClosedRecord(requireDataProperty(root, 'config', 'config'), 'config', [
@@ -375,5 +383,45 @@ export function defineManagedAgentComposition(input: unknown): unknown {
     });
   }
 
+  for (const [name, methods] of [
+    [
+      'contextMemoryManagement',
+      ['inspect', 'getReceipt', 'replay', 'create', 'apply', 'configure', 'readContext'],
+    ],
+    [
+      'retrievalMemoryManagement',
+      [
+        'inspect',
+        'get',
+        'getReceipt',
+        'list',
+        'replay',
+        'create',
+        'ingest',
+        'update',
+        'remove',
+        'reindex',
+        'search',
+        'readContext',
+      ],
+    ],
+  ] as const) {
+    if (!Object.hasOwn(root, name)) continue;
+    const capability = requireClosedRecord(requireDataProperty(root, name, name), name, [
+      'resolve',
+    ]);
+    const resolve = requireClosedRecord(
+      requireDataProperty(capability, 'resolve', `${name}.resolve`),
+      `${name}.resolve`,
+      methods
+    );
+    const factories: Record<string, unknown> = {};
+    for (const method of methods) {
+      const factory = requireDataProperty(resolve, method, `${name}.resolve.${method}`);
+      requireFunction(factory, `${name}.resolve.${method}`);
+      factories[method] = factory;
+    }
+    definition[name] = Object.freeze({ resolve: Object.freeze(factories) });
+  }
   return Object.freeze(definition);
 }

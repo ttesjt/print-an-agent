@@ -30,7 +30,10 @@ export interface SessionManagementPorts {
   readonly maintenance: CoordinatedSessionMaintenancePort;
 }
 
-/** Creates product-owned out-of-band Session management ports for one Agent namespace. */
+/**
+ * On-demand, namespace-bound provisioning for generic Session management. A Profile may implement
+ * it with a resource-resolution Service/Registry; the caller borrows Ports, not their Scope.
+ */
 export type SessionManagementPortFactory<TNamespaceHandle, TSessionManagementPorts> = (
   namespace: ManagedAgentNamespace<TNamespaceHandle>
 ) => TSessionManagementPorts | Promise<TSessionManagementPorts>;

@@ -9,6 +9,43 @@ import {
 import { borrowed } from './support/fixtures.js';
 import { modelFixture } from './support/model.js';
 
+it('keeps this operation receipt when cleanup reports an unrelated older commit', async () => {
+  const base = borrowed();
+  const prior = await base.mutations.create({ memoryId: 'other', requestId: 'old' });
+  if (prior.status === 'skipped') throw new Error('Unexpected skip');
+  const bundle = createContextMemoryBundle({
+    resources: createContextMemoryResources({
+      store: base.store,
+      meter: base.meter,
+      defaults: { measurementRef: 'chars' },
+    }),
+    workflows: {
+      apply: createMemoryApplyDefinition({
+        executeStep: async ({ step, context, stepName }) => {
+          await step(context);
+          if (stepName === 'executeOperation')
+            throw new ContextMemoryError('CLEANUP_FAILED', 'Cleanup reported another operation', {
+              commit: { status: 'committed', receipt: prior.receipt },
+            });
+        },
+      }),
+    },
+  });
+  await bundle.workflows.create.run({ input: { memoryId: 'a', requestId: 'create' } });
+  await expect(
+    bundle.workflows.apply.run({
+      input: {
+        memoryId: 'a',
+        requestId: 'apply',
+        expectedRevision: 1,
+        commands: [{ op: 'add', content: 'saved' }],
+      },
+    })
+  ).rejects.toMatchObject({
+    commit: { status: 'committed', receipt: { memoryId: 'a', requestId: 'apply', revision: 2 } },
+  });
+});
+
 it.each(['executeOperation', 'runMemoryOperation'])(
   'preserves apply receipts when Executor post-processing fails for %s',
   async (failedStep) => {

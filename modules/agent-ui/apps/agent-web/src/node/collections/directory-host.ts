@@ -15,6 +15,8 @@ import { createAgentBaseWebPorts } from '../agent-base/backend.js';
 import type { WebBackendOptions } from '../agent-base/profile.js';
 
 export interface DirectoryCollectionHost {
+  /** Stop/join business calls first; closes every owned Collection backend, including Memory roots. */
+  close(): Promise<void>;
   bootstrap(
     signal: AbortSignal
   ): Promise<Readonly<{ initialCollection?: DirectoryCollectionChoice }>>;
@@ -32,10 +34,14 @@ export interface DirectoryCollectionHost {
 export async function createDirectoryCollectionHost(
   options: Omit<WebBackendOptions, 'persistence'> & { readonly initialRoot?: string } = {}
 ): Promise<DirectoryCollectionHost> {
-  const bindings = new Map<string, AgentWebPorts<AgentWebConfig>>();
+  const bindings = new Map<string, ReturnType<typeof createAgentBaseWebPorts>>();
+  const pending = new Set<Promise<unknown>>();
+  let closing: Promise<void> | undefined;
+  let openForAdmission = true;
   let initialCollection: DirectoryCollectionChoice | undefined;
-  const open = async (input: unknown, signal: AbortSignal) => {
+  const performOpen = async (input: unknown, signal: AbortSignal) => {
     signal.throwIfAborted();
+    if (!openForAdmission) throw new Error('Collection host is closed.');
     const reference = directoryReference.decode(input);
     try {
       const requested = checkedPath(reference.rootDirectory);
@@ -46,6 +52,7 @@ export async function createDirectoryCollectionHost(
       checkedPath(canonical);
       await access(canonical, constants.R_OK | constants.W_OK | constants.X_OK);
       signal.throwIfAborted();
+      if (!openForAdmission) throw new Error('Collection host is closed.');
       const key = `directory-${createHash('sha256').update(canonical).digest('hex')}`;
       if (!bindings.has(key)) {
         if (bindings.size >= 128)
@@ -82,6 +89,12 @@ export async function createDirectoryCollectionHost(
       };
     }
   };
+  const open: DirectoryCollectionHost['open'] = (input, signal) => {
+    const work = performOpen(input, signal);
+    pending.add(work);
+    void work.finally(() => pending.delete(work)).catch(() => undefined);
+    return work;
+  };
   if (options.initialRoot !== undefined) {
     const result = await open(
       { rootDirectory: resolve(options.initialRoot) },
@@ -92,13 +105,31 @@ export async function createDirectoryCollectionHost(
   }
   return Object.freeze({
     open,
-    resolve: (key: string) => bindings.get(key),
+    close: () => {
+      openForAdmission = false;
+      closing ??= (async () => {
+        await Promise.allSettled([...pending]);
+        const results = await Promise.allSettled(
+          [...bindings.values()].map((ports) => ports.close())
+        );
+        const failures = results.flatMap((result) =>
+          result.status === 'rejected' ? [result.reason as unknown] : []
+        );
+        if (failures.length !== 0)
+          throw new AggregateError(failures, 'Collection resources could not be closed.');
+        bindings.clear();
+      })();
+      return closing;
+    },
+    resolve: (key: string) => (openForAdmission ? bindings.get(key) : undefined),
     bootstrap: (signal: AbortSignal) => {
       signal.throwIfAborted();
+      if (!openForAdmission) throw new Error('Collection host is closed.');
       return Promise.resolve(initialCollection === undefined ? {} : { initialCollection });
     },
     browse: async (path: string, signal: AbortSignal) => {
       signal.throwIfAborted();
+      if (!openForAdmission) throw new Error('Collection host is closed.');
       const current = await realpath(path === '' ? homedir() : checkedPath(path, true));
       const entries = await readdir(current, { withFileTypes: true });
       signal.throwIfAborted();

@@ -4,6 +4,7 @@ import type { CompactableSessionPort } from '@ta-agent/base-session';
 import {
   materializeStandaloneAgentRuntime,
   createStandaloneAgent,
+  createStandaloneMemorySetup,
   type StandaloneRawAgent,
   type StandaloneAgentConfig,
   type StandaloneRuntimeOptions,
@@ -29,11 +30,15 @@ void raw.invoke('compactSession', { sessionId: 'session' });
 void raw.resources.session.applyNavigation;
 // @ts-expect-error A raw Agent is not an AgentAPI facade.
 void raw.agent;
-const created: Promise<StandaloneRawAgent> = createStandaloneAgent({}, options);
+const setup = createStandaloneMemorySetup(options);
+const created: Promise<StandaloneRawAgent> = createStandaloneAgent(setup, { identity, config });
 void created;
 // @ts-expect-error Bootstrap is asynchronous, not an already opened Agent.
-const synchronous: StandaloneRawAgent = createStandaloneAgent({}, options);
+const synchronous: StandaloneRawAgent = createStandaloneAgent(setup, { identity, config });
 void synchronous;
+// @ts-expect-error Implicit owning bootstrap is no longer a supported entry point.
+void createStandaloneAgent({}, options);
+void setup.close();
 
 materializeStandaloneAgentRuntime({
   identity,

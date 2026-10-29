@@ -893,8 +893,9 @@ describe('module architecture', () => {
     );
     const bootstrap = readFileSync(join(sourceRoot, 'create-standalone-agent.ts'), 'utf8');
     const specifiers = moduleSpecifiers(bootstrap);
-    expect(specifiers).toContain('./profiles/memory.js');
-    expect(specifiers).toContain('./profiles/shared-sqlite.js');
+    expect(specifiers).toContain('./profiles/setup.js');
+    expect(specifiers).not.toContain('./profiles/memory.js');
+    expect(specifiers).not.toContain('./profiles/shared-sqlite.js');
     expect(specifiers).not.toContain('@ta-agent/base-local-adapters');
     // The runtime Ports type is allowed; bootstrap must not call the materializer itself.
     expect(bootstrap).not.toContain('materializeStandaloneAgentRuntime');
@@ -938,7 +939,8 @@ describe('module architecture', () => {
 
     const publicEntryPoint = readFileSync(join(sourceRoot, 'index.ts'), 'utf8');
     expect(publicEntryPoint).toContain('export { createStandaloneAgent }');
-    expect(publicEntryPoint).toContain('createStandaloneMemoryDefinition');
+    expect(publicEntryPoint).toContain('createStandaloneMemorySetup');
+    expect(publicEntryPoint).not.toContain('createStandaloneMemoryDefinition');
     expect(publicEntryPoint).toContain('createStandaloneDirectoryDefinition');
     expect(publicEntryPoint).toContain('createSharedSqliteStandaloneDefinition');
     expect(publicEntryPoint).not.toContain('ResourceProvisioner');
@@ -1060,8 +1062,9 @@ describe('module architecture', () => {
       }
     };
 
-    for (const feature of ['runtime', 'management', 'sessionless', 'resource-registry'] as const) {
-      for (const peer of ['runtime', 'management', 'sessionless', 'resource-registry'] as const) {
+    const features = ['runtime', 'management', 'sessionless', 'resource-registry'] as const;
+    for (const feature of features) {
+      for (const peer of features) {
         if (feature !== peer) assertFeatureIsolation(feature, peer);
       }
     }
@@ -1160,7 +1163,9 @@ describe('module architecture', () => {
     for (const sourceFile of typeScriptFiles(join(consumerRoot, 'test'))) {
       for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
         if (!specifier.startsWith('@ta-agent/')) continue;
-        expect(specifier).toMatch(/^@ta-agent\/(?:base-|model-invocation-)[^/]+$/);
+        expect(specifier).toMatch(
+          /^@ta-agent\/(?:(?:base-|model-invocation-)[^/]+|base-composition\/resource-registry|context-memory(?:-sqlite)?|retrieval-memory(?:-sqlite)?|workflow-bundle)$/
+        );
       }
       expect(normalize(sourceFile)).not.toContain(`${normalize('/src/')}`);
     }

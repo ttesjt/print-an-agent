@@ -1,3 +1,4 @@
+import { bootstrapTestAgent } from '../support/owned-setup.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,7 +9,6 @@ import {
 import { supportsSessionPresentation, parseTurnId } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
-  createStandaloneAgent,
   createStandaloneProviderService,
   defineStandaloneAgentConfig,
   createStandaloneDirectoryDefinition,
@@ -103,7 +103,7 @@ describe.each(['explicit', 'directory', 'shared-sqlite'] as const)(
           });
         const bootstrapAgent =
           managedProfile === undefined
-            ? await createStandaloneAgent(
+            ? await bootstrapTestAgent(
                 {
                   schemaVersion: 1,
                   identity: { id: 'fixture' },

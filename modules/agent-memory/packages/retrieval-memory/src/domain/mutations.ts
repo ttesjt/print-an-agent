@@ -26,19 +26,35 @@ export interface RetrievalResources {
 export type PreparedMutation =
   | { readonly receipt: RetrievalReceipt }
   | { readonly publication: RetrievalPublication };
-export interface RetrievalMutationOperations {
-  prepare(
-    operation: MutationOperation,
-    value: unknown,
-    signal: AbortSignal
-  ): Promise<PreparedMutation>;
+export interface RetrievalMutationOperations<K extends MutationOperation = MutationOperation> {
+  prepare(operation: K, value: unknown, signal: AbortSignal): Promise<PreparedMutation>;
   publish(prepared: PreparedMutation, signal: AbortSignal): Promise<MutationResult>;
-  run(operation: MutationOperation, input: unknown, signal?: AbortSignal): Promise<MutationResult>;
+  run(operation: K, input: unknown, signal?: AbortSignal): Promise<MutationResult>;
 }
 export function createRetrievalMutations(
   resources: RetrievalResources,
   options: Partial<RetrievalPolicy> = {}
 ): RetrievalMutationOperations {
+  return mutationOperations(resources, options);
+}
+
+/** Same CAS/candidate/publication implementation; no embedding/chunker placeholders. */
+export function createRetrievalStateMutations(
+  resources: Pick<RetrievalResources, 'backend'>,
+  options: Partial<RetrievalPolicy> = {}
+): RetrievalMutationOperations<'remove'> {
+  return mutationOperations(resources, options);
+}
+
+function mutationOperations(
+  resources: RetrievalResources | Pick<RetrievalResources, 'backend'>,
+  options: Partial<RetrievalPolicy>
+): RetrievalMutationOperations {
+  function models(): RetrievalResources {
+    if (!('embeddings' in resources) || !('chunkers' in resources))
+      fail('UNSUPPORTED_CAPABILITY', 'This mutation requires representation capabilities.');
+    return resources;
+  }
   const policy = defineRetrievalPolicy(options);
   async function prepare(
     operation: MutationOperation,
@@ -69,8 +85,9 @@ export function createRetrievalMutations(
       const { index } = mutation.input;
       if (index.metricRef !== COSINE_METRIC_REF)
         fail('UNSUPPORTED_CAPABILITY', 'Unsupported retrieval metric.');
-      const capability = await resolveEmbedding(resources.embeddings, index.embeddingRef, signal);
-      const chunker = await resources.chunkers.resolve(index.chunkerRef, signal);
+      const model = models();
+      const capability = await resolveEmbedding(model.embeddings, index.embeddingRef, signal);
+      const chunker = await model.chunkers.resolve(index.chunkerRef, signal);
       assertNotAborted(signal);
       if (chunker.ref !== index.chunkerRef)
         fail('REPRESENTATION_INVALID', 'Chunker identity mismatch.');
@@ -104,7 +121,7 @@ export function createRetrievalMutations(
         space,
         expected: null,
         entry,
-        representation: await prepareRepresentation(entry, space, resources, policy, signal),
+        representation: await prepareRepresentation(entry, space, models(), policy, signal),
       };
     }
     const previous = await requireEntry(resources.backend, space, mutation.input.entryId, signal);
@@ -135,7 +152,7 @@ export function createRetrievalMutations(
       entry,
       representation: unchanged
         ? previous.representation
-        : await prepareRepresentation(entry, space, resources, policy, signal),
+        : await prepareRepresentation(entry, space, models(), policy, signal),
     };
   }
   const publish = (prepared: PreparedMutation, signal: AbortSignal) =>

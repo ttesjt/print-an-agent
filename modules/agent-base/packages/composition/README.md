@@ -1,5 +1,9 @@
 # `@ta-agent/base-composition`
 
+Optional Memory management uses Definition-owned typed operation provisioning. See the
+[Standalone consumer guide](../standalone-agent/MEMORY.md) for the Context Service, direct factories,
+logical/native identities, receipt recovery and caller-owned setup lifecycle.
+
 Agent Base application composition contracts and the official Standard runtime assembly.
 
 Production source is organized by feature boundary. The existing Standard single-Agent composition
@@ -44,6 +48,26 @@ Callers supply any prior context explicitly and decide how to store successful r
 does not require a ToolRuntime; `interaction` instead requires its explicit tools and bounded loop
 policy. Output close and Workflow success are distinct: consumers must await actual Run settlement
 before publishing successful application history.
+
+## Optional Resource Registry
+
+`@ta-agent/base-composition/resource-registry` is a dedicated public subpath for the package's
+resource-assembly subsystem. Blueprint, Provider, Registry and Scope live under
+`src/resource-registry/`, independently of runtime assembly and generic management Services.
+They are not re-exported from the package root. The subpath uses no Agent, Workflow, Memory,
+provider SDK or concrete adapter dependencies.
+
+Definitions and Profiles still choose implementations and authority identity. Registry only executes
+the declared recipe; its use is optional. Generic Services use narrow Definition factories, and
+Workflows/Steps receive explicit capabilities, never a Registry. Host/Profile retains Scope/setup,
+joins business work and closes acquisitions. Moving this machinery into Composition does not change
+resource access, ownership, cancellation, sharing or cleanup behavior.
+
+See the [Registry reference](./docs/resource-registry/README.md) and
+[consumption guide](./docs/resource-registry/consumption.md). Contract/lifecycle tests are in
+`test/unit/resource-registry/`, type tests in `test/types/resource-registry/`, and public non-Agent
+consumer examples and tests in `../../tests/integration/test/resource-registry/`.
+Run `pnpm test:base-composition-qualification` from the repository root.
 
 ## Managed Agent composition
 

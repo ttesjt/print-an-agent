@@ -37,6 +37,10 @@ export type { MemoryCandidateAssessment, MemoryBudgetViolation } from './plannin
 export type { MemoryUpdate } from './domain/update.js';
 export { ContextMemoryError, assertMemoryNotAborted } from './errors.js';
 export { createContextMemoryResources } from './workflows/resources.js';
+export { createContextMemoryStateResources } from './workflows/state-resources.js';
+export { parseDeterministicMemoryRequest } from './domain/deterministic-request.js';
+export type { DeterministicMemoryMutation } from './domain/deterministic-request.js';
+export { createMemoryInspectDefinition } from './workflows/deterministic.js';
 export type {
   GetMemoryReceiptInput,
   MemoryOperations,
@@ -56,6 +60,8 @@ export {
   createMemoryGetReceiptDefinition,
 } from './workflows/deterministic.js';
 export { createContextMemoryBundle } from './workflows/bundle.js';
+export { createContextMemoryStateBundle } from './workflows/bundle.js';
+export { findContextMemoryCommit } from './workflows/outcome.js';
 export type { ContextMemoryBundleOptions, MemoryWorkflowDefinitions } from './workflows/bundle.js';
 export type { ContextMemoryErrorCode } from './errors.js';
 export { DEFAULT_MEMORY_OPTIONS, DEFAULT_EXECUTION_POLICY } from './config/defaults.js';

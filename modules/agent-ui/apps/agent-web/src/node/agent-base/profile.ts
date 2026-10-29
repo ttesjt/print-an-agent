@@ -26,8 +26,8 @@ import {
   type CoordinatedSessionPersistence,
 } from '@ta-agent/base-local-adapters';
 import {
-  createStandaloneMemoryDefinition,
-  createStandaloneDirectoryDefinition,
+  createStandaloneMemorySetup,
+  createStandaloneDirectorySetup,
 } from '@ta-agent/base-standalone-agent';
 import type { AgentId } from '@ta-agent/base-identity';
 import type { ToolRegistry } from '@ta-agent/base-tool';
@@ -54,33 +54,44 @@ export function createWebBackendServices(options: WebBackendOptions) {
   if (options.presentationWaitMilliseconds !== undefined)
     validatePresentationWait(options.presentationWaitMilliseconds);
   if (options.persistence.kind === 'directory') {
-    const profile = createStandaloneDirectoryDefinition({
+    const setup = createStandaloneDirectorySetup({
       rootDirectory: options.persistence.rootDirectory,
       readEnvironmentVariable: () => undefined,
     });
-    return assembleServices(
+    const profile = setup.definition;
+    return Object.freeze({
+      ...assembleServices(
+        profile.namespace.port,
+        profile.authority.createPorts,
+        (namespace) =>
+          createSqliteSessionPersistence({ databasePath: namespace.handle.databasePath }),
+        options
+      ),
+      close: () => setup.close(),
+    });
+  }
+  const setup = createStandaloneMemorySetup({ readEnvironmentVariable: () => undefined });
+  const profile = setup.definition;
+  const persistence = new Map<AgentId, CoordinatedSessionPersistence>();
+  return Object.freeze({
+    ...assembleServices(
       profile.namespace.port,
       profile.authority.createPorts,
-      (namespace) =>
-        createSqliteSessionPersistence({ databasePath: namespace.handle.databasePath }),
+      (namespace) => {
+        let scoped = persistence.get(namespace.agentId);
+        if (scoped === undefined) {
+          scoped = createMemorySessionPersistence();
+          persistence.set(namespace.agentId, scoped);
+        }
+        return scoped;
+      },
       options
-    );
-  }
-  const profile = createStandaloneMemoryDefinition({ readEnvironmentVariable: () => undefined });
-  const persistence = new Map<AgentId, CoordinatedSessionPersistence>();
-  return assembleServices(
-    profile.namespace.port,
-    profile.authority.createPorts,
-    (namespace) => {
-      let scoped = persistence.get(namespace.agentId);
-      if (scoped === undefined) {
-        scoped = createMemorySessionPersistence();
-        persistence.set(namespace.agentId, scoped);
-      }
-      return scoped;
+    ),
+    close: async () => {
+      await setup.close();
+      persistence.clear();
     },
-    options
-  );
+  });
 }
 
 function assembleServices<Handle>(

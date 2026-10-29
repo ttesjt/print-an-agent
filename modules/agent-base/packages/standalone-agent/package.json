@@ -29,6 +29,11 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@ta-agent/context-memory": "workspace:*",
+    "@ta-agent/context-memory-sqlite": "workspace:*",
+    "@ta-agent/retrieval-memory": "workspace:*",
+    "@ta-agent/retrieval-memory-sqlite": "workspace:*",
+    "@ta-agent/workflow-bundle": "workspace:*",
     "@ta-agent/base-actor": "workspace:*",
     "@ta-agent/base-composition": "workspace:*",
     "@ta-agent/base-config": "workspace:*",

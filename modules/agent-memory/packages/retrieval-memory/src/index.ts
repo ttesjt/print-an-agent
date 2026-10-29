@@ -7,6 +7,8 @@ export type { RetrievalErrorCode } from './errors.js';
 export { DEFAULT_RETRIEVAL_POLICY, RETRIEVAL_DEFAULTS, defineRetrievalPolicy } from './config.js';
 export type { RetrievalPolicy } from './config.js';
 export { createRetrievalMutations } from './domain/mutations.js';
+export { createRetrievalStateMutations } from './domain/mutations.js';
+export { replayRetrievalMutation } from './domain/replay.js';
 export type {
   RetrievalResources,
   PreparedMutation,
@@ -26,14 +28,18 @@ export {
 } from './representation/metric.js';
 export { createCodepointChunker } from './representation/chunker.js';
 export { createRetrievalQueries } from './domain/queries.js';
+export { createRetrievalContentQueries } from './domain/queries.js';
 export type { RetrievalQueryOperations } from './domain/queries.js';
 export { createRetrievalWorkflowResources } from './workflows/resources.js';
 export type {
   RetrievalWorkflowResources,
   RetrievalWorkflowResourceOptions,
+  RetrievalQueryResources,
+  RetrievalMutationResources,
 } from './workflows/resources.js';
 export * from './workflows/definitions.js';
 export { createRetrievalMemoryBundle } from './workflows/bundle.js';
+export { createRetrievalContentBundle } from './workflows/content-bundle.js';
 export type { RetrievalWorkflowDefinitions, RetrievalBundleOptions } from './workflows/bundle.js';
 export type {
   RetrievalMutationDefinition,

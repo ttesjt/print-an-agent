@@ -18,6 +18,16 @@ export interface RetrievalWorkflowResources {
   readonly mutations: RetrievalMutationOperations;
   readonly queries: RetrievalQueryOperations;
 }
+export interface RetrievalMutationResources<
+  K extends import('../contracts/inputs.js').MutationOperation,
+> {
+  readonly execution?: RetrievalExecutionPolicy;
+  readonly mutations: RetrievalMutationOperations<K>;
+}
+export interface RetrievalQueryResources<K extends keyof RetrievalQueryOperations> {
+  readonly execution?: RetrievalExecutionPolicy;
+  readonly queries: Pick<RetrievalQueryOperations, K>;
+}
 export interface RetrievalWorkflowResourceOptions {
   readonly policy?: Partial<RetrievalPolicy>;
   readonly execution?: RetrievalExecutionPolicy;

@@ -15,6 +15,8 @@ import {
   createAgentRuntimeService,
   createSessionManagementService,
   createSessionNavigationService,
+  createContextMemoryManagementService,
+  createRetrievalMemoryManagementService,
   defineManagedAgentComposition,
   type AgentConfigProjectionPort,
   type ManagedAgentAuthorityPorts,
@@ -40,6 +42,9 @@ import {
 type Equal<TLeft, TRight> =
   (<T>() => T extends TLeft ? 1 : 2) extends <T>() => T extends TRight ? 1 : 2 ? true : false;
 type Expect<T extends true> = T;
+
+declare const contextCapability: import('../../src/index.js').ContextMemoryManagementCapability<NamespaceHandle>;
+declare const retrievalCapability: import('../../src/index.js').RetrievalMemoryManagementCapability<NamespaceHandle>;
 
 interface CustomConfig {
   readonly model: string;
@@ -115,6 +120,46 @@ const definition = defineManagedAgentComposition({
 });
 
 void definition;
+
+const contextDefinition = defineManagedAgentComposition({ ...definition, ...contextCapability });
+const retrievalDefinition = defineManagedAgentComposition({
+  ...definition,
+  ...retrievalCapability,
+});
+const bothMemoryDefinition = defineManagedAgentComposition({
+  ...contextDefinition,
+  ...retrievalCapability,
+});
+void contextDefinition.contextMemoryManagement.resolve.inspect;
+void retrievalDefinition.retrievalMemoryManagement.resolve.search;
+void bothMemoryDefinition.contextMemoryManagement.resolve.apply;
+void createContextMemoryManagementService(contextDefinition);
+void createContextMemoryManagementService(bothMemoryDefinition);
+// @ts-expect-error A known absent capability cannot create the Context management Service.
+void createContextMemoryManagementService(definition);
+// @ts-expect-error Retrieval installation does not install Context management.
+void createContextMemoryManagementService(retrievalDefinition);
+void createRetrievalMemoryManagementService(retrievalDefinition);
+void createRetrievalMemoryManagementService(bothMemoryDefinition);
+// @ts-expect-error A known absent capability cannot create Retrieval management.
+void createRetrievalMemoryManagementService(definition);
+// @ts-expect-error Context installation does not install Retrieval management.
+void createRetrievalMemoryManagementService(contextDefinition);
+// @ts-expect-error Absent capabilities must not appear on the Definition type.
+void definition.contextMemoryManagement;
+// @ts-expect-error Independent capabilities are not implicitly installed together.
+void contextDefinition.retrievalMemoryManagement;
+declare const memoryRequest: import('../../src/index.js').MemoryProvisioningRequest<
+  NamespaceHandle,
+  import('@ta-agent/context-memory').ApplyMemoryInput
+>;
+const memoryInvocation = contextDefinition.contextMemoryManagement.resolve.apply(memoryRequest);
+void memoryInvocation;
+void contextDefinition.contextMemoryManagement.resolve.apply({
+  ...memoryRequest,
+  // @ts-expect-error apply cannot accept an inspect-only request.
+  input: { memoryId: 'm' },
+});
 
 interface IncompatibleConfig {
   readonly provider: string;

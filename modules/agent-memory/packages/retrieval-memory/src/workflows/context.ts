@@ -21,7 +21,7 @@ export type RetrievalContextDefinition = BundleWorkflowDefinition<
   ContextStepName,
   ReadContextInput,
   ContextRunState,
-  RetrievalWorkflowResources,
+  Pick<RetrievalWorkflowResources, 'context' | 'execution'>,
   RetrievalReadOutcome<ReadContextResult>
 >;
 export type RetrievalContextWorkflowOptions = Pick<

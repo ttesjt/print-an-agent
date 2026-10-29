@@ -9,12 +9,15 @@ import {
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
 } from '@ta-agent/base-composition';
+import { withStandaloneMemoryManagement } from '../resources/agent-memory/setup.js';
+import type { StandaloneMemoryManagementOptions } from '../resources/agent-memory/contracts.js';
 import { STANDALONE_AGENT_CONFIG_CODEC } from '../config.js';
 import { resolveStandaloneSharedSqliteTableNames } from '../resources/sqlite-table-naming.js';
 import { createSharedSqliteAgentResourceNamespaceAdapter } from '../resources/shared-sqlite/namespace-adapter.js';
 import { createSharedSqliteStandalonePortFactories } from '../resources/shared-sqlite/port-factory.js';
 import type { SharedSqliteAgentResourceNamespace } from '../resources/shared-sqlite/types.js';
 import { assertStandaloneRuntimeOptions } from '../runtime-policies.js';
+import { reopenableStandaloneSetup } from '../resources/reopenable-setup.js';
 import {
   projectStandaloneAgentManagementService,
   type StandaloneAgentManagementService,
@@ -52,6 +55,21 @@ export type SharedSqliteStandaloneDefinition = SessionManagedAgentCompositionDef
   SessionManagementPorts
 > &
   SessionNavigationCapability<SharedSqliteAgentResourceNamespace, SessionNavigationPorts>;
+
+export function createSharedSqliteStandaloneSetup(
+  options: CreateSharedSqliteStandaloneProfileOptions,
+  memory?: StandaloneMemoryManagementOptions
+) {
+  return withStandaloneMemoryManagement(
+    reopenableStandaloneSetup(createSharedSqliteStandaloneDefinition(options)),
+    memory,
+    (namespace) => ({
+      key: JSON.stringify([namespace.handle.databasePath, namespace.agentId]),
+      contextPath: `${namespace.handle.databasePath}.context-memory.sqlite`,
+      retrievalPath: `${namespace.handle.databasePath}.retrieval-memory.sqlite`,
+    })
+  );
+}
 
 export function createSharedSqliteStandaloneDefinition(
   options: CreateSharedSqliteStandaloneProfileOptions

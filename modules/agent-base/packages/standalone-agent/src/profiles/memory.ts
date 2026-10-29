@@ -15,6 +15,11 @@ import {
   type StandaloneRuntimePorts,
 } from '../runtime/materialize-standalone-agent.js';
 import { assertStandaloneRuntimeOptions } from '../runtime-policies.js';
+import { AgentBaseStandaloneError } from '../errors.js';
+import type { StandaloneSetup } from './setup.js';
+import { withStandaloneMemoryManagement } from '../resources/agent-memory/setup.js';
+import type { MemoryManagedStandaloneDefinition } from '../resources/agent-memory/setup.js';
+import type { StandaloneMemoryManagementOptions } from '../resources/agent-memory/contracts.js';
 import type {
   CreateStandaloneMemoryProfileOptions,
   StandaloneAgentConfig,
@@ -30,24 +35,51 @@ export type StandaloneMemoryDefinition = SessionManagedAgentCompositionDefinitio
 > &
   SessionNavigationCapability<MemoryAgentResourceNamespace, SessionNavigationPorts>;
 
-/** Reuse this Definition across sibling Services to share one ephemeral provisioning scope. */
-export function createStandaloneMemoryDefinition(
-  options: CreateStandaloneMemoryProfileOptions
-): StandaloneMemoryDefinition {
+export interface StandaloneMemorySetup extends StandaloneSetup<MemoryAgentResourceNamespace> {
+  readonly definition: MemoryManagedStandaloneDefinition<MemoryAgentResourceNamespace>;
+}
+
+/** The caller retains this setup for the entire lifetime of its Services and raw Agents. */
+export function createStandaloneMemorySetup(
+  options: CreateStandaloneMemoryProfileOptions,
+  memory?: StandaloneMemoryManagementOptions
+): StandaloneMemorySetup {
   assertStandaloneRuntimeOptions(options);
+  if (options.acquireAuthority !== undefined && typeof options.acquireAuthority !== 'function')
+    throw new AgentBaseStandaloneError('Memory authority acquisition must be a function.');
+  if (
+    options.acquireSessionPersistence !== undefined &&
+    typeof options.acquireSessionPersistence !== 'function'
+  )
+    throw new AgentBaseStandaloneError('Memory persistence acquisition must be a function.');
+  if (Object.hasOwn(options, 'sqlite'))
+    throw new AgentBaseStandaloneError('SQLite table naming is not applicable to a Memory setup.');
+  const { clock, acquireAuthority, acquireSessionPersistence, ...runtime } = options;
+  const runtimeOptions = Object.freeze(runtime);
   const resources = createMemoryStandaloneResourceProvisioner({
-    ...(options.clock === undefined ? {} : { clock: options.clock }),
+    ...(clock === undefined ? {} : { clock }),
+    ...(acquireAuthority === undefined ? {} : { acquireAuthority }),
+    ...(acquireSessionPersistence === undefined ? {} : { acquireSessionPersistence }),
   });
-  return defineManagedAgentComposition({
+  const definition: StandaloneMemoryDefinition = defineManagedAgentComposition({
     config: { codec: STANDALONE_AGENT_CONFIG_CODEC },
     namespace: { port: resources.namespacePort },
     authority: { createPorts: resources.createAuthorityPorts },
     runtime: {
       createPorts: resources.createRuntimePorts,
       materialize: ({ identity, config, ports }) =>
-        materializeStandaloneAgentRuntime({ identity, config, ports, options }),
+        materializeStandaloneAgentRuntime({ identity, config, ports, options: runtimeOptions }),
     },
     sessionManagement: { createPorts: resources.createSessionManagementPorts },
     sessionNavigation: { createPorts: resources.createSessionNavigationPorts },
   });
+  return withStandaloneMemoryManagement(
+    Object.freeze({ definition, close: resources.close }),
+    memory,
+    (namespace) => ({
+      key: namespace.handle.token,
+      contextPath: ':memory:',
+      retrievalPath: ':memory:',
+    })
+  );
 }

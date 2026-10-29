@@ -5,6 +5,7 @@ import {
   createMemoryConfigureDefinition,
   createMemoryReadContextDefinition,
   createMemoryGetReceiptDefinition,
+  createMemoryInspectDefinition,
 } from './deterministic.js';
 import type { MemoryWorkflowResources } from './resources.js';
 import type { ModelMemoryResources } from './model-resources.js';
@@ -15,6 +16,7 @@ import {
 } from './model-definition.js';
 
 export interface MemoryWorkflowDefinitions {
+  readonly inspect: ReturnType<typeof createMemoryInspectDefinition>;
   readonly create: ReturnType<typeof createMemoryCreateDefinition>;
   readonly apply: ReturnType<typeof createMemoryApplyDefinition>;
   readonly configure: ReturnType<typeof createMemoryConfigureDefinition>;
@@ -24,6 +26,18 @@ export interface MemoryWorkflowDefinitions {
 export interface ContextMemoryBundleOptions {
   readonly resources: MemoryWorkflowResources;
   readonly workflows?: Partial<MemoryWorkflowDefinitions>;
+}
+export function createContextMemoryStateBundle(options: {
+  readonly resources: MemoryWorkflowResources<'inspect' | 'getReceipt' | 'replay'>;
+  readonly workflows?: Partial<Pick<MemoryWorkflowDefinitions, 'inspect' | 'getReceipt'>>;
+}) {
+  return new WorkflowBundle({
+    resources: options.resources,
+    workflows: {
+      inspect: options.workflows?.inspect ?? createMemoryInspectDefinition(),
+      getReceipt: options.workflows?.getReceipt ?? createMemoryGetReceiptDefinition(),
+    },
+  });
 }
 export interface ModelMemoryWorkflowDefinitions extends MemoryWorkflowDefinitions {
   readonly observe: ReturnType<typeof createMemoryObserveDefinition>;
@@ -52,6 +66,7 @@ export function createContextMemoryBundle(
     return new WorkflowBundle({
       resources: options.resources,
       workflows: {
+        inspect: options.workflows?.inspect ?? createMemoryInspectDefinition(),
         create: options.workflows?.create ?? createMemoryCreateDefinition(),
         apply: options.workflows?.apply ?? createMemoryApplyDefinition(),
         configure: options.workflows?.configure ?? createMemoryConfigureDefinition(),
@@ -65,6 +80,7 @@ export function createContextMemoryBundle(
   return new WorkflowBundle({
     resources: options.resources,
     workflows: {
+      inspect: options.workflows?.inspect ?? createMemoryInspectDefinition(),
       create: options.workflows?.create ?? createMemoryCreateDefinition(),
       apply: options.workflows?.apply ?? createMemoryApplyDefinition(),
       configure: options.workflows?.configure ?? createMemoryConfigureDefinition(),

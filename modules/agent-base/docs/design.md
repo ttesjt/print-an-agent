@@ -104,17 +104,44 @@ authority nor a correctness dependency. `@ta-agent/base-standalone-agent` binds 
 Definition and Services to concrete profiles. The CLI consumes those narrow Standalone Services or
 the opened raw Agent and must not repeat their composition.
 
-Official profiles own resource provisioning. A Memory Definition captures an isolated scope that
-supplies one complete coordinated Session/Request Journal/maintenance persistence per Agent,
+Official profiles own resource provisioning. A caller-owned Memory setup compiles one resource
+Blueprint and retains all of its isolated allocation Scopes. Stage prepares Identity/Config Ports
+before exposing its namespace handle, keeping the generic authority factory synchronous. The same
+Scope lazily supplies one complete coordinated Session/Request Journal/maintenance persistence per Agent,
 shared by runtime and out-of-band consumers. Memory Identity/Config authorities are revisioned but
 ephemeral, not a runtime cache. Reopening Agents or updating Config does not replace their Session
 authority. Directory/shared-SQLite factories may reopen different adapter instances against the
 same durable authority. Live sharing depends on provisioning scope, not universal Definition object
-identity. No public resource manager or registry is required; ordinary consumers use the canonical
-Definition and narrow Services.
+identity. Resource Registry is optional Profile infrastructure, not a new generic Service dependency;
+ordinary consumers use the canonical Definition and narrow Services. The Host retains setup for all
+live consumers, drains business work before close, and preserves cleanup failure independently of
+business commit facts. Failed unpublished allocations remain owned until confirmed cleanup.
+
+Workflow and Service are different roles. A Workflow implements and orchestrates capability
+execution using explicit resources; it does not know the Profile or Resource Registry. An application
+Service is an entry/coordinator: it may validate/resolve a target, acquire the capabilities needed
+for this operation, invoke Workflows or public Service capabilities, and project the result. There
+need not be one Service per Workflow. Explicit Service composition is allowed; stealing another
+Service's internal adapter or independently recreating the same authority is not.
+
+Generic management/application Services use the Definition's narrow typed factories/resolvers and
+do not choose concrete Tokens, bindings, Scope or adapter recipes. Profile-specific assembly or
+resource-resolution Services may directly hold Registry: executing that Profile's resource recipe
+is their responsibility. This permission follows the layer's role, not the word `Service` in its
+name. Registry remains optional implementation infrastructure for a provisioner, not a replacement
+for all provisioning contracts or a reason to introduce a universal resource-access facade.
+
+Acquiring a capability is not owning it. Neither kind of Service gains `Scope.close()` responsibility
+by holding a resolver/Registry. Host/Profile still retains the owner, stops admission, cancels/joins
+business work and closes acquisitions. For a registered Service that retains a dependency through
+release, that dependency must be declared in the Provider graph; a resolver closure alone does not
+record a cleanup edge. External dependencies require an explicit owner retaining their full lifetime.
+The [Registry consumption contract](../packages/composition/docs/resource-registry/consumption.md)
+and executable independent Service example specify these boundaries without changing raw Agent,
+Session authority or any business feature.
 
 Official Standalone bootstrap follows that same Definition/Service path: create namespace and
-Identity/Config authority, then open a raw Agent. Memory bootstrap owns a fresh ephemeral scope;
+Identity/Config authority, then open a raw Agent. Bootstrap requires a caller-owned setup;
 SQLite bootstrap uses the shared-SQLite profile. Durable creation and opening are distinct:
 duplicate creation conflicts, opening reads existing authority, and Config replacement is an
 explicit revision-checked management operation. The Standalone materializer requires complete

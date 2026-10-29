@@ -15,6 +15,8 @@ import type { DirectoryCollectionHost } from '../collections/directory-host.js';
 import { writeTemporaryConversationResponse } from './temporary-conversations.js';
 
 export interface LocalServerOptions {
+  /** Optional explicit ownership delegation. Without it, this transport only borrows ports/Collections. */
+  readonly closeResources?: () => Promise<void>;
   /** Explicit fixed binding for embedded applications/qualification. */
   readonly ports?: AgentWebPorts<AgentWebConfig>;
   readonly collections?: DirectoryCollectionHost;
@@ -163,8 +165,17 @@ export async function startLocalAgentWebServer(options: LocalServerOptions) {
       server.close((error) => (error === undefined ? resolve() : reject(error)))
     );
     server.closeAllConnections();
-    await Promise.all([...active.values()]);
-    await stopped;
+    const settlements = await Promise.allSettled([...active.values(), stopped]);
+    const failures = settlements.flatMap((result) =>
+      result.status === 'rejected' ? [result.reason as unknown] : []
+    );
+    // Initialization cancellation is not business cancellation; never close the setup before joining work.
+    try {
+      await options.closeResources?.();
+    } catch (cause) {
+      failures.push(cause);
+    }
+    if (failures.length !== 0) throw new AggregateError(failures, 'Local host shutdown failed.');
   }
   return Object.freeze({
     origin,

@@ -2,6 +2,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import {
   createStandaloneAgent,
+  createStandaloneMemorySetup,
   createStandaloneDirectoryManagementService,
   createStandaloneDirectoryRuntimeService,
   createStandaloneDirectorySessionNavigationService,
@@ -58,8 +59,12 @@ type ManagedSummarySource = Readonly<{
   projection: ManagedSnapshot['projection'] | ManagedCommitResult['projection'];
 }>;
 
-function projectRuntime(agent: StandaloneRawAgent): AgentBaseCliRuntime {
+function projectRuntime(
+  agent: StandaloneRawAgent,
+  close?: () => Promise<void>
+): AgentBaseCliRuntime {
   const runtime: AgentBaseCliRuntime = {
+    ...(close === undefined ? {} : { close }),
     run: async (input, options) =>
       agent.invoke(
         'foreground',
@@ -193,10 +198,33 @@ export async function loadAgentBaseCliRuntime(
 ): Promise<AgentBaseCliRuntime> {
   if (locator.kind === 'config') {
     const config = await readMemoryBootstrap(locator.configPath);
-    const agent = await createStandaloneAgent(config, {
+    const setup = createStandaloneMemorySetup({
       readEnvironmentVariable: (name) => environment[name],
     });
-    return projectRuntime(agent);
+    try {
+      const agent = await createStandaloneAgent(setup, {
+        identity: config.identity,
+        config: {
+          provider: config.provider,
+          ...(config.credential === undefined ? {} : { credential: config.credential }),
+          mainActor: config.mainActor,
+          request: config.request,
+          sessionCompaction: config.sessionCompaction,
+        },
+      });
+      return projectRuntime(agent, () => setup.close());
+    } catch (primary) {
+      try {
+        await setup.close({ mode: 'abort' });
+      } catch (cleanup) {
+        throw new AgentBaseCliError(
+          'CLI_RESOURCE_CLEANUP_FAILED',
+          'CLI runtime creation cleanup could not be confirmed.',
+          { cause: { operation: { ok: false, error: primary }, cleanup } }
+        );
+      }
+      throw primary;
+    }
   }
   const options = { readEnvironmentVariable: (name: string) => environment[name] };
   const runtime =

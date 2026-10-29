@@ -8,6 +8,11 @@ export interface ManagedAgentAuthorityPorts {
   readonly config: AgentConfigWriteAdapter;
 }
 
+/**
+ * Narrow Definition provisioning contract. Profile setup/staging may use a resource-resolution
+ * Service/Registry to prepare authority; this factory returns those prepared Ports synchronously.
+ * The generic Service neither chooses that recipe nor owns its Scope. Do not hide async acquisition.
+ */
 export type ManagedAgentAuthorityPortFactory<TNamespaceHandle> = (
   namespace: ManagedAgentNamespaceReference<TNamespaceHandle>
 ) => ManagedAgentAuthorityPorts;

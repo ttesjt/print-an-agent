@@ -2,11 +2,14 @@ import type {
   ProviderCredentialResolutionRequest,
   ProviderCredentialResolver,
 } from '@ta-agent/model-invocation-core';
-import type { CreateStandaloneAgentOptions, StandaloneCredentialBindingInput } from './types.js';
+import type {
+  StandaloneCredentialRuntimeOptions,
+  StandaloneCredentialBindingInput,
+} from './types.js';
 
 export function createStandaloneCredentialResolver(
   binding: Readonly<StandaloneCredentialBindingInput>,
-  options: CreateStandaloneAgentOptions
+  options: StandaloneCredentialRuntimeOptions
 ): ProviderCredentialResolver {
   return Object.freeze({
     resolve: (request: ProviderCredentialResolutionRequest) => {

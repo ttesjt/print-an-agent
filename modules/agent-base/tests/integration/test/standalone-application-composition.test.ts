@@ -1,3 +1,4 @@
+import { bootstrapTestAgent, testMemoryDefinition } from './support/owned-setup.js';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -16,8 +17,6 @@ import {
   createSharedSqliteStandaloneSessionNavigationService,
   createSharedSqliteStandaloneRuntimeService,
   createSharedSqliteStandaloneSessionService,
-  createStandaloneAgent,
-  createStandaloneMemoryDefinition,
   defineStandaloneAgentConfig,
   type StandaloneAgentConfigInput,
   type StandaloneRuntimeOptions,
@@ -83,7 +82,7 @@ function runtimeOptions(onInvocation: () => void): StandaloneRuntimeOptions {
 describe('public Standalone application composition entry points', () => {
   it('shares one Memory provisioning scope across generic narrow Services and fresh runtimes', async () => {
     let invocationCount = 0;
-    const definition = createStandaloneMemoryDefinition(
+    const definition = testMemoryDefinition(
       runtimeOptions(() => {
         invocationCount += 1;
       })
@@ -138,7 +137,7 @@ describe('public Standalone application composition entry points', () => {
       persistence: { kind: 'sqlite' as const, databasePath },
     };
     try {
-      const first = await createStandaloneAgent(bootstrap, options);
+      const first = await bootstrapTestAgent(bootstrap, options);
       const response = await first.invoke('foreground', { message: 'persist this' });
       const management = createSharedSqliteStandaloneManagementService({ databasePath, sqlite });
       const runtimes = createSharedSqliteStandaloneRuntimeService({
@@ -166,7 +165,7 @@ describe('public Standalone application composition entry points', () => {
           sessionId: response.sessionId,
         })
       ).resolves.toMatchObject({ status: 'inspected' });
-      await expect(createStandaloneAgent(bootstrap, options)).rejects.toMatchObject({
+      await expect(bootstrapTestAgent(bootstrap, options)).rejects.toMatchObject({
         code: 'MANAGED_AGENT_ALREADY_EXISTS',
       });
 

@@ -26,7 +26,11 @@ export interface WorkflowLifecycle<C> {
 
 export interface WorkflowDefinition<TStepName extends string, TInput, TState, TResources, TResult> {
   readonly name: string;
-  /** Bound during assembly and borrowed by every run; Core never closes these capabilities. */
+  /**
+   * Explicit capabilities bound at assembly and borrowed by every Run, not a composition Registry.
+   * Their shape is consumer-defined and may include narrow on-demand capability methods.
+   * Workflow is execution/implementation, not an application Service; Core never closes resources.
+   */
   readonly resources: TResources;
   readonly entryStep: TStepName;
   readonly stepDefinitions: StepDefinitions<

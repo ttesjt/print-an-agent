@@ -1,3 +1,4 @@
+import { bootstrapTestAgent } from '../support/owned-setup.js';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -13,7 +14,6 @@ import {
   type TextTokenCounterConfigInput,
 } from '@ta-agent/model-invocation-token-counters';
 import {
-  createStandaloneAgent,
   createStandaloneProviderService,
   createStandaloneDirectoryDefinition,
   createSharedSqliteStandaloneDefinition,
@@ -75,7 +75,7 @@ it('has no implicit counter and rejects unknown, executable or ambiguous declara
 it('materializes an exact model-bound counter without provider I/O, including direct bootstrap', async () => {
   const configuration = config({ kind: 'tiktoken', encoding: 'cl100k_base' });
   const options = resourceProfileRuntimeOptions(() => undefined);
-  const agent = await createStandaloneAgent(
+  const agent = await bootstrapTestAgent(
     {
       schemaVersion: 1,
       identity: { id: 'counting' },
@@ -228,7 +228,7 @@ it('compacts through declarative exact measurement, real Pi parsing, measured re
         target: { maxTokens: 2 },
       },
     });
-    const agent = await createStandaloneAgent(
+    const agent = await bootstrapTestAgent(
       {
         schemaVersion: 1,
         identity: { id: 'compaction' },

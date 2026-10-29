@@ -6,17 +6,22 @@ import type {
   ReadContextResult,
 } from '../contracts/inputs.js';
 import type { MemoryReceipt, MutationResult } from '../contracts/receipt.js';
+import type { MemorySnapshot } from '../contracts/document.js';
+import type { DeterministicMemoryMutation } from '../domain/deterministic-request.js';
 import { MemoryMutations, type MemoryMutationResources } from '../domain/mutations.js';
 import { readMemoryContext } from '../domain/read-context.js';
-import { assertMemoryNotAborted, ContextMemoryError } from '../errors.js';
-import { identity, jsonValue, keys, record } from '../validation/value.js';
-import { parseMemoryReceipt } from '../validation/receipt.js';
+import { createContextMemoryStateResources } from './state-resources.js';
 
 export interface GetMemoryReceiptInput {
   readonly memoryId: string;
   readonly requestId: string;
 }
 export interface MemoryOperations {
+  inspect(input: { readonly memoryId: string }, signal?: AbortSignal): Promise<MemorySnapshot>;
+  replay(
+    input: DeterministicMemoryMutation,
+    signal?: AbortSignal
+  ): Promise<MemoryReceipt | undefined>;
   create(input: CreateMemoryInput, signal?: AbortSignal): Promise<MutationResult>;
   apply(input: ApplyMemoryInput, signal?: AbortSignal): Promise<MutationResult>;
   configure(input: ConfigureMemoryInput, signal?: AbortSignal): Promise<MutationResult>;
@@ -39,35 +44,12 @@ export function createContextMemoryResources(
   const mutations = new MemoryMutations(options);
   return Object.freeze({
     memory: Object.freeze({
+      ...createContextMemoryStateResources(options.store).memory,
       create: mutations.create.bind(mutations),
       apply: mutations.apply.bind(mutations),
       configure: mutations.configure.bind(mutations),
       readContext: (input: ReadContextInput, signal?: AbortSignal) =>
         readMemoryContext(options, input, signal),
-      async getReceipt(input: GetMemoryReceiptInput, signal?: AbortSignal) {
-        assertMemoryNotAborted(signal);
-        const data = record(jsonValue(input), 'receipt lookup');
-        keys(data, ['memoryId', 'requestId']);
-        const memoryId = identity(data.memoryId, 'memoryId');
-        const requestId = identity(data.requestId, 'requestId');
-        try {
-          const value = await options.store.getReceipt(memoryId, requestId, signal);
-          if (value === undefined) {
-            assertMemoryNotAborted(signal);
-            return undefined;
-          }
-          const receipt = parseMemoryReceipt(value);
-          if (receipt.memoryId !== memoryId || receipt.requestId !== requestId)
-            throw new Error('Receipt scope mismatch.');
-          return receipt;
-        } catch (cause) {
-          assertMemoryNotAborted(signal);
-          throw new ContextMemoryError('STORAGE_FAILED', 'Memory receipt could not be read.', {
-            memoryId,
-            cause,
-          });
-        }
-      },
     }),
   });
 }

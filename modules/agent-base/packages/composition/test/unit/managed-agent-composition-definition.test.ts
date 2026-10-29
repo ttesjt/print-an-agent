@@ -108,6 +108,35 @@ function defineInvalid(input: unknown): unknown {
 }
 
 describe('defineManagedAgentComposition', () => {
+  it('validates the closed Memory factory vocabulary without executing factories', () => {
+    const inputs = createInputs();
+    const factory = vi.fn();
+    const resolve = Object.fromEntries(
+      ['inspect', 'getReceipt', 'replay', 'create', 'apply', 'configure', 'readContext'].map(
+        (key) => [key, factory]
+      )
+    );
+    const core = {
+      config: { codec: inputs.codec },
+      namespace: { port: inputs.namespacePort },
+      authority: { createPorts: inputs.createAuthorityPorts },
+      runtime: { createPorts: inputs.createRuntimePorts, materialize: inputs.materialize },
+    };
+    expect(() => defineInvalid({ ...core, contextMemoryManagement: { resolve } })).not.toThrow();
+    expect(factory).not.toHaveBeenCalled();
+    expect(() =>
+      defineInvalid({
+        ...core,
+        contextMemoryManagement: { resolve: { ...resolve, surprise: factory } },
+      })
+    ).toThrow(ManagedAgentCompositionError);
+    expect(() =>
+      defineInvalid({ ...core, contextMemoryManagement: { resolve: { ...resolve, apply: null } } })
+    ).toThrow(ManagedAgentCompositionError);
+    expect(() => defineInvalid({ ...core, retrievalMemoryManagement: { resolve } })).toThrow(
+      ManagedAgentCompositionError
+    );
+  });
   it('creates and shallow-freezes grouped wiring without invoking injected behavior', () => {
     const inputs = createInputs();
     const sessionManagement = { createPorts: inputs.createSessionManagementPorts };

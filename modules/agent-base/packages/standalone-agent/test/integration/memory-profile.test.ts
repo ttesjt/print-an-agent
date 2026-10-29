@@ -1,3 +1,4 @@
+import { testMemoryDefinition } from '../support/owned-setup.js';
 import {
   createAgentManagementService,
   createAgentRuntimeService,
@@ -8,7 +9,7 @@ import {
 } from '@ta-agent/base-composition';
 import { parseAgentId } from '@ta-agent/base-identity';
 import { describe, expect, it, vi } from 'vitest';
-import { createStandaloneMemoryDefinition } from '../../src/index.js';
+
 import {
   resourceProfileConfig,
   resourceProfileRuntimeOptions,
@@ -17,7 +18,7 @@ import {
 describe('Standalone Memory profile', () => {
   it('shares complete persistence across Services and fresh runtimes, including Config updates', async () => {
     const invoked = vi.fn();
-    const definition = createStandaloneMemoryDefinition(resourceProfileRuntimeOptions(invoked));
+    const definition = testMemoryDefinition(resourceProfileRuntimeOptions(invoked));
     const agents = createAgentManagementService(definition);
     const runtimes = createAgentRuntimeService(definition);
     const sessions = createSessionManagementService(definition);
@@ -72,8 +73,8 @@ describe('Standalone Memory profile', () => {
 
   it('isolates Agents in a scope and identical Agent IDs in independently created scopes', async () => {
     const options = resourceProfileRuntimeOptions(() => undefined);
-    const firstDefinition = createStandaloneMemoryDefinition(options);
-    const otherDefinition = createStandaloneMemoryDefinition(options);
+    const firstDefinition = testMemoryDefinition(options);
+    const otherDefinition = testMemoryDefinition(options);
     const firstManagement = createAgentManagementService(firstDefinition);
     const otherManagement = createAgentManagementService(otherDefinition);
     const alpha = parseAgentId('alpha');
@@ -120,7 +121,7 @@ describe('Standalone Memory profile', () => {
   });
 
   it('allows only one concurrent creator without discarding the winning allocation', async () => {
-    const definition = createStandaloneMemoryDefinition({
+    const definition = testMemoryDefinition({
       readEnvironmentVariable: () => undefined,
     });
     const agents = createAgentManagementService(definition);
@@ -135,7 +136,7 @@ describe('Standalone Memory profile', () => {
   });
 
   it('aborts partial provisioning and retries with fresh Identity and Config authority', async () => {
-    const definition = createStandaloneMemoryDefinition({
+    const definition = testMemoryDefinition({
       readEnvironmentVariable: () => undefined,
     });
     const broken = defineManagedAgentComposition({

@@ -4,7 +4,7 @@ import {
   createRetrievalWorkflowResources,
   findRetrievalCommit,
 } from '@ta-agent/retrieval-memory';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { fixture } from './support/fixture.js';
 it('cancels one in-flight model call while another Session-like Space proceeds on shared resources', async () => {
   const f = await fixture();
@@ -54,11 +54,16 @@ it('provides an optional owned deadline without a default model timeout or aband
   await f.create();
   const original = f.resources.embeddings.resolve();
   let cleaned = false;
+  let admitted = () => {};
+  const entered = new Promise<void>((resolve) => {
+    admitted = resolve;
+  });
   const embedder = createTextEmbedder({
     representation: original.descriptor.representation,
     limits: original.descriptor.limits,
     embed: (request) =>
-      new Promise((_resolve, reject) =>
+      new Promise((_resolve, reject) => {
+        admitted();
         request.signal.addEventListener(
           'abort',
           () => {
@@ -66,17 +71,31 @@ it('provides an optional owned deadline without a default model timeout or aband
             reject(new Error('deadline reached'));
           },
           { once: true }
-        )
-      ),
+        );
+      }),
   });
   const resources = createRetrievalWorkflowResources(
     { ...f.resources, embeddings: { resolve: () => embedder } },
     { execution: { timeoutMilliseconds: 20 } }
   );
   const w = createRetrievalMemoryBundle({ resources }).workflows;
-  await expect(
-    w.ingest.run({ input: { memoryId: 'space', requestId: 'timed', content: 'text' } })
-  ).rejects.toMatchObject({ code: 'OPERATION_TIMED_OUT', commit: { status: 'not-committed' } });
+  // Deadline covers preparation too. Prove cleanup of an admitted model call without depending
+  // on SQLite/worker scheduling fitting into a 20ms wall-clock window on a loaded machine.
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  try {
+    const pending = w.ingest.run({
+      input: { memoryId: 'space', requestId: 'timed', content: 'text' },
+    });
+    const failed = expect(pending).rejects.toMatchObject({
+      code: 'OPERATION_TIMED_OUT',
+      commit: { status: 'not-committed' },
+    });
+    await Promise.race([entered, pending]);
+    await vi.advanceTimersByTimeAsync(20);
+    await failed;
+  } finally {
+    vi.useRealTimers();
+  }
   expect(cleaned).toBe(true);
   expect((await f.backend.inspect('space'))?.sequence).toBe(0);
 });

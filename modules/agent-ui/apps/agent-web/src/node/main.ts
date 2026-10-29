@@ -11,6 +11,7 @@ async function main() {
   });
   const host = await startLocalAgentWebServer({
     collections,
+    closeResources: () => collections.close(),
     port,
     publicDirectory: fileURLToPath(new URL('../../public/', import.meta.url)),
     allowedOrigins: ['http://localhost:5173', 'http://127.0.0.1:5173'],

@@ -1,3 +1,4 @@
+import { testMemoryDefinition } from '../support/owned-setup.js';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -19,7 +20,6 @@ import {
 import { parseTurnId, supportsSessionExecution } from '@ta-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
-  createStandaloneMemoryDefinition,
   createStandaloneDirectoryDefinition,
   createSharedSqliteStandaloneDefinition,
   type StandaloneAgentConfig,
@@ -166,9 +166,7 @@ async function verifySharedAuthority<THandle>(
 
 describe('profile-shared authority and coordinated maintenance', () => {
   it('shares Memory execution fences and both persistence domains with sibling Services', async () => {
-    const definition = createStandaloneMemoryDefinition(
-      resourceProfileRuntimeOptions(() => undefined)
-    );
+    const definition = testMemoryDefinition(resourceProfileRuntimeOptions(() => undefined));
     await verifySharedAuthority(definition, () => definition);
   });
 

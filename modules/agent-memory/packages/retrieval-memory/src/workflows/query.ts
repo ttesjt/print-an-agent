@@ -1,38 +1,60 @@
 import type { BundleWorkflowDefinition } from '@ta-agent/workflow-bundle';
-import type { RetrievalWorkflowResources } from './resources.js';
+import type { RetrievalQueryResources } from './resources.js';
+import type { RetrievalQueryOperations } from '../domain/queries.js';
 import type { SkippedRetrieval } from './mutation.js';
 import { jsonSnapshot } from '../validation/json.js';
 import { runRetrievalExecution } from './execution.js';
+import { retrievalExecutor, retrievalLifecycle, type CommittedRunState } from './outcomes.js';
+import type { RetrievalReceipt } from '../contracts/publication.js';
 export type RetrievalReadOutcome<O> =
   | { readonly status: 'completed'; readonly value: O }
   | SkippedRetrieval;
 export type QueryStepName = 'runOperation' | 'prepareInput' | 'executeQuery';
-export interface QueryState<I> {
+export interface QueryState<I> extends CommittedRunState {
   signal?: AbortSignal;
   input?: I;
 }
-export type RetrievalQueryDefinition<I, O> = BundleWorkflowDefinition<
+export type RetrievalQueryDefinition<
+  I,
+  O,
+  K extends keyof RetrievalQueryOperations = keyof RetrievalQueryOperations,
+> = BundleWorkflowDefinition<
   QueryStepName,
   I,
   QueryState<I>,
-  RetrievalWorkflowResources,
+  RetrievalQueryResources<K>,
   RetrievalReadOutcome<O>
 >;
-export type RetrievalQueryOptions<I, O> = Pick<
-  RetrievalQueryDefinition<I, O>,
+export type RetrievalQueryOptions<
+  I,
+  O,
+  K extends keyof RetrievalQueryOperations = keyof RetrievalQueryOperations,
+> = Pick<
+  RetrievalQueryDefinition<I, O, K>,
   'stepOverrides' | 'executeStep' | 'condition' | 'lifecycle' | 'createRunId'
 >;
-export function createRetrievalQueryDefinition<I, O>(
+export function createRetrievalQueryDefinition<
+  I,
+  O,
+  K extends keyof RetrievalQueryOperations = keyof RetrievalQueryOperations,
+>(
   name: string,
-  execute: (resources: RetrievalWorkflowResources, input: I, signal: AbortSignal) => Promise<O>,
-  options: RetrievalQueryOptions<I, O> = {}
-): RetrievalQueryDefinition<I, O> {
+  execute: (resources: RetrievalQueryResources<K>, input: I, signal: AbortSignal) => Promise<O>,
+  options: RetrievalQueryOptions<I, O, K> = {},
+  receipt?: (value: O) => RetrievalReceipt | undefined
+): RetrievalQueryDefinition<I, O, K> {
   return {
     ...options,
     name: `retrieval-memory:${name}`,
     entryStep: 'runOperation',
     createState: () => ({}),
     createResult: () => ({ status: 'skipped', reason: 'Workflow condition skipped execution.' }),
+    ...(receipt === undefined
+      ? {}
+      : {
+          executeStep: retrievalExecutor(options.executeStep),
+          lifecycle: retrievalLifecycle(options.lifecycle),
+        }),
     stepDefinitions: {
       runOperation: {
         skippable: false,
@@ -57,13 +79,16 @@ export function createRetrievalQueryDefinition<I, O>(
         skippable: false,
         cardinality: 'at-most-once',
         step: async (context) => {
+          const value = await execute(
+            context.resources,
+            context.state.input as I,
+            context.state.signal ?? context.signal
+          );
+          const known = receipt?.(value);
+          if (known !== undefined) context.state.receipt = structuredClone(known);
           context.result = {
             status: 'completed',
-            value: await execute(
-              context.resources,
-              context.state.input as I,
-              context.state.signal ?? context.signal
-            ),
+            value,
           };
         },
       },

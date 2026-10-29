@@ -2,6 +2,9 @@
 
 The official Standalone application profile for Agent Base.
 
+Optional Context/Retrieval provisioning and the Context management Service are described in
+[Memory management](./MEMORY.md).
+
 This package owns Standalone policy: stored Config vocabulary, provider and credential wiring,
 timeout policy, SQLite table naming, Memory/filesystem/shared-SQLite profiles, `agent.json` projection, and
 the Standard runtime materializer. Generic Agent lifecycle, runtime opening, out-of-band Session
@@ -16,8 +19,9 @@ Config authority codec. Memory keeps revisioned authority for the lifetime of it
 filesystem and shared-SQLite profiles persist it across processes.
 
 `StandaloneAgentBootstrapConfig` adds Identity and a Memory or explicit SQLite persistence choice.
-`defineStandaloneAgentBootstrapConfig()` validates it; asynchronous `createStandaloneAgent()`
-initializes authority and opens one Agent through the canonical Definition and narrow Services.
+`defineStandaloneAgentBootstrapConfig()` validates it for host loaders. Asynchronous
+`createStandaloneAgent(setup, { identity, config })` initializes authority and opens one Agent through
+the caller-owned setup and narrow Services; persistence is chosen by setup, not by this helper.
 Single-Agent convenience and multi-Agent hosting follow the same application composition path.
 
 `StandaloneAgentManifest` is the filesystem document projection `{ identity, config }`. It is not
@@ -77,20 +81,28 @@ compaction fails with `SESSION_COMPACTION_TOKENIZER_NOT_CONFIGURED`.
 ## Create and open
 
 ```ts
-import { createStandaloneAgent } from '@ta-agent/base-standalone-agent';
+import {
+  createStandaloneAgent,
+  createStandaloneMemorySetup,
+} from '@ta-agent/base-standalone-agent';
 
-const agent = await createStandaloneAgent(bootstrapConfig, {
+const setup = createStandaloneMemorySetup({
   readEnvironmentVariable: (name) => process.env[name],
 });
+const agent = await createStandaloneAgent(setup, { identity, config });
 
 await agent.invoke('foreground', { message: 'hello' });
+await setup.close(); // after all business calls and their cancellation cleanup have settled
 ```
 
 The result is a raw `StandaloneRawAgent`, not a facade. Callers can explicitly wrap it with
 `createAgentAPI(agent)` from Composition. Provider inspection/readiness is a separate Service.
 
-Bootstrap selects the canonical Memory or shared-SQLite profile, calls Agent Management `create()`,
-then Runtime Service `open()`. Memory gets a fresh isolated scope on each bootstrap. SQLite stores
+The caller selects `createStandaloneMemorySetup`, `createStandaloneDirectorySetup`, or
+`createSharedSqliteStandaloneSetup`, retaining its explicit `close()` owner even if creation/opening
+fails. The convenience helper calls Agent Management `create()`, then Runtime Service `open()`;
+it never hides another setup on the returned Agent. Memory gets an isolated namespace per setup.
+SQLite stores
 namespace publication and Identity/Config authority alongside Session/Journal state, with the same
 host-level `sqlite` table-naming options (including authority and namespace domains) used by the
 shared-SQLite profile. Creation conflicts on an existing Agent, including a disabled Agent; it never
@@ -117,15 +129,14 @@ and Config authority separately from the optional manifest Projection outcome. A
 manifest Projection does not roll back authority; callers can inspect or reconcile it later. Every
 management method accepts optional `{ signal }` execution options. Cancellation can stop work before
 the authoritative adapter boundary, but it cannot relabel a mutation after that boundary has begun.
-If sibling Services are needed for Memory, retain one canonical Definition as below rather than
-using isolated bootstrap calls.
+If sibling Services are needed for Memory, retain one setup and use its canonical Definition below.
 
 ## Managed profiles
 
 ### Memory
 
-`createStandaloneMemoryDefinition()` creates one isolated, ephemeral provisioning scope. Reuse its
-Definition across sibling Services:
+`createStandaloneMemorySetup()` creates one isolated, ephemeral Profile owner. Retain it and reuse
+its Definition across sibling Services:
 
 ```ts
 import {
@@ -135,13 +146,14 @@ import {
   createSessionNavigationService,
 } from '@ta-agent/base-composition';
 import {
-  createStandaloneMemoryDefinition,
+  createStandaloneMemorySetup,
   defineStandaloneAgentConfig,
 } from '@ta-agent/base-standalone-agent';
 
-const definition = createStandaloneMemoryDefinition({
+const setup = createStandaloneMemorySetup({
   readEnvironmentVariable: (name) => process.env[name],
 });
+const definition = setup.definition;
 const agents = createAgentManagementService(definition);
 const runtimes = createAgentRuntimeService(definition);
 const sessions = createSessionManagementService(definition);
@@ -153,18 +165,27 @@ const history = await sessions.listTurns({
   agentId: created.authority.identity.identity.id,
   sessionId: response.sessionId,
 });
+await setup.close();
 ```
 
-The private Profile Resource Provisioner allocates namespaces, lazily supplies Identity/Config
-adapters, and lazily creates one complete coordinated Session/Request Journal/maintenance
-persistence per published Agent namespace. Runtime, Session-management, and Session-navigation Ports
+The private Profile Resource Provisioner compiles one resource Blueprint per setup, without I/O.
+Each namespace stage reserves an opaque allocation and its Scope, then prepares Identity/Config
+authority through that Blueprint **before returning the stage handle**. The synchronous authority
+factory supplies those prepared Ports; it does not construct adapters or own another cache. Session
+persistence remains lazy: one complete coordinated Session/Request Journal/maintenance acquisition
+per published Agent namespace. Runtime, Session-management, and Session-navigation Ports
 project that same persistence, including its queue and execution/recovery fences. New `open()` calls
 create fresh raw Agents, not new Session authority. Config updates do not change persistence
 identity. Separate profile setups never share state, even for identical Agent IDs; no module-global
 resources or runtime cache exist.
 
-Staged Memory allocations are private and exclusively reserved until publication or abort. Failed
-initialization discards the allocation and its authority; a retry starts fresh. Published authority
+Staged Memory allocations have distinct opaque tokens and internal allocation IDs. They are private
+and exclusively reserved until publication or confirmed abort cleanup. Every allocation owns a Scope
+from the same setup-owned Blueprint; publish keeps that Scope, rather than rebuilding or transferring
+it. Successful abort permits a fresh allocation; an unconfirmed cleanup retains its reservation and
+failure for setup shutdown. Stage initialization failure is unwound by the Profile itself, including
+failure before any handle reaches the caller. Such failed allocations remain owned until confirmed
+cleanup; setup shutdown joins all allocations, not just published namespaces. Published authority
 cannot be removed by a stale provisioning handle. There is no Config projection or crash durability.
 
 There are deliberately no independent Memory management/runtime/Session convenience factories that
@@ -174,6 +195,24 @@ Advanced Definitions may explicitly share its factories: provisioning scope, not
 reference identity, determines live resource sharing. Definition and Service construction creates
 no per-Agent adapters; each capability obtains resources when needed. Session management does not
 read Identity/Config or create a runtime, even for a disabled Agent.
+
+Setup is a lifetime handle, not an eager Application or a business executor. Host shutdown must stop
+admission and cancel/join business calls before `setup.close()`. Its `mode: 'abort'` only cancels
+resource initialization. Preserve operation results and cleanup failures separately; never label a
+committed mutation uncommitted because cleanup later failed. Repeated close joins the same result and
+can escalate initialization drain to abort.
+
+The defaults are the real Memory Identity/Config and coordinated Session adapters. Optional
+`acquireAuthority({ agentId, allocationId, signal })` and
+`acquireSessionPersistence({ agentId, allocationId, signal })` are Profile recipes fixed at setup
+construction; each returns `{ value, release? }` for one allocation. Authority acquisition runs
+during stage, before generic management initializes or publishes authority; Session acquisition runs
+only on first published usage. Their signals belong to Scope initialization, not the first business
+caller. These are not per-Run overrides or Registry access. The provider must unwind partial
+initialization before throwing; an unconfirmed
+unwind must throw `ResourceCleanupError`. Scope closes only explicitly owned acquisitions, never
+guesses ownership from an object's `close` method. Reopenable durable adapters still open and close
+connections per operation; their setup wrappers gate future admission without deleting durable data.
 
 ### Durable profiles
 

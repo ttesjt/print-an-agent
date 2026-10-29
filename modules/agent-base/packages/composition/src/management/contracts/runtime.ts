@@ -16,7 +16,10 @@ export interface ManagedAgentRuntimeProvisioningInput<TConfig, TNamespaceHandle>
   readonly config: ManagedAgentConfigSnapshot<TConfig>;
 }
 
-/** Creates or locates product-owned runtime ports after authority validation. */
+/**
+ * On-demand Definition provisioning after authority validation. Profile implementation may use a
+ * Registry or an ordinary factory; acquiring Ports does not transfer their lifecycle ownership.
+ */
 export type ManagedAgentRuntimePortFactory<TConfig, TNamespaceHandle, TRuntimePorts> = (
   input: ManagedAgentRuntimeProvisioningInput<TConfig, TNamespaceHandle>
 ) => TRuntimePorts | Promise<TRuntimePorts>;

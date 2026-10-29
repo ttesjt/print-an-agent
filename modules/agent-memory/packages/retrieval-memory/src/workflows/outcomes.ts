@@ -56,19 +56,25 @@ export function retrievalLifecycle<C extends { state: CommittedRunState }>(
 /** Native Workflow may aggregate independent hook/protocol failures; inspect facts without discarding them. */
 export function findRetrievalCommit(
   error: unknown,
-  seen = new Set<object>()
+  accept: (commit: CommitEvidence) => boolean = () => true
 ): CommitEvidence | undefined {
-  if (!(error instanceof Error) || seen.has(error)) return undefined;
-  seen.add(error);
-  const own = error instanceof RetrievalMemoryError ? error.commit : undefined;
-  if (own?.status === 'committed') return own;
-  const children: unknown[] =
-    error instanceof AggregateError ? [...(error.errors as unknown[]), error.cause] : [error.cause];
-  let result = own;
-  for (const child of children) {
-    const found = findRetrievalCommit(child, seen);
-    if (found?.status === 'committed') return found;
-    if (found?.status === 'unknown' || result === undefined) result = found;
+  const pending: unknown[] = [error];
+  const seen = new Set<Error>();
+  let result: CommitEvidence | undefined;
+  while (pending.length !== 0) {
+    const cause = pending.pop();
+    if (!(cause instanceof Error) || seen.has(cause)) continue;
+    seen.add(cause);
+    const own = cause instanceof RetrievalMemoryError ? cause.commit : undefined;
+    if (own !== undefined && accept(own)) {
+      if (own.status === 'committed') return own;
+      if (result === undefined || own.status === 'unknown') result = own;
+    }
+    const children: unknown[] =
+      cause instanceof AggregateError
+        ? [...(cause.errors as unknown[]), cause.cause]
+        : [cause.cause];
+    pending.push(...children.reverse());
   }
   return result;
 }

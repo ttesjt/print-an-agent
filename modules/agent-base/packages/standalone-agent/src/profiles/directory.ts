@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
+import { withStandaloneMemoryManagement } from '../resources/agent-memory/setup.js';
+import type { StandaloneMemoryManagementOptions } from '../resources/agent-memory/contracts.js';
 import {
   createAgentManagementService,
   createAgentRuntimeService,
@@ -17,6 +20,7 @@ import { createFilesystemStandalonePortFactories } from '../resources/filesystem
 import type { FilesystemAgentResourceNamespace } from '../resources/filesystem/types.js';
 import { resolveStandaloneManagedSqliteTableNames } from '../resources/sqlite-table-naming.js';
 import { assertStandaloneRuntimeOptions } from '../runtime-policies.js';
+import { reopenableStandaloneSetup } from '../resources/reopenable-setup.js';
 import {
   projectStandaloneAgentManagementService,
   type StandaloneAgentManagementService,
@@ -54,6 +58,21 @@ export type StandaloneDirectoryDefinition = SessionManagedAgentCompositionDefini
   SessionManagementPorts
 > &
   SessionNavigationCapability<FilesystemAgentResourceNamespace, SessionNavigationPorts>;
+
+export function createStandaloneDirectorySetup(
+  options: CreateStandaloneDirectoryProfileOptions,
+  memory?: StandaloneMemoryManagementOptions
+) {
+  return withStandaloneMemoryManagement(
+    reopenableStandaloneSetup(createStandaloneDirectoryDefinition(options)),
+    memory,
+    (namespace) => ({
+      key: namespace.handle.databasePath,
+      contextPath: join(namespace.handle.directoryPath, 'context-memory.sqlite'),
+      retrievalPath: join(namespace.handle.directoryPath, 'retrieval-memory.sqlite'),
+    })
+  );
+}
 
 export function createStandaloneDirectoryDefinition(
   options: CreateStandaloneDirectoryProfileOptions

@@ -1,5 +1,6 @@
 import {
   createBoundedToolRuntime,
+  createToolRegistry,
   type ToolExecutionPolicy,
   type ToolPermissionPolicy,
   type ToolRegistry,
@@ -9,7 +10,11 @@ import { requireValue } from './state-value.js';
 
 export interface ToolPreparationContext {
   readonly signal: AbortSignal;
-  readonly state: { tools?: ToolRuntime; toolPermissionPolicy?: ToolPermissionPolicy };
+  readonly state: {
+    tools?: ToolRuntime;
+    toolPermissionPolicy?: ToolPermissionPolicy;
+    contextMemory?: { readonly tools: readonly import('@ta-agent/base-tool').ToolDefinition[] };
+  };
   readonly resources: {
     readonly toolRegistry: ToolRegistry;
     readonly toolExecutionPolicy: ToolExecutionPolicy;
@@ -19,7 +24,13 @@ export interface ToolPreparationContext {
 
 export function buildRequestTools(context: ToolPreparationContext): Promise<void> {
   context.state.tools = createBoundedToolRuntime({
-    registry: context.resources.toolRegistry,
+    registry:
+      context.state.contextMemory === undefined
+        ? context.resources.toolRegistry
+        : createToolRegistry([
+            ...context.resources.toolRegistry.list(),
+            ...context.state.contextMemory.tools,
+          ]),
     permissionPolicy: requireValue(context.state.toolPermissionPolicy, 'toolPermissionPolicy'),
     executionPolicy: context.resources.toolExecutionPolicy,
     signal: context.signal,

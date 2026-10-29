@@ -39,7 +39,9 @@ export function memoryExecutionFence(session: StoredMemorySession): SessionExecu
     revision: session.executionRevision,
     state: session.executionState,
     activeLeaseCount: session.executions.size,
-    pendingWorkCount: session.turns.filter((turn) => turn.status === 'active').length,
+    pendingWorkCount:
+      session.turns.filter((turn) => turn.status === 'active').length +
+      [...session.memoryRecords.values()].filter((record) => !record.settled).length,
   });
 }
 
@@ -174,6 +176,11 @@ export class MemorySessionLifecycle {
     session.executionState = 'recovering';
     session.executions.clear();
     try {
+      if ([...session.memoryRecords.values()].some((record) => !record.settled))
+        throw new AgentSessionError(
+          'SESSION_MEMORY_PENDING',
+          'Memory coordination must be recovered before Session recovery can finish.'
+        );
       const now = readMemoryClock(this.clock);
       const turns = session.turns.map((turn) =>
         turn.status !== 'active'

@@ -2,7 +2,12 @@ import { readFile, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import {
   createStandaloneAgent,
+  openStandaloneAgent,
   createStandaloneMemorySetup,
+  createStandaloneDirectorySetup,
+  createSharedSqliteStandaloneSetup,
+  type StandaloneMemoryManagementOptions,
+  type StandaloneSetup,
   createStandaloneDirectoryManagementService,
   createStandaloneDirectoryRuntimeService,
   createStandaloneDirectorySessionNavigationService,
@@ -83,6 +88,26 @@ function projectRuntime(
     compactSession: (input, signal) => agent.invoke('compactSession', input, { signal }),
   };
   return Object.freeze(runtime);
+}
+
+async function openOwnedSetup<N>(
+  setup: StandaloneSetup<N>,
+  agentId: string
+): Promise<AgentBaseCliRuntime> {
+  try {
+    return projectRuntime(await openStandaloneAgent(setup, agentId), () => setup.close());
+  } catch (primary) {
+    try {
+      await setup.close({ mode: 'abort' });
+    } catch (cleanup) {
+      throw new AgentBaseCliError(
+        'CLI_RESOURCE_CLEANUP_FAILED',
+        'CLI runtime creation cleanup could not be confirmed.',
+        { cause: { operation: { ok: false, error: primary }, cleanup } }
+      );
+    }
+    throw primary;
+  }
 }
 
 function projectSessionNavigator(
@@ -194,13 +219,17 @@ export function loadAgentBaseCliSessionManager(
 
 export async function loadAgentBaseCliRuntime(
   locator: AgentBaseCliRuntimeLocator,
-  environment: NodeJS.ProcessEnv
+  environment: NodeJS.ProcessEnv,
+  memory?: StandaloneMemoryManagementOptions
 ): Promise<AgentBaseCliRuntime> {
   if (locator.kind === 'config') {
     const config = await readMemoryBootstrap(locator.configPath);
-    const setup = createStandaloneMemorySetup({
-      readEnvironmentVariable: (name) => environment[name],
-    });
+    const setup = createStandaloneMemorySetup(
+      {
+        readEnvironmentVariable: (name) => environment[name],
+      },
+      memory
+    );
     try {
       const agent = await createStandaloneAgent(setup, {
         identity: config.identity,
@@ -227,6 +256,23 @@ export async function loadAgentBaseCliRuntime(
     }
   }
   const options = { readEnvironmentVariable: (name: string) => environment[name] };
+  if (memory !== undefined) {
+    return locator.kind === 'directory'
+      ? openOwnedSetup(
+          createStandaloneDirectorySetup(
+            { ...options, rootDirectory: locator.rootDirectory },
+            memory
+          ),
+          locator.agentId
+        )
+      : openOwnedSetup(
+          createSharedSqliteStandaloneSetup(
+            { ...options, databasePath: locator.databasePath },
+            memory
+          ),
+          locator.agentId
+        );
+  }
   const runtime =
     locator.kind === 'directory'
       ? createStandaloneDirectoryRuntimeService({

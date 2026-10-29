@@ -147,7 +147,7 @@ Memory does not promise semantic losslessness, automatic edit-history reconcilia
 capacity, cross-memory transactions, exactly-once model calls, full version history, deletion/archive,
 background task durability or automatic model loading. Receipt retention is currently unbounded.
 Custom policy and model-quality evaluation belong to the host; deterministic tests do not prove that
-a real LLM will preserve every important fact. Application integration and Retrieval Memory are separate.
+a real LLM will preserve every important fact. Product integration and Retrieval Memory are separate.
 
 Run `pnpm test:memory-qualification`. It builds/typechecks the independent consumer, validates public
 boundaries and runs domain, SQLite and qualification suites without network or credentials. The

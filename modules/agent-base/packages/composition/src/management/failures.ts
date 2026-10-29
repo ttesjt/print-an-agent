@@ -2,6 +2,8 @@ import { AgentConfigError } from '@ta-agent/base-config';
 import { AgentIdentityError } from '@ta-agent/base-identity';
 import { AgentSessionError } from '@ta-agent/base-session';
 import { ManagedAgentNamespaceError } from './contracts/namespace.js';
+import { SessionMemoryCommitError } from './context-memory/mutations.js';
+import { parseMemoryReceipt } from '@ta-agent/context-memory';
 import {
   AgentManagementError,
   type AgentManagementFailureSummary,
@@ -77,6 +79,30 @@ export function summarizeManagementFailure(cause: unknown): AgentManagementFailu
 
 export function safeManagementFailure(operation: AgentManagementOperation, cause: unknown): Error {
   if (cause instanceof AgentManagementError) return cause;
+  if (cause instanceof SessionMemoryCommitError) {
+    try {
+      const input = cause.commit;
+      const commit =
+        input.status === 'committed'
+          ? { status: 'committed' as const, receipt: parseMemoryReceipt(input.receipt) }
+          : input.status === 'unknown'
+            ? { status: 'unknown' as const, memoryId: input.memoryId, requestId: input.requestId }
+            : { status: 'not-committed' as const };
+      // Preserve public commit evidence and cleanup classification, never the private error tree.
+      return new SessionMemoryCommitError(
+        commit,
+        cause.code === 'SESSION_MEMORY_CLEANUP_FAILED'
+          ? new AgentSessionError(
+              'SESSION_MEMORY_CLEANUP_FAILED',
+              'Memory resource cleanup is unconfirmed.'
+            )
+          : undefined,
+        cause.code
+      );
+    } catch {
+      return new AgentSessionError('SESSION_MEMORY_INVALID', 'Memory commit evidence is invalid.');
+    }
+  }
   if (cause instanceof AgentIdentityError) return safeIdentityFailure(cause);
   if (cause instanceof AgentConfigError) return safeConfigFailure(cause);
   if (cause instanceof AgentSessionError) return safeSessionFailure(cause);

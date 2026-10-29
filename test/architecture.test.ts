@@ -252,10 +252,6 @@ function reachablePublicDeclarations(entryPoint: string): readonly string[] {
 }
 
 describe('module architecture', () => {
-  it('keeps product code out of the framework workspace', () => {
-    expect(existsSync(join(repositoryRoot, 'modules', 'self-learn-agent'))).toBe(false);
-  });
-
   it('keeps Sessionless request implementation free of Agent owners and concrete persistence', () => {
     const requestRoot = join(repositoryRoot, 'modules/agent-base/packages/request/src');
     const files = typeScriptFiles(join(requestRoot, 'sessionless'));
@@ -938,7 +934,8 @@ describe('module architecture', () => {
     }
 
     const publicEntryPoint = readFileSync(join(sourceRoot, 'index.ts'), 'utf8');
-    expect(publicEntryPoint).toContain('export { createStandaloneAgent }');
+    expect(publicEntryPoint).toMatch(/export\s*\{[^}]*\bcreateStandaloneAgent\b/u);
+    expect(publicEntryPoint).toMatch(/export\s*\{[^}]*\bopenStandaloneAgent\b/u);
     expect(publicEntryPoint).toContain('createStandaloneMemorySetup');
     expect(publicEntryPoint).not.toContain('createStandaloneMemoryDefinition');
     expect(publicEntryPoint).toContain('createStandaloneDirectoryDefinition');
@@ -1164,11 +1161,15 @@ describe('module architecture', () => {
       for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
         if (!specifier.startsWith('@ta-agent/')) continue;
         expect(specifier).toMatch(
-          /^@ta-agent\/(?:(?:base-|model-invocation-)[^/]+|base-composition\/resource-registry|context-memory(?:-sqlite)?|retrieval-memory(?:-sqlite)?|workflow-bundle)$/
+          /^@ta-agent\/(?:(?:base-|model-invocation-)[^/]+|base-composition\/resource-registry|context-memory(?:-sqlite)?|retrieval-memory(?:-sqlite)?|workflow-(?:bundle|core))$/
         );
       }
       expect(normalize(sourceFile)).not.toContain(`${normalize('/src/')}`);
     }
+  });
+
+  it('keeps product code out of the framework workspace', () => {
+    expect(existsSync(join(repositoryRoot, 'modules', 'self-learn-agent'))).toBe(false);
   });
 });
 

@@ -11,6 +11,7 @@ export const REQUEST_STEP_NAMES = Object.freeze([
   'resolveInstructions',
   'loadSessionContext',
   'gatherExternalContext',
+  'loadContextMemory',
   'buildTools',
   'buildModelContext',
   'executeRequest',

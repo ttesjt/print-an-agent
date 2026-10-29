@@ -46,4 +46,4 @@ Git, access the network, or run model training. It prints the generated Python m
 by the Workbench-side definition.
 
 Copy `template` into `packages/<name>` to create a package, then add its `src` and `tests` paths to
-the workspace Mypy `files` list. Do not add Agent Base or application runtimes dependencies here.
+the workspace Mypy `files` list. Do not add Agent Base or product runtime dependencies here.

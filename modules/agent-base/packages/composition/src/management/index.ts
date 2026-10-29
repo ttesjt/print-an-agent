@@ -39,3 +39,19 @@ export { MemoryManagementError } from './memory-errors.js';
 export type { MemoryManagementErrorCode, ManagedMemoryFailure } from './memory-errors.js';
 export { createContextMemoryManagementService } from './context-memory-management-service.js';
 export { createRetrievalMemoryManagementService } from './retrieval-memory-management-service.js';
+export {
+  createSessionContextMemory,
+  SessionContextMemoryService,
+} from './context-memory/service.js';
+export type {
+  SessionContextMemoryOptions,
+  SessionMemoryCheckpoint,
+  ContextMemoryWorkflows,
+  SessionContextMemoryCoordinator,
+  RuntimeMemorySessionPort,
+} from './context-memory/service.js';
+export { CONTEXT_MEMORY_TOOL_NAMES, createContextMemoryTools } from './context-memory/tools.js';
+export type { ContextMemoryToolScope } from './context-memory/tools.js';
+export { SessionMemoryCommitError } from './context-memory/mutations.js';
+export { hasSessionMemoryCleanupFailure } from './context-memory/failures.js';
+export { recoverSessionWithContextMemory } from './context-memory/recovery.js';

@@ -440,7 +440,7 @@ that affects what the user sees belongs inside that composite before or during p
 no required `finalizeRequest`: request and tool events are persisted through adapters when they occur,
 not collected for a final fictional commit.
 
-`afterResponse` is a separate optional background Workflow for product work that starts after the
+`afterResponse` is a separate optional background Workflow for application work that starts after the
 visible response closes. Long-running work
 should receive a new Agent Run and Context rather than continuing to mutate the foreground request
 Context.
@@ -616,13 +616,15 @@ Pi SQLite is a suitable default for ordinary session and chat persistence. Its s
 store Pi session entries and opaque custom metadata. It does not by itself provide arbitrary
 product tables or transactions spanning session writes and product authorities.
 
-Products with stronger requirements may provide a composite adapter. A composite SQLite implementation may deliberately share one connection to support product-owned
-transactions; that remains an adapter decision, not an Agent Base assumption.
+Products with stronger requirements may provide a composite adapter. A composite SQLite
+implementation may deliberately share one connection to support product-owned transactions; that
+remains an adapter decision, not an Agent Base assumption.
 
-## Application integration
+## Product integration
 
-Applications provide configuration, adapters, and Workflows around the existing Agent.
-They own any integration with Model Workbench.
+Products compose the existing Agent with application-owned configuration, adapters, workflows,
+and model capabilities. Any integration with Model Workbench belongs to the consuming application;
+Agent Base and Model Workbench remain independent.
 
 ## Design rules
 

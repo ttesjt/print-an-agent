@@ -7,6 +7,7 @@ export async function providerServer(
     tools?: boolean;
     responseText?: string;
     beforeResponse?: () => Promise<void>;
+    toolCall?: Readonly<{ name: string; arguments: unknown }>;
   }> = {}
 ) {
   const requests: unknown[] = [];
@@ -38,7 +39,10 @@ export async function providerServer(
               index: 0,
               id: 'lookup-call',
               type: 'function',
-              function: { name: 'lookup', arguments: '{}' },
+              function: {
+                name: options.toolCall?.name ?? 'lookup',
+                arguments: JSON.stringify(options.toolCall?.arguments ?? {}),
+              },
             },
           ],
         });

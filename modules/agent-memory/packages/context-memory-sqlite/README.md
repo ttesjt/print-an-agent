@@ -31,7 +31,7 @@ try {
 
 The host creates the parent directory. `node:sqlite` is the only storage implementation dependency.
 The adapter does not invoke models, tokenize text, start background tasks or create resources for
-Agent Base, Workbench, or application runtimes. Give Workflow consumers the guarded domain boundary, not raw SQL.
+Agent Base, Workbench, or a product runtime. Give Workflow consumers the guarded domain boundary, not raw SQL.
 
 ## Consistency and recovery
 

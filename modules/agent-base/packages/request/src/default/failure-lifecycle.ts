@@ -31,6 +31,11 @@ export async function failRequest(
   error: unknown
 ): Promise<void> {
   const cleanupErrors: unknown[] = [];
+  try {
+    await context.state.contextMemory?.settle();
+  } catch (cleanupError: unknown) {
+    cleanupErrors.push(cleanupError);
+  }
   const failure = failureFrom(error);
   try {
     context.state.tools?.close();

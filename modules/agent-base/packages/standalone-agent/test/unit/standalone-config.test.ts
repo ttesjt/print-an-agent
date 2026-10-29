@@ -469,6 +469,7 @@ describe('standalone Agent Base configuration', () => {
       database.close();
       expect(tables).toEqual([
         'conversations',
+        'conversations_memory',
         'request_receipts',
         'runtime_config_schema',
         'runtime_configs',

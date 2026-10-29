@@ -11,7 +11,7 @@ invocation deadlines and Engine protocol integrity. This package adds Agent-owne
 and Responsibility selection. `defineAgentActor()` and the Agent Actor catalog compose those
 permissions with the same underlying Actor; they do not create another invocation implementation.
 
-The package contains no provider SDK and has no knowledge of Model Workbench or application runtimes.
+The package contains no provider SDK and has no knowledge of Model Workbench or product runtimes.
 
 Every Engine, including a product-supplied custom Engine, must declare a closed technical capability
 profile. Actors can narrow those claims but cannot widen them. Technical capability is separate from

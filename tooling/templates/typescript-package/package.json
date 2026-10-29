@@ -1,7 +1,7 @@
 {
   "name": "@ta-agent/package-template",
   "version": "0.1.0",
-  "description": "Private canonical template for Modular Agent TypeScript libraries.",
+  "description": "Workspace template for Modular Agent TypeScript libraries.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

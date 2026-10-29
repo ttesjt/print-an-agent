@@ -130,6 +130,7 @@ describe('Standalone directory profile', () => {
           'directory_session_schema',
           'directory_session_turns',
           'directory_sessions',
+          'directory_sessions_memory',
         ]);
       }
     });

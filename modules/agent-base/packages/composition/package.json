@@ -50,6 +50,7 @@
     "@ta-agent/workflow-core": "workspace:*"
   },
   "devDependencies": {
+    "@ta-agent/context-memory-sqlite": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",

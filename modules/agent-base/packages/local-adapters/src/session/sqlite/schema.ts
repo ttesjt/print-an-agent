@@ -11,9 +11,10 @@ import { addSessionCompactionMigration } from './migrations/0002_add_session_com
 import { addSessionNavigationMigration } from './migrations/0003_add_session_navigation.js';
 import { addSessionMetadataMigration } from './migrations/0004_add_session_metadata.js';
 import type { SqliteSessionTableNames } from './table-names.js';
+import { sessionMemoryMigration, sessionMemoryTable } from './session-memory-storage.js';
 
 const SESSION_SCHEMA_COMPONENT = 'session';
-const CURRENT_SESSION_SCHEMA_VERSION = 4;
+const CURRENT_SESSION_SCHEMA_VERSION = 5;
 
 const SCHEMA_COLUMNS = Object.freeze(['component', 'version']);
 const SESSION_COLUMNS = Object.freeze([
@@ -224,11 +225,21 @@ export function initializeSessionSchema(
       database.exec(addSessionCompactionMigration(tableNames));
       database.exec(addSessionNavigationMigration(tableNames));
       database.exec(addSessionMetadataMigration(tableNames));
+      database.exec(sessionMemoryMigration(tableNames));
       database
         .prepare(
           `INSERT INTO ${quoteSqliteIdentifier(tableNames.schema)} (component, version) VALUES (?, ?)`
         )
         .run(SESSION_SCHEMA_COMPONENT, CURRENT_SESSION_SCHEMA_VERSION);
+    });
+  } else if (version === 4) {
+    runImmediateTransaction(database, () => {
+      database.exec(sessionMemoryMigration(tableNames));
+      database
+        .prepare(
+          `UPDATE ${quoteSqliteIdentifier(tableNames.schema)} SET version = ? WHERE component = ?`
+        )
+        .run(CURRENT_SESSION_SCHEMA_VERSION, SESSION_SCHEMA_COMPONENT);
     });
   } else {
     assertKnownSchemaVersion(version);
@@ -247,6 +258,15 @@ export function assertSessionSchema(
   assertTableColumns(database, tableNames.turns, TURN_COLUMNS);
   assertTableColumns(database, tableNames.branches, BRANCH_COLUMNS);
   assertTableColumns(database, tableNames.compactions, COMPACTION_COLUMNS);
+  assertTableColumns(database, sessionMemoryTable(tableNames), [
+    'agent_id',
+    'session_id',
+    'kind',
+    'id',
+    'revision',
+    'settled',
+    'value',
+  ]);
   assertSessionListIndex(database, tableNames, 'activity');
   assertSessionListIndex(database, tableNames, 'retirement');
   assertSessionIdentityIndex(database, tableNames);

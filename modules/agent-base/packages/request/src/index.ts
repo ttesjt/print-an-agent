@@ -73,3 +73,8 @@ export type {
   RequestWorkflowOptions,
   RequestWorkflowStateView,
 } from './workflow/types.js';
+export type {
+  RequestContextMemory,
+  RequestMemoryTarget,
+  RequestMemoryRun,
+} from './context-memory/contracts.js';

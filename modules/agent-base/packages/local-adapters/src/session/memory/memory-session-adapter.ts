@@ -1,4 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import {
+  decideMemoryRecord,
+  memoryRecordKey,
+  type SessionMemoryRecordKey,
+  type WriteSessionMemoryRecord,
+  type PublishSessionMemoryNavigation,
+} from '@ta-agent/base-session';
 import { parseAgentId } from '@ta-agent/base-identity';
 import { type ModelMessage } from '@ta-agent/model-invocation-core';
 import {
@@ -158,6 +165,7 @@ export class MemorySessionAdapter
       }
       const timestamp = readMemoryClock(this.#clock);
       const session: StoredMemorySession = {
+        memoryRecords: new Map(),
         lifecycle: { status: 'active' },
         executionRevision: 0,
         executionState: 'ready',
@@ -192,6 +200,8 @@ export class MemorySessionAdapter
   beginTurn(request: BeginSessionTurnRequest): Promise<ActiveSessionTurn> {
     return Promise.resolve().then(() => {
       const session = this.#lifecycle.assertWrite(request);
+      if ([...session.memoryRecords.values()].some((record) => !record.settled))
+        throw new AgentSessionError('SESSION_MEMORY_PENDING', 'Memory coordination is unsettled.');
       if (
         request.navigationRevision !== session.navigationRevision ||
         request.branchId !== session.selectedBranchId
@@ -335,6 +345,53 @@ export class MemorySessionAdapter
     });
   }
 
+  readMemoryRecord(input: SessionMemoryRecordKey) {
+    return Promise.resolve().then(() => {
+      const key = memoryRecordKey(input);
+      return this.#lifecycle.require(key).memoryRecords.get(JSON.stringify([key.kind, key.id]));
+    });
+  }
+
+  listPendingMemoryRecords(ref: SessionReference) {
+    return Promise.resolve().then(() =>
+      [...this.#lifecycle.require(ref).memoryRecords.values()]
+        .filter((r) => !r.settled)
+        .slice(0, 100)
+    );
+  }
+
+  writeMemoryRecord(input: WriteSessionMemoryRecord) {
+    return Promise.resolve().then(() => {
+      const key = memoryRecordKey(input);
+      const session =
+        input.execution === undefined
+          ? this.#lifecycle.require(key)
+          : this.#lifecycle.assertWrite(input);
+      if (
+        input.execution === undefined &&
+        (session.lifecycle.status !== 'active' ||
+          session.executions.size !== 0 ||
+          (session.executionState === 'recovering' && input.expectedRevision === null))
+      )
+        throw new AgentSessionError(
+          'SESSION_BUSY',
+          'Memory coordination requires an idle Session or its execution lease.'
+        );
+      const id = JSON.stringify([key.kind, key.id]);
+      if (
+        key.kind === 'navigation' &&
+        input.expectedRevision === null &&
+        (session.turns.some((turn) => turn.status === 'active') ||
+          [...session.memoryRecords.values()].some((record) => !record.settled))
+      )
+        throw new AgentSessionError('SESSION_BUSY', 'Memory navigation requires an idle Session.');
+      const next = decideMemoryRecord(session.memoryRecords.get(id), input);
+      advanceMemoryExecution(session);
+      session.memoryRecords.set(id, next);
+      return next;
+    });
+  }
+
   inspect(reference: SessionReference): Promise<SessionSnapshot | undefined> {
     return Promise.resolve().then(() => {
       const session = this.#sessions.get(memorySessionKey(reference.agentId, reference.sessionId));
@@ -425,12 +482,83 @@ export class MemorySessionAdapter
   applyNavigation(request: ApplySessionNavigationRequest): Promise<AppliedSessionNavigation> {
     return Promise.resolve().then(() => {
       const session = this.#lifecycle.assertWrite(request);
+      if ([...session.memoryRecords.values()].some((record) => record.kind === 'binding'))
+        throw new AgentSessionError(
+          'SESSION_MEMORY_NOT_CONFIGURED',
+          'Use the Memory-aware navigation coordinator for this Session.'
+        );
       return applyMemorySessionNavigation(
         session,
         request,
         this.#createBranchId,
         readMemoryClock(this.#clock)
       );
+    });
+  }
+
+  publishMemoryNavigation(
+    input: PublishSessionMemoryNavigation
+  ): Promise<AppliedSessionNavigation> {
+    return Promise.resolve().then(() => {
+      const session =
+        input.execution === undefined
+          ? this.#lifecycle.require(input)
+          : this.#lifecycle.assertWrite(input);
+      if (
+        session.lifecycle.status !== 'active' ||
+        (input.execution === undefined && session.executions.size !== 0) ||
+        session.turns.some((turn) => turn.status === 'active')
+      )
+        throw new AgentSessionError('SESSION_BUSY', 'Memory navigation requires an idle Session.');
+      const key = JSON.stringify(['navigation', input.intentId]);
+      const intent = session.memoryRecords.get(key);
+      if (
+        intent === undefined ||
+        intent.settled ||
+        intent.revision !== input.expectedIntentRevision
+      )
+        throw new AgentSessionError('SESSION_MEMORY_CONFLICT', 'Memory navigation intent changed.');
+      const rollback = structuredClone(session);
+      try {
+        const applied = applyMemorySessionNavigation(
+          session,
+          input,
+          this.#createBranchId,
+          readMemoryClock(this.#clock)
+        );
+        if (input.binding !== undefined) {
+          if (input.binding.id !== applied.affectedBranchId)
+            throw new AgentSessionError('SESSION_MEMORY_INVALID', 'Memory binding branch differs.');
+          const bindingKey = JSON.stringify(['binding', input.binding.id]);
+          session.memoryRecords.set(
+            bindingKey,
+            decideMemoryRecord(session.memoryRecords.get(bindingKey), {
+              ...input,
+              kind: 'binding',
+              id: input.binding.id,
+              value: input.binding.value,
+              expectedRevision: null,
+              settled: true,
+            })
+          );
+        }
+        session.memoryRecords.set(
+          key,
+          decideMemoryRecord(intent, {
+            ...input,
+            kind: 'navigation',
+            id: input.intentId,
+            expectedRevision: intent.revision,
+            settled: true,
+            value: JSON.stringify({ ...(JSON.parse(intent.value) as object), applied }),
+          })
+        );
+        advanceMemoryExecution(session);
+        return applied;
+      } catch (cause) {
+        this.#sessions.set(memorySessionKey(session.agentId, session.sessionId), rollback);
+        throw cause;
+      }
     });
   }
 

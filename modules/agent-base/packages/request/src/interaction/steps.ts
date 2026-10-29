@@ -165,6 +165,7 @@ async function deliverStreamDelta(
 }
 
 async function completeAssistantMessage(context: DefaultRequestWorkflowContext): Promise<void> {
+  await context.state.contextMemory?.settle();
   const event = requireInteractionEvent(context, 'assistant-complete');
   const request = {
     ...requireValue(context.state.session, 'session'),

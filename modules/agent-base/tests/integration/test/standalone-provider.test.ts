@@ -122,6 +122,7 @@ describe('public standalone provider consumer', () => {
       'consumer_requests',
       'consumer_session_meta',
       'consumer_sessions',
+      'consumer_sessions_memory',
       'consumer_turns',
     ]);
   });

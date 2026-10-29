@@ -252,6 +252,7 @@ export function recoverManagedSession<TNamespaceHandle>(
     definition,
     request.agentId,
     signal,
-    (ports) => ports.maintenance.recoverSessionPersistence(request)
+    (ports) =>
+      ports.maintenance.recoverSessionPersistence(request, signal === undefined ? {} : { signal })
   );
 }

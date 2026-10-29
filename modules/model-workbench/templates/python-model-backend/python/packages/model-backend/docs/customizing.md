@@ -30,8 +30,8 @@ untrusted boundary.
 The Workbench host owns the matching Model Capability definition. Its schemas correspond to Python
 code as follows:
 
-| Capability     | TypeScript Contract                                           | Python boundary                              |
-| -------------- | ------------------------------------------------------------- | -------------------------------------------- |
+| Capability     | TypeScript Contract                                           | Python boundary                                        |
+| -------------- | ------------------------------------------------------------- | ------------------------------------------------------ |
 | Initialization | `InitializationInputSchema`, `InitializationResultDataSchema` | `composition/capabilities/initialization/contracts.py` |
 | Training       | `TrainingInputSchema`, `TrainingResultDataSchema`             | `composition/capabilities/training/contracts.py`       |
 | Export         | `ExportInputSchema`, `ExportResultDataSchema`                 | `composition/capabilities/export/contracts.py`         |

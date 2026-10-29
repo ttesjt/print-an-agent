@@ -39,6 +39,7 @@ import type {
 } from './provider-contracts.js';
 
 export interface ComposeAgentOptions {
+  readonly contextMemory?: import('@ta-agent/base-request').RequestContextMemory;
   readonly identity: AgentIdentityInput;
   readonly actorCatalog: ActorCatalogPort;
   readonly responsibilityCatalog: ResponsibilityCatalogPort;

@@ -5,7 +5,7 @@ export {
   encodeStandaloneAgentManifest,
   STANDALONE_AGENT_CONFIG_CODEC,
 } from './config.js';
-export { createStandaloneAgent } from './create-standalone-agent.js';
+export { createStandaloneAgent, openStandaloneAgent } from './create-standalone-agent.js';
 export { createStandaloneProviderService } from './services/provider-service.js';
 export type { StandaloneProviderService } from './services/provider-service.js';
 export type { StandaloneAgentManagementService } from './services/management-service.js';
@@ -79,4 +79,7 @@ export type {
   MemoryTextCounter,
 } from './resources/agent-memory/contracts.js';
 export { DEFAULT_MEMORY_MEASUREMENT_REF } from './resources/agent-memory/recipe.js';
-export type { MemoryManagedStandaloneDefinition } from './resources/agent-memory/setup.js';
+export type {
+  MemoryManagedStandaloneDefinition,
+  StandaloneSessionContextMemory,
+} from './resources/agent-memory/setup.js';

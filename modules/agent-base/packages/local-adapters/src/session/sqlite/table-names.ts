@@ -129,6 +129,8 @@ export function resolveSqliteSessionTableNames(
     compactionStagingTable,
     activityIndex,
     retirementIndex,
+    `${tableNames.sessions}_memory`,
+    `${tableNames.sessions}_mem_idx`,
   ]);
   return tableNames;
 }

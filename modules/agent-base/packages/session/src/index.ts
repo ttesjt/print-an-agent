@@ -12,6 +12,12 @@ export {
   parseTurnId,
 } from './identifiers.js';
 export type * from './types.js';
+export type * from './context-memory/contracts.js';
+export {
+  supportsSessionMemory,
+  supportsSessionMemoryNavigation,
+} from './context-memory/contracts.js';
+export { memoryRecordKey, decideMemoryRecord } from './context-memory/validation.js';
 export type * from './lifecycle/contracts.js';
 export type * from './lifecycle/execution.js';
 export { supportsSessionExecution } from './lifecycle/execution.js';

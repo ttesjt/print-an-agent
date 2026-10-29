@@ -23,6 +23,7 @@ import {
   type RecoverSessionExecutionsInput,
 } from '@ta-agent/base-session';
 import { readClock, runImmediateTransaction } from './database.js';
+import { sessionMemoryTable } from './session-memory-storage.js';
 import { requireString } from './session-record-codec.js';
 import { quoteSqliteIdentifier as quote, type SqliteSessionTableNames } from './table-names.js';
 
@@ -36,7 +37,8 @@ export function readSqliteLifecycle(
       `SELECT lifecycle_status, retired_at, metadata_revision, metadata_updated_at,
     execution_revision, execution_state, execution_leases,
     (SELECT count(*) FROM ${quote(names.turns)} t WHERE t.agent_id = s.agent_id
-      AND t.session_id = s.session_id AND t.status = 'active') AS pending
+      AND t.session_id = s.session_id AND t.status = 'active') +
+    (SELECT count(*) FROM ${quote(sessionMemoryTable(names))} m WHERE m.agent_id=s.agent_id AND m.session_id=s.session_id AND m.settled=0) AS pending
     FROM ${quote(names.sessions)} s WHERE agent_id = ? AND session_id = ?`
     )
     .get(ref.agentId, ref.sessionId);
@@ -216,6 +218,16 @@ export function recoverSqliteSession(
     ).run(request.agentId, request.sessionId);
     db.exec('SAVEPOINT session_recovery_work');
     try {
+      const pendingMemory = db
+        .prepare(
+          `SELECT 1 FROM ${quote(sessionMemoryTable(names))} WHERE agent_id=? AND session_id=? AND settled=0 LIMIT 1`
+        )
+        .get(request.agentId, request.sessionId);
+      if (pendingMemory !== undefined)
+        throw new AgentSessionError(
+          'SESSION_MEMORY_PENDING',
+          'Memory coordination must be recovered before Session recovery can finish.'
+        );
       const now = readClock(clock);
       db.prepare(
         `UPDATE ${quote(names.turns)} SET status = 'failed', failure_code = 'SESSION_EXECUTION_INTERRUPTED',

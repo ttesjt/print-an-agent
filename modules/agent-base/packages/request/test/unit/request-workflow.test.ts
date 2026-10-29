@@ -101,6 +101,7 @@ describe('Request Workflow skeleton', () => {
       'resolveInstructions',
       'loadSessionContext',
       'gatherExternalContext',
+      'loadContextMemory',
       'buildTools',
       'buildModelContext',
       'executeRequest',
@@ -231,6 +232,7 @@ describe('Request Workflow skeleton', () => {
       if (
         stepName === 'resolveRequestReplay' ||
         stepName === 'gatherExternalContext' ||
+        stepName === 'loadContextMemory' ||
         stepName === 'deliverReasoningDelta' ||
         stepName === 'captureReasoningPresentation' ||
         stepName === 'buildTurnPresentation'

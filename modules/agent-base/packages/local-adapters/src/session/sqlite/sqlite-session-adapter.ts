@@ -1,4 +1,15 @@
 import { randomUUID } from 'node:crypto';
+import type {
+  SessionMemoryRecordKey,
+  WriteSessionMemoryRecord,
+  PublishSessionMemoryNavigation,
+} from '@ta-agent/base-session';
+import {
+  readSessionMemoryRecord,
+  writeSessionMemoryRecord,
+  pendingSessionMemoryRecords,
+  sessionHasMemoryBindings,
+} from './session-memory-storage.js';
 import { parseAgentId } from '@ta-agent/base-identity';
 import type { DatabaseSync } from 'node:sqlite';
 import type { ModelMessage } from '@ta-agent/model-invocation-core';
@@ -177,14 +188,19 @@ export class SqliteSessionAdapter
 
   beginTurn(request: BeginSessionTurnRequest): Promise<ActiveSessionTurn> {
     return Promise.resolve().then(() =>
-      this.#write(request, 'begin turn', (database) =>
-        beginSqliteSessionTurn(
+      this.#write(request, 'begin turn', (database) => {
+        if (pendingSessionMemoryRecords(database, request, this.#tableNames).length !== 0)
+          throw new AgentSessionError(
+            'SESSION_MEMORY_PENDING',
+            'Memory coordination is unsettled.'
+          );
+        return beginSqliteSessionTurn(
           database,
           normalizeResolvedReference(request),
           this.#clock,
           this.#tableNames
-        )
-      )
+        );
+      })
     );
   }
 
@@ -385,15 +401,20 @@ export class SqliteSessionAdapter
 
   applyNavigation(request: ApplySessionNavigationRequest): Promise<AppliedSessionNavigation> {
     return Promise.resolve().then(() =>
-      this.#write(request, 'apply navigation', (database) =>
-        applySqliteSessionNavigation(
+      this.#write(request, 'apply navigation', (database) => {
+        if (sessionHasMemoryBindings(database, request, this.#tableNames))
+          throw new AgentSessionError(
+            'SESSION_MEMORY_NOT_CONFIGURED',
+            'Use the Memory-aware navigation coordinator for this Session.'
+          );
+        return applySqliteSessionNavigation(
           database,
           normalizeNavigationRequest(request),
           this.#createBranchId,
           this.#clock,
           this.#tableNames
-        )
-      )
+        );
+      })
     );
   }
 
@@ -418,6 +439,138 @@ export class SqliteSessionAdapter
         commitSqliteSessionCompaction(database, normalized, this.#clock, this.#tableNames)
       );
     });
+  }
+
+  readMemoryRecord(key: SessionMemoryRecordKey) {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('read Memory coordination', (db) => {
+        readSqliteLifecycle(db, key, this.#tableNames);
+        return readSessionMemoryRecord(db, key, this.#tableNames);
+      })
+    );
+  }
+
+  listPendingMemoryRecords(ref: SessionReference) {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('read pending Memory coordination', (db) => {
+        readSqliteLifecycle(db, ref, this.#tableNames);
+        return pendingSessionMemoryRecords(db, ref, this.#tableNames);
+      })
+    );
+  }
+
+  writeMemoryRecord(input: WriteSessionMemoryRecord) {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('write Memory coordination', (db) =>
+        runImmediateTransaction(db, () => {
+          if (input.execution !== undefined) assertSqliteSessionWrite(db, input, this.#tableNames);
+          else {
+            const { snapshot, fence } = readSqliteLifecycle(db, input, this.#tableNames);
+            if (
+              snapshot.status !== 'active' ||
+              fence.activeLeaseCount !== 0 ||
+              (fence.state === 'recovering' && input.expectedRevision === null)
+            )
+              throw new AgentSessionError(
+                'SESSION_BUSY',
+                'Memory coordination requires an idle Session or its execution lease.'
+              );
+          }
+          if (input.kind === 'navigation' && input.expectedRevision === null) {
+            const snapshot = loadSqliteSessionSnapshot(db, input, this.#tableNames);
+            if (
+              snapshot?.turns.some((turn) => turn.status === 'active') ||
+              pendingSessionMemoryRecords(db, input, this.#tableNames).length !== 0
+            )
+              throw new AgentSessionError(
+                'SESSION_BUSY',
+                'Memory navigation requires an idle Session.'
+              );
+          }
+          const result = writeSessionMemoryRecord(db, input, this.#tableNames);
+          advanceSqliteExecution(db, input, this.#tableNames);
+          return result;
+        })
+      )
+    );
+  }
+
+  publishMemoryNavigation(
+    input: PublishSessionMemoryNavigation
+  ): Promise<AppliedSessionNavigation> {
+    return Promise.resolve().then(() =>
+      this.#useDatabase('publish Memory navigation', (db) =>
+        runImmediateTransaction(db, () => {
+          if (input.execution !== undefined) assertSqliteSessionWrite(db, input, this.#tableNames);
+          const { snapshot, fence } = readSqliteLifecycle(db, input, this.#tableNames);
+          if (
+            snapshot.status !== 'active' ||
+            (input.execution === undefined && fence.activeLeaseCount !== 0) ||
+            loadSqliteSessionSnapshot(db, input, this.#tableNames)?.turns.some(
+              (turn) => turn.status === 'active'
+            )
+          )
+            throw new AgentSessionError(
+              'SESSION_BUSY',
+              'Memory navigation requires an idle Session.'
+            );
+          const intent = readSessionMemoryRecord(
+            db,
+            { ...input, kind: 'navigation', id: input.intentId },
+            this.#tableNames
+          );
+          if (
+            intent === undefined ||
+            intent.settled ||
+            intent.revision !== input.expectedIntentRevision
+          )
+            throw new AgentSessionError(
+              'SESSION_MEMORY_CONFLICT',
+              'Memory navigation intent changed.'
+            );
+          const applied = applySqliteSessionNavigation(
+            db,
+            normalizeNavigationRequest(input),
+            this.#createBranchId,
+            this.#clock,
+            this.#tableNames
+          );
+          if (input.binding !== undefined) {
+            if (input.binding.id !== applied.affectedBranchId)
+              throw new AgentSessionError(
+                'SESSION_MEMORY_INVALID',
+                'Memory binding branch differs.'
+              );
+            writeSessionMemoryRecord(
+              db,
+              {
+                ...input,
+                kind: 'binding',
+                id: input.binding.id,
+                value: input.binding.value,
+                expectedRevision: null,
+                settled: true,
+              },
+              this.#tableNames
+            );
+          }
+          writeSessionMemoryRecord(
+            db,
+            {
+              ...input,
+              kind: 'navigation',
+              id: input.intentId,
+              expectedRevision: intent.revision,
+              settled: true,
+              value: JSON.stringify({ ...(JSON.parse(intent.value) as object), applied }),
+            },
+            this.#tableNames
+          );
+          advanceSqliteExecution(db, input, this.#tableNames);
+          return applied;
+        })
+      )
+    );
   }
 
   #write<T>(

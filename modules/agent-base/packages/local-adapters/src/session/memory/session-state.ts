@@ -33,6 +33,7 @@ export interface StoredMemoryBranch {
 }
 
 export interface StoredMemorySession {
+  readonly memoryRecords: Map<string, import('@ta-agent/base-session').SessionMemoryRecord>;
   lifecycle: SessionLifecycleState;
   executionRevision: number;
   executionState: 'ready' | 'recovering';

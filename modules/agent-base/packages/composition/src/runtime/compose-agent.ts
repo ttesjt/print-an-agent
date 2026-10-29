@@ -130,6 +130,7 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     mainActorId,
   });
   const resources = Object.freeze({
+    ...(options.contextMemory === undefined ? {} : { contextMemory: options.contextMemory }),
     session,
     requestJournal,
     responsibilities: responsibilityRouter,

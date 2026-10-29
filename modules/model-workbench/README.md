@@ -136,5 +136,5 @@ Workbench control plane.
 The reference backend uses a tiny Transformer to qualify real training on CPU, while remaining
 device-aware for explicitly configured CUDA or MPS deployments.
 
-This module must not import Agent Base or application runtimes. Its TypeScript APIs must remain usable
+This module must not import Agent Base or product runtimes. Its TypeScript APIs must remain usable
 without either module, a database, Python, a model framework, or a process runner.

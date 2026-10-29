@@ -73,7 +73,7 @@ function expectCompositionError(run: () => unknown, code: AgentCompositionError[
 
 describe('Agent composition extensions', () => {
   it('constructs one Agent with standard and typed product behavior', async () => {
-    const service = Object.freeze({ label: 'application' });
+    const service = Object.freeze({ label: 'self-learn' });
     let observedStandardDefinition: StandardAgentDefinition | undefined;
     const agent = composeAgentWithExtensions(createOptions(), (standard) => {
       observedStandardDefinition = standard;
@@ -126,21 +126,21 @@ describe('Agent composition extensions', () => {
         ): ProductRunContext => ({ ...base, service: base.resources.service }),
       });
       return Object.freeze({
-        resources: Object.freeze({ application: service }),
+        resources: Object.freeze({ selfLearn: service }),
         operations: Object.freeze({ inspectProduct }),
       });
     });
 
     expect(observedStandardDefinition).toBeDefined();
     expect(agent.operations.foreground).toBe(observedStandardDefinition?.operations.foreground);
-    expect(agent.resources.application).toBe(service);
+    expect(agent.resources.selfLearn).toBe(service);
     expect(agent.operationNames).toEqual([
       FOREGROUND_AGENT_OPERATION_NAME,
       SESSION_COMPACTION_AGENT_OPERATION_NAME,
       'inspectProduct',
     ]);
     expect(agent.workflowCatalog.names).toContain('inspectProduct');
-    await expect(agent.invoke('inspectProduct', 'ready')).resolves.toBe('application:ready');
+    await expect(agent.invoke('inspectProduct', 'ready')).resolves.toBe('self-learn:ready');
   });
 
   it('rejects attempts to replace a standard resource', () => {

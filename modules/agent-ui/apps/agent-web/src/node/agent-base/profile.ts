@@ -13,6 +13,9 @@ import {
   AgentManagementError,
   type ContextMemoryManagementCapability,
   type RetrievalMemoryManagementCapability,
+  type SessionContextMemoryCoordinator,
+  CONTEXT_MEMORY_TOOL_NAMES,
+  recoverSessionWithContextMemory,
 } from '@ta-agent/base-composition';
 import {
   createActorCatalog,
@@ -30,7 +33,9 @@ import {
 import {
   createStandaloneMemorySetup,
   createStandaloneDirectorySetup,
+  type StandaloneSessionContextMemory,
 } from '@ta-agent/base-standalone-agent';
+import { supportsSessionMemoryNavigation, supportsSessionExecution } from '@ta-agent/base-session';
 import type { AgentId } from '@ta-agent/base-identity';
 import type { ToolRegistry } from '@ta-agent/base-tool';
 import type { AgentWebConfig } from '../../application/agent-config.js';
@@ -74,7 +79,8 @@ export function createWebBackendServices(options: WebBackendOptions) {
         (namespace) =>
           createSqliteSessionPersistence({ databasePath: namespace.handle.databasePath }),
         options,
-        profile
+        profile,
+        setup.sessionContextMemory
       ),
       close: () => setup.close(),
     });
@@ -98,7 +104,8 @@ export function createWebBackendServices(options: WebBackendOptions) {
         return scoped;
       },
       options,
-      profile
+      profile,
+      setup.sessionContextMemory
     ),
     close: async () => {
       await setup.close();
@@ -114,15 +121,44 @@ function assembleServices<Handle>(
   options: WebBackendOptions,
   memory: Partial<
     ContextMemoryManagementCapability<Handle> & RetrievalMemoryManagementCapability<Handle>
-  >
+  >,
+  runtimeMemory?: StandaloneSessionContextMemory
 ) {
   const toolNames = options.tools?.list().map((tool) => tool.name) ?? [];
+  type RuntimePorts = CoordinatedSessionPersistence & {
+    readonly contextMemory?: SessionContextMemoryCoordinator;
+    readonly memoryToolNames?: readonly string[];
+  };
+  const enabled = (agentId: string) =>
+    options.memory?.provisioning.context?.runtime !== undefined &&
+    (options.memory.provisioning.context.runtime.enabled?.(agentId) ?? true);
+  const attachMemory = async (
+    scoped: ManagedAgentNamespace<Handle>,
+    ports: CoordinatedSessionPersistence
+  ): Promise<RuntimePorts> => {
+    if (!enabled(scoped.agentId)) return ports;
+    if (
+      runtimeMemory === undefined ||
+      !supportsSessionMemoryNavigation(ports.session) ||
+      !supportsSessionExecution(ports.session)
+    )
+      throw new Error('Runtime Context Memory requires explicit history and Session provisioning.');
+    const policy = options.memory?.provisioning.context?.runtime;
+    return {
+      ...ports,
+      contextMemory: await runtimeMemory.bind(scoped.agentId, ports.session),
+      memoryToolNames:
+        policy?.toolAllowList ??
+        (policy?.writable === true ? CONTEXT_MEMORY_TOOL_NAMES : ['read_context_memory']),
+    };
+  };
   const materialize = ({
     identity,
     config,
     ports,
-  }: ManagedAgentRuntimeMaterializationInput<AgentWebConfig, CoordinatedSessionPersistence>) => {
+  }: ManagedAgentRuntimeMaterializationInput<AgentWebConfig, RuntimePorts>) => {
     const { engine } = createWebModelRuntime(config, options);
+    const allowedTools = [...toolNames, ...(ports.memoryToolNames ?? [])];
     return composeAgent({
       identity,
       actorCatalog: createActorCatalog({
@@ -134,29 +170,31 @@ function assembleServices<Handle>(
             instructions: webActorInstructions(config),
             invocationConfig: actorInvocation(config),
             invocationPolicy: { timeoutMilliseconds: config.execution.actorTimeoutMilliseconds },
-            allowedTools: toolNames,
+            allowedTools,
           },
         ],
       }),
       responsibilityCatalog: createResponsibilityCatalog({
         responsibilities: BUILT_IN_RESPONSIBILITIES.map((definition) => ({
           ...definition,
-          allowedTools: definition.id === FOREGROUND_INTERACTION_RESPONSIBILITY_ID ? toolNames : [],
+          allowedTools:
+            definition.id === FOREGROUND_INTERACTION_RESPONSIBILITY_ID ? allowedTools : [],
         })),
       }),
       session: ports.session,
       requestJournal: ports.requestJournal,
+      ...(ports.contextMemory === undefined ? {} : { contextMemory: ports.contextMemory }),
       stepOverrides: presentationStepOverrides(),
       requestPolicy: {
         ...DEFAULT_REQUEST_POLICY,
         timeoutMilliseconds: config.execution.requestTimeoutMilliseconds,
       },
-      ...(options.tools === undefined
+      ...(options.tools === undefined && ports.contextMemory === undefined
         ? {}
         : {
-            toolRegistry: options.tools,
-            productToolAllowList: toolNames,
-            runtimeToolAllowList: toolNames,
+            ...(options.tools === undefined ? {} : { toolRegistry: options.tools }),
+            productToolAllowList: allowedTools,
+            runtimeToolAllowList: allowedTools,
           }),
     });
   };
@@ -173,16 +211,56 @@ function assembleServices<Handle>(
     runtime: {
       createPorts: ({
         namespace: scoped,
-      }: ManagedAgentRuntimeProvisioningInput<AgentWebConfig, Handle>) => persistence(scoped),
+      }: ManagedAgentRuntimeProvisioningInput<AgentWebConfig, Handle>) =>
+        attachMemory(scoped, persistence(scoped)),
       materialize,
     },
     sessionManagement: {
-      createPorts: (scoped: ManagedAgentNamespace<Handle>) => persistence(scoped),
+      createPorts: (scoped: ManagedAgentNamespace<Handle>) => {
+        const ports = persistence(scoped);
+        if (!enabled(scoped.agentId)) return ports;
+        return {
+          ...ports,
+          maintenance: {
+            purgeSessionPersistence: ports.maintenance.purgeSessionPersistence.bind(
+              ports.maintenance
+            ),
+            recoverSessionPersistence: async (
+              request: import('@ta-agent/base-session').RecoverSessionExecutionsInput,
+              call?: import('@ta-agent/base-composition').ManagementOperationOptions
+            ) => {
+              if (!supportsSessionMemoryNavigation(ports.session))
+                throw new Error('Session Memory recovery is not installed.');
+              return recoverSessionWithContextMemory(
+                {
+                  session: ports.session,
+                  maintenance: ports.maintenance,
+                  resolveMemory: async () => {
+                    const bound = await attachMemory(scoped, ports);
+                    if (bound.contextMemory === undefined)
+                      throw new Error('Session Memory recovery is disabled.');
+                    return bound.contextMemory;
+                  },
+                },
+                request,
+                call
+              );
+            },
+          },
+        };
+      },
     },
     sessionNavigation: {
-      createPorts: (scoped: ManagedAgentNamespace<Handle>) => ({
-        session: persistence(scoped).session,
-      }),
+      createPorts: async (scoped: ManagedAgentNamespace<Handle>) => {
+        const ports = await attachMemory(scoped, persistence(scoped));
+        if (ports.contextMemory === undefined) return { session: ports.session };
+        if (
+          !supportsSessionMemoryNavigation(ports.session) ||
+          !supportsSessionExecution(ports.session)
+        )
+          throw new Error('Session Memory navigation is not installed.');
+        return { session: ports.contextMemory.navigationPort(ports.session) };
+      },
     },
   });
   const sessionFor = async (agentId: AgentId) => {

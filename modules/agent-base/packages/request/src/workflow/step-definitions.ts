@@ -12,6 +12,7 @@ const PREPARE_REQUEST_STEPS = Object.freeze([
   'resolveInstructions',
   'loadSessionContext',
   'gatherExternalContext',
+  'loadContextMemory',
   'buildTools',
   'buildModelContext',
 ] as const satisfies readonly RequestStepName[]);
@@ -115,6 +116,11 @@ export function createRequestStepDefinitions<WC extends RequestWorkflowContext>(
     },
     gatherExternalContext: {
       step: createPlaceholderStep<WC>('gatherExternalContext'),
+      cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
+      skippable: true,
+    },
+    loadContextMemory: {
+      step: createPlaceholderStep<WC>('loadContextMemory'),
       cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: true,
     },

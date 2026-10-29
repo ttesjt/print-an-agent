@@ -63,6 +63,8 @@ export type MutatingSessionNavigationCommand = Exclude<
 
 export interface ApplySessionNavigationRequest extends SessionReference, SessionWriteAuthority {
   readonly command: MutatingSessionNavigationCommand;
+  /** Per-call cancellation, never persisted as part of the command. */
+  readonly signal?: AbortSignal;
 }
 
 export interface AppliedSessionNavigation {

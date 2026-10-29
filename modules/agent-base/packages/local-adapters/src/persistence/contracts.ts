@@ -9,6 +9,7 @@ import type {
   PurgeSessionInput,
   RecoverSessionExecutionsInput,
   SessionExecutionFence,
+  SessionMemoryNavigationPort,
 } from '@ta-agent/base-session';
 
 export type LocalLifecycleSessionPort = NavigableCompactableSessionPort &
@@ -16,7 +17,8 @@ export type LocalLifecycleSessionPort = NavigableCompactableSessionPort &
   SessionPresentationPort &
   SessionLifecycleQueryPort &
   SessionLifecyclePort &
-  SessionExecutionPort;
+  SessionExecutionPort &
+  Partial<SessionMemoryNavigationPort>;
 
 /** Explicit Session + Request Journal scope; not substitutable for Session-only domain ports. */
 export interface CoordinatedSessionMaintenance {

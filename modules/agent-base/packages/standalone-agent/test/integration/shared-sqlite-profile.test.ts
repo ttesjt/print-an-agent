@@ -241,6 +241,7 @@ describe('shared SQLite Standalone profile', () => {
         'sl_requests',
         'sl_session_meta',
         'sl_sessions',
+        'sl_sessions_memory',
         'sl_turns',
       ]);
     });

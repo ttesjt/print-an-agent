@@ -21,7 +21,10 @@ import type {
 /** Explicit Session + Request Journal maintenance; never a Session-only success claim. */
 export interface CoordinatedSessionMaintenancePort {
   purgeSessionPersistence(input: PurgeSessionInput): Promise<void>;
-  recoverSessionPersistence(input: RecoverSessionExecutionsInput): Promise<SessionExecutionFence>;
+  recoverSessionPersistence(
+    input: RecoverSessionExecutionsInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionExecutionFence>;
 }
 
 /** The exact out-of-band capabilities required by the standard Session management Service. */

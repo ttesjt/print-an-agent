@@ -2,7 +2,7 @@
 
 ## Dependency direction
 
-Reusable Agent UI packages are independent of Agent Base, Model Workbench, and application runtimes.
+Reusable Agent UI packages are independent of Agent Base, Model Workbench, and product runtimes.
 They express the UI capabilities they consume through module-owned ports. A concrete application
 implements those ports at its composition boundary.
 

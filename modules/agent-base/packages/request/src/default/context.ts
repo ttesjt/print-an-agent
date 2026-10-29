@@ -19,6 +19,7 @@ import type { BaseAgentRunContext } from '@ta-agent/base-runtime';
 import type { WorkflowContext } from '@ta-agent/workflow-core';
 import type { RequestStepName } from '../workflow/names.js';
 import type { RequestInteractionState } from '../interaction/state.js';
+import type { RequestContextMemory, RequestMemoryRun } from '../context-memory/contracts.js';
 import type { CapturedReasoningPresentation } from '../interaction/presentation.js';
 import type {
   AgentRequestInput,
@@ -35,6 +36,7 @@ import type {
 } from '../replay/contracts.js';
 
 export interface RequestRuntimeResources {
+  readonly contextMemory?: RequestContextMemory;
   readonly session: SessionPort;
   readonly requestJournal: RequestJournalPort;
   readonly responsibilities: ResponsibilityRouter;
@@ -58,6 +60,7 @@ export type DefaultRequestWorkflowContext = WorkflowContext<
 >;
 
 export interface RequestWorkflowState {
+  contextMemory?: RequestMemoryRun;
   request?: ValidatedAgentRequest;
   session?: ResolvedSessionReference & SessionWriteAuthority;
   /** True only after all owned persistent work and output finalization settled successfully. */

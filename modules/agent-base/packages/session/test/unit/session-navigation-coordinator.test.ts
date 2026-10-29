@@ -179,12 +179,17 @@ describe('Session navigation domain coordinator', () => {
         releaseSessionExecution: release,
       });
 
+      const signal = new AbortController().signal;
+
       await expect(
-        executeSessionNavigation({
-          agentId,
-          navigation: { sessionId, ...command },
-          session,
-        })
+        executeSessionNavigation(
+          {
+            agentId,
+            navigation: { sessionId, ...command },
+            session,
+          },
+          { signal }
+        )
       ).resolves.toEqual({
         status: operation === 'fork' ? 'forked' : 'rewound',
         sessionId,
@@ -199,6 +204,7 @@ describe('Session navigation domain coordinator', () => {
         sessionId,
         execution: lease,
         command,
+        signal,
       });
       expect(release).toHaveBeenCalledExactlyOnceWith(lease);
     }

@@ -2,6 +2,7 @@ import type {
   MemoryMutationResources,
   MemoryWorkflowDefinitions,
   MemoryStore,
+  VersionedMemoryWorkflowDefinitions,
 } from '@ta-agent/context-memory';
 import type {
   RetrievalBackend,
@@ -15,6 +16,7 @@ import type {
   TokenCounter,
 } from '@ta-agent/model-invocation-core';
 import type { ResourceAcquisition } from '@ta-agent/base-composition/resource-registry';
+import type { ContextMemoryToolScope, createContextMemoryTools } from '@ta-agent/base-composition';
 
 export type MemoryTextCounter = TokenCounter<TextTokenInput>;
 export type MemoryCapabilityAcquirer<T> = (
@@ -27,6 +29,17 @@ export interface MemoryStorageAcquisition {
   readonly signal: AbortSignal;
 }
 export interface StandaloneContextMemoryOptions {
+  /** Explicit runtime installation; management installation alone never enables Agent memory. */
+  readonly runtime?: Readonly<{
+    readonly enabled?: (agentId: string) => boolean;
+    readonly writable?: boolean;
+    /** Explicit tool ceiling; custom tool factories must opt in their names here. */
+    readonly toolAllowList?: readonly string[];
+    readonly createTools?: (
+      scope: ContextMemoryToolScope
+    ) => ReturnType<typeof createContextMemoryTools>;
+    readonly workflows?: Partial<VersionedMemoryWorkflowDefinitions>;
+  }>;
   readonly defaults?: MemoryMutationResources['defaults'];
   readonly acquireCounter?: MemoryCapabilityAcquirer<MemoryTextCounter>;
   /** Optional external root. No release means borrowed; a supplied release owns only that acquisition. */

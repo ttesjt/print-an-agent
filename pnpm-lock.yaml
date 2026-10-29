@@ -145,6 +145,9 @@ importers:
         specifier: workspace:*
         version: link:../../../workflow/packages/core
     devDependencies:
+      '@ta-agent/context-memory-sqlite':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/context-memory-sqlite
       '@types/node':
         specifier: 'catalog:'
         version: 24.12.4
@@ -488,6 +491,9 @@ importers:
       '@ta-agent/workflow-bundle':
         specifier: workspace:*
         version: link:../../../workflow/packages/bundle
+      '@ta-agent/workflow-core':
+        specifier: workspace:*
+        version: link:../../../workflow/packages/core
       '@types/node':
         specifier: 'catalog:'
         version: 24.12.4

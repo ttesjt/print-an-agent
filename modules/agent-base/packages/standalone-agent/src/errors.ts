@@ -5,6 +5,7 @@ export type AgentBaseStandaloneErrorCode =
   | 'STANDALONE_AGENT_NOT_FOUND'
   | 'STANDALONE_AGENT_DISABLED'
   | 'STANDALONE_AGENT_STORAGE_INVALID'
+  | 'STANDALONE_MEMORY_BUSY'
   | 'STANDALONE_AGENT_STORAGE_FAILED';
 
 export class AgentBaseStandaloneError extends Error {

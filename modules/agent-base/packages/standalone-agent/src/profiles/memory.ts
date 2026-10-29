@@ -18,7 +18,10 @@ import { assertStandaloneRuntimeOptions } from '../runtime-policies.js';
 import { AgentBaseStandaloneError } from '../errors.js';
 import type { StandaloneSetup } from './setup.js';
 import { withStandaloneMemoryManagement } from '../resources/agent-memory/setup.js';
-import type { MemoryManagedStandaloneDefinition } from '../resources/agent-memory/setup.js';
+import type {
+  MemoryManagedStandaloneDefinition,
+  StandaloneSessionContextMemory,
+} from '../resources/agent-memory/setup.js';
 import type { StandaloneMemoryManagementOptions } from '../resources/agent-memory/contracts.js';
 import type {
   CreateStandaloneMemoryProfileOptions,
@@ -37,6 +40,7 @@ export type StandaloneMemoryDefinition = SessionManagedAgentCompositionDefinitio
 
 export interface StandaloneMemorySetup extends StandaloneSetup<MemoryAgentResourceNamespace> {
   readonly definition: MemoryManagedStandaloneDefinition<MemoryAgentResourceNamespace>;
+  readonly sessionContextMemory?: StandaloneSessionContextMemory;
 }
 
 /** The caller retains this setup for the entire lifetime of its Services and raw Agents. */

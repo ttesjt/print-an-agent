@@ -1,7 +1,9 @@
 import { createServer } from 'node:http';
 
 /** Deterministic wire fixture: official provider composition still runs the real Pi parser. */
-export async function compactionServer(outputs: readonly string[]) {
+export async function compactionServer(
+  outputs: readonly (string | Readonly<{ name: string; callId: string; arguments: unknown }>)[]
+) {
   const requests: unknown[] = [];
   const server = createServer((request, response) => {
     void (async () => {
@@ -24,8 +26,28 @@ export async function compactionServer(outputs: readonly string[]) {
           model: 'fixture',
           choices: [{ index: 0, delta, finish_reason: finishReason }],
         })}\n\n`;
-      response.write(packet({ role: 'assistant', content: text }, null));
-      response.end(packet({}, 'stop') + 'data: [DONE]\n\n');
+      if (typeof text === 'string') {
+        response.write(packet({ role: 'assistant', content: text }, null));
+        response.end(packet({}, 'stop') + 'data: [DONE]\n\n');
+      } else {
+        response.write(
+          packet(
+            {
+              role: 'assistant',
+              tool_calls: [
+                {
+                  index: 0,
+                  id: text.callId,
+                  type: 'function',
+                  function: { name: text.name, arguments: JSON.stringify(text.arguments) },
+                },
+              ],
+            },
+            null
+          )
+        );
+        response.end(packet({}, 'tool_calls') + 'data: [DONE]\n\n');
+      }
     })().catch(() => response.destroy());
   });
   await new Promise<void>((resolve, reject) => {

@@ -217,6 +217,7 @@ export async function commitSessionNavigationState(
     agentId: state.agentId,
     sessionId,
     command,
+    signal,
     ...(state.execution === undefined ? {} : { execution: state.execution }),
   });
   const result = Object.freeze({

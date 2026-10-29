@@ -13,7 +13,7 @@ See the [Retrieval Memory guide](./packages/retrieval-memory/README.md) and its
 `@ta-agent/context-memory` provides JSON documents, typed ports, validated mutations and eight native
 Workflow/Bundle entries. Model-driven observation, editing and compaction use borrowed Model
 Invocation capabilities; the deterministic profile requires no model. It does not depend on Agent
-Base, Workbench, application runtimes, or a provider. A host maps memory identities to its own application scopes
+Base, Workbench, a product runtime, or a provider. A host maps memory identities to its own application scopes
 and owns borrowed resources. See the [API guide](./packages/context-memory/README.md),
 [composition and recovery guide](./docs/consumption.md) and
 [typechecked host example](./tests/qualification/examples/project-memory.ts).
@@ -31,5 +31,5 @@ pnpm test:memory-qualification
 It uses real SQLite, formal deterministic model fixtures, bundled tokenizers and a localhost HTTP
 embedding fixture; no external model service, credentials or weight download. Localhost listening
 permission is required for the protocol tests. These tests establish contracts and lifecycle
-correctness, not real-model memory quality. Application integration and cross-memory promotion remain
+correctness, not real-model memory quality. Product integration and cross-memory promotion remain
 separate consumer concerns.

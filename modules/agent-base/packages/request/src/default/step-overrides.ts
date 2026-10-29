@@ -87,6 +87,24 @@ function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> 
   return Promise.resolve();
 }
 
+async function loadContextMemory(context: DefaultRequestWorkflowContext): Promise<void> {
+  const capability = context.resources.contextMemory;
+  if (capability === undefined) return;
+  const memory = await capability.open(
+    {
+      session: requireValue(context.state.session, 'session'),
+      turn: requireValue(context.state.turn, 'turn'),
+      requestId: context.input.runId,
+    },
+    context.signal
+  );
+  context.state.contextMemory = memory;
+  context.state.history = Object.freeze([
+    { role: 'context' as const, text: memory.text, timestamp: context.resources.clock() },
+    ...requireValue(context.state.history, 'history'),
+  ]);
+}
+
 async function publishReplayedResponse(context: DefaultRequestWorkflowContext): Promise<void> {
   const request = requireValue(context.state.request, 'request');
   const response = requireValue(context.state.response, 'response');
@@ -274,6 +292,7 @@ export function createDefaultRequestStepOverrides(): StepOverrides<
     resolveInstructions: resolveRequestInstructions,
     loadSessionContext,
     gatherExternalContext: SKIP_STEP,
+    loadContextMemory,
     buildTools,
     buildModelContext: buildInteractionRequest,
     ...createInteractionStepOverrides(),

@@ -106,7 +106,12 @@ is a portable secret-free projection over SQLite authority. The CLI creates and 
 through either explicit `--root` or `--database-path` plus `--agent-id`; `--config` is limited to a
 fresh process-local Memory Session and cannot continue an existing Session. It does not select an
 implicit storage location, load executable adapters or Tools from configuration, persist
-credentials, or import Model Workbench or application runtimes.
+credentials, or import Model Workbench or product runtimes.
+
+Sessionful Request Workflows can optionally consume version-pinned Context Memory with bound tools,
+independent branch documents and durable receipt recovery. This is separate from in-memory storage
+and Session transcript compaction, and remains disabled unless explicitly installed by a Profile.
+See [runtime Context Memory](docs/session-context-memory.md) for installation, ownership and recovery.
 
 `tests/integration` is a private test-only workspace that compiles and executes Agent Base as an
 external package consumer. It imports only package entry points and exercises the raw Agent,

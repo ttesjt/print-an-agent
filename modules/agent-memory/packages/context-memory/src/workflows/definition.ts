@@ -1,5 +1,5 @@
 import type { BundleWorkflowDefinition } from '@ta-agent/workflow-bundle';
-import type { MemoryOperations, MemoryWorkflowResources } from './resources.js';
+import type { MemoryOperations } from './resources.js';
 import { ContextMemoryError } from '../errors.js';
 import { jsonValue } from '../validation/value.js';
 import { memoryLifecycle } from './lifecycle.js';
@@ -9,26 +9,45 @@ export type MemoryStepName = 'runMemoryOperation' | 'prepareInput' | 'executeOpe
 export interface MemoryWorkflowState<I> {
   input?: I;
 }
-export type MemoryDefinition<I, O, K extends keyof MemoryOperations> = BundleWorkflowDefinition<
+export type MemoryDefinition<
+  I,
+  O,
+  K extends keyof Operations,
+  Operations extends object = MemoryOperations,
+> = BundleWorkflowDefinition<
   MemoryStepName,
   I,
   MemoryWorkflowState<I>,
-  MemoryWorkflowResources<K>,
+  { readonly memory: Pick<Operations, K> },
   O
 >;
-export type MemoryWorkflowOptions<I, O, K extends keyof MemoryOperations> = Pick<
-  MemoryDefinition<I, O, K>,
+export type MemoryWorkflowOptions<
+  I,
+  O,
+  K extends keyof Operations,
+  Operations extends object = MemoryOperations,
+> = Pick<
+  MemoryDefinition<I, O, K, Operations>,
   'stepOverrides' | 'condition' | 'executeStep' | 'lifecycle' | 'createRunId'
 >;
 
 /** Core definition only: no second runner, implicit I/O, or global operation state. */
-export function memoryDefinition<I, O, K extends keyof MemoryOperations>(
+export function memoryDefinition<
+  I,
+  O,
+  K extends keyof Operations,
+  Operations extends object = MemoryOperations,
+>(
   name: string,
   initial: () => O,
-  execute: (resources: MemoryWorkflowResources<K>, input: I, signal: AbortSignal) => Promise<O>,
-  options: MemoryWorkflowOptions<I, O, K>,
+  execute: (
+    resources: { readonly memory: Pick<Operations, K> },
+    input: I,
+    signal: AbortSignal
+  ) => Promise<O>,
+  options: MemoryWorkflowOptions<I, O, K, Operations>,
   mutation = false
-): MemoryDefinition<I, O, K> {
+): MemoryDefinition<I, O, K, Operations> {
   return {
     ...options,
     name,

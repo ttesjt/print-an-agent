@@ -1,6 +1,13 @@
 import type { JsonObject, JsonValue, MemoryState } from './document.js';
 
-export type MemoryOperation = 'create' | 'configure' | 'apply' | 'observe' | 'edit' | 'compact';
+export type MemoryOperation =
+  | 'create'
+  | 'fork'
+  | 'configure'
+  | 'apply'
+  | 'observe'
+  | 'edit'
+  | 'compact';
 /** Business identity is distinct from Workflow Run identity and internal attempt counts. */
 export interface MutationRequest {
   readonly memoryId: string;

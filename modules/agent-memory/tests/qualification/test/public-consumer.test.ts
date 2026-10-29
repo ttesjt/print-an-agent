@@ -1,6 +1,10 @@
 import { expect, it } from 'vitest';
 import { Workflow } from '@ta-agent/workflow-core';
-import { MemoryMeter, createMemoryEditDefinition } from '@ta-agent/context-memory';
+import {
+  MemoryMeter,
+  createMemoryEditDefinition,
+  readMemoryVersionContext,
+} from '@ta-agent/context-memory';
 import { createTiktokenTextCounter } from '@ta-agent/model-invocation-token-counters';
 import { consumer, plannerActor, vocabularyCounter } from './support/model.js';
 import { memoryPath, ownedStore } from './support/storage.js';
@@ -74,6 +78,22 @@ it('consumes all eight entries with an official exact counter and reopens withou
   const receipt = await workflows.getReceipt.run({
     input: { memoryId: 'project', requestId: 'observe' },
   });
+  expect(
+    (await store.listVersions({ memoryId: 'project' })).versions.map((ref) => ref.revision)
+  ).toEqual([6, 5, 4, 3, 2, 1]);
+  expect(
+    (await store.readVersion({ memoryId: 'project', revision: 1 }))?.items.map(
+      (item) => item.content
+    )
+  ).toEqual(['Be concise.']);
+  expect(
+    (await store.readVersion({ memoryId: 'project', revision: 2 }))?.items.map(
+      (item) => item.content
+    )
+  ).toEqual(['Be concise.', 'Prefer tea.']);
+  expect(
+    (await store.readVersion({ memoryId: 'project', revision: 5 }))?.config.render.format
+  ).toBe('text');
   expect(client.actor.requests).toHaveLength(3);
   store.close();
   const reopened = consumer(
@@ -91,6 +111,14 @@ it('consumes all eight entries with an official exact counter and reopens withou
     await reopened.bundle.workflows.readContext.run({ input: { memoryId: 'project' } })
   ).toEqual(result);
   expect(reopened.actor.requests).toHaveLength(0);
+  expect(
+    (
+      await readMemoryVersionContext(
+        { store: ownedStore(path), meter: resources.meter },
+        { memoryId: 'project', revision: 1 }
+      )
+    )?.text
+  ).toBe('Be concise.');
 });
 
 it('runs the documented host example repeatedly using borrowed model/counter capabilities', async () => {

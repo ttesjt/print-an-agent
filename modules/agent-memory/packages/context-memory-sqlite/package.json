@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "SQLite current snapshots and atomic idempotent receipts for Context Memory.",
+  "description": "SQLite incremental immutable history, current snapshots and atomic receipts for Context Memory.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

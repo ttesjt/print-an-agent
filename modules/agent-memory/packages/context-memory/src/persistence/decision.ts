@@ -21,7 +21,10 @@ export function parseStoreCommit(value: unknown): StoreCommit {
   const request = parseMutationRequest(input.request);
   const expectedRevision =
     input.expectedRevision === null ? null : integer(input.expectedRevision, 'expectedRevision', 1);
-  if ((request.operation === 'create') !== (expectedRevision === null))
+  if (
+    (request.operation === 'create' || request.operation === 'fork') !==
+    (expectedRevision === null)
+  )
     throw new ContextMemoryError(
       'INPUT_INVALID',
       'Only creation accepts a null expected revision.'
@@ -95,7 +98,7 @@ export function decideMemoryCommit(
     ? previous.revision
     : integer((previous?.revision ?? 0) + 1, 'next revision', 1);
   return {
-    snapshot: { memoryId: request.memoryId, revision, ...state },
+    snapshot: unchanged ? previous : { memoryId: request.memoryId, revision, ...state },
     receipt: {
       memoryId: request.memoryId,
       requestId: request.requestId,

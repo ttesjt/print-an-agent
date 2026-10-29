@@ -1,4 +1,44 @@
 export type * from './contracts/document.js';
+export { readMemoryVersionContext } from './domain/read-version-context.js';
+export { createMemoryReadVersionContextDefinition } from './workflows/versioned-bundle.js';
+export type { VersionedMemoryOperations } from './workflows/versioned-bundle.js';
+export type * from './contracts/history.js';
+export { parseMemoryForkRequest } from './domain/fork-request.js';
+export {
+  supportsMemoryHistory,
+  inspectMemoryVersion,
+  listMemoryVersions,
+  forkMemory,
+} from './domain/history.js';
+export {
+  createContextMemoryHistoryResources,
+  createContextMemoryHistoryBundle,
+  createMemoryInspectVersionDefinition,
+  createMemoryListVersionsDefinition,
+  createMemoryForkDefinition,
+} from './workflows/history.js';
+export type {
+  MemoryHistoryOperations,
+  MemoryHistoryWorkflowResources,
+  MemoryHistoryWorkflowDefinitions,
+} from './workflows/history.js';
+export {
+  createVersionedContextMemoryResources,
+  createVersionedContextMemoryBundle,
+} from './workflows/versioned-bundle.js';
+export type {
+  VersionedMemoryWorkflowResources,
+  VersionedMemoryWorkflowDefinitions,
+} from './workflows/versioned-bundle.js';
+export {
+  DEFAULT_MEMORY_HISTORY_PAGE_SIZE,
+  MAX_MEMORY_HISTORY_PAGE_SIZE,
+} from './contracts/history.js';
+export {
+  parseMemoryVersionReference,
+  parseForkMemoryInput,
+  parseListMemoryVersionsInput,
+} from './validation/history.js';
 export type * from './contracts/receipt.js';
 export type * from './contracts/ports.js';
 export type * from './contracts/inputs.js';

@@ -33,7 +33,12 @@ export function keys(
     throw new ContextMemoryError(code, 'Unexpected input field.');
 }
 export function identity(value: unknown, label: string): string {
-  if (typeof value !== 'string' || value.trim().length === 0 || value.includes('\0')) {
+  if (
+    typeof value !== 'string' ||
+    !value.isWellFormed() ||
+    value.trim().length === 0 ||
+    value.includes('\0')
+  ) {
     throw new ContextMemoryError('INPUT_INVALID', `${label} must be a nonempty identity.`);
   }
   return value;

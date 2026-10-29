@@ -28,7 +28,7 @@ export function parseMemoryReceipt(value: unknown): MemoryReceipt {
     input.previousRevision === null ? null : integer(input.previousRevision, 'previousRevision', 1);
   const revision = integer(input.revision, 'receipt revision', 1);
   if (
-    (operation === 'create') !== (previousRevision === null) ||
+    (operation === 'create' || operation === 'fork') !== (previousRevision === null) ||
     revision !== (input.status === 'unchanged' ? previousRevision : (previousRevision ?? 0) + 1)
   )
     throw new ContextMemoryError('INPUT_INVALID', 'Inconsistent receipt revision.');

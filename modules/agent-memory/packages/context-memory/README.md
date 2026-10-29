@@ -4,6 +4,9 @@ Context Memory maintains independent documents keyed by caller-selected `memoryI
 ordered `{ id, content, metadata? }` items, configuration, revision and derived token measurement.
 Item IDs are system-generated. Ordinary commands add, replace or remove items atomically.
 
+Optional immutable history, historical rendering and independent forks are documented in
+[VERSIONING.md](./VERSIONING.md).
+
 ## Contracts
 
 - `resolveMemoryConfig` binds an actual `measurementRef`; no universal token estimator is assumed.
@@ -68,7 +71,7 @@ await bundle.workflows.create.run({ input: { memoryId: 'project:a', requestId: '
 const context = await bundle.workflows.readContext.run({ input: { memoryId: 'project:a' } });
 ```
 
-The five deterministic members require no Actor. Each `createMemory*Definition(options?)` is a
+The six deterministic members require no Actor. Each `createMemory*Definition(options?)` is a
 resource-free Core definition, also usable as `new Workflow({ ...definition, resources })`. Options
 accept normal Step overrides, condition, executor and lifecycle hooks. Bundle `workflows` can replace
 complete definitions. Resources contain narrow domain operations, not a raw store writer. Assembly
@@ -112,7 +115,7 @@ await bundle.workflows.compact.run({
 });
 ```
 
-The model-enabled Bundle contains the same five deterministic members plus `observe`, `edit` and
+The model-enabled Bundle contains the same six deterministic members plus `observe`, `edit` and
 `compact`. Each has a standalone `createMemory*Definition`. No Agent runtime, Session or credentials
 resolver is created by Memory. The host decides when/what experience to submit, including roles and
 provenance; Memory does not assume a chat post-processing schedule or infer edit history.

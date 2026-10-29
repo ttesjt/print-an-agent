@@ -27,6 +27,19 @@ export interface ContextMemoryBundleOptions {
   readonly resources: MemoryWorkflowResources;
   readonly workflows?: Partial<MemoryWorkflowDefinitions>;
 }
+/** Internal shared recipe; all public Bundle variants use the same default definitions. */
+export function memoryWorkflowDefinitions(
+  workflows?: Partial<MemoryWorkflowDefinitions>
+): MemoryWorkflowDefinitions {
+  return {
+    inspect: workflows?.inspect ?? createMemoryInspectDefinition(),
+    create: workflows?.create ?? createMemoryCreateDefinition(),
+    apply: workflows?.apply ?? createMemoryApplyDefinition(),
+    configure: workflows?.configure ?? createMemoryConfigureDefinition(),
+    readContext: workflows?.readContext ?? createMemoryReadContextDefinition(),
+    getReceipt: workflows?.getReceipt ?? createMemoryGetReceiptDefinition(),
+  };
+}
 export function createContextMemoryStateBundle(options: {
   readonly resources: MemoryWorkflowResources<'inspect' | 'getReceipt' | 'replay'>;
   readonly workflows?: Partial<Pick<MemoryWorkflowDefinitions, 'inspect' | 'getReceipt'>>;
@@ -66,12 +79,7 @@ export function createContextMemoryBundle(
     return new WorkflowBundle({
       resources: options.resources,
       workflows: {
-        inspect: options.workflows?.inspect ?? createMemoryInspectDefinition(),
-        create: options.workflows?.create ?? createMemoryCreateDefinition(),
-        apply: options.workflows?.apply ?? createMemoryApplyDefinition(),
-        configure: options.workflows?.configure ?? createMemoryConfigureDefinition(),
-        readContext: options.workflows?.readContext ?? createMemoryReadContextDefinition(),
-        getReceipt: options.workflows?.getReceipt ?? createMemoryGetReceiptDefinition(),
+        ...memoryWorkflowDefinitions(options.workflows),
         observe: options.workflows?.observe ?? createMemoryObserveDefinition(),
         edit: options.workflows?.edit ?? createMemoryEditDefinition(),
         compact: options.workflows?.compact ?? createMemoryCompactDefinition(),
@@ -80,12 +88,7 @@ export function createContextMemoryBundle(
   return new WorkflowBundle({
     resources: options.resources,
     workflows: {
-      inspect: options.workflows?.inspect ?? createMemoryInspectDefinition(),
-      create: options.workflows?.create ?? createMemoryCreateDefinition(),
-      apply: options.workflows?.apply ?? createMemoryApplyDefinition(),
-      configure: options.workflows?.configure ?? createMemoryConfigureDefinition(),
-      readContext: options.workflows?.readContext ?? createMemoryReadContextDefinition(),
-      getReceipt: options.workflows?.getReceipt ?? createMemoryGetReceiptDefinition(),
+      ...memoryWorkflowDefinitions(options.workflows),
     },
   });
 }

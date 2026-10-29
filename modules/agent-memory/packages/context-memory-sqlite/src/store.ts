@@ -3,19 +3,29 @@ import {
   assertMemoryNotAborted,
   ContextMemoryError,
   parseStoreCommit,
-  type MemoryStore,
+  type MemoryHistoryStore,
+  type MemoryVersionReference,
+  type MemoryHistoryPage,
+  type ListMemoryVersionsInput,
+  type ForkMemoryInput,
+  parseMemoryVersionReference,
+  parseForkMemoryInput,
   type MemorySnapshot,
   type MemoryReceipt,
   type StoreCommit,
 } from '@ta-agent/context-memory';
 import { initializeMemorySchema } from './schema.js';
 import { readSnapshot, readReceipt } from './records.js';
-import { commitTransaction } from './transaction.js';
+import { commitTransaction, forkTransaction } from './transaction.js';
+import { readHistoricalSnapshot } from './history/records.js';
+import { listHistory } from './history/pagination.js';
+import { historyChainLimit, type MemoryHistoryStorageOptions } from './history/codec.js';
 
 export const DEFAULT_SQLITE_BUSY_TIMEOUT_MS = 5000;
-export type SqliteMemoryStoreOptions =
+export type SqliteMemoryStoreOptions = (
   | { readonly path: string; readonly busyTimeoutMs?: number; readonly database?: never }
-  | { readonly database: DatabaseSync; readonly path?: never; readonly busyTimeoutMs?: never };
+  | { readonly database: DatabaseSync; readonly path?: never; readonly busyTimeoutMs?: never }
+) & { readonly history?: MemoryHistoryStorageOptions };
 
 function openMemoryDatabase(path: string, timeout: number): DatabaseSync {
   try {
@@ -28,12 +38,18 @@ function openMemoryDatabase(path: string, timeout: number): DatabaseSync {
 }
 
 /** Owns connections opened by path; explicitly supplied connections are always borrowed. */
-export class SqliteMemoryStore implements MemoryStore {
+export class SqliteMemoryStore implements MemoryHistoryStore {
   readonly #database;
   readonly #owned;
+  readonly #maxDeltaChain;
   #closed = false;
   #cleanupFailure: ContextMemoryError | undefined;
   constructor(options: SqliteMemoryStoreOptions) {
+    try {
+      this.#maxDeltaChain = historyChainLimit(options.history);
+    } catch (cause) {
+      throw new ContextMemoryError('CONFIG_INVALID', 'Invalid history storage options.', { cause });
+    }
     if (options.database !== undefined) {
       this.#database = options.database;
       this.#owned = false;
@@ -69,6 +85,7 @@ export class SqliteMemoryStore implements MemoryStore {
           );
         }
       }
+      if (cause instanceof ContextMemoryError && cause.code === 'CLEANUP_FAILED') throw cause;
       throw new ContextMemoryError(
         'STORAGE_FAILED',
         'Memory store schema could not be initialized.',
@@ -110,11 +127,42 @@ export class SqliteMemoryStore implements MemoryStore {
       });
     }
     try {
-      return commitTransaction(this.#database, change, signal);
+      return commitTransaction(this.#database, change, signal, this.#maxDeltaChain);
     } catch (error) {
       if (error instanceof ContextMemoryError && error.code === 'CLEANUP_FAILED')
         this.#cleanupFailure = error;
       throw error;
+    }
+  }
+  async readVersion(
+    value: MemoryVersionReference,
+    signal?: AbortSignal
+  ): Promise<MemorySnapshot | undefined> {
+    await Promise.resolve();
+    this.#assertOpen();
+    assertMemoryNotAborted(signal);
+    return readHistoricalSnapshot(this.#database, parseMemoryVersionReference(value), signal);
+  }
+  async listVersions(
+    value: ListMemoryVersionsInput,
+    signal?: AbortSignal
+  ): Promise<MemoryHistoryPage> {
+    await Promise.resolve();
+    this.#assertOpen();
+    assertMemoryNotAborted(signal);
+    return listHistory(this.#database, value);
+  }
+  async fork(value: ForkMemoryInput, signal?: AbortSignal): Promise<MemoryReceipt> {
+    await Promise.resolve();
+    this.#assertOpen();
+    assertMemoryNotAborted(signal);
+    const input = parseForkMemoryInput(value);
+    try {
+      return forkTransaction(this.#database, input, signal, this.#maxDeltaChain);
+    } catch (cause) {
+      if (cause instanceof ContextMemoryError && cause.code === 'CLEANUP_FAILED')
+        this.#cleanupFailure = cause;
+      throw cause;
     }
   }
   close(): void {
@@ -156,7 +204,12 @@ export class SqliteMemoryStore implements MemoryStore {
       });
   }
   #identity(value: string): void {
-    if (typeof value !== 'string' || value.trim() === '' || value.includes('\0'))
+    if (
+      typeof value !== 'string' ||
+      !value.isWellFormed() ||
+      value.trim() === '' ||
+      value.includes('\0')
+    )
       throw new ContextMemoryError('INPUT_INVALID', 'Memory/request identity must be nonempty.');
   }
 }

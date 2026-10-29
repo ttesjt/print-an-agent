@@ -5,6 +5,7 @@ import { digestValue } from '../domain/digest.js';
 
 const OPERATIONS: readonly MemoryOperation[] = [
   'create',
+  'fork',
   'configure',
   'apply',
   'observe',

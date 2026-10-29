@@ -1,7 +1,9 @@
 # @ta-agent/context-memory-sqlite
 
-SQLite adapter for Context Memory. Each `memoryId` owns one current JSON snapshot row. A separate
-receipt table records request outcomes; there is no per-item SQL schema or full revision history.
+SQLite adapter for Context Memory. Each `memoryId` owns one current JSON snapshot row, independent
+request receipts and immutable history stored as periodic baselines plus state deltas.
+There is no per-item SQL schema. See [versioning and storage rules](../context-memory/VERSIONING.md)
+for historical reads, detached forks, legacy initialization and configurable delta-chain limits.
 
 ```ts
 import { MemoryMeter, MemoryMutations, readMemoryContext } from '@ta-agent/context-memory';
@@ -33,7 +35,7 @@ Agent Base, Workbench, or application runtimes. Give Workflow consumers the guar
 
 ## Consistency and recovery
 
-`BEGIN IMMEDIATE` arbitrates request identity before revision comparison. Snapshot and receipt commit
+`BEGIN IMMEDIATE` arbitrates request identity before revision comparison. History, head and receipt commit
 in one transaction. Same memory/request/operation/input returns the original receipt, even with an
 old expected revision or newly generated candidate item IDs. Changed input returns `REQUEST_CONFLICT`.
 Unchanged requests persist receipts without advancing revision. Receipt retention is intentional;

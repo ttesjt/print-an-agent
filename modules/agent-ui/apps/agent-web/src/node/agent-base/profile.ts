@@ -11,6 +11,8 @@ import {
   type ManagedAgentRuntimeMaterializationInput,
   type ManagedAgentRuntimeProvisioningInput,
   AgentManagementError,
+  type ContextMemoryManagementCapability,
+  type RetrievalMemoryManagementCapability,
 } from '@ta-agent/base-composition';
 import {
   createActorCatalog,
@@ -37,8 +39,11 @@ import { presentationStepOverrides } from './stream-sink.js';
 import { createWebModelRuntime, actorInvocation, webActorInstructions } from './model-runtime.js';
 import { DEFAULT_REQUEST_POLICY } from '@ta-agent/base-request';
 import { validatePresentationWait } from './presentation-wait.js';
+import { createWebMemoryPorts } from '../memory/ports.js';
+import type { WebMemoryOptions } from '../memory/options.js';
 
 export interface WebBackendOptions {
+  readonly memory?: WebMemoryOptions;
   /** Bounded post-commit UI projection only; model execution deadlines are configured separately. */
   readonly presentationWaitMilliseconds?: number;
   readonly engine?: ActorEngine;
@@ -54,10 +59,13 @@ export function createWebBackendServices(options: WebBackendOptions) {
   if (options.presentationWaitMilliseconds !== undefined)
     validatePresentationWait(options.presentationWaitMilliseconds);
   if (options.persistence.kind === 'directory') {
-    const setup = createStandaloneDirectorySetup({
-      rootDirectory: options.persistence.rootDirectory,
-      readEnvironmentVariable: () => undefined,
-    });
+    const setup = createStandaloneDirectorySetup(
+      {
+        rootDirectory: options.persistence.rootDirectory,
+        readEnvironmentVariable: () => undefined,
+      },
+      options.memory?.provisioning
+    );
     const profile = setup.definition;
     return Object.freeze({
       ...assembleServices(
@@ -65,12 +73,16 @@ export function createWebBackendServices(options: WebBackendOptions) {
         profile.authority.createPorts,
         (namespace) =>
           createSqliteSessionPersistence({ databasePath: namespace.handle.databasePath }),
-        options
+        options,
+        profile
       ),
       close: () => setup.close(),
     });
   }
-  const setup = createStandaloneMemorySetup({ readEnvironmentVariable: () => undefined });
+  const setup = createStandaloneMemorySetup(
+    { readEnvironmentVariable: () => undefined },
+    options.memory?.provisioning
+  );
   const profile = setup.definition;
   const persistence = new Map<AgentId, CoordinatedSessionPersistence>();
   return Object.freeze({
@@ -85,7 +97,8 @@ export function createWebBackendServices(options: WebBackendOptions) {
         }
         return scoped;
       },
-      options
+      options,
+      profile
     ),
     close: async () => {
       await setup.close();
@@ -98,7 +111,10 @@ function assembleServices<Handle>(
   namespace: ManagedAgentNamespacePort<Handle>,
   authority: ManagedAgentAuthorityPortFactory<Handle>,
   persistence: (namespace: ManagedAgentNamespace<Handle>) => CoordinatedSessionPersistence,
-  options: WebBackendOptions
+  options: WebBackendOptions,
+  memory: Partial<
+    ContextMemoryManagementCapability<Handle> & RetrievalMemoryManagementCapability<Handle>
+  >
 ) {
   const toolNames = options.tools?.list().map((tool) => tool.name) ?? [];
   const materialize = ({
@@ -145,6 +161,12 @@ function assembleServices<Handle>(
     });
   };
   const definition = defineManagedAgentComposition({
+    ...(memory.contextMemoryManagement === undefined
+      ? {}
+      : { contextMemoryManagement: memory.contextMemoryManagement }),
+    ...(memory.retrievalMemoryManagement === undefined
+      ? {}
+      : { retrievalMemoryManagement: memory.retrievalMemoryManagement }),
     config: { codec: WEB_AGENT_CONFIG_CODEC },
     namespace: { port: namespace },
     authority: { createPorts: authority },
@@ -174,6 +196,7 @@ function assembleServices<Handle>(
     return persistence(scoped).session;
   };
   return Object.freeze({
+    memory: createWebMemoryPorts(definition, options.memory),
     agents: createAgentManagementService(definition),
     runtime: createAgentRuntimeService(definition),
     sessions: createSessionManagementService(definition),

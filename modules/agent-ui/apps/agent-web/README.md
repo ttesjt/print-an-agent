@@ -11,6 +11,10 @@ This application installs `ui-workspace` for Agent/Session orchestration, conver
 routing and scoped state. It owns model configuration, host/runtime adapters and server security.
 The optional `ui-transport` package supplies the shared HTTP/NDJSON implementation.
 
+Optional Context/Retrieval Memory management ports, Host configuration, receipt recovery and
+resource ownership are documented in [MEMORY.md](./MEMORY.md). They are independent of chat and
+disabled unless explicitly configured.
+
 The default browser composition installs validated localhost HTTP/NDJSON ports and imports the
 optional default stylesheet explicitly. The Node host connects these ports to public Agent Base
 services and an actual Agent, with directory/SQLite or injected Memory persistence. Provider

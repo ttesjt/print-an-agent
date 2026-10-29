@@ -1,5 +1,6 @@
 import type { CollectionAccessPort } from '@ta-agent/ui-contracts';
 import { createHttpAgentWebPorts } from './http-agent-web-ports.js';
+import { connectHttpMemory } from '../memory/browser.js';
 import type { CollectionConnection } from '../collection/collection-application.js';
 import {
   collectionBootstrap,
@@ -53,15 +54,17 @@ export function createDirectoryCollectionAccess(
     openCollection: async ({ reference, signal }) => {
       const result = directoryOpenReceipt.decode(await call('open', reference, signal));
       if (!result.ok) return result;
+      const connectionOptions = {
+        baseUrl: `${base}/collections/${encodeURIComponent(result.collection.key)}`,
+        fetch: request,
+      };
+      const memory = await connectHttpMemory(connectionOptions, signal);
       return {
         ok: true,
         collection: result.collection,
         connection: {
           profileLabel: 'Local Agent Base',
-          ports: createHttpAgentWebPorts({
-            baseUrl: `${base}/collections/${encodeURIComponent(result.collection.key)}`,
-            fetch: request,
-          }),
+          ports: { ...createHttpAgentWebPorts(connectionOptions), memory },
         },
       };
     },

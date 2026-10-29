@@ -19,6 +19,7 @@ import type {
 } from '@ta-agent/ui-contracts';
 import type { AgentModelStatus } from './agent-config.js';
 import type { TemporaryConversationPort } from '../temporary-conversation/contracts.js';
+import type { WebMemoryPorts } from '../memory/contracts.js';
 
 /** Application-owned grouping of the narrow Agent management capabilities used by Agent Web. */
 export interface AgentManagementPort<Config>
@@ -52,6 +53,7 @@ export interface ConversationManagementPort
   extends ConversationHistoryPort, ConversationInteractionPort, SessionBranchMutationPort {}
 
 export interface AgentWebPorts<Config> {
+  readonly memory?: WebMemoryPorts;
   readonly temporaryConversations?: TemporaryConversationPort;
   readonly agents: AgentManagementPort<Config>;
   readonly conversations: ConversationManagementPort;

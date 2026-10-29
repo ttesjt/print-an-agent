@@ -21,6 +21,8 @@
     "serve": "node dist/server/node/main.js"
   },
   "dependencies": {
+    "@ta-agent/context-memory": "workspace:*",
+    "@ta-agent/retrieval-memory": "workspace:*",
     "@ta-agent/workflow-core": "workspace:*",
     "@ta-agent/ui-workspace": "workspace:*",
     "@ta-agent/base-actor": "workspace:*",

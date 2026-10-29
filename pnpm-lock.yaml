@@ -678,9 +678,15 @@ importers:
       '@ta-agent/base-tool':
         specifier: workspace:*
         version: link:../../../agent-base/packages/tool
+      '@ta-agent/context-memory':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/context-memory
       '@ta-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
+      '@ta-agent/retrieval-memory':
+        specifier: workspace:*
+        version: link:../../../agent-memory/packages/retrieval-memory
       '@ta-agent/ui-contracts':
         specifier: workspace:*
         version: link:../../packages/contracts

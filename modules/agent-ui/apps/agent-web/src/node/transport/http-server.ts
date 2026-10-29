@@ -13,6 +13,7 @@ import { WEB_TRANSPORT_LIMITS } from '../../transport/limits.js';
 import { serveStatic } from './static.js';
 import type { DirectoryCollectionHost } from '../collections/directory-host.js';
 import { writeTemporaryConversationResponse } from './temporary-conversations.js';
+import { runMemoryCommand } from '../memory/commands.js';
 
 export interface LocalServerOptions {
   /** Optional explicit ownership delegation. Without it, this transport only borrows ports/Collections. */
@@ -86,7 +87,7 @@ export async function startLocalAgentWebServer(options: LocalServerOptions) {
         return;
       }
       const scoped =
-        /^\/api\/collections\/([a-zA-Z0-9-]+)\/(commands|interactions|temporary-conversations)$/u.exec(
+        /^\/api\/collections\/([a-zA-Z0-9-]+)\/(commands|interactions|temporary-conversations|memory)$/u.exec(
           path
         );
       if (
@@ -95,6 +96,7 @@ export async function startLocalAgentWebServer(options: LocalServerOptions) {
           path !== '/api/commands' &&
           path !== '/api/interactions' &&
           path !== '/api/temporary-conversations' &&
+          path !== '/api/memory' &&
           scoped === null)
       )
         return sendError(response, 404);
@@ -124,7 +126,10 @@ export async function startLocalAgentWebServer(options: LocalServerOptions) {
       }
       const ports = scoped === null ? options.ports : options.collections?.resolve(scoped[1] ?? '');
       if (ports === undefined) return sendError(response, 404);
-      if (path === '/api/commands' || scoped?.[2] === 'commands') {
+      if (path === '/api/memory' || scoped?.[2] === 'memory') {
+        // The awaited command owns business completion. A post-commit abort must not replace its receipt.
+        writeJsonResponse(response, await runMemoryCommand(ports.memory, body, controller.signal));
+      } else if (path === '/api/commands' || scoped?.[2] === 'commands') {
         const envelope = commandEnvelope.decode(body);
         const command = commands[commandName(envelope.command)];
         const value = await command.run(ports, envelope.input, controller.signal);

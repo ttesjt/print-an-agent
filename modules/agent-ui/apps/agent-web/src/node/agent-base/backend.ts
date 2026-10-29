@@ -12,6 +12,7 @@ export function createAgentBaseWebPorts(
 ): AgentWebPorts<AgentWebConfig> & { close(): Promise<void> } {
   const services = createWebBackendServices(options);
   return Object.freeze({
+    ...(services.memory === undefined ? {} : { memory: services.memory }),
     close: services.close,
     temporaryConversations: createWebTemporaryConversationPort({
       agents: services.agents,

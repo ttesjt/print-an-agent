@@ -1,9 +1,9 @@
-# Modular Agent
+# Print an Agent
 
-A framework for building agents from replaceable model engines, workflows, memory capabilities, and
-application adapters. Use the libraries on their own or compose them into an application. The CLI,
-Agent Web, and component gallery are reference applications; application policy and integration
-belong to the consumer.
+A TypeScript framework for building AI agents from interchangeable parts.
+
+Use the libraries on their own or compose them into an application. The CLI, Agent Web, and
+component gallery are reference applications. Consumers own application policy and integration.
 
 - [Agent Base](./modules/agent-base/README.md): Agent identity, request execution, Session
   persistence, composition, and standalone profiles.
@@ -27,8 +27,9 @@ for how Composition supplies those resources and how a request reaches the model
 
 ## Install and verify
 
-From this repository's root, use Node.js `24.15.0` and pnpm `10.28.0`. Workspace packages are
-linked from this checkout; no other repository or private package registry is required.
+From the root of the `print-an-agent` checkout, use Node.js `24.15.0` and pnpm `10.28.0`. Workspace
+packages are linked from this checkout, so no other repository or private package registry is
+required.
 
 ```sh
 pnpm install --frozen-lockfile

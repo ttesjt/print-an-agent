@@ -1,4 +1,4 @@
-# Repository architecture
+# Print an Agent architecture
 
 ## Dependency direction
 

@@ -17,10 +17,24 @@ build tooling and architecture checks, not domain implementation. Products consu
 and supply their own integration and policy.
 
 Agent Base Composition defines raw Agent assembly and managed application Services. Management,
-Session navigation, and runtime request capabilities through typed Definition factories. Profiles
-select adapters and may use the optional Resource Registry to share resources within a scope.
+Session navigation, and runtime Services acquire capabilities through typed Definition factories.
+Profiles select adapters and may use the optional Resource Registry to share resources within a scope.
 Workflow and Step implementations receive explicit resources and do not depend on this assembly.
 Standalone Agent and Agent Web are reference compositions, not requirements for using the libraries.
+
+## Agent Base execution
+
+[![Agent Base composition, Agent operation execution, and the foreground request workflow](./assets/agent-base-execution.svg)](./assets/agent-base-execution.svg)
+
+A Profile provisioner may use the Registry to resolve resources for Definition factories. Services
+acquire ports through those factories. Workflows receive the capabilities they need as bound resources.
+
+The session-aware foreground workflow returns the stored response on a replay hit. Otherwise it
+prepares the model context, invokes the Actor, and completes the request. It can load Context Memory
+when configured. Applications can add Retrieval Memory through their own tools or Steps.
+
+Sessionless generation and interaction have separate workflows. The caller supplies the input and
+binds resources, then calls `workflow.run({ input })` without creating an Agent or Session.
 
 ## Public boundaries
 

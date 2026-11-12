@@ -21,6 +21,10 @@ Agent Base's [Composition Resource Registry](./modules/agent-base/packages/compo
 is optional infrastructure for typed resource recipes, scope-local sharing and cleanup. It is not
 required by generic Services or Workflows.
 
+The same request workflow can use the reference SQLite session adapter or a host-supplied adapter
+through the Session port. See the [Agent Base execution diagram](./docs/architecture.md#agent-base-execution)
+for how Composition supplies those resources and how a request reaches the model.
+
 ## Install and verify
 
 From this repository's root, use Node.js `24.15.0` and pnpm `10.28.0`. Workspace packages are

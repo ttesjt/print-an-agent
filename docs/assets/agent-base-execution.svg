@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1320" viewBox="0 0 2000 1320" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Base composition and request execution</title>
+  <desc id="desc">A Profile provides resources through Definition factories. A foreground operation runs the session-aware request workflow. Sessionless workflows have a separate entry point.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L10 5L0 10Z" fill="#67716a"/>
+    </marker>
+  </defs>
+  <rect width="2000" height="1320" fill="#f4f5ef"/>
+  <text x="50" y="63" font-family="Arial, Helvetica, sans-serif" font-size="39" font-weight="500" fill="#18211c" >Agent Base / composition and execution</text>
+  <rect x="50" y="104" width="1900" height="224" rx="14" fill="#e9eee4" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="78" y="143" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="500" fill="#67716a" letter-spacing="2">01 / APPLICATION COMPOSITION</text>
+  <rect x="80" y="174" width="440" height="124" rx="10" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="104" y="211" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="500" fill="#18211c">Profile / provisioner</text>
+  <text x="104" y="248" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#67716a">Selects adapters and bindings</text>
+  <text x="104" y="278" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#67716a">Resolves resources for typed factories</text>
+  <path d="M521 236H555" fill="none" stroke="#67716a" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="565" y="174" width="395" height="124" rx="10" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="590" y="211" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="500" fill="#18211c">Definition</text>
+  <text x="590" y="248" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#67716a">Declares typed resource factories</text>
+  <text x="590" y="278" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#67716a">Creation performs no I/O</text>
+  <path d="M961 236H995" fill="none" stroke="#67716a" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="1005" y="174" width="445" height="124" rx="10" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="1030" y="211" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="500" fill="#18211c">Application Services</text>
+  <text x="1030" y="248" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#67716a">Agent / Runtime / Session / Memory</text>
+  <text x="1030" y="278" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#67716a">Runtime.open() acquires typed ports</text>
+  <rect x="1495" y="174" width="425" height="124" rx="10" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="1518" y="211" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="500" fill="#18211c">Optional Scope / Registry</text>
+  <text x="1518" y="248" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#67716a">Declared providers and dependencies</text>
+  <text x="1518" y="278" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#67716a">Shared initialization, explicit release</text>
+  <path d="M1708 173V155H300V174" fill="none" stroke="#83a17b" stroke-width="2.5" stroke-dasharray="7 7" marker-end="url(#arrow)"/>
+  <path d="M1228 299V351H280V398" fill="none" stroke="#67716a" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="50" y="383" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="500" fill="#67716a" letter-spacing="2">02 / RUNTIME</text>
+  <text x="390" y="377" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >materialize with Identity + Config snapshots and prepared ports</text>
+  <rect x="50" y="406" width="460" height="170" rx="12" fill="#e9eee4" stroke="#aabda0" stroke-width="2"/>
+  <text x="77" y="448" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="500" fill="#18211c" >One raw Agent</text>
+  <text x="77" y="490" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="#18211c" >Identity + global resources</text>
+  <text x="77" y="526" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#67716a" >Operation + Workflow catalogs</text>
+  <text x="77" y="559" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >composeAgent() / createAgent()</text>
+  <path d="M511 492H550" fill="none" stroke="#67716a" stroke-width="2.5"  marker-end="url(#arrow)"/>
+  <rect x="560" y="406" width="430" height="170" rx="12" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="586" y="448" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="500" fill="#18211c" >Operation definition</text>
+  <text x="586" y="490" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#18211c" >Typed interface + execution plan</text>
+  <text x="586" y="526" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#67716a" >foreground · compactSession · custom</text>
+  <text x="586" y="559" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >agent.invoke(name, input)</text>
+  <path d="M991 492H1030" fill="none" stroke="#67716a" stroke-width="2.5"  marker-end="url(#arrow)"/>
+  <rect x="1040" y="406" width="390" height="170" rx="12" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="1066" y="448" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="500" fill="#18211c" >Agent Run</text>
+  <text x="1066" y="490" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="#18211c" >Created per invocation</text>
+  <text x="1066" y="526" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#67716a" >Context · signal · lifecycle</text>
+  <text x="1066" y="559" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >Allowed Operation invoker</text>
+  <path d="M1431 492H1470" fill="none" stroke="#67716a" stroke-width="2.5"  marker-end="url(#arrow)"/>
+  <rect x="1480" y="406" width="470" height="170" rx="12" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="1506" y="448" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="500" fill="#18211c" >Workflow execution</text>
+  <text x="1506" y="490" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#18211c" >Resident resources + Step Registry</text>
+  <text x="1506" y="526" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#67716a" >Per-run input, state, and result</text>
+  <text x="1506" y="559" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >Condition · executor · lifecycle</text>
+  <rect x="50" y="598" width="940" height="42" rx="6" fill="#edf2e8" stroke="#aabda0" stroke-width="2"/>
+  <text x="70" y="626" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#18211c">Sessionless: bind resources → workflow.run({ input }) → response</text>
+  <rect x="1040" y="598" width="910" height="42" rx="6" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="1060" y="626" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >compactSession: separate Workflow with candidate measurement and revision</text>
+  <path d="M1715 577V588H1015V667" fill="none" stroke="#67716a" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="50" y="667" width="1260" height="510" rx="14" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="78" y="710" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="500" fill="#18211c">03 / FOREGROUND REQUEST — entryStep: runRequest</text>
+  <rect x="80" y="736" width="1200" height="145" rx="10" fill="#f4f5ef" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="102" y="769" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="500" fill="#18211c" >prepareRequest</text>
+  <text x="102" y="803" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#18211c" >validateRequest → resolveSession → resolveRequestReplay</text>
+  <text x="760" y="803" font-family="Arial, Helvetica, sans-serif" font-size="21" fill="#67716a">Replay hit → return stored response</text>
+  <text x="102" y="835" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#18211c" >beginRequest → resolveExecutionTarget → resolveInstructions → loadSessionContext</text>
+  <text x="102" y="866" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#18211c" >gatherExternalContext* → loadContextMemory† → buildTools → buildModelContext</text>
+  <path d="M680 882V892" fill="none" stroke="#67716a" stroke-width="2.5"  marker-end="url(#arrow)"/>
+  <rect x="80" y="900" width="1200" height="252" rx="10" fill="#edf2e8" stroke="#aabda0" stroke-width="2"/>
+  <text x="102" y="932" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="500" fill="#18211c" >executeRequest</text>
+  <rect x="108" y="948" width="1144" height="148" rx="8" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="130" y="979" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="500" fill="#18211c" >runAgentInteraction  /  composite Step</text>
+  <text x="130" y="1008" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#18211c" >openResponseStream → invokeActorInteraction (stream callbacks)</text>
+  <text x="130" y="1034" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >events → dispatchInteractionEvent → typed text / reasoning delivery Steps</text>
+  <text x="130" y="1060" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >assistant-complete → buildTurnPresentation → completeAssistantMessage</text>
+  <text x="130" y="1086" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >buildAgentResponse</text>
+  <text x="106" y="1133" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#18211c" >completeResponse → Request Journal completion → OutputSink.close</text>
+  <rect x="1360" y="667" width="590" height="510" rx="14" fill="#e9eee4" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="1388" y="710" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="500" fill="#18211c" >MODEL + CAPABILITY BOUNDARIES</text>
+  <rect x="1390" y="746" width="530" height="183" rx="10" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="1415" y="783" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="500" fill="#18211c" >Responsibility → Actor → Engine</text>
+  <text x="1415" y="824" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#67716a" >Pi adapter or custom invocation backend</text>
+  <text x="1415" y="860" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >Tool calls through the permissioned Tool Broker</text>
+  <text x="1415" y="900" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >Normalized events return to event dispatch</text>
+  <path d="M1253 1008H1330V796H1390" fill="none" stroke="#67716a" stroke-width="2.5"  marker-end="url(#arrow)"/>
+  <path d="M1390 898H1345V1060H1253" fill="none" stroke="#83a17b" stroke-width="2.5"  marker-end="url(#arrow)"/>
+  <rect x="1390" y="962" width="530" height="185" rx="10" fill="#ffffff" stroke="#cdd4cc" stroke-width="2"/>
+  <text x="1415" y="1001" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="500" fill="#18211c" >Explicit capability resources</text>
+  <text x="1415" y="1042" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#67716a" >Session · Request Journal · OutputSink</text>
+  <text x="1415" y="1078" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#67716a" >Optional Context Memory</text>
+  <text x="1415" y="1114" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#67716a" >Host-selected adapters and resource lifetime</text>
+  <path d="M1390 1127H1324V1160H1310" fill="none" stroke="#83a17b" stroke-width="2.5" stroke-dasharray="7 7" marker-end="url(#arrow)"/>
+  <text x="50" y="1230" font-family="Arial, Helvetica, sans-serif" font-size="23" fill="#67716a">Dashed arrows show resource access. *Skipped by default. †Loads only when Context Memory is configured.</text>
+  <text x="50" y="1276" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="500" fill="#18211c">Registry stays in Composition. Workflows receive explicit capabilities and keep invocation state per Run.</text>
+</svg>

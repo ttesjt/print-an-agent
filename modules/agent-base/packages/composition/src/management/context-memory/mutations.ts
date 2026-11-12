@@ -2,7 +2,7 @@ import {
   AgentSessionError,
   type AgentSessionErrorCode,
   type SessionMemoryRecord,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   assertReceiptMatches,
   parseDeterministicMemoryRequest,
@@ -14,7 +14,7 @@ import {
   type MemoryReceipt,
   type MutationRequest,
   parseMemoryReceipt,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { MemoryJournal, memoryObject, memoryString, payload, version } from './journal.js';
 import type { ContextMemoryWorkflows } from './service.js';
 import { hasSessionMemoryCleanupFailure } from './failures.js';

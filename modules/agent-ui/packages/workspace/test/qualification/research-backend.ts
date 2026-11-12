@@ -10,7 +10,7 @@ import type {
   RevisionedValue,
   StartConversationInteractionInput,
   WorkspacePorts,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 
 export type ResearchReference = Readonly<{ tenant: string; notebook: number }>;
 export interface ResearchPreferences {

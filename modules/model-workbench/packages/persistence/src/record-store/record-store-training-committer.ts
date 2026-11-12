@@ -10,7 +10,7 @@ import {
   type ModelBase,
   type ModelModification,
   type ModelRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import { PersistenceRecordConflictError, RunTransitionPersistenceError } from '../errors.js';
 import type {

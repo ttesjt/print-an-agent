@@ -100,7 +100,7 @@ their own operation needs them.
 
 The framework does not require an `AgentApplication` instance. A long-running host may retain an
 opened Agent or aggregate Services for convenience, but that host-owned object is neither a new
-authority nor a correctness dependency. `@ta-agent/base-standalone-agent` binds the generic
+authority nor a correctness dependency. `@print-an-agent/base-standalone-agent` binds the generic
 Definition and Services to concrete profiles. The CLI consumes those narrow Standalone Services or
 the opened raw Agent and must not repeat their composition.
 
@@ -259,7 +259,7 @@ cancellation by default, and fail closed on undeclared targets or invocation cyc
 
 ## Identity
 
-`@ta-agent/base-identity` defines the smallest shared identity value:
+`@print-an-agent/base-identity` defines the smallest shared identity value:
 
 ```ts
 interface AgentIdentity {
@@ -275,13 +275,13 @@ and resource adapters. It is not a filesystem path, provider name, model ID, or 
 The reusable Agent holds one immutable identity value, and every Agent Run receives that exact value
 in its Context. Identity Catalog ports own active/disabled lifecycle snapshots, independent CAS
 revisions, and ordered discovery. Memory and SQLite adapters from
-`@ta-agent/base-local-adapters` implement the same contract. Agent IDs
+`@print-an-agent/base-local-adapters` implement the same contract. Agent IDs
 cannot change, and no hard-delete contract exists. Import, clone, migration, and product identity
 semantics remain outside this generic lifecycle.
 
 ## Configuration
 
-`@ta-agent/base-config` owns configuration ports and lifecycle semantics without owning a storage
+`@print-an-agent/base-config` owns configuration ports and lifecycle semantics without owning a storage
 implementation or a universal product schema:
 
 ```text
@@ -302,17 +302,17 @@ compare-and-swap: `expectedRevision: null` creates an absent document, while a n
 that exact revision. Defaults are validated through the same codec as stored data, but resolving a
 default does not silently persist it. Persistence is always an explicit write.
 
-`@ta-agent/base-local-adapters` supplies the deterministic Memory implementation and the opt-in
+`@print-an-agent/base-local-adapters` supplies the deterministic Memory implementation and the opt-in
 SQLite implementation with versioned durability, defensive decoding, size limits, restart
 isolation, and CAS. Config values are validated as closed JSON trees before reaching either adapter.
 Session state still uses its own port; a composition may place both adapters' independent tables in
 one SQLite database without merging their authority.
 
 Generic port-owning packages do not also own the official local implementations.
-`@ta-agent/base-local-adapters` contains reusable Memory, SQLite, local OutputSink, and bounded trace
+`@print-an-agent/base-local-adapters` contains reusable Memory, SQLite, local OutputSink, and bounded trace
 implementations and depends on the domain packages whose ports it implements. Domain packages never
 depend back on it. Standalone-owned namespace publication and manifest projection remain in the
-Standalone package, while Pi-backed Engine implementations remain in `@ta-agent/model-invocation-pi`.
+Standalone package, while Pi-backed Engine implementations remain in `@print-an-agent/model-invocation-pi`.
 
 SQLite physical names belong to concrete adapter construction. Each adapter independently owns its
 typed prefix/override input, identifier validation and quoting, table keys, migrations, SQL,
@@ -323,7 +323,7 @@ carry table names.
 
 ## Workflow and Workflow Context
 
-Workflow execution belongs to `@ta-agent/workflow-core`, not Agent Base. A reusable `Workflow`
+Workflow execution belongs to `@print-an-agent/workflow-core`, not Agent Base. A reusable `Workflow`
 contains a stable name, bound borrowed resources, an optional condition, one entry Step, Step definitions/overrides, pure
 result/state factories, lifecycle hooks, and an optional Step executor. It returns `TResult`
 directly; it knows nothing about Agent identity, Operations, result application or persistence.
@@ -345,7 +345,7 @@ interface WorkflowContext<N extends string, I, S, R, O> {
 }
 ```
 
-`@ta-agent/base-runtime` supplies `bindAgentWorkflow({ workflow, applyResult })`.
+`@print-an-agent/base-runtime` supplies `bindAgentWorkflow({ workflow, applyResult })`.
 The Core Workflow's factory binds prepared resources at construction, alongside Step configuration.
 This binding passes the Agent Run Context as Core input, supplies
 cancellation and correlation, and projects metadata to Agent tracing. It does not run Steps,
@@ -651,31 +651,31 @@ Agent Base and Model Workbench remain independent.
 
 The current foundation contains:
 
-- `@ta-agent/base-identity`: stable identity values, active/disabled catalog lifecycle, CAS, and
+- `@print-an-agent/base-identity`: stable identity values, active/disabled catalog lifecycle, CAS, and
   adapter contracts;
-- `@ta-agent/base-config`: generic codecs, closed JSON values, snapshots, CAS revisions, storage
+- `@print-an-agent/base-config`: generic codecs, closed JSON values, snapshots, CAS revisions, storage
   ports, and lifecycle behavior;
-- `@ta-agent/model-invocation-core`: Provider Model and credential references, an invocation-time credential
+- `@print-an-agent/model-invocation-core`: Provider Model and credential references, an invocation-time credential
   resolver port, normalized text messages and usage, bounded Agent Loop events, execution targets,
   runtime ports, and structured failures;
-- `@ta-agent/base-session`: generic session/turn authority, navigation, and compaction behavior;
+- `@print-an-agent/base-session`: generic session/turn authority, navigation, and compaction behavior;
   separate Session lifecycle, execution-fence and optional purge/recovery contracts;
-- `@ta-agent/base-runtime`: single-owner Agent, typed Agent Operation and Run contracts, one
+- `@print-an-agent/base-runtime`: single-owner Agent, typed Agent Operation and Run contracts, one
   heterogeneous Workflow Catalog, explicit Workflow Plans, invocation permissions, and typed
-  result/trace bindings to the domain-independent `@ta-agent/workflow-core`;
-- `@ta-agent/base-request`: the canonical
+  result/trace bindings to the domain-independent `@print-an-agent/workflow-core`;
+- `@print-an-agent/base-request`: the canonical
   `request Workflow -> runRequest -> prepareRequest/executeRequest` composition, stable Request Step
   names, fail-fast generic placeholders, concrete text-request Step overrides over injected ports, and
   the OutputSink lifecycle;
-- `@ta-agent/base-local-adapters`: official process-local Memory and durable SQLite implementations
+- `@print-an-agent/base-local-adapters`: official process-local Memory and durable SQLite implementations
   for Identity, Config, Session, Request Journal, OutputSink, and trace ports;
-- `@ta-agent/model-invocation-pi`: the isolated low-level Pi `0.82.1` loop adapter with one shared Actor runtime,
+- `@print-an-agent/model-invocation-pi`: the isolated low-level Pi `0.82.1` loop adapter with one shared Actor runtime,
   a deterministic faux profile, exact builtin provider/model binding, and explicit text-only
   OpenAI-compatible endpoints;
-- `@ta-agent/base-composition`: the official Standard Agent owner with public
+- `@print-an-agent/base-composition`: the official Standard Agent owner with public
   foreground/compaction Operations plus storage-neutral Agent management, raw-runtime opening, and
   independent optional out-of-band Session management/navigation Services;
-- `@ta-agent/base-standalone-agent`: authoritative Memory/shared-SQLite bootstrap plus canonical
+- `@print-an-agent/base-standalone-agent`: authoritative Memory/shared-SQLite bootstrap plus canonical
   Memory, per-Agent directory, and shared-SQLite reference profiles consumed through narrow
   Services or raw Agents by the CLI and other hosts.
 

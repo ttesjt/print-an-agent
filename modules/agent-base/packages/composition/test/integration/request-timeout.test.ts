@@ -1,7 +1,7 @@
-import { ModelInvocationError } from '@ta-agent/model-invocation-core';
-import { MemorySessionAdapter } from '@ta-agent/base-local-adapters';
-import { DEFAULT_REQUEST_POLICY, NO_REQUEST_TIMEOUT } from '@ta-agent/base-request';
-import { runWithExecutionTimeout } from '@ta-agent/workflow-core';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
+import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
+import { DEFAULT_REQUEST_POLICY, NO_REQUEST_TIMEOUT } from '@print-an-agent/base-request';
+import { runWithExecutionTimeout } from '@print-an-agent/workflow-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';
 

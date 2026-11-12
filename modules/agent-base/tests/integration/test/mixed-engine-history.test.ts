@@ -3,15 +3,15 @@ import {
   createActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@ta-agent/base-actor';
-import { composeAgent, createDeterministicAgentAPI } from '@ta-agent/base-composition';
-import { MemorySessionAdapter } from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-actor';
+import { composeAgent, createDeterministicAgentAPI } from '@print-an-agent/base-composition';
+import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
   type ModelMessage,
-} from '@ta-agent/model-invocation-core';
-import { parseSessionId } from '@ta-agent/base-session';
+} from '@print-an-agent/model-invocation-core';
+import { parseSessionId } from '@print-an-agent/base-session';
 import { describe, expect, it } from 'vitest';
 
 function customAssistantMessage(text: string) {

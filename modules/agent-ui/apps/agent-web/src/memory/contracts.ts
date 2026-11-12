@@ -1,4 +1,4 @@
-import { array, object, optional, type Decoder } from '@ta-agent/ui-transport';
+import { array, object, optional, type Decoder } from '@print-an-agent/ui-transport';
 import { content, id } from './schemas/common.js';
 import { indexFields } from './schemas/retrieval.js';
 import type { contextCodecs } from './schemas/context.js';

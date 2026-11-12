@@ -1,10 +1,10 @@
-import { defineAssistantModelMessage } from '@ta-agent/model-invocation-core';
+import { defineAssistantModelMessage } from '@print-an-agent/model-invocation-core';
 import {
   AgentSessionError,
   type CompleteSessionTurnRequest,
   type CompletedSessionTurn,
   type SessionTurnPresentation,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   cloneMemoryTurn,
   readMemoryClock,

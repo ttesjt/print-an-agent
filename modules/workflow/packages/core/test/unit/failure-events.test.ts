@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { type WorkflowEvent } from '@ta-agent/workflow-core';
+import { type WorkflowEvent } from '@print-an-agent/workflow-core';
 import { gate, options, workflow } from '../support/fixtures.js';
 
 it('classifies a recovered child failure without changing the successful parent result', async () => {

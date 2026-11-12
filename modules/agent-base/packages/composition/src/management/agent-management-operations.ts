@@ -1,10 +1,10 @@
-import { writeAgentConfig } from '@ta-agent/base-config';
+import { writeAgentConfig } from '@print-an-agent/base-config';
 import {
   defineAgentIdentity,
   disableAgentIdentity,
   parseAgentId,
   reactivateAgentIdentity,
-} from '@ta-agent/base-identity';
+} from '@print-an-agent/base-identity';
 import {
   createManagedAgentAuthority,
   createManagedAgentAuthorityPorts,

@@ -1,4 +1,4 @@
-import { createHttpTransport } from '@ta-agent/ui-transport/browser';
+import { createHttpTransport } from '@print-an-agent/ui-transport/browser';
 import type { AgentWebPorts } from '../application/ports.js';
 import type { AgentWebConfig } from '../application/agent-config.js';
 import { commands, type CommandName } from '../transport/commands.js';

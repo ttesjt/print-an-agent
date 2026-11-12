@@ -1,9 +1,9 @@
-import { parseJsonValue, type JsonValue } from '@ta-agent/workbench-domain';
+import { parseJsonValue, type JsonValue } from '@print-an-agent/workbench-domain';
 import {
   ExecutionStatus,
   parseExecutionTerminal,
   type ExecutionTerminal,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 
 import {
   LocalCommandProtocolMessageKind,

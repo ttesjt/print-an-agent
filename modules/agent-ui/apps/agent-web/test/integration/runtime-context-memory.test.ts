@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, it, onTestFinished } from 'vitest';
-import type { ConversationInteractionEvent } from '@ta-agent/ui-contracts';
+import type { ConversationInteractionEvent } from '@print-an-agent/ui-contracts';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { startLocalAgentWebServer } from '../../src/node/transport/http-server.js';
 import { createHttpAgentWebPorts } from '../../src/adapters/http-agent-web-ports.js';

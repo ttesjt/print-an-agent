@@ -1,4 +1,4 @@
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   AgentSessionError,
   normalizeListSessionsInput,
@@ -13,7 +13,7 @@ import {
   normalizeListRetiredSessionsInput,
   type SessionReference,
   type SessionTurnPage,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 
 import { cloneMemoryTurn, memorySessionKey, type StoredMemorySession } from './session-state.js';
 

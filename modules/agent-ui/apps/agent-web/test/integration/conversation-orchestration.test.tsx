@@ -4,12 +4,12 @@ import type {
   SessionBranchMutationResult,
   SessionManagementResult,
   StartConversationInteractionInput,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import { act } from 'react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ConversationManagementPort } from '../../src/application/ports.js';
-import { historyTurns } from '@ta-agent/ui-workspace/testing';
+import { historyTurns } from '@print-an-agent/ui-workspace/testing';
 import {
   cleanupConversationControllers,
   completeInteraction,

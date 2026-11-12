@@ -2,7 +2,7 @@ import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { OutputInvocationKind } from '@ta-agent/workbench-extension';
+import { OutputInvocationKind } from '@print-an-agent/workbench-extension';
 import { describe, expect, it } from 'vitest';
 
 import { LocalOutputInvocationError, createLocalOutputInvocationBridge } from '../../src/index.js';

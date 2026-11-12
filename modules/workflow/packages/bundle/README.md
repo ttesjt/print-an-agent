@@ -1,10 +1,10 @@
-# @ta-agent/workflow-bundle
+# @print-an-agent/workflow-bundle
 
 Assemble named Core Workflows over one borrowed Resources binding. Each member keeps its own input,
-state, result, Step registry, overrides, executor and lifecycle. Execution uses `@ta-agent/workflow-core`.
+state, result, Step registry, overrides, executor and lifecycle. Execution uses `@print-an-agent/workflow-core`.
 
 ```ts
-import { WorkflowBundle, type BundleWorkflowDefinition } from '@ta-agent/workflow-bundle';
+import { WorkflowBundle, type BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
 
 interface Reader {
   read(key: string, signal: AbortSignal): Promise<string>;
@@ -85,7 +85,7 @@ are rejected. Core keeps its existing validation of Step definitions and policie
 Definitions can also be used directly with Core:
 
 ```ts
-import { Workflow } from '@ta-agent/workflow-core';
+import { Workflow } from '@print-an-agent/workflow-core';
 
 const standalone = new Workflow({ ...inspect, resources });
 await standalone.run({ input: 'one' });

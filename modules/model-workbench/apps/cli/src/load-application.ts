@@ -3,7 +3,7 @@ import { open } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import type { ModelWorkbench } from '@ta-agent/workbench-application';
+import type { ModelWorkbench } from '@print-an-agent/workbench-application';
 
 import type { LoadedModelWorkbenchApplication } from './contracts.js';
 import { ModelWorkbenchCliError } from './errors.js';

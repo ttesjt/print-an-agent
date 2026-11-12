@@ -6,8 +6,8 @@ import {
   createAgentManagementService,
   createRetrievalMemoryManagementService,
   scopedAgentMemoryId,
-} from '@ta-agent/base-composition';
-import { parseAgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-composition';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import { createStandaloneDirectorySetup } from '../../src/index.js';
 import { resourceProfileConfig } from '../support/resource-profile.js';
 import {

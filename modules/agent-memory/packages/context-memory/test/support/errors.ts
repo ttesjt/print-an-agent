@@ -1,4 +1,4 @@
-import { ContextMemoryError } from '@ta-agent/context-memory';
+import { ContextMemoryError } from '@print-an-agent/context-memory';
 
 export function errorCode(action: () => unknown): string {
   try {

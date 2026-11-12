@@ -3,7 +3,7 @@ import {
   assertSessionPurgeAllowed,
   normalizePurgeSessionInput,
   normalizeRecoverSessionExecutionsInput,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { SqliteSessionAdapter } from '../session/sqlite/sqlite-session-adapter.js';
 import { SqliteRequestJournalAdapter } from '../request/sqlite/sqlite-request-journal-adapter.js';
 import {

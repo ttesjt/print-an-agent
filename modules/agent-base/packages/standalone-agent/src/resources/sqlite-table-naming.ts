@@ -1,5 +1,5 @@
-import { AgentConfigError } from '@ta-agent/base-config';
-import { AgentIdentityError } from '@ta-agent/base-identity';
+import { AgentConfigError } from '@print-an-agent/base-config';
+import { AgentIdentityError } from '@print-an-agent/base-identity';
 import {
   resolveSqliteAgentConfigTableNames,
   resolveSqliteAgentIdentityTableNames,
@@ -13,9 +13,9 @@ import {
   type SqliteRequestJournalTableNamesInput,
   type SqliteSessionTableNames,
   type SqliteSessionTableNamesInput,
-} from '@ta-agent/base-local-adapters';
-import { AgentRequestError } from '@ta-agent/base-request';
-import { AgentSessionError } from '@ta-agent/base-session';
+} from '@print-an-agent/base-local-adapters';
+import { AgentRequestError } from '@print-an-agent/base-request';
+import { AgentSessionError } from '@print-an-agent/base-session';
 import { AgentBaseStandaloneError } from '../errors.js';
 import {
   resolveSqliteManagedNamespaceTableNames,

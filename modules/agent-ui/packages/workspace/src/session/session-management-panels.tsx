@@ -13,7 +13,7 @@ import {
   SessionNavigationView,
   Stack,
   Status,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 
 import { ConversationWorkspace } from '../conversation/conversation-workspace.js';
 import type { ConversationManagementController } from '../conversation/use-conversation-management.js';

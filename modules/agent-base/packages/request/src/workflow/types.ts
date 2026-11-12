@@ -1,4 +1,4 @@
-import type { WorkflowContext, WorkflowDefinition } from '@ta-agent/workflow-core';
+import type { WorkflowContext, WorkflowDefinition } from '@print-an-agent/workflow-core';
 import type { RequestStepName } from './names.js';
 import type { RequestInteractionState } from '../interaction/state.js';
 

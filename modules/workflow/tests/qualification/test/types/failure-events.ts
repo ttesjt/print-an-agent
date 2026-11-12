@@ -2,7 +2,7 @@ import type {
   WorkflowEvent,
   WorkflowFailureClassifier,
   WorkflowRunOptions,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 
 export const classifier: WorkflowFailureClassifier = (error) =>
   error instanceof Error ? 'DOMAIN_FAILURE' : undefined;

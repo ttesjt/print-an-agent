@@ -1,4 +1,4 @@
-import type { ModelWorkbench } from '@ta-agent/workbench-application';
+import type { ModelWorkbench } from '@print-an-agent/workbench-application';
 
 export interface ModelWorkbenchCliWriter {
   write(text: string): Promise<void>;

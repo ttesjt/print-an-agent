@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { once } from 'node:events';
-import type { WorkspaceConversationPort, WorkspacePorts } from '@ta-agent/ui-contracts';
+import type { WorkspaceConversationPort, WorkspacePorts } from '@print-an-agent/ui-contracts';
 import { fail, object, text, TransportProtocolError } from './decoder.js';
 import { WEB_TRANSPORT_LIMITS } from './limits.js';
 import { interactionEvent, interactionInput } from './schemas.js';

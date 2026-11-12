@@ -1,5 +1,5 @@
-import type { JsonValue } from '@ta-agent/workbench-domain';
-import type { ExtensionCallOptions, OutputInvocation } from '@ta-agent/workbench-extension';
+import type { JsonValue } from '@print-an-agent/workbench-domain';
+import type { ExtensionCallOptions, OutputInvocation } from '@print-an-agent/workbench-extension';
 
 import type { LocalCommandDefinition } from '../command-bridge/contracts.js';
 

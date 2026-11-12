@@ -1,4 +1,4 @@
-import type { CommitEvidence, RetrievalErrorCode } from '@ta-agent/retrieval-memory';
+import type { CommitEvidence, RetrievalErrorCode } from '@print-an-agent/retrieval-memory';
 export type WorkerOperation =
   | 'inspect'
   | 'get'

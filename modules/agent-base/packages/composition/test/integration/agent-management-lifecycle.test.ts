@@ -1,4 +1,4 @@
-import { createAgentIdentity, parseAgentId } from '@ta-agent/base-identity';
+import { createAgentIdentity, parseAgentId } from '@print-an-agent/base-identity';
 import { describe, expect, it } from 'vitest';
 import {
   AgentManagementError,

@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/ui-styles",
+  "name": "@print-an-agent/ui-styles",
   "version": "0.1.0",
   "description": "Optional default visual system for Agent UI semantic style hooks.",
   "private": true,

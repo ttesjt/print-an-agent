@@ -5,16 +5,16 @@ import {
   type TokenCounter,
   type TextTokenInput,
   type ActorId,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   createActorCatalog,
   createResponsibilityCatalog,
   BUILT_IN_RESPONSIBILITIES,
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
-} from '@ta-agent/base-actor';
-import { defineAgentIdentity } from '@ta-agent/base-identity';
-import { MemorySessionAdapter } from '@ta-agent/base-local-adapters';
-import { DEFAULT_SESSION_COMPACTION_POLICY } from '@ta-agent/base-session';
+} from '@print-an-agent/base-actor';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
+import { DEFAULT_SESSION_COMPACTION_POLICY } from '@print-an-agent/base-session';
 import { composeAgent } from '../../src/index.js';
 import { compactionMessage, seedCompactionSession } from '../support/compaction-fixture.js';
 

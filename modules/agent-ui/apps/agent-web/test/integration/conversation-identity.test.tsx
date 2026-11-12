@@ -1,8 +1,8 @@
 import type {
   ConversationInteractionEvent,
   StartConversationInteractionInput,
-} from '@ta-agent/ui-contracts';
-import { defineActorEngine } from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/ui-contracts';
+import { defineActorEngine } from '@print-an-agent/model-invocation-core';
 import { act } from 'react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';

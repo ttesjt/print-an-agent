@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { MutationOutcome } from '@ta-agent/ui-contracts';
+import type { MutationOutcome } from '@print-an-agent/ui-contracts';
 import {
   Alert,
   Button,
@@ -10,13 +10,13 @@ import {
   PanelHeader,
   Stack,
   TextInput,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 import {
   useRevisionedEditor,
   useWorkspaceBoundary,
   useWorkspaceMutation,
   type WorkspaceExtension,
-} from '@ta-agent/ui-workspace';
+} from '@print-an-agent/ui-workspace';
 import type { ResearchBackend } from './research-backend.js';
 
 function Outcome({ result }: { readonly result: MutationOutcome<unknown> | undefined }) {

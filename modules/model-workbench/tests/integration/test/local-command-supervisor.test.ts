@@ -4,18 +4,21 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-import { createModelWorkbench } from '@ta-agent/workbench-application';
-import { ModelOperationKind } from '@ta-agent/workbench-domain';
-import { JsonValueContract, defineInitializerCapability } from '@ta-agent/workbench-extension';
+import { createModelWorkbench } from '@print-an-agent/workbench-application';
+import { ModelOperationKind } from '@print-an-agent/workbench-domain';
+import {
+  JsonValueContract,
+  defineInitializerCapability,
+} from '@print-an-agent/workbench-extension';
 import {
   createLocalArtifactHandoffSupport,
   createLocalCommandBridge,
   createLocalExecutionSupport,
   defineLocalDirectoryArtifactReceipt,
   deriveLocalDirectoryArtifactDigest,
-} from '@ta-agent/workbench-local-runtime';
-import { createSqliteProfilePersistenceAdapter } from '@ta-agent/workbench-persistence';
-import { RuntimeBindingKind } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-local-runtime';
+import { createSqliteProfilePersistenceAdapter } from '@print-an-agent/workbench-persistence';
+import { RuntimeBindingKind } from '@print-an-agent/workbench-setup';
 import { describe, expect, it } from 'vitest';
 
 const pythonExecutable = findPythonExecutable();

@@ -1,4 +1,4 @@
-import { parseTimestamp, type Timestamp } from '@ta-agent/workbench-domain';
+import { parseTimestamp, type Timestamp } from '@print-an-agent/workbench-domain';
 
 export interface WorkbenchClock {
   now(): string;

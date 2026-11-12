@@ -1,4 +1,4 @@
-import { EmbeddingError } from '@ta-agent/model-invocation-core';
+import { EmbeddingError } from '@print-an-agent/model-invocation-core';
 import { isUint8Array } from 'node:util/types';
 
 /** Own only this response body, not the shared fetch/client that produced it. */

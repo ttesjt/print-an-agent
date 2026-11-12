@@ -1,5 +1,8 @@
-import type { JsonValue } from '@ta-agent/workbench-domain';
-import { CapabilityDispatchKind, type ExtensionCallOptions } from '@ta-agent/workbench-extension';
+import type { JsonValue } from '@print-an-agent/workbench-domain';
+import {
+  CapabilityDispatchKind,
+  type ExtensionCallOptions,
+} from '@print-an-agent/workbench-extension';
 
 import type { LocalExecutionReceipt } from '../execution/contracts.js';
 import type { LocalCommandProtocolMessageKind } from '../foundation/constants.js';

@@ -9,17 +9,17 @@ import {
   type SessionNavigationCoordinatorPort,
   type SessionExecutionPort,
   type SessionBranchReference,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import type {
   RequestContextMemory,
   RequestMemoryTarget,
   RequestMemoryRun,
-} from '@ta-agent/base-request';
+} from '@print-an-agent/base-request';
 import {
   type createVersionedContextMemoryBundle,
   type MemoryVersionReference,
   type ApplyMemoryInput,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { MemoryJournal, payload, memoryString, version } from './journal.js';
 import { createContextMemoryTools, type ContextMemoryToolScope } from './tools.js';
 import {
@@ -50,7 +50,7 @@ export interface SessionContextMemoryOptions {
   readonly writable?: boolean;
   readonly createTools?: (
     scope: ContextMemoryToolScope
-  ) => readonly import('@ta-agent/base-tool').ToolDefinition[];
+  ) => readonly import('@print-an-agent/base-tool').ToolDefinition[];
   readonly authorityId: string;
   readonly session: Pick<InspectableSessionPort, 'inspect'> & SessionMemoryPort;
   readonly memory: ContextMemoryWorkflows;

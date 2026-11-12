@@ -3,9 +3,9 @@ import {
   createActor,
   type ResolvedActor,
   type ActorDirectResult,
-} from '@ta-agent/model-invocation-core';
-import { createPiFauxRuntime } from '@ta-agent/model-invocation-pi';
-import { createProviderRuntime } from '@ta-agent/base-composition';
+} from '@print-an-agent/model-invocation-core';
+import { createPiFauxRuntime } from '@print-an-agent/model-invocation-pi';
+import { createProviderRuntime } from '@print-an-agent/base-composition';
 import {
   createSessionlessRequestWorkflow,
   resolveRequestInstructions,
@@ -14,10 +14,14 @@ import {
   type SessionlessGenerationResources,
   type SessionlessInteractionResponse,
   type SessionlessOutputSink,
-} from '@ta-agent/base-request';
+} from '@print-an-agent/base-request';
 import { createWebsiteAssistant, parseWebsiteAnswer } from './consumers/website-assistant.js';
 import { startLoopbackProvider } from './support/loopback-provider.js';
-import { createToolRegistry, defineTool, defineToolPermissionPolicy } from '@ta-agent/base-tool';
+import {
+  createToolRegistry,
+  defineTool,
+  defineToolPermissionPolicy,
+} from '@print-an-agent/base-tool';
 
 const pages = { projects: { title: 'Projects', summary: 'Modular agent tools.' } };
 

@@ -1,4 +1,4 @@
-import { AgentConfigError } from '@ta-agent/base-config';
+import { AgentConfigError } from '@print-an-agent/base-config';
 
 export type SqliteAgentConfigTableName = 'schema' | 'configs';
 

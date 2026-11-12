@@ -8,21 +8,21 @@ import {
   type ManagedAgentNamespaceReference,
   type ManagedAgentRuntimeMaterializationInput,
   type StagedManagedAgentNamespace,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   MemoryAgentConfigAdapter,
   MemoryAgentIdentityCatalogAdapter,
   MemoryRequestJournalAdapter,
   MemorySessionAdapter,
-} from '@ta-agent/base-local-adapters';
-import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-local-adapters';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
 import {
   defineStandaloneAgentConfig,
   materializeStandaloneAgentRuntime,
   STANDALONE_AGENT_CONFIG_CODEC,
   type StandaloneAgentConfig,
   type StandaloneRuntimePorts,
-} from '@ta-agent/base-standalone-agent';
+} from '@print-an-agent/base-standalone-agent';
 import { describe, expect, it } from 'vitest';
 
 interface OpaqueNamespaceHandle {

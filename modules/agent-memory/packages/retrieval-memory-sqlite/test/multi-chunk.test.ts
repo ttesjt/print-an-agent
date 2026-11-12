@@ -1,4 +1,4 @@
-import { createCodepointChunker, createRetrievalMutations } from '@ta-agent/retrieval-memory';
+import { createCodepointChunker, createRetrievalMutations } from '@print-an-agent/retrieval-memory';
 import { expect, it } from 'vitest';
 import { fixture } from './support/fixture.js';
 it('hydrates ordered binary chunks across read, reindex and a shorter replacement without stale vectors', async () => {

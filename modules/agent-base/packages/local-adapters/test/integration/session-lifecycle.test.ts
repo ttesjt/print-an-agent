@@ -2,9 +2,9 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { parseAgentId } from '@ta-agent/base-identity';
-import { parseTurnId, parseSessionBranchId } from '@ta-agent/base-session';
-import { createRequestFingerprint, parseRequestIdempotencyKey } from '@ta-agent/base-request';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseTurnId, parseSessionBranchId } from '@print-an-agent/base-session';
+import { createRequestFingerprint, parseRequestIdempotencyKey } from '@print-an-agent/base-request';
 import { describe, expect, it } from 'vitest';
 import {
   MemorySessionAdapter,

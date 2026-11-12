@@ -1,17 +1,17 @@
-import { Workflow, STEP_CARDINALITY } from '@ta-agent/workflow-core';
-import { bindAgentWorkflow } from '@ta-agent/base-runtime';
+import { Workflow, STEP_CARDINALITY } from '@print-an-agent/workflow-core';
+import { bindAgentWorkflow } from '@print-an-agent/base-runtime';
 import {
   BUILT_IN_RESPONSIBILITIES,
   createActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@ta-agent/base-actor';
-import type { AgentOperationDefinitionMap } from '@ta-agent/base-runtime';
+} from '@print-an-agent/base-actor';
+import type { AgentOperationDefinitionMap } from '@print-an-agent/base-runtime';
 import {
   defineAgentOperation,
   type AgentRunContextFactoryInput,
   type BaseAgentRunContext,
-} from '@ta-agent/base-runtime';
+} from '@print-an-agent/base-runtime';
 import { describe, expect, it } from 'vitest';
 import {
   AgentCompositionError,

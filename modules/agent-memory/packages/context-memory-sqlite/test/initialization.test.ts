@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 
 it('preserves a borrowed connection when schema initialization fails', () => {
   const database = new DatabaseSync(':memory:');

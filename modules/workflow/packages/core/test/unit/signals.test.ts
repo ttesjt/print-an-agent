@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeExecutionSignal } from '@ta-agent/workflow-core';
+import { composeExecutionSignal } from '@print-an-agent/workflow-core';
 
 describe('execution cancellation composition', () => {
   it('returns one source directly and removes duplicate source identities', () => {

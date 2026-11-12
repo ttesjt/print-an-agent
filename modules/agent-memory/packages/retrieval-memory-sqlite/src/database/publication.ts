@@ -6,7 +6,7 @@ import {
   RetrievalMemoryError,
   type RetrievalPublication,
   type RetrievalReceipt,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import { vectorTable, ensureVectorTable } from './schema.js';
 import { encode, readEntry, readReceipt, readSpace } from './records.js';
 import { transaction } from './transaction.js';

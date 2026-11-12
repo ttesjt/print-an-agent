@@ -1,6 +1,6 @@
-import { hasSessionMemoryCleanupFailure } from '@ta-agent/base-composition';
-import { ResourceCleanupError } from '@ta-agent/base-composition/resource-registry';
-import type { RequestContextMemory } from '@ta-agent/base-request';
+import { hasSessionMemoryCleanupFailure } from '@print-an-agent/base-composition';
+import { ResourceCleanupError } from '@print-an-agent/base-composition/resource-registry';
+import type { RequestContextMemory } from '@print-an-agent/base-request';
 import { AgentBaseStandaloneError } from '../../errors.js';
 import type { StandaloneSetupCloseOptions } from '../../profiles/setup.js';
 

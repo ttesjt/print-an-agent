@@ -8,7 +8,7 @@ import {
   PanelBody,
   Stack,
   TextInput,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 
 /** An independent consumer of public components, without Agent ports or application state. */
 export function Notes() {

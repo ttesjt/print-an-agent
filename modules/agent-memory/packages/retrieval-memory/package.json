@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/retrieval-memory",
+  "name": "@print-an-agent/retrieval-memory",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -23,9 +23,9 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/model-invocation-core": "workspace:*",
-    "@ta-agent/workflow-core": "workspace:*",
-    "@ta-agent/workflow-bundle": "workspace:*"
+    "@print-an-agent/model-invocation-core": "workspace:*",
+    "@print-an-agent/workflow-core": "workspace:*",
+    "@print-an-agent/workflow-bundle": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

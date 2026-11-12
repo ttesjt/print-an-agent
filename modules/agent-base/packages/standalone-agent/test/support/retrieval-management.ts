@@ -2,18 +2,18 @@ import { expect, onTestFinished, vi } from 'vitest';
 import {
   createAgentManagementService,
   createRetrievalMemoryManagementService,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   createTextEmbedder,
   createTokenCounter,
   TEXT_TOKEN_INPUT_CONTRACT,
   type TextEmbeddingRequest,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   COSINE_METRIC_REF,
   createCodepointChunker,
   type RetrievalMutationOutcome,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import {
   createStandaloneMemorySetup,
   type StandaloneRetrievalMemoryOptions,

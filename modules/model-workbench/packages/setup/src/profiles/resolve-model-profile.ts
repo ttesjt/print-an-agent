@@ -2,8 +2,11 @@ import {
   deriveEvidenceDigest,
   parseJsonValue,
   type ModelProfile,
-} from '@ta-agent/workbench-domain';
-import { ModelCapabilityKind, type ModelCapabilityRuntime } from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-domain';
+import {
+  ModelCapabilityKind,
+  type ModelCapabilityRuntime,
+} from '@print-an-agent/workbench-extension';
 
 import { invalidSetup, sortBy } from '../foundation/parsing.js';
 import {

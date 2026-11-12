@@ -1,9 +1,9 @@
-import { AgentConfigError } from '@ta-agent/base-config';
-import { AgentIdentityError } from '@ta-agent/base-identity';
-import { AgentSessionError } from '@ta-agent/base-session';
+import { AgentConfigError } from '@print-an-agent/base-config';
+import { AgentIdentityError } from '@print-an-agent/base-identity';
+import { AgentSessionError } from '@print-an-agent/base-session';
 import { ManagedAgentNamespaceError } from './contracts/namespace.js';
 import { SessionMemoryCommitError } from './context-memory/mutations.js';
-import { parseMemoryReceipt } from '@ta-agent/context-memory';
+import { parseMemoryReceipt } from '@print-an-agent/context-memory';
 import {
   AgentManagementError,
   type AgentManagementFailureSummary,

@@ -3,8 +3,8 @@ import type {
   ResolvedSessionReference,
   SessionWriteAuthority,
   SessionMemoryVersion,
-} from '@ta-agent/base-session';
-import type { ToolDefinition } from '@ta-agent/base-tool';
+} from '@print-an-agent/base-session';
+import type { ToolDefinition } from '@print-an-agent/base-tool';
 
 export interface RequestMemoryTarget {
   readonly session: ResolvedSessionReference & SessionWriteAuthority;

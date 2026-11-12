@@ -2,7 +2,7 @@ import {
   ModelInvocationError,
   type ModelInteractionEvent,
   type ModelInteractionEventSink,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { AgentRequestError } from '../errors.js';
 
 interface InteractionEventDeliveryOptions {

@@ -1,11 +1,11 @@
 import { isAbsolute } from 'node:path';
-import { defineAgentActor } from '@ta-agent/base-actor';
-import { type ActorInvocationConfig } from '@ta-agent/model-invocation-core';
-import { defineProviderConfig } from '@ta-agent/base-composition';
-import type { AgentConfigCodec, ConfigValue } from '@ta-agent/base-config';
-import { defineAgentIdentity, type AgentIdentity } from '@ta-agent/base-identity';
+import { defineAgentActor } from '@print-an-agent/base-actor';
+import { type ActorInvocationConfig } from '@print-an-agent/model-invocation-core';
+import { defineProviderConfig } from '@print-an-agent/base-composition';
+import type { AgentConfigCodec, ConfigValue } from '@print-an-agent/base-config';
+import { defineAgentIdentity, type AgentIdentity } from '@print-an-agent/base-identity';
 import { AgentBaseStandaloneError } from './errors.js';
-import { defineTextTokenCounterConfig } from '@ta-agent/model-invocation-token-counters';
+import { defineTextTokenCounterConfig } from '@print-an-agent/model-invocation-token-counters';
 import {
   parseStandaloneActorInvocationPolicy,
   parseStandaloneProviderTransportLivenessPolicy,

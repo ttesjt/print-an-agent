@@ -1,4 +1,4 @@
-import type { JsonValue } from '@ta-agent/workbench-domain';
+import type { JsonValue } from '@print-an-agent/workbench-domain';
 
 /** Validate lazily, but transfer iterator ownership as soon as a consumer claims the stream. */
 export function parseOutputStream(

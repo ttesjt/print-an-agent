@@ -7,12 +7,12 @@ import {
   createTokenCounter,
   TEXT_TOKEN_INPUT_CONTRACT,
   requireActorTextTokenCounter,
-} from '@ta-agent/model-invocation-core';
-import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
+} from '@print-an-agent/model-invocation-core';
+import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@print-an-agent/base-actor';
 import {
   resolveTextTokenCounterConfig,
   type TextTokenCounterConfigInput,
-} from '@ta-agent/model-invocation-token-counters';
+} from '@print-an-agent/model-invocation-token-counters';
 import {
   createStandaloneProviderService,
   createStandaloneDirectoryDefinition,
@@ -22,8 +22,8 @@ import {
   STANDALONE_AGENT_CONFIG_CODEC,
   materializeStandaloneAgentRuntime,
 } from '../../src/index.js';
-import { createMemorySessionPersistence } from '@ta-agent/base-local-adapters';
-import { defineAgentIdentity } from '@ta-agent/base-identity';
+import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
 import {
   resourceProfileConfig,
   resourceProfileRuntimeOptions,

@@ -3,9 +3,9 @@ import {
   createResponsibilityCatalog,
   BUILT_IN_RESPONSIBILITIES,
   MAIN_ACTOR_ID,
-} from '@ta-agent/base-actor';
-import { defineAgentIdentity } from '@ta-agent/base-identity';
-import { MemorySessionAdapter } from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-actor';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
 import {
   defineAssistantModelMessage,
   defineProviderModelExecutionProvenance,
@@ -14,14 +14,14 @@ import {
   type AssistantModelMessage,
   type TokenCounter,
   type TextTokenInput,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   DEFAULT_SESSION_COMPACTION_POLICY,
   supportsSessionExecution,
   parseTurnId,
   type CompactableSessionPort,
   type SessionCompactionPolicy,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { composeAgent, type ComposeAgentOptions } from '../../src/index.js';
 import { TEST_COMPACTION_TOKEN_COUNTER } from './compaction-token-counter.js';
 

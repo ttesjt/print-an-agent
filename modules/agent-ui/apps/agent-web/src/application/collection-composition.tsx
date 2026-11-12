@@ -1,5 +1,5 @@
-import { Alert, Button, Status, Stack } from '@ta-agent/ui-react';
-import type { RecentCollectionsPersistencePort } from '@ta-agent/ui-contracts';
+import { Alert, Button, Status, Stack } from '@print-an-agent/ui-react';
+import type { RecentCollectionsPersistencePort } from '@print-an-agent/ui-contracts';
 import { useEffect, useState } from 'react';
 import { CollectionApplication } from '../collection/collection-application.js';
 import { createDirectoryCollectionAccess } from '../adapters/directory-collection-access.js';
@@ -9,7 +9,7 @@ import type {
   DirectoryCollectionReference,
 } from '../collection/directory-contracts.js';
 import { createBrowserCollectionHistory } from '../adapters/browser-collection-history.js';
-import { useRecentCollections } from '@ta-agent/ui-workspace';
+import { useRecentCollections } from '@print-an-agent/ui-workspace';
 
 export function LocalCollectionApplication({
   access = DEFAULT_ACCESS,

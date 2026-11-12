@@ -4,7 +4,7 @@ import {
   RetrievalMemoryError,
   type RetrievalPublication,
   type BackendSearch,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import { openDatabase } from './database/schema.js';
 import { readEntry, readReceipt, readSpace } from './database/records.js';
 import { publish } from './database/publication.js';

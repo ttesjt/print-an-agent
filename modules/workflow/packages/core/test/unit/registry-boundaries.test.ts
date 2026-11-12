@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { resolveStepRegistry, mergeStepOverrides } from '@ta-agent/workflow-core';
+import { resolveStepRegistry, mergeStepOverrides } from '@print-an-agent/workflow-core';
 
 it.each(['toString', 'constructor', '__proto__'])(
   'does not read inherited overrides for the legal Step name %s',

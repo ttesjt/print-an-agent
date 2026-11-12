@@ -1,5 +1,5 @@
-import type { ContextModelMessage, ModelMessage } from '@ta-agent/model-invocation-core';
-import type { ExecutionTimeoutMilliseconds } from '@ta-agent/workflow-core';
+import type { ContextModelMessage, ModelMessage } from '@print-an-agent/model-invocation-core';
+import type { ExecutionTimeoutMilliseconds } from '@print-an-agent/workflow-core';
 import type { SessionWriteAuthority } from '../lifecycle/execution.js';
 import type { SessionCompactionTarget } from './planning/contracts.js';
 import type {

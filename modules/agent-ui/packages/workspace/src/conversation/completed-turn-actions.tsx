@@ -1,5 +1,5 @@
-import type { CompletedConversationTurn } from '@ta-agent/ui-contracts';
-import { ConversationTurnActions } from '@ta-agent/ui-react';
+import type { CompletedConversationTurn } from '@print-an-agent/ui-contracts';
+import { ConversationTurnActions } from '@print-an-agent/ui-react';
 
 const TIMESTAMP_FORMAT = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' });
 

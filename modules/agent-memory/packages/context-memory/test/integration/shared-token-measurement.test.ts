@@ -1,11 +1,14 @@
 import { expect, it, vi } from 'vitest';
-import { createTokenCounter, TEXT_TOKEN_INPUT_CONTRACT } from '@ta-agent/model-invocation-core';
+import {
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+} from '@print-an-agent/model-invocation-core';
 import {
   MemoryMeter,
   MemoryMutations,
   parseMemorySnapshot,
   readMemoryContext,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { TestMemoryStore } from '../support/store.js';
 import { testCounter } from '../support/counter.js';
 

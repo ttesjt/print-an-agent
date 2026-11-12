@@ -1,6 +1,6 @@
 # Consuming scoped resources
 
-Registry is an optional subsystem exposed by `@ta-agent/base-composition/resource-registry`.
+Registry is an optional subsystem exposed by `@print-an-agent/base-composition/resource-registry`.
 It assembles reusable capabilities; it does not replace
 the application's provisioning contracts, become Workflow resources, or own business execution.
 

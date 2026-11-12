@@ -1,5 +1,5 @@
 import { TEST_COMPACTION_TOKEN_COUNTER } from '../support/compaction-token-counter.js';
-import { STEP_CARDINALITY } from '@ta-agent/workflow-core';
+import { STEP_CARDINALITY } from '@print-an-agent/workflow-core';
 import { describe, expect, it } from 'vitest';
 import { createDeterministicAgentAPI } from '../../src/index.js';
 

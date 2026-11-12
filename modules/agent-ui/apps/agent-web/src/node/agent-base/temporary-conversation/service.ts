@@ -1,11 +1,11 @@
 import {
   createSessionlessRequestService,
   type AgentManagementService,
-} from '@ta-agent/base-composition';
-import { parseAgentId } from '@ta-agent/base-identity';
-import { ActorError, ModelInvocationError } from '@ta-agent/model-invocation-core';
-import { AgentRequestError } from '@ta-agent/base-request';
-import { runWithExecutionTimeout } from '@ta-agent/workflow-core';
+} from '@print-an-agent/base-composition';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { ActorError, ModelInvocationError } from '@print-an-agent/model-invocation-core';
+import { AgentRequestError } from '@print-an-agent/base-request';
+import { runWithExecutionTimeout } from '@print-an-agent/workflow-core';
 import type { AgentWebConfig } from '../../../application/agent-config.js';
 import {
   TEMPORARY_EVENT,

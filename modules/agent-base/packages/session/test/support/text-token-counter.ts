@@ -1,4 +1,7 @@
-import { createTokenCounter, TEXT_TOKEN_INPUT_CONTRACT } from '@ta-agent/model-invocation-core';
+import {
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+} from '@print-an-agent/model-invocation-core';
 
 /** Test-only text vocabulary, not a model estimate. */
 export function testTextCounter(

@@ -4,7 +4,7 @@ import {
   InvalidWorkbenchValueError,
   parseArtifactReference,
   parseProfileId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import { RuntimeSupportKind, defineArtifactHandoffSupport } from '../../src/index.js';
 

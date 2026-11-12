@@ -7,23 +7,23 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const eslint = new ESLint({ cwd: root });
 
 it.each([
-  ['core', '@ta-agent/base-runtime'],
-  ['core', '@ta-agent/workflow-core'],
-  ['core', '@ta-agent/model-invocation-pi'],
-  ['core', '@ta-agent/model-invocation-token-counters'],
-  ['core', '@ta-agent/model-invocation-embedding-http'],
-  ['embedding-http', '@ta-agent/retrieval-memory'],
-  ['embedding-http', '@ta-agent/base-runtime'],
-  ['embedding-http', '@ta-agent/workflow-core'],
-  ['embedding-http', '@ta-agent/workbench-application'],
-  ['embedding-http', '@ta-agent/self-learn-domain'],
-  ['embedding-http', '@ta-agent/ui-contracts'],
-  ['token-counters', '@ta-agent/base-runtime'],
+  ['core', '@print-an-agent/base-runtime'],
+  ['core', '@print-an-agent/workflow-core'],
+  ['core', '@print-an-agent/model-invocation-pi'],
+  ['core', '@print-an-agent/model-invocation-token-counters'],
+  ['core', '@print-an-agent/model-invocation-embedding-http'],
+  ['embedding-http', '@print-an-agent/retrieval-memory'],
+  ['embedding-http', '@print-an-agent/base-runtime'],
+  ['embedding-http', '@print-an-agent/workflow-core'],
+  ['embedding-http', '@print-an-agent/workbench-application'],
+  ['embedding-http', '@print-an-agent/self-learn-domain'],
+  ['embedding-http', '@print-an-agent/ui-contracts'],
+  ['token-counters', '@print-an-agent/base-runtime'],
   ['core', '@earendil-works/pi-ai'],
   ['core', 'typebox'],
-  ['pi', '@ta-agent/base-tool'],
-  ['pi', '@ta-agent/workbench-application'],
-  ['pi', '@ta-agent/self-learn-domain'],
+  ['pi', '@print-an-agent/base-tool'],
+  ['pi', '@print-an-agent/workbench-application'],
+  ['pi', '@print-an-agent/self-learn-domain'],
 ])(
   'rejects %s importing %s with the effective production ESLint configuration',
   async (owner, dependency) => {
@@ -66,7 +66,7 @@ it('keeps the embedding adapter optional and its standalone consumer on public e
   if (typeof adapter !== 'object' || adapter === null || !('dependencies' in adapter)) {
     throw new Error('Invalid embedding adapter manifest');
   }
-  expect(adapter.dependencies).toEqual({ '@ta-agent/model-invocation-core': 'workspace:*' });
+  expect(adapter.dependencies).toEqual({ '@print-an-agent/model-invocation-core': 'workspace:*' });
   const consumer = readFileSync(
     new URL(
       '../modules/model-invocation/packages/embedding-http/test/fixtures/public-consumer.ts',
@@ -74,9 +74,9 @@ it('keeps the embedding adapter optional and its standalone consumer on public e
     ),
     'utf8'
   );
-  expect(consumer).toContain("from '@ta-agent/model-invocation-core'");
-  expect(consumer).toContain("from '@ta-agent/model-invocation-embedding-http'");
+  expect(consumer).toContain("from '@print-an-agent/model-invocation-core'");
+  expect(consumer).toContain("from '@print-an-agent/model-invocation-embedding-http'");
   expect(consumer).not.toMatch(
-    /from ['"]\.|\/src\/|@ta-agent\/(?:base-|workflow-|self-learn-|workbench-)/
+    /from ['"]\.|\/src\/|@print-an-agent\/(?:base-|workflow-|self-learn-|workbench-)/
   );
 });

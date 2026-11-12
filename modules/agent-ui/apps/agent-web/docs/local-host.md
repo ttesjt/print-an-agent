@@ -1,8 +1,8 @@
 # Local Agent Web host
 
 ```sh
-pnpm --filter @ta-agent/ui-agent-web build
-pnpm --filter @ta-agent/ui-agent-web serve --root /absolute/path/to/agents --port 4174
+pnpm --filter @print-an-agent/ui-agent-web build
+pnpm --filter @print-an-agent/ui-agent-web serve --root /absolute/path/to/agents --port 4174
 ```
 
 Open `http://127.0.0.1:4174`. `--root` selects the multi-Agent workspace. Each Agent keeps its
@@ -12,7 +12,7 @@ there is no global provider file and no implicit deterministic fallback.
 To select the Collection in the browser instead, omit `--root`:
 
 ```sh
-pnpm --filter @ta-agent/ui-agent-web serve --port 4174
+pnpm --filter @print-an-agent/ui-agent-web serve --port 4174
 ```
 
 Enter an absolute host directory or browse folders. Opening creates a missing directory. The
@@ -45,7 +45,7 @@ explicit: it sends a small model request, capped at 16 output tokens and 30 seco
 configured shorter Actor limit). It can be cancelled, may incur a charge, and creates no Session
 or Request Journal record. Success is tied to the tested config revision; changes invalidate it.
 
-For development, keep the host running and start `pnpm --filter @ta-agent/ui-agent-web dev` in a
+For development, keep the host running and start `pnpm --filter @print-an-agent/ui-agent-web dev` in a
 second terminal. Vite at port `5173` proxies `/api` to the host. Production `serve` serves
 `dist/public` and the API on one origin; `vite preview` alone has no backend. Explicit browser
 fixtures use `?mode=deterministic` and identify themselves as demonstrations.

@@ -4,7 +4,7 @@ import {
   jsonValue,
   parseMemorySnapshot,
   type MemorySnapshot,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { applyStateDelta, diffState } from './delta.js';
 
 export const DEFAULT_MAX_MEMORY_DELTA_CHAIN = 32;

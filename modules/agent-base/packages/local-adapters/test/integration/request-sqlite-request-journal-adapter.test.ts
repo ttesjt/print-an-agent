@@ -7,7 +7,7 @@ import {
   AgentRequestError,
   createRequestFingerprint,
   type AgentRequestErrorCode,
-} from '@ta-agent/base-request';
+} from '@print-an-agent/base-request';
 import { SqliteRequestJournalAdapter, SqliteSessionAdapter } from '../../src/index.js';
 import {
   defineRequestJournalContract,

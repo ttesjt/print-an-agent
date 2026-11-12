@@ -4,26 +4,29 @@ import {
   requireInteractionCapability,
   requireStreamingCapability,
   type ActorId,
-} from '@ta-agent/model-invocation-core';
-import type { ModelInteractionResult } from '@ta-agent/model-invocation-core';
-import { parseToolName, type ToolName } from '@ta-agent/base-tool';
+} from '@print-an-agent/model-invocation-core';
+import type { ModelInteractionResult } from '@print-an-agent/model-invocation-core';
+import { parseToolName, type ToolName } from '@print-an-agent/base-tool';
 import {
   ACTOR_INPUT_MEDIA_TYPES,
   ACTOR_INVOCATION_MODES,
   satisfiesActorRequirements,
   type ActorCapabilityRequirements,
   type ActorInputMediaType,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { ResolvedActor } from './actor.js';
 import type {
   ActorDirectRequest,
   ActorDirectResult,
   ActorInteractionRequest,
   ActorStreamingRequest,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { AgentActorError } from './errors.js';
 import { parseResponsibilityId, type ResponsibilityId } from './identifiers.js';
-import { composeActorInstructions, parseActorInstructions } from '@ta-agent/model-invocation-core';
+import {
+  composeActorInstructions,
+  parseActorInstructions,
+} from '@print-an-agent/model-invocation-core';
 
 export interface ResponsibilityActorCandidateInput {
   readonly actorId: string;

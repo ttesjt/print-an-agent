@@ -4,7 +4,7 @@ import {
   type ContextMemoryManagementCapability,
   type RetrievalMemoryManagementCapability,
   type ManagedAgentNamespacePort,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   memoryCapabilities,
   type ContextMemoryPort,

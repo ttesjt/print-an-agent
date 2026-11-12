@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { createModelWorkbench } from '@ta-agent/workbench-application';
+import { createModelWorkbench } from '@print-an-agent/workbench-application';
 import {
   CapabilityDispatchKind,
   defineArtifactHandoffSupport,
@@ -12,9 +12,9 @@ import {
   defineInitializerCapability,
   ExecutionStatus,
   JsonValueContract,
-} from '@ta-agent/workbench-extension';
-import { createSqliteProfilePersistenceAdapter } from '@ta-agent/workbench-persistence';
-import { RuntimeBindingKind } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-extension';
+import { createSqliteProfilePersistenceAdapter } from '@print-an-agent/workbench-persistence';
+import { RuntimeBindingKind } from '@print-an-agent/workbench-setup';
 
 describe('SQLite-backed Model Workbench', () => {
   it('restores terminal Runs and assets through a new public Application instance', async () => {

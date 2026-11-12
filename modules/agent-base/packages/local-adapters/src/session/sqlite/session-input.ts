@@ -1,4 +1,4 @@
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   parseSessionId,
   parseSessionBranchId,
@@ -6,7 +6,7 @@ import {
   type BeginSessionTurnRequest,
   type SessionBranchReference,
   type ApplySessionNavigationRequest,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { normalizeReference } from './session-record-codec.js';
 
 export function normalizeResolvedReference(

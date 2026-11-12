@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/package-template",
+  "name": "@print-an-agent/package-template",
   "version": "0.1.0",
   "description": "Workspace template for Modular Agent TypeScript libraries.",
   "private": true,

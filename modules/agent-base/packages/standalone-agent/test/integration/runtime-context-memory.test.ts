@@ -2,8 +2,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it, onTestFinished, vi } from 'vitest';
-import { parseAgentId } from '@ta-agent/base-identity';
-import { parseTurnId } from '@ta-agent/base-session';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseTurnId } from '@print-an-agent/base-session';
 import type {
   StandaloneSetup,
   MemoryManagedStandaloneDefinition,
@@ -15,8 +15,11 @@ import {
   createSessionNavigationService,
   createContextMemoryManagementService,
   createSessionManagementService,
-} from '@ta-agent/base-composition';
-import { createTokenCounter, TEXT_TOKEN_INPUT_CONTRACT } from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/base-composition';
+import {
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+} from '@print-an-agent/model-invocation-core';
 import {
   createStandaloneDirectorySetup,
   createStandaloneMemorySetup,
@@ -28,8 +31,8 @@ import {
   resourceProfileRuntimeOptions,
 } from '../support/resource-profile.js';
 import { compactionServer } from '../support/compaction-server.js';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
-import { ContextMemoryError, createMemoryApplyDefinition } from '@ta-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
+import { ContextMemoryError, createMemoryApplyDefinition } from '@print-an-agent/context-memory';
 
 const memory = {
   storageNamespaceId: 'runtime-tests',

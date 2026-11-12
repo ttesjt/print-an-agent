@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/base-identity",
+  "name": "@print-an-agent/base-identity",
   "version": "0.1.0",
   "description": "Stable Agent identity primitives and lifecycle catalog contracts for Agent Base.",
   "private": true,

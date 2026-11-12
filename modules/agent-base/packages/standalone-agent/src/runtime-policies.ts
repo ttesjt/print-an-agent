@@ -4,13 +4,13 @@ import {
   DEFAULT_REQUEST_POLICY,
   validateRequestPolicy,
   type RequestPolicy,
-} from '@ta-agent/base-request';
-import { mergeStepOverrides, resolveStepRegistry } from '@ta-agent/workflow-core';
+} from '@print-an-agent/base-request';
+import { mergeStepOverrides, resolveStepRegistry } from '@print-an-agent/workflow-core';
 import {
   validateSessionCompactionPolicy,
   bindSessionCompactionTokenCounter,
   type SessionCompactionPolicy,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { AgentBaseStandaloneError } from './errors.js';
 import type {
   StandaloneRequestExecutionConfig,

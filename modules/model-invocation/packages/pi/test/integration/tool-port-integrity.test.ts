@@ -7,7 +7,7 @@ import {
   type ToolCallProposal,
   type ToolExecutionOutcome,
   type ToolObjectSchema,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { createPiProviderRuntime } from '../../src/index.js';
 import { completionServer } from '../support/completion-server.js';
 

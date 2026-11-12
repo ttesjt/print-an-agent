@@ -6,11 +6,11 @@ import {
   MemoryOutputSink,
   createMemorySessionPersistence,
   createSqliteSessionPersistence,
-} from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-local-adapters';
 import { describe, expect, it, vi } from 'vitest';
 import { FOREGROUND_AGENT_OPERATION_NAME, createDeterministicAgentAPI } from '../../src/index.js';
-import { executeSessionNavigation } from '@ta-agent/base-session';
-import { parseRequestIdempotencyKey } from '@ta-agent/base-request';
+import { executeSessionNavigation } from '@print-an-agent/base-session';
+import { parseRequestIdempotencyKey } from '@print-an-agent/base-request';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';
 
 describe.each(['memory', 'sqlite'] as const)('%s runtime lifecycle', (kind) => {

@@ -1,5 +1,5 @@
-import { defineAgentIdentity } from '@ta-agent/base-identity';
-import { createMemorySessionPersistence } from '@ta-agent/base-local-adapters';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
 import { describe, expect, it } from 'vitest';
 import { AgentBaseStandaloneError, materializeStandaloneAgentRuntime } from '../../src/index.js';
 import {

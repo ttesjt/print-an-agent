@@ -4,7 +4,7 @@ import {
   ModelCapabilityKind,
   RuntimeSupportKind,
   defineJsonSchemaContract,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import { describe, expect, it } from 'vitest';
 
 import {

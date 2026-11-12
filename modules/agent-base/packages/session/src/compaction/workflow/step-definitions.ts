@@ -1,4 +1,4 @@
-import { STEP_CARDINALITY, type Step, type StepDefinitions } from '@ta-agent/workflow-core';
+import { STEP_CARDINALITY, type Step, type StepDefinitions } from '@print-an-agent/workflow-core';
 import { SessionCompactionStepNotImplementedError } from '../../errors.js';
 import type { SessionCompactionLeafStepName, SessionCompactionStepName } from './names.js';
 import type { SessionCompactionWorkflowContext } from './types.js';

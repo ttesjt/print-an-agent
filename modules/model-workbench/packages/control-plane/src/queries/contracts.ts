@@ -9,7 +9,7 @@ import type {
   ModelRunStatus,
   RunId,
   TerminalModelRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import type { ModelWorkbenchOperationOptions } from '../execution/contracts.js';
 
 export interface WaitForRunOptions extends ModelWorkbenchOperationOptions {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { JsonValue } from '@ta-agent/workbench-domain';
+import type { JsonValue } from '@print-an-agent/workbench-domain';
 import {
   CapabilityDispatchKind,
   ExecutionStatus,
@@ -11,13 +11,13 @@ import {
   defineInitializerCapability,
   type ObserveExecution,
   type TypedExporterCapability,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import {
   WorkbenchPersistenceError,
   createMemoryPersistence,
   createSharedProfilePersistenceAdapter,
-} from '@ta-agent/workbench-persistence';
-import { RuntimeBindingKind, resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-persistence';
+import { RuntimeBindingKind, resolveWorkbenchSetup } from '@print-an-agent/workbench-setup';
 
 import {
   ExportArtifactVerificationError,

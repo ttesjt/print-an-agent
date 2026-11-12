@@ -6,24 +6,24 @@ import {
   createAgentManagementService,
   createContextMemoryManagementService,
   createRetrievalMemoryManagementService,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   createStandaloneMemorySetup,
   createStandaloneDirectorySetup,
   defineStandaloneAgentConfig,
-} from '@ta-agent/base-standalone-agent';
+} from '@print-an-agent/base-standalone-agent';
 import {
   createMemoryApplyDefinition,
   MemoryMeter,
   type MemoryStore,
-} from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
-import { createCodepointChunker, COSINE_METRIC_REF } from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
+import { createCodepointChunker, COSINE_METRIC_REF } from '@print-an-agent/retrieval-memory';
 import {
   createTextEmbedder,
   createTokenCounter,
   TEXT_TOKEN_INPUT_CONTRACT,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { projectContextMemory } from './consumers/direct-context-memory.js';
 
 const config = () =>

@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { WorkflowRunError, type WorkflowEvent } from '@ta-agent/workflow-core';
+import { WorkflowRunError, type WorkflowEvent } from '@print-an-agent/workflow-core';
 import { aborted, gate, options, workflow } from '../support/fixtures.js';
 
 it.each(['createResult', 'condition', 'createState'] as const)(

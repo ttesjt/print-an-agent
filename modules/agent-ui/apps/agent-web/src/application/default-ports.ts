@@ -1,4 +1,4 @@
-import type { WorkspacePorts } from '@ta-agent/ui-contracts';
+import type { WorkspacePorts } from '@print-an-agent/ui-contracts';
 import type { AgentWebPorts } from './ports.js';
 import type { AgentWebConfig } from './agent-config.js';
 export function createDefaultWorkspacePorts(ports: AgentWebPorts<AgentWebConfig>): WorkspacePorts {

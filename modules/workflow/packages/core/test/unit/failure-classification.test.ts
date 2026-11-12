@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { skipWorkflow, type WorkflowEvent } from '@ta-agent/workflow-core';
+import { skipWorkflow, type WorkflowEvent } from '@print-an-agent/workflow-core';
 import { options, workflow } from '../support/fixtures.js';
 
 it.each(['A', 'DOMAIN_ERROR_12', 'A'.repeat(128)])('accepts the bounded code %s', async (code) => {

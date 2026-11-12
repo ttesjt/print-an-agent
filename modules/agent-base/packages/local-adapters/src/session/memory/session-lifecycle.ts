@@ -21,7 +21,7 @@ import {
   type SessionLifecycleMutationInput,
   type PurgeSessionInput,
   type RecoverSessionExecutionsInput,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { memorySessionKey, readMemoryClock, type StoredMemorySession } from './session-state.js';
 
 export function memoryLifecycleSnapshot(session: StoredMemorySession): SessionLifecycleSnapshot {

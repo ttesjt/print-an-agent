@@ -1,4 +1,4 @@
-import { STEP_CARDINALITY, type Step, type StepDefinitions } from '@ta-agent/workflow-core';
+import { STEP_CARDINALITY, type Step, type StepDefinitions } from '@print-an-agent/workflow-core';
 import { AgentRequestError, RequestStepNotImplementedError } from '../errors.js';
 import type { RequestLeafStepName, RequestStepName } from './names.js';
 import type { RequestWorkflowContext } from './types.js';

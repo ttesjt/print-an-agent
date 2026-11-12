@@ -147,14 +147,14 @@ intact; wider layouts use the inspector region.
 Run the bounded Web build and qualification with:
 
 ```sh
-pnpm --filter @ta-agent/ui-agent-web test
+pnpm --filter @print-an-agent/ui-agent-web test
 ```
 
 Build and run the full local application:
 
 ```sh
-pnpm --filter @ta-agent/ui-agent-web build
-pnpm --filter @ta-agent/ui-agent-web serve --root /absolute/path/to/agents
+pnpm --filter @print-an-agent/ui-agent-web build
+pnpm --filter @print-an-agent/ui-agent-web serve --root /absolute/path/to/agents
 ```
 
 Open `http://127.0.0.1:4174`. Create an Agent and configure its model connection in the UI.

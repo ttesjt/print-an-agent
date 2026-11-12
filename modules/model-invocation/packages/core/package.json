@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/model-invocation-core",
+  "name": "@print-an-agent/model-invocation-core",
   "version": "0.1.0",
   "description": "Independent Actor capabilities and validated model invocation protocols.",
   "private": true,

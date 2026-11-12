@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ActiveModelRun, JsonValue } from '@ta-agent/workbench-domain';
+import type { ActiveModelRun, JsonValue } from '@print-an-agent/workbench-domain';
 
 import {
   CapabilityDispatchKind,
@@ -15,14 +15,14 @@ import {
   type TypedInitializerCapability,
   type VerifyArtifact,
   type ExtensionValueContract,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import {
   createMemoryPersistence,
   createSharedProfilePersistenceAdapter,
   type ProfilePersistence,
   WorkbenchPersistenceError,
-} from '@ta-agent/workbench-persistence';
-import { resolveWorkbenchSetup, RuntimeBindingKind } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-persistence';
+import { resolveWorkbenchSetup, RuntimeBindingKind } from '@print-an-agent/workbench-setup';
 
 import {
   createWorkbenchControlPlane,

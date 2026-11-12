@@ -6,7 +6,7 @@ import {
   type ModelRun,
   type RunId,
   type StartingModelRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import { PersistenceRecordConflictError } from '../errors.js';
 import type { RunRepository } from '../ports/run-repository.js';

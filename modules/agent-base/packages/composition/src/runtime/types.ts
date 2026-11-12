@@ -3,10 +3,10 @@ import type {
   ActorDefinitionInput,
   ResponsibilityCatalogPort,
   ResponsibilityDefinitionInput,
-} from '@ta-agent/base-actor';
-import type { ActorId, TokenCounter, TextTokenInput } from '@ta-agent/model-invocation-core';
-import type { AgentIdentityInput } from '@ta-agent/base-identity';
-import type { AgentTraceRuntimeOptions } from '@ta-agent/base-observability';
+} from '@print-an-agent/base-actor';
+import type { ActorId, TokenCounter, TextTokenInput } from '@print-an-agent/model-invocation-core';
+import type { AgentIdentityInput } from '@print-an-agent/base-identity';
+import type { AgentTraceRuntimeOptions } from '@print-an-agent/base-observability';
 import type {
   CompactableSessionPort,
   SessionCompactionAgentRunContext,
@@ -14,7 +14,7 @@ import type {
   SessionCompactionPolicy,
   SessionCompactionStepName,
   SessionCompactionWorkflowContext,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import type {
   DefaultRequestWorkflowContext,
   InstructionContributor,
@@ -22,11 +22,11 @@ import type {
   RequestAgentRunContext,
   RequestPolicy,
   RequestJournalPort,
-} from '@ta-agent/base-request';
-import type { ToolExecutionPolicy, ToolRegistry } from '@ta-agent/base-tool';
-import type { AgentWorkflow } from '@ta-agent/base-runtime';
-import type { StepOverrides } from '@ta-agent/workflow-core';
-import type { RequestStepName } from '@ta-agent/base-request';
+} from '@print-an-agent/base-request';
+import type { ToolExecutionPolicy, ToolRegistry } from '@print-an-agent/base-tool';
+import type { AgentWorkflow } from '@print-an-agent/base-runtime';
+import type { StepOverrides } from '@print-an-agent/workflow-core';
+import type { RequestStepName } from '@print-an-agent/base-request';
 import type { AgentAPI } from './agent-api.js';
 import type {
   DeterministicProviderInspection,
@@ -39,7 +39,7 @@ import type {
 } from './provider-contracts.js';
 
 export interface ComposeAgentOptions {
-  readonly contextMemory?: import('@ta-agent/base-request').RequestContextMemory;
+  readonly contextMemory?: import('@print-an-agent/base-request').RequestContextMemory;
   readonly identity: AgentIdentityInput;
   readonly actorCatalog: ActorCatalogPort;
   readonly responsibilityCatalog: ResponsibilityCatalogPort;

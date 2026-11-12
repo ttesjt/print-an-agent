@@ -4,7 +4,7 @@ import type {
   AgentConfigProjectionPort,
   AgentConfigProjectionView,
   ManagedAgentNamespace,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import { encodeStandaloneAgentManifest } from '../../config.js';
 import { AgentBaseStandaloneError } from '../../errors.js';
 import type { StandaloneAgentConfig, StandaloneAgentManifest } from '../../types.js';

@@ -3,8 +3,8 @@ import type {
   ActorDirectResult,
   ModelMessage,
   ResolvedActor,
-} from '@ta-agent/model-invocation-core';
-import type { WorkflowContext, WorkflowDefinition } from '@ta-agent/workflow-core';
+} from '@print-an-agent/model-invocation-core';
+import type { WorkflowContext, WorkflowDefinition } from '@print-an-agent/workflow-core';
 import type { OutputFailure, OutputStreamEvent } from '../contracts.js';
 import type { RequestInteractionState } from '../interaction/state.js';
 

@@ -3,7 +3,7 @@ import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { ConversationInteractionEvent } from '@ta-agent/ui-contracts';
+import type { ConversationInteractionEvent } from '@print-an-agent/ui-contracts';
 import type { AgentWebConfig } from '../../src/application/agent-config.js';
 import { DEFAULT_AGENT_CONFIG } from '../../src/application/agent-config.js';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';

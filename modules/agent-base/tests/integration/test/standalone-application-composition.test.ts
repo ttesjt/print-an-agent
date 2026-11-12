@@ -7,11 +7,11 @@ import {
   createAgentRuntimeService,
   createSessionManagementService,
   createSessionNavigationService,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   createSharedSqliteStandaloneManagementService,
   createSharedSqliteStandaloneSessionNavigationService,
@@ -20,7 +20,7 @@ import {
   defineStandaloneAgentConfig,
   type StandaloneAgentConfigInput,
   type StandaloneRuntimeOptions,
-} from '@ta-agent/base-standalone-agent';
+} from '@print-an-agent/base-standalone-agent';
 import { describe, expect, it } from 'vitest';
 
 function standaloneConfig(

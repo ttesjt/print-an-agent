@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, expect } from 'vitest';
-import type { ResourceScope } from '@ta-agent/base-composition/resource-registry';
+import type { ResourceScope } from '@print-an-agent/base-composition/resource-registry';
 
 const cleanup: {
   readonly kind: 'resource' | 'directory';

@@ -5,7 +5,7 @@ import {
   createMemoryInspectVersionDefinition,
   MemoryMeter,
   type MemoryVersionReference,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { vocabularyCounter } from './support/model.js';
 import { VersionStore } from './support/version-store.js';
 

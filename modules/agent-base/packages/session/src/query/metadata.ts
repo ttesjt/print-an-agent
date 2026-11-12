@@ -1,4 +1,4 @@
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 
 import { AgentSessionError } from '../errors.js';
 import { parseSessionId } from '../identifiers.js';

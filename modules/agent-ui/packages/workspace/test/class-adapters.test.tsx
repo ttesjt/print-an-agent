@@ -10,7 +10,7 @@ import type {
   SessionNavigationSnapshot,
   WorkspaceConversationPort,
   WorkspaceSessionPort,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import { useConversationManagement, useSessionManagement } from '../src/testing.js';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });

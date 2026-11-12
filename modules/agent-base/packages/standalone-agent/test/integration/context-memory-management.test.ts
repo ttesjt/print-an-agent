@@ -9,17 +9,20 @@ import {
   MemoryManagementError,
   scopedAgentMemoryId,
   type MemoryManagementOptions,
-} from '@ta-agent/base-composition';
-import { createTokenCounter, TEXT_TOKEN_INPUT_CONTRACT } from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/base-composition';
+import {
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+} from '@print-an-agent/model-invocation-core';
 import {
   ContextMemoryError,
   createMemoryApplyDefinition,
   createMemoryGetReceiptDefinition,
   type MemoryStore,
   type MemoryWorkflowDefinitions,
-} from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
-import { parseAgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   createStandaloneMemorySetup,
   createStandaloneDirectorySetup,

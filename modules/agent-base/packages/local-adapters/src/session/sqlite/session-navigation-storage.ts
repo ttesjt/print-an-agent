@@ -11,7 +11,7 @@ import {
   type SessionSnapshot,
   type AppliedSessionNavigation,
   type ApplySessionNavigationRequest,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { readClock, runImmediateTransaction } from './database.js';
 import {
   decodeBranch,

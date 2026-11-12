@@ -3,8 +3,8 @@ import {
   EMBEDDING_TASK,
   type TextEmbeddingCapability,
   type TextEmbedderDefinition,
-} from '@ta-agent/model-invocation-core';
-import { createHttpTextEmbedder } from '@ta-agent/model-invocation-embedding-http';
+} from '@print-an-agent/model-invocation-core';
+import { createHttpTextEmbedder } from '@print-an-agent/model-invocation-embedding-http';
 
 const endpoint = process.argv[2];
 if (endpoint === undefined) throw new Error('A loopback fixture endpoint is required');

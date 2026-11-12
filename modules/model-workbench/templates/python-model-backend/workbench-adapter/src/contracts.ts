@@ -2,7 +2,7 @@ import type {
   ModelProfileInput,
   WorkbenchExtensionResources,
   WorkbenchSetupInput,
-} from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-setup';
 
 import type { PythonModelBackendDType, PythonModelBackendDevice } from './constants.js';
 

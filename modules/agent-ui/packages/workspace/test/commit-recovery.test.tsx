@@ -5,7 +5,7 @@ import type {
   CompletedConversationTurn,
   ConversationSessionAdmission,
   WorkspaceConversationPort,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import {
   ConversationWorkspace,
   useConversationManagement,

@@ -7,7 +7,7 @@ import {
   type ResourceAcquisition,
   type ResourceBlueprint,
   type ResourceScope,
-} from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-composition/resource-registry';
 import {
   ContextMemoryError,
   createCompletionMemoryPlanner,
@@ -15,21 +15,21 @@ import {
   createModelMemoryResources,
   MemoryMeter,
   type ModelMemoryResources,
-} from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+} from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import {
   createCodepointChunker,
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
   COSINE_METRIC_REF,
   RetrievalMemoryError,
-} from '@ta-agent/retrieval-memory';
-import { openSqliteRetrievalBackend } from '@ta-agent/retrieval-memory-sqlite';
+} from '@print-an-agent/retrieval-memory';
+import { openSqliteRetrievalBackend } from '@print-an-agent/retrieval-memory-sqlite';
 import type {
   CompletionCapability,
   TextEmbeddingCapability,
-} from '@ta-agent/model-invocation-core';
-import { createTiktokenTextCounter } from '@ta-agent/model-invocation-token-counters';
+} from '@print-an-agent/model-invocation-core';
+import { createTiktokenTextCounter } from '@print-an-agent/model-invocation-token-counters';
 import { memoryTokens, describeResource, type ContextBundle } from './tokens.js';
 
 export interface ModelRecipes {

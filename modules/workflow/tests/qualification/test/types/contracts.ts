@@ -5,7 +5,7 @@ import {
   type StepOverrides,
   type RunnableWorkflow,
   type WorkflowRunOptions,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 import { recordUpdate, type UpdateContext } from '../consumers/record-update.js';
 
 type Name = 'main' | 'child';

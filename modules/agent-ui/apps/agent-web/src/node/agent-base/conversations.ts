@@ -1,12 +1,12 @@
-import { parseAgentId } from '@ta-agent/base-identity';
-import { FOREGROUND_AGENT_OPERATION_NAME } from '@ta-agent/base-composition';
-import { parseTurnId, AgentSessionError } from '@ta-agent/base-session';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { FOREGROUND_AGENT_OPERATION_NAME } from '@print-an-agent/base-composition';
+import { parseTurnId, AgentSessionError } from '@print-an-agent/base-session';
 import type { ConversationManagementPort } from '../../application/ports.js';
 import type {
   ConversationInteractionEventConsumer,
   StartConversationInteractionInput,
   ConversationCommitReceipt,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import { conversationFailure } from './failures.js';
 import { completedTurn, readWebConversation, reference } from './history.js';
 import type { WebBackendServices } from './profile.js';

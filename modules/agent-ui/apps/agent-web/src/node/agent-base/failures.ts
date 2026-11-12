@@ -2,7 +2,7 @@ import type {
   AgentManagementFailure,
   ConversationFailure,
   SessionManagementFailure,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import { AgentConfigValidationError } from '../../application/agent-config-validation.js';
 import { WebModelError } from './model-runtime.js';
 

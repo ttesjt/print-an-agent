@@ -1,7 +1,7 @@
 import { lstatSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { AgentConfigError } from '@ta-agent/base-config';
+import { AgentConfigError } from '@print-an-agent/base-config';
 
 const DEFAULT_BUSY_TIMEOUT_MILLISECONDS = 5_000;
 const MAX_BUSY_TIMEOUT_MILLISECONDS = 2_147_483_647;

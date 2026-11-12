@@ -1,4 +1,4 @@
-import type { ModelStateInput, RunId } from '@ta-agent/workbench-domain';
+import type { ModelStateInput, RunId } from '@print-an-agent/workbench-domain';
 
 import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';
 

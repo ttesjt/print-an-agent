@@ -1,10 +1,10 @@
 import { TEST_COMPACTION_TOKEN_COUNTER } from '../support/compaction-token-counter.js';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { MemoryAgentTraceAdapter, MemoryOutputSink } from '@ta-agent/base-local-adapters';
+import { MemoryAgentTraceAdapter, MemoryOutputSink } from '@print-an-agent/base-local-adapters';
 import {
   ModelInvocationError,
   type ProviderCredentialResolutionRequest,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createProviderAgentAPI } from '../../src/index.js';
 

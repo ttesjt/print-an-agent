@@ -2,8 +2,8 @@ import {
   CollectionApplication as WorkspaceCollections,
   type CollectionApplicationProps,
   type CollectionConnection as WorkspaceConnection,
-} from '@ta-agent/ui-workspace';
-import type { CollectionAccessPort, CollectionReference } from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-workspace';
+import type { CollectionAccessPort, CollectionReference } from '@print-an-agent/ui-contracts';
 import { useMemo } from 'react';
 import type { AgentWebConfig } from '../application/agent-config.js';
 import type { AgentWebPorts } from '../application/ports.js';

@@ -5,7 +5,7 @@ import type {
   SessionManagementResult,
   SessionNavigationSnapshot,
   SessionSummary,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type {

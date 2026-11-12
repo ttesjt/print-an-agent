@@ -4,8 +4,8 @@ import type {
   CoordinatedSessionPersistence,
   MemoryRequestJournalAdapter,
   MemorySessionAdapter,
-} from '@ta-agent/base-local-adapters';
-import type { SessionExecutionRecoveryPort, SessionPurgePort } from '@ta-agent/base-session';
+} from '@print-an-agent/base-local-adapters';
+import type { SessionExecutionRecoveryPort, SessionPurgePort } from '@print-an-agent/base-session';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 type IsAssignable<Source, Target> = Source extends Target ? true : false;

@@ -15,7 +15,7 @@ import {
   Stack,
   Status,
   type FeedbackTone,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 
 import { GallerySection } from './gallery-section.js';
 

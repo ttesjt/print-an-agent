@@ -2,7 +2,7 @@ import { bootstrapTestAgent } from '../support/owned-setup.js';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createAgentAPI } from '@ta-agent/base-composition';
+import { createAgentAPI } from '@print-an-agent/base-composition';
 import { describe, expect, it } from 'vitest';
 import {
   createSharedSqliteStandaloneManagementService,

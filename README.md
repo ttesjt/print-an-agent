@@ -43,8 +43,8 @@ workspace.
 To try the local reference Web application:
 
 ```sh
-pnpm --filter @ta-agent/ui-agent-web build
-pnpm --filter @ta-agent/ui-agent-web serve --port 4174
+pnpm --filter @print-an-agent/ui-agent-web build
+pnpm --filter @print-an-agent/ui-agent-web serve --port 4174
 ```
 
 Open `http://127.0.0.1:4174`. See the [Agent Web README](./modules/agent-ui/apps/agent-web/README.md)

@@ -1,4 +1,4 @@
-import { array, integer, literal, object, optional, union } from '@ta-agent/ui-transport';
+import { array, integer, literal, object, optional, union } from '@print-an-agent/ui-transport';
 import {
   content,
   id,

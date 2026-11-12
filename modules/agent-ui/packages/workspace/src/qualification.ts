@@ -2,7 +2,7 @@ import type {
   AgentDetails,
   StartConversationInteractionInput,
   WorkspacePorts,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import {
   createSubmittingInteraction,
   type ActiveInteractionState,

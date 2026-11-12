@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/workbench-cli",
+  "name": "@print-an-agent/workbench-cli",
   "version": "0.1.0",
   "description": "Thin command-line client for a user-supplied Model Workbench application.",
   "private": true,
@@ -28,7 +28,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/workbench-application": "workspace:*"
+    "@print-an-agent/workbench-application": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

@@ -2,7 +2,7 @@ import type {
   ModelInteractionEvent,
   ModelInteractionEventSink,
   ModelInteractionResult,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { DefaultRequestWorkflowContext } from '../default/context.js';
 import { AgentRequestError } from '../errors.js';
 

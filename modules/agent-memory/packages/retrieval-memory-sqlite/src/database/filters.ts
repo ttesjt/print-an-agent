@@ -1,5 +1,5 @@
 import type { SQLInputValue } from 'node:sqlite';
-import type { MetadataFilter, Primitive } from '@ta-agent/retrieval-memory';
+import type { MetadataFilter, Primitive } from '@print-an-agent/retrieval-memory';
 /** Keys/values are parameters. Paths traverse objects, never SQL/JSON-path syntax. */
 export function compileMetadataFilter(filter: MetadataFilter): {
   sql: string;

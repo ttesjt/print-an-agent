@@ -1,5 +1,5 @@
-import { AgentSessionError } from '@ta-agent/base-session';
-import type { ModelInteractionEvent } from '@ta-agent/model-invocation-core';
+import { AgentSessionError } from '@print-an-agent/base-session';
+import type { ModelInteractionEvent } from '@print-an-agent/model-invocation-core';
 import {
   createDefaultRequestStepOverrides,
   createRequestStepDefinitions,
@@ -8,13 +8,13 @@ import {
   type OutputSink,
   type OutputStreamEvent,
   type RequestStepName,
-} from '@ta-agent/base-request';
+} from '@print-an-agent/base-request';
 import type {
   ConversationInteractionEventConsumer,
   ConversationToolActivity,
   ConversationSessionAdmission,
   StartConversationInteractionInput,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 
 /** One invocation owns this sink. No presentation state is shared between concurrent runs. */
 export class WebStreamSink implements OutputSink {

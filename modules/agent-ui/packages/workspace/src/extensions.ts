@@ -1,4 +1,4 @@
-import type { AgentDetails } from '@ta-agent/ui-contracts';
+import type { AgentDetails } from '@print-an-agent/ui-contracts';
 import type { ComponentType, ReactNode } from 'react';
 
 export interface WorkspaceEditBoundary {

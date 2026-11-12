@@ -1,4 +1,4 @@
-# `@ta-agent/base-request`
+# `@print-an-agent/base-request`
 
 Session-aware foreground and Sessionless Request Workflows for Agent Base, with reusable narrow
 preparation, invocation, tool and delivery Steps.
@@ -9,10 +9,10 @@ Request Journal or persistence. Read the [Sessionless guide](./docs/sessionless.
 Step replacement, output, permission and lifetime contracts. The following sections describe the
 Session-aware foreground Workflow.
 
-`createRequestWorkflow({ resources, ... })` creates a native `@ta-agent/workflow-core` Workflow with
+`createRequestWorkflow({ resources, ... })` creates a native `@print-an-agent/workflow-core` Workflow with
 its ports and policy bound at construction. Call it with `run({ input, signal })`; it returns the
 consumer-defined result directly. The standard
-composition uses `bindAgentWorkflow()` from `@ta-agent/base-runtime` to apply that result to the
+composition uses `bindAgentWorkflow()` from `@print-an-agent/base-runtime` to apply that result to the
 originating Agent Run. A condition skip returns `undefined` (no change); an active execution must
 produce a response or it fails with `REQUEST_OUTPUT_STATE_INVALID`.
 
@@ -85,7 +85,7 @@ a leaf, a composite, or the complete `runRequest` entry Step.
 
 The package defines the `RequestJournalPort` and replay behavior without selecting persistence.
 Official Memory and restart-safe SQLite journal implementations live in
-`@ta-agent/base-local-adapters`; physical names never enter request fingerprints or replay domain
+`@print-an-agent/base-local-adapters`; physical names never enter request fingerprints or replay domain
 identity.
 
 ```ts
@@ -275,7 +275,7 @@ than history/context APIs; replay remains answer-only and does not recapture or 
 - `replay/` owns Request Journal contracts, identity/fingerprint rules, and response wire validation.
 
 Concrete local OutputSink and Request Journal implementations are intentionally owned by
-`@ta-agent/base-local-adapters`.
+`@print-an-agent/base-local-adapters`.
 
 New directories should follow independent responsibilities or expected implementation families, not
 mechanical file kinds. A growing Step implementation should split by cohesive capability group rather

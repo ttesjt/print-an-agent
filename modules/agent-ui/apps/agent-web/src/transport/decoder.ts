@@ -1,1 +1,1 @@
-export * from '@ta-agent/ui-transport';
+export * from '@print-an-agent/ui-transport';

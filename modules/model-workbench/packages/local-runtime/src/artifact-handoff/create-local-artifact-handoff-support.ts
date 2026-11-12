@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 
-import type { ArtifactReference, ProfileId } from '@ta-agent/workbench-domain';
-import { defineArtifactHandoffSupport } from '@ta-agent/workbench-extension';
+import type { ArtifactReference, ProfileId } from '@print-an-agent/workbench-domain';
+import { defineArtifactHandoffSupport } from '@print-an-agent/workbench-extension';
 
 import {
   LOCAL_ARTIFACT_PROTOCOL,

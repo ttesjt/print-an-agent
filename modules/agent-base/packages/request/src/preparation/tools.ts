@@ -5,7 +5,7 @@ import {
   type ToolPermissionPolicy,
   type ToolRegistry,
   type ToolRuntime,
-} from '@ta-agent/base-tool';
+} from '@print-an-agent/base-tool';
 import { requireValue } from './state-value.js';
 
 export interface ToolPreparationContext {
@@ -13,7 +13,9 @@ export interface ToolPreparationContext {
   readonly state: {
     tools?: ToolRuntime;
     toolPermissionPolicy?: ToolPermissionPolicy;
-    contextMemory?: { readonly tools: readonly import('@ta-agent/base-tool').ToolDefinition[] };
+    contextMemory?: {
+      readonly tools: readonly import('@print-an-agent/base-tool').ToolDefinition[];
+    };
   };
   readonly resources: {
     readonly toolRegistry: ToolRegistry;

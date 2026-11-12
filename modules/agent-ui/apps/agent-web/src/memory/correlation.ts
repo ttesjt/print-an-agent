@@ -1,4 +1,4 @@
-import { fail } from '@ta-agent/ui-transport';
+import { fail } from '@print-an-agent/ui-transport';
 
 function record(value: unknown): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return fail();

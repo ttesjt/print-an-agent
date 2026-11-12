@@ -1,4 +1,4 @@
-import type { SessionDetails } from '@ta-agent/ui-contracts';
+import type { SessionDetails } from '@print-an-agent/ui-contracts';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 
 import { DataList, DataListItem } from '../components/data-list.js';

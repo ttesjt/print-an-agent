@@ -14,7 +14,7 @@ import {
   defineProviderTransportLivenessPolicy,
   defineActorEngine,
   type TokenCounterDescriptor,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { createPiActorEngine, PiActorRuntime } from '../runtime/pi-actor-runtime.js';
 import {
   definePiProviderConfig,

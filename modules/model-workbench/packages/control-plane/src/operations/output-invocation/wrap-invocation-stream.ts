@@ -1,4 +1,4 @@
-import type { JsonValue } from '@ta-agent/workbench-domain';
+import type { JsonValue } from '@print-an-agent/workbench-domain';
 import { OutputInvocationCapabilityError } from './errors.js';
 
 /** Forward lifecycle independently of pulls; only the control plane classifies invocation errors. */

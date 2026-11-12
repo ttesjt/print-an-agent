@@ -9,7 +9,7 @@ import {
   type ModelModification,
   type ModelOutput,
   type ModelRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import { PersistenceDataCorruptionError } from '../../errors.js';
 

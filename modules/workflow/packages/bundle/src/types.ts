@@ -1,4 +1,4 @@
-import type { RunnableWorkflow, WorkflowDefinition } from '@ta-agent/workflow-core';
+import type { RunnableWorkflow, WorkflowDefinition } from '@print-an-agent/workflow-core';
 
 /** A Core definition whose resource binding is supplied exclusively by its Bundle. */
 export type BundleWorkflowDefinition<N extends string, I, S, R, O> = Omit<

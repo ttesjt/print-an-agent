@@ -9,7 +9,7 @@ import {
   type MutationRequest,
   type ForkMemoryInput,
   parseMemoryForkRequest,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { readReceipt, readSnapshot, writeReceipt, writeSnapshot } from './records.js';
 import { appendHistory, readHistoricalSnapshot } from './history/records.js';
 import { DEFAULT_MAX_MEMORY_DELTA_CHAIN } from './history/codec.js';

@@ -4,7 +4,7 @@ import {
   parseJsonValue,
   type CapabilityId,
   type JsonValue,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import type { ExtensionValueContract } from '../../contracts/extension-value-contract.js';
 import type { CapabilityDispatch } from '../../execution-protocol/contracts.js';

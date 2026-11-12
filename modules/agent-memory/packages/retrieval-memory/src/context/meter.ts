@@ -4,7 +4,7 @@ import {
   type TextTokenInput,
   type TokenCounter,
   type TokenMeasurement,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { ResolvedContextInput, RetrievalContextOptions } from '../contracts/context.js';
 import type { RetrievalHit } from '../contracts/data.js';
 import { assertNotAborted, fail, RetrievalMemoryError } from '../errors.js';

@@ -1,4 +1,4 @@
-import type { WorkspacePorts } from '@ta-agent/ui-contracts';
+import type { WorkspacePorts } from '@print-an-agent/ui-contracts';
 import {
   array,
   integer,

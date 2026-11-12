@@ -1,5 +1,5 @@
-import { skipWorkflow, type WorkflowEvent } from '@ta-agent/workflow-core';
-import { WorkflowBundle } from '@ta-agent/workflow-bundle';
+import { skipWorkflow, type WorkflowEvent } from '@print-an-agent/workflow-core';
+import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
 import { expect, it, vi } from 'vitest';
 import { readDefinition, type ReadContext } from '../support/definitions.js';
 

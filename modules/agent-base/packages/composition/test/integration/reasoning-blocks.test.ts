@@ -1,10 +1,10 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { BUILT_IN_RESPONSIBILITIES } from '@ta-agent/base-actor';
-import { MemorySessionAdapter, SqliteSessionAdapter } from '@ta-agent/base-local-adapters';
-import { parseSessionId, parseTurnId } from '@ta-agent/base-session';
-import { createToolRegistry, defineTool } from '@ta-agent/base-tool';
+import { BUILT_IN_RESPONSIBILITIES } from '@print-an-agent/base-actor';
+import { MemorySessionAdapter, SqliteSessionAdapter } from '@print-an-agent/base-local-adapters';
+import { parseSessionId, parseTurnId } from '@print-an-agent/base-session';
+import { createToolRegistry, defineTool } from '@print-an-agent/base-tool';
 import { describe, expect, it } from 'vitest';
 import { createDeterministicAgentAPI } from '../../src/index.js';
 import {

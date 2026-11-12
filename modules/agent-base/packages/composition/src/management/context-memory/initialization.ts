@@ -1,4 +1,4 @@
-import { AgentSessionError, type SessionMemoryRecord } from '@ta-agent/base-session';
+import { AgentSessionError, type SessionMemoryRecord } from '@print-an-agent/base-session';
 import {
   assertReceiptMatches,
   parseDeterministicMemoryRequest,
@@ -6,7 +6,7 @@ import {
   findContextMemoryCommit,
   parseMemoryReceipt,
   type MemoryReceipt,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { MemoryJournal, payload, memoryString, version } from './journal.js';
 import { hasSessionMemoryCleanupFailure } from './failures.js';
 import { SessionMemoryCommitError } from './mutations.js';

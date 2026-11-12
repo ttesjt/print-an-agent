@@ -10,7 +10,7 @@ nonblank, NUL-free, well-formed Unicode. Physical history encoding belongs to ad
 import {
   createVersionedContextMemoryResources,
   createVersionedContextMemoryBundle,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 
 // Borrow a MemoryHistoryStore and an explicitly configured meter. The host owns cleanup.
 const resources = createVersionedContextMemoryResources({

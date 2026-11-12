@@ -4,7 +4,7 @@ import {
   ResourceToken,
   borrowResource,
   type ResourceRegistry,
-} from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-composition/resource-registry';
 
 declare const registry: ResourceRegistry;
 const count = new ResourceToken('count', {

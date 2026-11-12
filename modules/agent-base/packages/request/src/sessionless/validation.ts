@@ -1,4 +1,4 @@
-import { defineModelMessage, type ModelMessage } from '@ta-agent/model-invocation-core';
+import { defineModelMessage, type ModelMessage } from '@print-an-agent/model-invocation-core';
 import { AgentRequestError } from '../errors.js';
 import { DEFAULT_REQUEST_POLICY } from '../policy.js';
 import type { SessionlessGenerationPolicy } from './contracts.js';

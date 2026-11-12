@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { supportsSessionExecution } from '@ta-agent/base-session';
+import { supportsSessionExecution } from '@print-an-agent/base-session';
 import { compactionFixture } from '../support/compaction-fixture.js';
 
 afterEach(() => vi.useRealTimers());

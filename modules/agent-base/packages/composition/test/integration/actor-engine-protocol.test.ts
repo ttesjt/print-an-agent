@@ -3,19 +3,19 @@ import {
   createActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@ta-agent/base-actor';
+} from '@print-an-agent/base-actor';
 import {
   MemoryAgentTraceAdapter,
   MemoryOutputSink,
   MemoryRequestJournalAdapter,
   MemorySessionAdapter,
-} from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-local-adapters';
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/model-invocation-core';
-import { parseRequestIdempotencyKey } from '@ta-agent/base-request';
-import { parseSessionId } from '@ta-agent/base-session';
+} from '@print-an-agent/model-invocation-core';
+import { parseRequestIdempotencyKey } from '@print-an-agent/base-request';
+import { parseSessionId } from '@print-an-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import { composeAgent, FOREGROUND_AGENT_OPERATION_NAME } from '../../src/index.js';
 

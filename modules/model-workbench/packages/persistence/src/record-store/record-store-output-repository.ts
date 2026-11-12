@@ -1,4 +1,4 @@
-import type { ModelOutput, OutputId } from '@ta-agent/workbench-domain';
+import type { ModelOutput, OutputId } from '@print-an-agent/workbench-domain';
 
 import type { OutputRepository } from '../ports/output-repository.js';
 import type { PersistencePageRequest } from '../ports/persistence-page.js';

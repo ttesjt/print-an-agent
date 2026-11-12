@@ -1,4 +1,4 @@
-import type { SessionReference } from '@ta-agent/base-session';
+import type { SessionReference } from '@print-an-agent/base-session';
 
 /** Domain-local maintenance. The caller must fence runtime admission before invoking these ports. */
 export interface RequestJournalCleanupPort {

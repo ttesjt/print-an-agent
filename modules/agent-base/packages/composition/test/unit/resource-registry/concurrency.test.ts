@@ -3,7 +3,7 @@ import {
   createResourceScope,
   defineResourceProvider,
   resourceDependency,
-} from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-composition/resource-registry';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { description, Handle, handleToken } from './fixtures.js';
 

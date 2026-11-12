@@ -1,10 +1,10 @@
-import { parseAgentId } from '@ta-agent/base-identity';
-import { createMemorySessionPersistence } from '@ta-agent/base-local-adapters';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryStandaloneResourceProvisioner } from '../../src/resources/memory/provisioner.js';
 
-vi.mock('@ta-agent/base-local-adapters', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@ta-agent/base-local-adapters')>();
+vi.mock('@print-an-agent/base-local-adapters', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@print-an-agent/base-local-adapters')>();
   return {
     ...actual,
     createMemorySessionPersistence: vi.fn(actual.createMemorySessionPersistence),

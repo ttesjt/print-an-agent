@@ -3,7 +3,7 @@ import {
   parseRetrievalSpace,
   RetrievalMemoryError,
   type RetrievalReceipt,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import type { RetrievalMemoryManagementInputs } from './contracts/memory.js';
 
 type Operation = Exclude<keyof RetrievalMemoryManagementInputs, 'replay'>;

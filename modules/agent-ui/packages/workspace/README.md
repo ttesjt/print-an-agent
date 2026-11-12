@@ -6,7 +6,7 @@
 embedding the workspace in a host router. `CollectionApplication` binds a fresh workspace to each
 immutable connection. Collection references remain host-defined JSON.
 
-Applications import `@ta-agent/ui-styles/default.css` explicitly. This package never imports CSS.
+Applications import `@print-an-agent/ui-styles/default.css` explicitly. This package never imports CSS.
 Missing optional mutations hide their UI. Agent pagination accepts opaque cursors and retains a
 selection outside loaded pages. The default Agent Base adapter is honestly single-page until its
 public management service provides pagination.

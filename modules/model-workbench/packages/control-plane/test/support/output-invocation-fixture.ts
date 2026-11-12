@@ -6,7 +6,7 @@ import {
   parseOutputId,
   parseProfileId,
   type JsonValue,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   CapabilityDispatchKind,
   ExecutionStatus,
@@ -18,13 +18,13 @@ import {
   defineOutputInvokerCapability,
   type ArtifactMaterializationRequest,
   type TypedOutputInvokerCapability,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import {
   createMemoryPersistence,
   createSharedProfilePersistenceAdapter,
   type ProfilePersistence,
-} from '@ta-agent/workbench-persistence';
-import { RuntimeBindingKind, resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-persistence';
+import { RuntimeBindingKind, resolveWorkbenchSetup } from '@print-an-agent/workbench-setup';
 
 import {
   createWorkbenchControlPlane,

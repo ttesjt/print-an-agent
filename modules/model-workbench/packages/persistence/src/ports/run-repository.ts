@@ -1,4 +1,9 @@
-import type { ActiveModelRun, ModelRun, RunId, StartingModelRun } from '@ta-agent/workbench-domain';
+import type {
+  ActiveModelRun,
+  ModelRun,
+  RunId,
+  StartingModelRun,
+} from '@print-an-agent/workbench-domain';
 import type { PersistencePage, PersistencePageRequest } from './persistence-page.js';
 
 export interface RunRepository {

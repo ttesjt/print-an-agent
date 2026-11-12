@@ -27,10 +27,10 @@ it('has no runtime dependencies on Agent, UI, persistence or product packages', 
   expect(manifest.peerDependencies ?? {}).toEqual({});
   for (const file of [...sources(join(root, 'src')), ...sources(join(root, 'dist'))]) {
     const source = readFileSync(file, 'utf8');
-    expect(source, file).not.toMatch(/@ta-agent\/(?:base|ui|self-learn|workbench)-/);
+    expect(source, file).not.toMatch(/@print-an-agent\/(?:base|ui|self-learn|workbench)-/);
     expect(source, file).not.toMatch(/(?:agentRunContext|applyResult|applyTo|AgentIdentity)/);
     expect(source, file).not.toMatch(/(?:agent-base|agent-ui|self-learn-agent|model-workbench)\//);
-    expect(source, file).not.toContain('@ta-agent/workflow-bundle');
+    expect(source, file).not.toContain('@print-an-agent/workflow-bundle');
   }
 });
 
@@ -43,7 +43,7 @@ it('keeps independently qualified consumers on the public package entry', () => 
     const source = readFileSync(file, 'utf8');
     expect(source, file).not.toMatch(/(?:\.\.\/)+src\//);
     expect(source, file).not.toMatch(
-      /(?:packages\/(?:core|bundle)|@ta-agent\/workflow-(?:core|bundle)\/)/
+      /(?:packages\/(?:core|bundle)|@print-an-agent\/workflow-(?:core|bundle)\/)/
     );
   }
 });
@@ -56,11 +56,11 @@ it('keeps the second consumer test-only and linked to the official public packag
   };
   expect(manifest.dependencies ?? {}).toEqual({});
   expect(manifest.exports).toBeUndefined();
-  expect(manifest.devDependencies['@ta-agent/workflow-core']).toBe('workspace:*');
-  expect(manifest.devDependencies['@ta-agent/workflow-bundle']).toBe('workspace:*');
+  expect(manifest.devDependencies['@print-an-agent/workflow-core']).toBe('workspace:*');
+  expect(manifest.devDependencies['@print-an-agent/workflow-bundle']).toBe('workspace:*');
   expect(
-    Object.keys(manifest.devDependencies).filter((name) => name.startsWith('@ta-agent/'))
-  ).toEqual(['@ta-agent/workflow-bundle', '@ta-agent/workflow-core']);
+    Object.keys(manifest.devDependencies).filter((name) => name.startsWith('@print-an-agent/'))
+  ).toEqual(['@print-an-agent/workflow-bundle', '@print-an-agent/workflow-core']);
 });
 
 it('keeps Bundle assembly on Core without product dependencies or another execution kernel', () => {
@@ -68,13 +68,13 @@ it('keeps Bundle assembly on Core without product dependencies or another execut
     dependencies: Record<string, string>;
     peerDependencies?: Record<string, string>;
   };
-  expect(manifest.dependencies).toEqual({ '@ta-agent/workflow-core': 'workspace:*' });
+  expect(manifest.dependencies).toEqual({ '@print-an-agent/workflow-core': 'workspace:*' });
   expect(manifest.peerDependencies ?? {}).toEqual({});
   for (const file of [...sources(join(bundle, 'src')), ...sources(join(bundle, 'dist'))]) {
     const source = readFileSync(file, 'utf8');
-    expect(source, file).not.toMatch(/@ta-agent\/(?:base|ui|self-learn|workbench)-/);
+    expect(source, file).not.toMatch(/@print-an-agent\/(?:base|ui|self-learn|workbench)-/);
     expect(source, file).not.toMatch(/class Workflow\b|class ExecutionScope|class StepRuntime/);
-    expect(source, file).not.toMatch(/@ta-agent\/workflow-core\//);
+    expect(source, file).not.toMatch(/@print-an-agent\/workflow-core\//);
   }
   expect(readFileSync(join(bundle, 'src/workflow-bundle.ts'), 'utf8')).toContain('new Workflow');
 });
@@ -84,11 +84,11 @@ it('keeps Agent execution on Core with only Agent-owned bindings and no duplicat
     name: string;
     dependencies: Record<string, string>;
   };
-  expect(manifest.name).toBe('@ta-agent/base-runtime');
-  expect(manifest.dependencies['@ta-agent/workflow-core']).toBe('workspace:*');
+  expect(manifest.name).toBe('@print-an-agent/base-runtime');
+  expect(manifest.dependencies['@print-an-agent/workflow-core']).toBe('workspace:*');
   expect(existsSync(join(runtime, '../workflow/package.json'))).toBe(false);
   const entry = readFileSync(join(runtime, 'src/index.ts'), 'utf8');
-  expect(entry).not.toMatch(/from ['"]@ta-agent\/workflow-core/);
+  expect(entry).not.toMatch(/from ['"]@print-an-agent\/workflow-core/);
   expect(entry).toContain('bindAgentWorkflow');
   for (const file of sources(join(runtime, 'src'))) {
     expect(readFileSync(file, 'utf8'), file).not.toMatch(
@@ -101,18 +101,18 @@ it('keeps Agent execution on Core with only Agent-owned bindings and no duplicat
     ['session', 'compaction/workflow/create-workflow.ts'],
   ]) {
     const source = readFileSync(join(runtime, '..', feature!, 'src', factory!), 'utf8');
-    expect(source).toContain("from '@ta-agent/workflow-core'");
+    expect(source).toContain("from '@print-an-agent/workflow-core'");
     expect(source).toContain('new Workflow');
   }
 });
 
 it.each([
-  '@ta-agent/base-domain',
-  '@ta-agent/workbench-domain',
-  '@ta-agent/self-learn-domain',
-  '@ta-agent/ui-contracts',
-  '@ta-agent/workflow-core/src/internal.js',
-  '@ta-agent/workflow-bundle',
+  '@print-an-agent/base-domain',
+  '@print-an-agent/workbench-domain',
+  '@print-an-agent/self-learn-domain',
+  '@print-an-agent/ui-contracts',
+  '@print-an-agent/workflow-core/src/internal.js',
+  '@print-an-agent/workflow-bundle',
 ])('rejects %s using the effective production ESLint configuration', async (specifier) => {
   const results = await eslint.lintText(`import '${specifier}';\n`, {
     filePath: join(root, 'src/index.ts'),
@@ -125,11 +125,11 @@ it.each([
 });
 
 it.each([
-  '@ta-agent/base-domain',
-  '@ta-agent/workbench-domain',
-  '@ta-agent/self-learn-domain',
-  '@ta-agent/ui-contracts',
-  '@ta-agent/workflow-core/src/internal.js',
+  '@print-an-agent/base-domain',
+  '@print-an-agent/workbench-domain',
+  '@print-an-agent/self-learn-domain',
+  '@print-an-agent/ui-contracts',
+  '@print-an-agent/workflow-core/src/internal.js',
 ])(
   'rejects %s from Bundle using the effective production ESLint configuration',
   async (specifier) => {
@@ -145,7 +145,7 @@ it.each([
 );
 
 it('allows Bundle to consume Core through its public entry', async () => {
-  const results = await eslint.lintText("import '@ta-agent/workflow-core';\n", {
+  const results = await eslint.lintText("import '@print-an-agent/workflow-core';\n", {
     filePath: join(bundle, 'src/index.ts'),
   });
   expect(results.flatMap((result) => result.messages)).toEqual([]);

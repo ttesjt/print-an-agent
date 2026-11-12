@@ -3,7 +3,7 @@ import {
   Workflow,
   type StepOverrides,
   type WorkflowContext,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 
 type Name = 'report' | 'read' | 'normalize' | 'write';
 export interface TextFiles {

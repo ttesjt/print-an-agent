@@ -1,12 +1,12 @@
-import type { ManagedAgentAuthorityPorts } from '@ta-agent/base-composition';
+import type { ManagedAgentAuthorityPorts } from '@print-an-agent/base-composition';
 import {
   MemoryAgentConfigAdapter,
   MemoryAgentIdentityCatalogAdapter,
-} from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-local-adapters';
 import {
   defineResourceProvider,
   ResourceToken,
-} from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-composition/resource-registry';
 import type { CreateStandaloneMemoryProfileOptions } from '../../types.js';
 import { parseAllocationBinding, describeAllocation } from './allocation-binding.js';
 

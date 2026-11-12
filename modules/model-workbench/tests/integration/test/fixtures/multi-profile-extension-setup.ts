@@ -5,12 +5,12 @@ import {
   defineExecutionSupport,
   defineInitializerCapability,
   ExecutionStatus,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import {
   RuntimeBindingKind,
   type WorkbenchExtensionResources,
   type WorkbenchSetupInput,
-} from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-setup';
 
 const importedModelCapability = defineInitializerCapability({
   capabilityId: 'models.import',

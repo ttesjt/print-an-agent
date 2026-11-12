@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/workbench-python-model-backend-template-adapter",
+  "name": "@print-an-agent/workbench-python-model-backend-template-adapter",
   "version": "0.1.0",
   "description": "Workbench-side definition for the maintained Python model backend template.",
   "private": true,
@@ -25,9 +25,9 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/workbench-extension": "workspace:*",
-    "@ta-agent/workbench-local-runtime": "workspace:*",
-    "@ta-agent/workbench-setup": "workspace:*"
+    "@print-an-agent/workbench-extension": "workspace:*",
+    "@print-an-agent/workbench-local-runtime": "workspace:*",
+    "@print-an-agent/workbench-setup": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

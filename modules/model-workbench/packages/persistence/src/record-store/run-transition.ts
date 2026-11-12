@@ -5,7 +5,7 @@ import {
   parseJsonValue,
   type ActiveModelRun,
   type TerminalModelRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 export function activeRunCanComplete(
   existing: ActiveModelRun,

@@ -8,8 +8,8 @@ import {
   text,
   union,
   type Decoder,
-} from '@ta-agent/ui-transport';
-import type { MutationOutcome } from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-transport';
+import type { MutationOutcome } from '@print-an-agent/ui-contracts';
 
 export type Json = null | boolean | number | string | Json[] | { readonly [key: string]: Json };
 function json(input: unknown, depth = 0): Json {

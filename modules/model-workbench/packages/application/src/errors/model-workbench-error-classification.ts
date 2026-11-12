@@ -1,8 +1,8 @@
-import { WorkbenchControlPlaneError } from '@ta-agent/workbench-control-plane';
-import { WorkbenchDomainError } from '@ta-agent/workbench-domain';
-import { WorkbenchExtensionError } from '@ta-agent/workbench-extension';
-import { WorkbenchPersistenceError } from '@ta-agent/workbench-persistence';
-import { WorkbenchSetupError } from '@ta-agent/workbench-setup';
+import { WorkbenchControlPlaneError } from '@print-an-agent/workbench-control-plane';
+import { WorkbenchDomainError } from '@print-an-agent/workbench-domain';
+import { WorkbenchExtensionError } from '@print-an-agent/workbench-extension';
+import { WorkbenchPersistenceError } from '@print-an-agent/workbench-persistence';
+import { WorkbenchSetupError } from '@print-an-agent/workbench-setup';
 
 export const ModelWorkbenchErrorCategory = {
   InvalidRequestOrConfiguration: 'invalid-request-or-configuration',

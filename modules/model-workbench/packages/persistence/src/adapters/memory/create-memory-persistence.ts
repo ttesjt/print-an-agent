@@ -1,4 +1,4 @@
-import type { ProfileId } from '@ta-agent/workbench-domain';
+import type { ProfileId } from '@print-an-agent/workbench-domain';
 
 import { createRecordBackedPersistence } from '../../record-store/create-record-backed-persistence.js';
 import { createMemoryPersistenceRecordStore } from './memory-persistence-record-store.js';

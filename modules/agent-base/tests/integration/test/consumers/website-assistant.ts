@@ -1,5 +1,5 @@
-import type { ResolvedActor } from '@ta-agent/model-invocation-core';
-import { AgentRequestError, createSessionlessRequestWorkflow } from '@ta-agent/base-request';
+import type { ResolvedActor } from '@print-an-agent/model-invocation-core';
+import { AgentRequestError, createSessionlessRequestWorkflow } from '@print-an-agent/base-request';
 
 export interface WebsitePage {
   readonly title: string;

@@ -13,7 +13,7 @@ import {
   type ActorEngineStreamingRequest,
   type ActorEngineInteractionRequest,
   type ActorInvocationConfig,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   ModelInvocationError,
   type ModelInteractionRequest,
@@ -24,7 +24,7 @@ import {
   type ProviderModelReference,
   type ProviderTransportLivenessPolicy,
   type ResolvedExecutionTarget,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   createPiEventSink,
   throwTerminalFailure,

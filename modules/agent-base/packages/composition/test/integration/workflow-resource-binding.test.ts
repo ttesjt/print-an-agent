@@ -1,5 +1,8 @@
-import { MemoryOutputSink, MemorySessionAdapter } from '@ta-agent/base-local-adapters';
-import { REQUEST_WORKFLOW_NAME, type DefaultRequestWorkflowContext } from '@ta-agent/base-request';
+import { MemoryOutputSink, MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
+import {
+  REQUEST_WORKFLOW_NAME,
+  type DefaultRequestWorkflowContext,
+} from '@print-an-agent/base-request';
 import { expect, it, vi } from 'vitest';
 import { FOREGROUND_AGENT_OPERATION_NAME } from '../../src/index.js';
 import {

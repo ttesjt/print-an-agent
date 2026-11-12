@@ -4,7 +4,7 @@ import {
   runtimeMemoryFixture as fixture,
   memoryToolPermissions as permissions,
 } from '../support/runtime-context-memory.js';
-import { executeSessionNavigation } from '@ta-agent/base-session';
+import { executeSessionNavigation } from '@print-an-agent/base-session';
 import type { DeterministicProviderResponseFactory } from '../../src/index.js';
 
 it('loads a version-pinned full snapshot into the real Request Workflow and persists exact checkpoints', async () => {

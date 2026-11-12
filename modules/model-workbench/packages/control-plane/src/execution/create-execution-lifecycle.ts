@@ -7,9 +7,9 @@ import {
   type ActiveModelRun,
   type ModelRun,
   type TerminalModelRun,
-} from '@ta-agent/workbench-domain';
-import { ExecutionStatus } from '@ta-agent/workbench-extension';
-import type { RunRepository } from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-domain';
+import { ExecutionStatus } from '@print-an-agent/workbench-extension';
+import type { RunRepository } from '@print-an-agent/workbench-persistence';
 
 import type {
   ExecutionLifecycle,

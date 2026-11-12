@@ -6,7 +6,7 @@ import {
   createTokenCounter,
   TEXT_TOKEN_INPUT_CONTRACT,
   requireActorTextTokenCounter,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { createPiFauxRuntime, createPiProviderRuntime } from '../../src/index.js';
 import { completionServer } from '../support/completion-server.js';
 

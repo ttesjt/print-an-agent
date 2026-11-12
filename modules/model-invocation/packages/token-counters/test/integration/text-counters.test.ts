@@ -3,7 +3,7 @@ import {
   TOKEN_MEASUREMENT_ACCURACY,
   TOKEN_MEASUREMENT_SCOPE,
   TokenMeasurementError,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   createCharacterTokenEstimator,
   createTiktokenTextCounter,

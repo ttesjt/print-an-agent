@@ -1,4 +1,4 @@
-import type { JsonValue, Sha256Digest } from '@ta-agent/workbench-domain';
+import type { JsonValue, Sha256Digest } from '@print-an-agent/workbench-domain';
 
 export interface ExtensionCallOptions {
   readonly signal?: AbortSignal;

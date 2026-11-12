@@ -1,4 +1,4 @@
-import { compileResourceBlueprint } from '@ta-agent/base-composition/resource-registry';
+import { compileResourceBlueprint } from '@print-an-agent/base-composition/resource-registry';
 import type { CreateStandaloneMemoryProfileOptions } from '../../types.js';
 import { memoryAuthorityProvider } from './authority-provider.js';
 import { memoryPersistenceProvider } from './persistence-provider.js';

@@ -12,7 +12,7 @@ import {
   type SessionNavigationPorts,
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import { STANDALONE_AGENT_CONFIG_CODEC } from '../config.js';
 import { createFilesystemStandaloneManifestProjection } from '../resources/filesystem/manifest-projection.js';
 import { createFilesystemAgentResourceNamespaceAdapter } from '../resources/filesystem/namespace-adapter.js';

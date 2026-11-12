@@ -1,4 +1,4 @@
-import { Workflow, type RunnableWorkflow } from '@ta-agent/workflow-core';
+import { Workflow, type RunnableWorkflow } from '@print-an-agent/workflow-core';
 import { readMember, readRecord } from './definition.js';
 import { WorkflowBundleDefinitionError } from './errors.js';
 import type { BundleWorkflows, WorkflowBundleOptions } from './types.js';

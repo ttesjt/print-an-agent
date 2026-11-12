@@ -1,4 +1,4 @@
-import { InvalidWorkbenchValueError } from '@ta-agent/workbench-domain';
+import { InvalidWorkbenchValueError } from '@print-an-agent/workbench-domain';
 
 export function parseClosedRecord(
   input: unknown,

@@ -1,4 +1,4 @@
-import { traceErrorCode } from '@ta-agent/base-observability';
+import { traceErrorCode } from '@print-an-agent/base-observability';
 import type { AnyAgentRunContext } from '../types/context.js';
 import type { AgentWorkflow, AgentWorkflowBinding } from '../types/workflow.js';
 import { AgentRunError } from '../types/errors.js';

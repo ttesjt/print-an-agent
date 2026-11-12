@@ -5,9 +5,9 @@ import {
   type SessionMemoryRecordKey,
   type WriteSessionMemoryRecord,
   type PublishSessionMemoryNavigation,
-} from '@ta-agent/base-session';
-import { parseAgentId } from '@ta-agent/base-identity';
-import { type ModelMessage } from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/base-session';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { type ModelMessage } from '@print-an-agent/model-invocation-core';
 import {
   AgentSessionError,
   defineSessionTurnPresentation,
@@ -58,7 +58,7 @@ import {
   type SessionLifecycleInspection,
   type ListRetiredSessionsInput,
   type RetiredSessionListPage,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   cloneMemoryCompaction,
   cloneMemoryContext,
@@ -115,7 +115,7 @@ export class MemorySessionAdapter
   [memorySessionCoordination]() {
     return {
       assertWrite: (
-        request: SessionReference & import('@ta-agent/base-session').SessionWriteAuthority
+        request: SessionReference & import('@print-an-agent/base-session').SessionWriteAuthority
       ) => {
         this.#lifecycle.assertWrite(request);
       },

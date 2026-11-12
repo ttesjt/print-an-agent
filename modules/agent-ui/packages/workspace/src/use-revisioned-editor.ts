@@ -1,4 +1,4 @@
-import type { MutationOutcome, RevisionedValue } from '@ta-agent/ui-contracts';
+import type { MutationOutcome, RevisionedValue } from '@print-an-agent/ui-contracts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { WorkspaceEditBoundary } from './extensions.js';
 import { useWorkspaceMutation } from './use-workspace-mutation.js';

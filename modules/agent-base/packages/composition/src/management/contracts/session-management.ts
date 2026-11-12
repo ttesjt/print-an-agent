@@ -16,7 +16,7 @@ import type {
   SessionLifecycleSnapshot,
   SessionReference,
   SessionTurnPage,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 
 /** Explicit Session + Request Journal maintenance; never a Session-only success claim. */
 export interface CoordinatedSessionMaintenancePort {

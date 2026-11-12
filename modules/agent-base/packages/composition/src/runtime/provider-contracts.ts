@@ -3,7 +3,7 @@ import type {
   TokenCounter,
   TextTokenInput,
   TokenCounterDescriptor,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type {
   ProviderCredentialResolver,
   ProviderId,
@@ -12,7 +12,7 @@ import type {
   ProviderModelReferenceInput,
   ProviderTransportLivenessPolicy,
   ProviderTransportLivenessPolicyInput,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 
 export interface BuiltinProviderConfigInput {
   readonly kind: 'builtin';

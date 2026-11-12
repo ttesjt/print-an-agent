@@ -4,7 +4,7 @@ import {
   type SessionManagementPorts,
   type SessionNavigationCapability,
   type SessionNavigationPorts,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import { AgentBaseStandaloneError } from '../errors.js';
 import {
   setupCloseFailure,

@@ -4,7 +4,7 @@ import {
   parseProfileId,
   parseRuntimeSupportId,
   type RuntimeSupportId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import { parseExecutionObservation } from '../../execution-protocol/parsing.js';
 import { RuntimeSupportKind, WorkbenchExtensionFamily } from '../../foundation/constants.js';

@@ -4,8 +4,8 @@ import {
   createToolRegistry,
   defineTool,
   defineToolPermissionPolicy,
-} from '@ta-agent/base-tool';
-import { SKIP_STEP } from '@ta-agent/workflow-core';
+} from '@print-an-agent/base-tool';
+import { SKIP_STEP } from '@print-an-agent/workflow-core';
 import {
   createSessionlessRequestWorkflow,
   defineSessionlessInteractionPolicy,

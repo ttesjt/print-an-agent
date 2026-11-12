@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/workbench-local-runtime",
+  "name": "@print-an-agent/workbench-local-runtime",
   "version": "0.1.0",
   "description": "Default local Artifact and execution Runtime Supports for Model Workbench.",
   "private": true,
@@ -25,8 +25,8 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/workbench-domain": "workspace:*",
-    "@ta-agent/workbench-extension": "workspace:*"
+    "@print-an-agent/workbench-domain": "workspace:*",
+    "@print-an-agent/workbench-extension": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

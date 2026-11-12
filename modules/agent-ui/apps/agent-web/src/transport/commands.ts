@@ -1,4 +1,4 @@
-import { workspaceCommands } from '@ta-agent/ui-transport';
+import { workspaceCommands } from '@print-an-agent/ui-transport';
 import { createDefaultWorkspacePorts } from '../application/default-ports.js';
 import type { AgentWebPorts } from '../application/ports.js';
 import type { AgentWebConfig } from '../application/agent-config.js';
@@ -38,7 +38,7 @@ function shared<Input, Output>(definition: {
   readonly input: Decoder<Input>;
   readonly output: Decoder<Output>;
   readonly run: (
-    ports: import('@ta-agent/ui-contracts').WorkspacePorts,
+    ports: import('@print-an-agent/ui-contracts').WorkspacePorts,
     value: unknown,
     signal: AbortSignal
   ) => Promise<Output>;

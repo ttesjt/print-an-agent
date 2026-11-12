@@ -8,7 +8,7 @@ import {
   PanelHeader,
   Stack,
   TextInput,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 import type { AgentMetadataController } from './use-agent-metadata.js';
 
 export function AgentMetadataEditor({

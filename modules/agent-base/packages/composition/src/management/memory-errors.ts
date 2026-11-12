@@ -1,5 +1,5 @@
-import type { CommitStatus, ContextMemoryErrorCode } from '@ta-agent/context-memory';
-import type { CommitEvidence, RetrievalErrorCode } from '@ta-agent/retrieval-memory';
+import type { CommitStatus, ContextMemoryErrorCode } from '@print-an-agent/context-memory';
+import type { CommitEvidence, RetrievalErrorCode } from '@print-an-agent/retrieval-memory';
 import type { AgentMemoryReference } from './contracts/memory.js';
 
 export type MemoryManagementErrorCode =

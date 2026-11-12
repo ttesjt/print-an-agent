@@ -1,6 +1,6 @@
 # HTTP Text Embedding
 
-`@ta-agent/model-invocation-embedding-http` exports `createHttpTextEmbedder()` and typed HTTP
+`@print-an-agent/model-invocation-embedding-http` exports `createHttpTextEmbedder()` and typed HTTP
 configuration. It creates Core's independent `TextEmbeddingCapability` using an explicitly configured
 OpenAI-compatible embeddings endpoint. No Actor, Agent, Session, Workflow, Pi or model download is
 required.

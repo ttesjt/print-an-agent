@@ -1,4 +1,4 @@
-import { Grid, Panel, PanelBody, PanelFooter, PanelHeader } from '@ta-agent/ui-react';
+import { Grid, Panel, PanelBody, PanelFooter, PanelHeader } from '@print-an-agent/ui-react';
 
 import { GallerySection } from './gallery-section.js';
 

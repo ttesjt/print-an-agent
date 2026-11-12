@@ -1,4 +1,4 @@
-import type { CompletionCapability } from '@ta-agent/model-invocation-core';
+import type { CompletionCapability } from '@print-an-agent/model-invocation-core';
 import type {
   MemoryPlanner,
   MemoryPlannerRequest,

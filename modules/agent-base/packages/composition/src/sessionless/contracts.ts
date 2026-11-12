@@ -9,9 +9,9 @@ import type {
   SessionlessInteractionWorkflowOptions,
   SessionlessRequestInput,
   SessionlessRequestStepName,
-} from '@ta-agent/base-request';
-import type { ActorDirectResult } from '@ta-agent/model-invocation-core';
-import type { Workflow } from '@ta-agent/workflow-core';
+} from '@print-an-agent/base-request';
+import type { ActorDirectResult } from '@print-an-agent/model-invocation-core';
+import type { Workflow } from '@print-an-agent/workflow-core';
 
 export type SessionlessGenerationWorkflow = Workflow<
   SessionlessRequestStepName,

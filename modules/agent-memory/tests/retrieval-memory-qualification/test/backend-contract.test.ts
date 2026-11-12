@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { createRetrievalMutations, createRetrievalQueries } from '@ta-agent/retrieval-memory';
+import { createRetrievalMutations, createRetrievalQueries } from '@print-an-agent/retrieval-memory';
 import { fixture } from './support/fixture.js';
 for (const kind of ['opaque', 'sqlite'] as const) {
   it(`${kind}: supplies the same write/read/filter/pagination contract through public ports`, async () => {

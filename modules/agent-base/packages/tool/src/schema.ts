@@ -8,7 +8,7 @@ import type {
   ToolObjectSchema,
   ToolSchemaValue,
   ToolValueSchema,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { AgentToolError } from './errors.js';
 
 const TOOL_NAME_MAX_LENGTH = 64;

@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { load } from 'sqlite-vec';
-import { RetrievalMemoryError } from '@ta-agent/retrieval-memory';
+import { RetrievalMemoryError } from '@print-an-agent/retrieval-memory';
 import type { WorkerConfiguration } from '../protocol.js';
 import { SQLITE_RETRIEVAL_LIMITS } from '../capabilities.js';
 export { SQLITE_RETRIEVAL_LIMITS } from '../capabilities.js';

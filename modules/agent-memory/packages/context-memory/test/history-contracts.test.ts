@@ -3,7 +3,7 @@ import {
   parseMemoryVersionReference,
   parseForkMemoryInput,
   parseListMemoryVersionsInput,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 
 it('validates exact version references rather than falling back to head', () => {
   expect(parseMemoryVersionReference({ memoryId: 'm', revision: 2 })).toEqual({

@@ -30,5 +30,5 @@ Scope-owned shared initialization; canceling a Run does not close the shared Sto
 tests are `../../service-provisioning.test.ts`; architectural checks reject Registry imports in
 the generic Service/Workflow and allow them in Profile resource-resolution Services.
 
-Run `pnpm --filter @ta-agent/base-integration-tests exec vitest run test/resource-registry` or the full
+Run `pnpm --filter @print-an-agent/base-integration-tests exec vitest run test/resource-registry` or the full
 root `pnpm test:base-composition-qualification`.

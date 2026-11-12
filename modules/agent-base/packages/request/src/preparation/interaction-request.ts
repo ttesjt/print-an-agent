@@ -4,7 +4,7 @@ import type {
   ModelMessage,
   UserModelMessage,
   InteractionTools,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { requireValue } from './state-value.js';
 
 export interface InteractionRequestContext {

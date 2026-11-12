@@ -1,8 +1,8 @@
-import type { JsonValue, RuntimeBindingId, Sha256Digest } from '@ta-agent/workbench-domain';
+import type { JsonValue, RuntimeBindingId, Sha256Digest } from '@print-an-agent/workbench-domain';
 import type {
   ArtifactHandoffSupportRuntime,
   ExecutionSupportRuntime,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 
 import { RuntimeBindingKind } from '../foundation/constants.js';
 

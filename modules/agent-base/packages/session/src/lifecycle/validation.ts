@@ -1,5 +1,5 @@
 import type { SessionReference } from '../types.js';
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import { parseSessionId } from '../identifiers.js';
 import { DEFAULT_SESSION_QUERY_LIMIT, MAX_SESSION_QUERY_LIMIT } from '../query/contracts.js';
 import type {

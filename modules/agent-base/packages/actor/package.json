@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/base-actor",
+  "name": "@print-an-agent/base-actor",
   "version": "0.1.0",
   "description": "LLM-backed Actor invocation and Responsibility routing contracts for Agent Base.",
   "private": true,
@@ -29,8 +29,8 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/model-invocation-core": "workspace:*",
-    "@ta-agent/base-tool": "workspace:*"
+    "@print-an-agent/model-invocation-core": "workspace:*",
+    "@print-an-agent/base-tool": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

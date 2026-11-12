@@ -6,7 +6,7 @@ import {
   type MemorySnapshot,
   type MemoryReceipt,
   type StoreCommit,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 
 /** Test-only persistence; production qualification uses the actual SQLite adapter. */
 export class TestMemoryStore implements MemoryStore {

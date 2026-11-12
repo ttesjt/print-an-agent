@@ -1,4 +1,4 @@
-import type { CollectionChoice } from '@ta-agent/ui-contracts';
+import type { CollectionChoice } from '@print-an-agent/ui-contracts';
 import { array, literal, object, optional, text, union } from '../transport/decoder.js';
 
 /** Concrete Agent Web locator. The reusable UI contract knows nothing about directories. */

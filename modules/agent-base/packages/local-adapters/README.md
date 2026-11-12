@@ -1,4 +1,4 @@
-# @ta-agent/base-local-adapters
+# @print-an-agent/base-local-adapters
 
 Official local and in-process implementations of generic Agent Base ports.
 
@@ -20,7 +20,7 @@ accept an optional `tablePrefix` and typed exact `tableNames` overrides; default
 `agent_` names. SQLite paths are explicit and reject symbolic links.
 
 ```ts
-import { SqliteSessionAdapter } from '@ta-agent/base-local-adapters';
+import { SqliteSessionAdapter } from '@print-an-agent/base-local-adapters';
 
 const session = new SqliteSessionAdapter({
   databasePath: '/explicit/application/data/agent.sqlite',
@@ -53,7 +53,7 @@ Reads need no lease. Retired Sessions retain history but reject runtime admissio
 For a runtime using both Session and Request Journal, choose a coordinated profile:
 
 ```ts
-import { createSqliteSessionPersistence } from '@ta-agent/base-local-adapters';
+import { createSqliteSessionPersistence } from '@print-an-agent/base-local-adapters';
 
 const persistence = createSqliteSessionPersistence({
   databasePath: '/explicit/application/data/agent.sqlite',

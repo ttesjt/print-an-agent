@@ -1,8 +1,8 @@
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/model-invocation-core';
-import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@ta-agent/base-session';
+} from '@print-an-agent/model-invocation-core';
+import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@print-an-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
   AgentRequestError,

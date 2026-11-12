@@ -1,10 +1,13 @@
-import type { ManagedAgentAuthoritySnapshot } from '@ta-agent/base-composition';
-import type { SessionLifecycleSummary, SessionNavigationSnapshot } from '@ta-agent/base-session';
+import type { ManagedAgentAuthoritySnapshot } from '@print-an-agent/base-composition';
+import type {
+  SessionLifecycleSummary,
+  SessionNavigationSnapshot,
+} from '@print-an-agent/base-session';
 import type {
   AgentSnapshot,
   SessionDetails,
   SessionNavigationSnapshot as WebNavigation,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import type { AgentWebConfig } from '../../application/agent-config.js';
 
 export function revision(value: string): number {

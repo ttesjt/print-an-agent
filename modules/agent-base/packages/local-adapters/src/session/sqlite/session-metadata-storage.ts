@@ -5,7 +5,7 @@ import {
   normalizeRenameSessionInput,
   type RenameSessionInput,
   type SessionInspection,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 
 import { readClock, runImmediateTransaction } from './database.js';
 import { inspectSqliteSession } from './session-query-storage.js';

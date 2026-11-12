@@ -1,11 +1,11 @@
-# `@ta-agent/base-session`
+# `@print-an-agent/base-session`
 
 Generic Session, append-only lineage, navigation, context-projection, and compaction ports for Agent
 Base.
 
 The package defines Session ports and domain behavior without selecting a concrete persistence
 implementation. Official process-local Memory and durable SQLite implementations live in
-`@ta-agent/base-local-adapters`.
+`@print-an-agent/base-local-adapters`.
 
 `sessionId` is the sole immutable, opaque Session identity. Adapters allocate fresh IDs and must
 never reassign them, including after deletion or reconstruction. Official adapters default to UUIDs;
@@ -25,8 +25,8 @@ capabilities, and runtime Workflows propagate execution leases. No Agent/Workflo
 is added; lifecycle management remains a separate capability.
 
 ```ts
-import { createDeterministicAgentAPI } from '@ta-agent/base-composition';
-import { SqliteSessionAdapter } from '@ta-agent/base-local-adapters';
+import { createDeterministicAgentAPI } from '@print-an-agent/base-composition';
+import { SqliteSessionAdapter } from '@print-an-agent/base-local-adapters';
 
 const session = new SqliteSessionAdapter({
   databasePath: '/explicit/application/data/agent-session.sqlite',
@@ -84,7 +84,7 @@ never moves a source head, reparents a turn, or deletes history. Cancellation ca
 before `applyNavigation()` begins; once adapter mutation starts, the coordinator waits for its real
 outcome and never reports a misleading cancelled result after a successful commit.
 
-The optional Session navigation Workflow is a native `@ta-agent/workflow-core` Workflow. Construct it
+The optional Session navigation Workflow is a native `@print-an-agent/workflow-core` Workflow. Construct it
 with `createSessionNavigationWorkflow({ resources: { session }, ... })`, then call
 `run({ input: { agentId, navigation, traceEmitter? }, signal })`. It returns its navigation outcome
 directly and needs no Agent Run Context. The Session port is bound once; the optional trace emitter,

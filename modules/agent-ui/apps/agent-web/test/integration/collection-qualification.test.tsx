@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { defineActorEngine, type ActorEngine } from '@ta-agent/model-invocation-core';
+import { defineActorEngine, type ActorEngine } from '@print-an-agent/model-invocation-core';
 import { beforeAll, afterAll, afterEach, expect, it } from 'vitest';
 import { LocalCollectionApplication } from '../../src/application/collection-composition.js';
 import { createDirectoryCollectionHost } from '../../src/node/collections/directory-host.js';
@@ -16,7 +16,7 @@ import {
 import { createOfflineWebEngine } from '../../src/node/offline-engine.js';
 import { engineConfig } from '../support/agent-config.js';
 import { domEnvironment } from '../support/dom-environment.js';
-import { collectionHash } from '@ta-agent/ui-workspace';
+import { collectionHash } from '@print-an-agent/ui-workspace';
 
 const environment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
 const roots: Root[] = [];

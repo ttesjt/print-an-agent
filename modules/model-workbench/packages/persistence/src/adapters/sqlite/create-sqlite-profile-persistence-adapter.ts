@@ -1,4 +1,4 @@
-import { canonicalJson, parseJsonValue, type ProfileId } from '@ta-agent/workbench-domain';
+import { canonicalJson, parseJsonValue, type ProfileId } from '@print-an-agent/workbench-domain';
 
 import { SqlitePersistenceError } from '../../errors.js';
 import type {

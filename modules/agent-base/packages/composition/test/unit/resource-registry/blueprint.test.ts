@@ -3,7 +3,7 @@ import {
   defineResourceProvider,
   resourceDependency,
   ResourceToken,
-} from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-composition/resource-registry';
 import { describe, expect, it, vi } from 'vitest';
 
 const binding = (input: unknown): string => {

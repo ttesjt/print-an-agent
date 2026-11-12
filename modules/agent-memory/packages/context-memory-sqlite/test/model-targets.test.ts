@@ -3,7 +3,7 @@ import {
   createContextMemoryBundle,
   createModelMemoryResources,
   MemoryMeter,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { modelFixture, firstId } from './support/model.js';
 import { borrowed } from './support/fixtures.js';
 import { testCounter } from './support/counter.js';

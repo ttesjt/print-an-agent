@@ -4,7 +4,7 @@ import type {
   OutputInvokerId,
   ProfileId,
   RuntimeSupportId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import { WorkbenchControlPlaneError } from '../../foundation/errors.js';
 

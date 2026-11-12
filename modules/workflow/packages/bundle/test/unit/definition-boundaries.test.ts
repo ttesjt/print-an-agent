@@ -1,5 +1,5 @@
-import { Workflow, WorkflowDefinitionError } from '@ta-agent/workflow-core';
-import { WorkflowBundle, WorkflowBundleDefinitionError } from '@ta-agent/workflow-bundle';
+import { Workflow, WorkflowDefinitionError } from '@print-an-agent/workflow-core';
+import { WorkflowBundle, WorkflowBundleDefinitionError } from '@print-an-agent/workflow-bundle';
 import { expect, it, vi } from 'vitest';
 import { readDefinition } from '../support/definitions.js';
 

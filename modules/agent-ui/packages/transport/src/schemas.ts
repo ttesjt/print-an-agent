@@ -1,4 +1,4 @@
-import type { ConversationInteractionEvent } from '@ta-agent/ui-contracts';
+import type { ConversationInteractionEvent } from '@print-an-agent/ui-contracts';
 import {
   array,
   integer,

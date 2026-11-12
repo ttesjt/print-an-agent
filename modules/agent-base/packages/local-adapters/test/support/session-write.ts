@@ -2,7 +2,7 @@ import {
   supportsSessionExecution,
   type SessionReference,
   type SessionExecutionLease,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 
 /** Existing storage fixtures explicitly acquire authority; lifecycle tests use raw ports directly. */
 export async function sessionWrite<const T extends SessionReference, R>(

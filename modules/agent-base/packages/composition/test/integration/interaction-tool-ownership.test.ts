@@ -1,12 +1,16 @@
 import { setImmediate } from 'node:timers/promises';
-import type { ActorInteractionHandler } from '@ta-agent/model-invocation-core';
+import type { ActorInteractionHandler } from '@print-an-agent/model-invocation-core';
 import {
   BUILT_IN_RESPONSIBILITIES,
   createActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@ta-agent/base-actor';
-import { createToolRegistry, defineTool, type ToolExecutionRequest } from '@ta-agent/base-tool';
+} from '@print-an-agent/base-actor';
+import {
+  createToolRegistry,
+  defineTool,
+  type ToolExecutionRequest,
+} from '@print-an-agent/base-tool';
 import { expect, it, vi } from 'vitest';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';
 

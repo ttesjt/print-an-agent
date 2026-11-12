@@ -3,7 +3,7 @@ import {
   requireCompletionCapability,
   defineAssistantModelMessage,
   defineProviderModelExecutionProvenance,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   createContextMemoryBundle,
   createModelMemoryResources,
@@ -14,7 +14,7 @@ import {
   type ExecutionPolicy,
   type ModelMemoryWorkflowDefinitions,
   type CompletionMemoryPlannerOptions,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { borrowed } from './fixtures.js';
 
 type Output = string | readonly ModelEditOperation[];

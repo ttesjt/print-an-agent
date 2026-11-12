@@ -10,7 +10,7 @@ import {
   type RetrievalSpace,
   type SearchResult,
   type StoredEntry,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import { createWorkerClient } from './client.js';
 import { SQLITE_RETRIEVAL_LIMITS } from './capabilities.js';
 export { SQLITE_RETRIEVAL_LIMITS } from './capabilities.js';

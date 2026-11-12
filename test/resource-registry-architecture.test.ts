@@ -25,14 +25,14 @@ it('keeps Registry a domain-neutral Composition subsystem with a dedicated publi
     name: string;
     exports: Record<string, { types: string; import: string }>;
   };
-  expect(manifest.name).toBe('@ta-agent/base-composition');
+  expect(manifest.name).toBe('@print-an-agent/base-composition');
   expect(manifest.exports['./resource-registry']).toEqual({
     types: './dist/resource-registry/index.d.ts',
     import: './dist/resource-registry/index.js',
   });
   expect(readFileSync(join(core, 'src/index.ts'), 'utf8')).not.toContain('resource-registry');
   for (const file of sources(registry)) {
-    expect(readFileSync(file, 'utf8'), file).not.toMatch(/@ta-agent\//);
+    expect(readFileSync(file, 'utf8'), file).not.toMatch(/@print-an-agent\//);
     expect(readFileSync(file, 'utf8'), file).not.toMatch(
       /AsyncLocalStorage|class .*Agent|class .*Workflow/
     );
@@ -79,7 +79,7 @@ it('qualifies non-Agent consumers within the existing Base integration project t
     'model-invocation-core',
     'workflow-bundle',
   ])
-    expect(manifest.devDependencies[`@ta-agent/${name}`]).toBe('workspace:*');
+    expect(manifest.devDependencies[`@print-an-agent/${name}`]).toBe('workspace:*');
   for (const file of sources(consumer)) {
     const tree = ts.createSourceFile(
       file,
@@ -109,10 +109,10 @@ it('qualifies non-Agent consumers within the existing Base integration project t
             .slice(0, specifier.startsWith('@') ? 2 : 1)
             .join('/');
           expect(manifest.devDependencies, `${file}: ${specifier}`).toHaveProperty(packageName);
-          if (specifier.startsWith('@ta-agent/'))
+          if (specifier.startsWith('@print-an-agent/'))
             expect(specifier).toBe(
-              packageName === '@ta-agent/base-composition'
-                ? '@ta-agent/base-composition/resource-registry'
+              packageName === '@print-an-agent/base-composition'
+                ? '@print-an-agent/base-composition/resource-registry'
                 : packageName
             );
         }
@@ -124,9 +124,9 @@ it('qualifies non-Agent consumers within the existing Base integration project t
 });
 
 it.each([
-  '@ta-agent/base-composition',
-  '@ta-agent/context-memory/src/index.js',
-  '@ta-agent/model-invocation-pi',
+  '@print-an-agent/base-composition',
+  '@print-an-agent/context-memory/src/index.js',
+  '@print-an-agent/model-invocation-pi',
 ])('rejects independent consumer importing %s', async (specifier) => {
   const results = await eslint.lintText(`import '${specifier}';\n`, {
     filePath: join(consumer, 'examples/memory-composition.ts'),
@@ -139,10 +139,10 @@ it.each([
 });
 
 it.each([
-  '@ta-agent/base-composition',
-  '@ta-agent/workflow-core',
-  '@ta-agent/context-memory',
-  '@ta-agent/model-invocation-core',
+  '@print-an-agent/base-composition',
+  '@print-an-agent/workflow-core',
+  '@print-an-agent/context-memory',
+  '@print-an-agent/model-invocation-core',
 ])('rejects domain import %s in Core', async (specifier) => {
   const results = await eslint.lintText(`import '${specifier}';\n`, {
     filePath: join(registry, 'index.ts'),
@@ -164,7 +164,7 @@ it.each([
   'agent-base/packages/session',
 ])('keeps the Registry out of neutral execution/domain package %s', async (consumer) => {
   const results = await eslint.lintText(
-    "import '@ta-agent/base-composition/resource-registry';\n",
+    "import '@print-an-agent/base-composition/resource-registry';\n",
     {
       filePath: join(root, 'modules', consumer, 'src/index.ts'),
     }
@@ -185,7 +185,7 @@ it.each([
   'modules/agent-base/tests/integration/test/resource-registry/examples/service-provisioning/workflow.ts',
 ])('rejects Registry access at generic Service/Workflow boundary %s', async (file) => {
   const results = await eslint.lintText(
-    "import '@ta-agent/base-composition/resource-registry';\n",
+    "import '@print-an-agent/base-composition/resource-registry';\n",
     {
       filePath: join(root, file),
     }
@@ -202,7 +202,7 @@ it.each([
   'modules/agent-base/tests/integration/test/resource-registry/examples/service-provisioning/profile.ts',
 ])('allows a Profile resource-resolution Service to use Registry at %s', async (file) => {
   const results = await eslint.lintText(
-    "import '@ta-agent/base-composition/resource-registry';\n",
+    "import '@print-an-agent/base-composition/resource-registry';\n",
     {
       filePath: join(root, file),
     }
@@ -227,19 +227,19 @@ it.each(['../resource-registry/index.js', '../resource-registry/scope.js'])(
 it.each([
   [
     'modules/agent-base/tests/integration/test/resource-registry/examples/service-provisioning/service.ts',
-    '@ta-agent/base-composition',
+    '@print-an-agent/base-composition',
   ],
   [
     'modules/agent-base/tests/integration/test/resource-registry/examples/service-provisioning/workflow.ts',
-    '@ta-agent/model-invocation-pi',
+    '@print-an-agent/model-invocation-pi',
   ],
   [
     'modules/agent-base/packages/composition/src/management/agent-management-service.ts',
-    '@ta-agent/self-learn-application',
+    '@print-an-agent/self-learn-application',
   ],
   [
     'modules/agent-base/packages/standalone-agent/src/services/management-service.ts',
-    '@ta-agent/workbench-control-plane',
+    '@print-an-agent/workbench-control-plane',
   ],
 ])('preserves independent-consumer/product boundaries at %s for %s', async (file, specifier) => {
   const results = await eslint.lintText(`import '${specifier}';\n`, { filePath: join(root, file) });

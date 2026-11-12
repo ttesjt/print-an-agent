@@ -1,4 +1,4 @@
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   assertNotAborted,
   assertReceiptMatches,
@@ -11,7 +11,7 @@ import {
   type Mutation,
   type RetrievalReceipt,
   type RetrievalMutationOutcome,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import type {
   AgentMemoryReference,
   ManagedMemoryResult,

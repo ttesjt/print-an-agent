@@ -7,9 +7,9 @@ import {
   type AgentResponse,
   type DefaultRequestWorkflowContext,
   type RequestAgentRunContext,
-} from '@ta-agent/base-request';
-import { bindAgentWorkflow } from '@ta-agent/base-runtime';
-import { parseSessionId } from '@ta-agent/base-session';
+} from '@print-an-agent/base-request';
+import { bindAgentWorkflow } from '@print-an-agent/base-runtime';
+import { parseSessionId } from '@print-an-agent/base-session';
 import { expect, it, vi } from 'vitest';
 import { defaultRequestStep, interactionAgent } from '../support/interaction-agent.js';
 

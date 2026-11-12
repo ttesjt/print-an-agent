@@ -4,8 +4,8 @@ import { access } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { CapabilityDispatchKind } from '@ta-agent/workbench-extension';
-import type { ExtensionCallOptions } from '@ta-agent/workbench-extension';
+import { CapabilityDispatchKind } from '@print-an-agent/workbench-extension';
+import type { ExtensionCallOptions } from '@print-an-agent/workbench-extension';
 
 import {
   LOCAL_EXECUTION_SUPERVISOR_READY_FILE,

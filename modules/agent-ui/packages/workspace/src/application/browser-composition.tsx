@@ -6,7 +6,7 @@ import {
   workspaceHash,
   type WorkspaceLocation,
 } from './workspace-location.js';
-import type { WorkspacePorts } from '@ta-agent/ui-contracts';
+import type { WorkspacePorts } from '@print-an-agent/ui-contracts';
 import { collectionHash, readCollectionLocation } from '../collection/collection-location.js';
 import type { CollectionBoundaryState } from '../collection/collection-application.js';
 

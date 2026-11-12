@@ -1,4 +1,4 @@
-import { createTextEmbedder } from '@ta-agent/model-invocation-core';
+import { createTextEmbedder } from '@print-an-agent/model-invocation-core';
 import {
   createCodepointChunker,
   createRetrievalMutations,

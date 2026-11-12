@@ -14,8 +14,8 @@ import {
   Select,
   Stack,
   Status,
-} from '@ta-agent/ui-react';
-import type { WorkspacePorts } from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-react';
+import type { WorkspacePorts } from '@print-an-agent/ui-contracts';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useApplicationTheme } from './application/theme-preference.js';
 import { useNavigationGuard } from './application/use-navigation-guard.js';

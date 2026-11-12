@@ -11,15 +11,15 @@ import {
   type CancelExecution,
   type ObserveExecution,
   type TypedTrainerCapability,
-} from '@ta-agent/workbench-extension';
-import type { JsonValue } from '@ta-agent/workbench-domain';
-import { ModelRunResultKind } from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-extension';
+import type { JsonValue } from '@print-an-agent/workbench-domain';
+import { ModelRunResultKind } from '@print-an-agent/workbench-domain';
 import {
   createMemoryPersistence,
   createSharedProfilePersistenceAdapter,
   WorkbenchPersistenceError,
-} from '@ta-agent/workbench-persistence';
-import { resolveWorkbenchSetup, RuntimeBindingKind } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-persistence';
+import { resolveWorkbenchSetup, RuntimeBindingKind } from '@print-an-agent/workbench-setup';
 
 import {
   createWorkbenchControlPlane,

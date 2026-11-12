@@ -1,5 +1,5 @@
-import { AgentRequestError, type SessionlessOutputSink } from '@ta-agent/base-request';
-import type { ActorDirectResult } from '@ta-agent/model-invocation-core';
+import { AgentRequestError, type SessionlessOutputSink } from '@print-an-agent/base-request';
+import type { ActorDirectResult } from '@print-an-agent/model-invocation-core';
 import {
   TEMPORARY_EVENT,
   type TemporaryAssistant,

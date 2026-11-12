@@ -10,7 +10,7 @@ import type {
   ListAgentsOptions,
   ReadAgentConfigInput,
   UpdateAgentConfigInput,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 
 import type { AgentManagementPort } from '../application/ports.js';
 import type { AgentWebConfig } from '../application/agent-config.js';

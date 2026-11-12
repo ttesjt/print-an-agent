@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { ModelMessage } from '@ta-agent/model-invocation-core';
+import type { ModelMessage } from '@print-an-agent/model-invocation-core';
 import { quoteSqliteIdentifier } from './table-names.js';
 import {
   AgentSessionError,
@@ -11,7 +11,7 @@ import {
   type SessionBranchReference,
   type SessionContextSnapshot,
   type SessionTurn,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { readClock, runImmediateTransaction } from './database.js';
 import { decodeContextMessage, encodeContextMessage } from './message-codec.js';
 import { loadSqliteSessionSnapshot } from './session-navigation-storage.js';

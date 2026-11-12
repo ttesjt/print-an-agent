@@ -6,7 +6,7 @@ import {
   type Step,
   type StepDefinition,
   type StepDefinitions,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 import { AgentRequestError } from '../../errors.js';
 import { executeSessionlessRequest } from '../execution.js';
 import { sessionlessLifecycle } from '../lifecycle.js';

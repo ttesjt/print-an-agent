@@ -1,9 +1,9 @@
-import type { ActorEngine, ActorInvocationConfig } from '@ta-agent/model-invocation-core';
+import type { ActorEngine, ActorInvocationConfig } from '@print-an-agent/model-invocation-core';
 import type {
   ModelInteractionRuntime,
   ModelMessage,
   ProviderModelReference,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 
 export interface PiFauxRequestSnapshot {
   readonly kind: 'agent-loop' | 'direct' | 'stream';

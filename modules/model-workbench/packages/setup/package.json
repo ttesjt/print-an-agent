@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/workbench-setup",
+  "name": "@print-an-agent/workbench-setup",
   "version": "0.1.0",
   "description": "Pure resolution of Model Profiles, Runtime Bindings, and Extension Runtime resources.",
   "private": true,
@@ -25,8 +25,8 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/workbench-domain": "workspace:*",
-    "@ta-agent/workbench-extension": "workspace:*"
+    "@print-an-agent/workbench-domain": "workspace:*",
+    "@print-an-agent/workbench-extension": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

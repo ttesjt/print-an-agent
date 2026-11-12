@@ -1,4 +1,4 @@
-import { createResourceScope } from '@ta-agent/base-composition/resource-registry';
+import { createResourceScope } from '@print-an-agent/base-composition/resource-registry';
 import { expect, it } from 'vitest';
 import {
   bindMemoryFactories,

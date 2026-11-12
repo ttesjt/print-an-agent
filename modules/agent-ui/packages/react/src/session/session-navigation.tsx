@@ -1,4 +1,4 @@
-import type { SessionBranchSummary, SessionNavigationSnapshot } from '@ta-agent/ui-contracts';
+import type { SessionBranchSummary, SessionNavigationSnapshot } from '@print-an-agent/ui-contracts';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 
 import { Badge } from '../feedback/feedback.js';

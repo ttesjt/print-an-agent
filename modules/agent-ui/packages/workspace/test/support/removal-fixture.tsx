@@ -1,7 +1,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { vi } from 'vitest';
-import type { AgentDetails, WorkspacePorts } from '@ta-agent/ui-contracts';
+import type { AgentDetails, WorkspacePorts } from '@print-an-agent/ui-contracts';
 import {
   BrowserAgentWorkspace,
   type WorkspaceExtensionProps,

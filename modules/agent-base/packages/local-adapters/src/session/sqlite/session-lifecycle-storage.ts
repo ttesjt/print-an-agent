@@ -21,7 +21,7 @@ import {
   type SessionLifecycleMutationInput,
   type PurgeSessionInput,
   type RecoverSessionExecutionsInput,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { readClock, runImmediateTransaction } from './database.js';
 import { sessionMemoryTable } from './session-memory-storage.js';
 import { requireString } from './session-record-codec.js';

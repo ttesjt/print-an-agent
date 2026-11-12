@@ -1,15 +1,15 @@
-import type { AgentConfigCodec } from '@ta-agent/base-config';
+import type { AgentConfigCodec } from '@print-an-agent/base-config';
 import {
   parseAgentId,
   type AgentIdentityCatalogPort,
   type AgentIdentitySnapshot,
-} from '@ta-agent/base-identity';
-import { parseSessionId } from '@ta-agent/base-session';
+} from '@print-an-agent/base-identity';
+import { parseSessionId } from '@print-an-agent/base-session';
 import type {
   Agent,
   AgentOperationDefinitionMap,
   AgentOperationReference,
-} from '@ta-agent/base-runtime';
+} from '@print-an-agent/base-runtime';
 import {
   createAgentManagementService,
   createAgentRuntimeService,
@@ -151,7 +151,7 @@ void definition.contextMemoryManagement;
 void contextDefinition.retrievalMemoryManagement;
 declare const memoryRequest: import('../../src/index.js').MemoryProvisioningRequest<
   NamespaceHandle,
-  import('@ta-agent/context-memory').ApplyMemoryInput
+  import('@print-an-agent/context-memory').ApplyMemoryInput
 >;
 const memoryInvocation = contextDefinition.contextMemoryManagement.resolve.apply(memoryRequest);
 void memoryInvocation;

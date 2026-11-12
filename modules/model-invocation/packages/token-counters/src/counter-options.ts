@@ -1,4 +1,4 @@
-import { TokenMeasurementError } from '@ta-agent/model-invocation-core';
+import { TokenMeasurementError } from '@print-an-agent/model-invocation-core';
 
 export function readCounterOptions(
   value: unknown,

@@ -3,7 +3,7 @@ import {
   type ContextMemoryManagementCapability,
   type ManagedAgentNamespacePort,
   type MemoryProvisioningRequest,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   createContextMemoryBundle,
   createContextMemoryResources,
@@ -13,7 +13,7 @@ import {
   type MemoryMutationResources,
   type MemoryWorkflowDefinitions,
   type DeterministicMemoryMutation,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 
 /** Independent direct provisioning consumer: no Registry, Profile Token, path lookup or second runner. */
 export function directContextMemory<N>(

@@ -1,9 +1,9 @@
 import {
   createWorkbenchControlPlane,
   type ModelWorkbenchControlPlane,
-} from '@ta-agent/workbench-control-plane';
-import { createMemoryProfilePersistenceAdapter } from '@ta-agent/workbench-persistence';
-import { resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-control-plane';
+import { createMemoryProfilePersistenceAdapter } from '@print-an-agent/workbench-persistence';
+import { resolveWorkbenchSetup } from '@print-an-agent/workbench-setup';
 
 import type { ModelWorkbenchApplicationConfiguration } from './contracts.js';
 import { createRandomWorkbenchIdSource, createSystemWorkbenchClock } from './defaults.js';

@@ -1,4 +1,4 @@
-import type { RunnableWorkflow } from '@ta-agent/workflow-core';
+import type { RunnableWorkflow } from '@print-an-agent/workflow-core';
 import {
   bindAgentWorkflow,
   type AgentWorkflow,

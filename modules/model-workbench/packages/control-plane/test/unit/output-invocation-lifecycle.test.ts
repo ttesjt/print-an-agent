@@ -1,8 +1,8 @@
-import type { JsonValue } from '@ta-agent/workbench-domain';
+import type { JsonValue } from '@print-an-agent/workbench-domain';
 import {
   OutputInvocationKind,
   type TypedOutputInvokerCapability,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import { describe, expect, it, vi } from 'vitest';
 import { OutputInvocationCapabilityError } from '../../src/index.js';
 import {

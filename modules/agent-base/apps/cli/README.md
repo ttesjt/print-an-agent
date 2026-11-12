@@ -1,9 +1,9 @@
-# `@ta-agent/base-cli`
+# `@print-an-agent/base-cli`
 
 The thin standalone command-line delivery for Agent Base. It can bootstrap an ephemeral Memory
 Agent from closed JSON, or open authoritative stored configuration by `--agent-id` and either
 `--root` (per-Agent directory) or `--database-path` (shared SQLite). All lifecycle,
-filesystem, SQLite, and Agent behavior remains delegated to `@ta-agent/base-standalone-agent`.
+filesystem, SQLite, and Agent behavior remains delegated to `@print-an-agent/base-standalone-agent`.
 
 The CLI exposes Agent create/list/inspect/disable/reactivate, provider readiness, one-shot or stdin
 request execution, the Session compaction runtime Operation, out-of-band Session

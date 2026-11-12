@@ -1,4 +1,4 @@
-import { isAgentId, parseAgentId, type AgentId } from '@ta-agent/base-identity';
+import { isAgentId, parseAgentId, type AgentId } from '@print-an-agent/base-identity';
 import type {
   ManagedAgentNamespace,
   ManagedAgentNamespacePort,

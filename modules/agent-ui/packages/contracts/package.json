@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/ui-contracts",
+  "name": "@print-an-agent/ui-contracts",
   "version": "0.1.0",
   "description": "Browser-safe ports and view models for Agent UI applications.",
   "private": true,

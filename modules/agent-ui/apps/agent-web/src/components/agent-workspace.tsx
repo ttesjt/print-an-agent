@@ -1,4 +1,4 @@
-import type { AgentSnapshot } from '@ta-agent/ui-contracts';
+import type { AgentSnapshot } from '@print-an-agent/ui-contracts';
 import {
   AgentConfigForm,
   AgentDetailsView,
@@ -13,7 +13,7 @@ import {
   Stack,
   Status,
   Textarea,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 
 import type { AgentConfigFieldErrors, AgentWebConfig } from '../application/agent-config.js';
 import { ModelConfigurationFields } from './model-configuration-fields.js';

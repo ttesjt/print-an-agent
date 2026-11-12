@@ -3,10 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach } from 'vitest';
-import { MemoryMeter, MemoryMutations, type MemoryStore } from '@ta-agent/context-memory';
-import type { TokenCounter, TextTokenInput } from '@ta-agent/model-invocation-core';
+import { MemoryMeter, MemoryMutations, type MemoryStore } from '@print-an-agent/context-memory';
+import type { TokenCounter, TextTokenInput } from '@print-an-agent/model-invocation-core';
 import { testCounter } from './counter.js';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 
 const cleanup: (() => void | Promise<void>)[] = [];
 afterEach(async () => {

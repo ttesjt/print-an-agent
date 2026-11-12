@@ -9,7 +9,7 @@ import {
   Drawer,
   Stack,
   type ConversationTurnLabels,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 import { useEffect, useState } from 'react';
 import type { TemporaryConversationController, TemporaryConversationState } from './controller.js';
 

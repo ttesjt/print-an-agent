@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 
-import type { ProfileId } from '@ta-agent/workbench-domain';
+import type { ProfileId } from '@print-an-agent/workbench-domain';
 
 import { SqlitePersistenceError, WorkbenchPersistenceError } from '../../errors.js';
 import type { ProfilePersistence } from '../../ports/profile-persistence-adapter.js';

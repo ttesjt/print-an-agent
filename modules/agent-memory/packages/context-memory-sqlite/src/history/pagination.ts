@@ -5,7 +5,7 @@ import {
   parseListMemoryVersionsInput,
   type ListMemoryVersionsInput,
   type MemoryHistoryPage,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { readSnapshot } from '../records.js';
 
 function cursorHash(value: string): string {

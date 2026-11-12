@@ -1,4 +1,4 @@
-# `@ta-agent/model-invocation-pi`
+# `@print-an-agent/model-invocation-pi`
 
 Pi infrastructure adapter for independent Actor and model interaction contracts.
 

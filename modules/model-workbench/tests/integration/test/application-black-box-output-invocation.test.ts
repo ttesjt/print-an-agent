@@ -10,8 +10,8 @@ import {
   classifyModelWorkbenchError,
   createModelWorkbench,
   type WorkbenchIdSource,
-} from '@ta-agent/workbench-application';
-import { ModelOperationKind, type JsonValue } from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-application';
+import { ModelOperationKind, type JsonValue } from '@print-an-agent/workbench-domain';
 import {
   CapabilityDispatchKind,
   ExecutionStatus,
@@ -22,9 +22,9 @@ import {
   defineInitializerCapability,
   defineOutputInvokerCapability,
   type InvokeOutputCapability,
-} from '@ta-agent/workbench-extension';
-import { createLocalOutputInvocationBridge } from '@ta-agent/workbench-local-runtime';
-import { RuntimeBindingKind } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-extension';
+import { createLocalOutputInvocationBridge } from '@print-an-agent/workbench-local-runtime';
+import { RuntimeBindingKind } from '@print-an-agent/workbench-setup';
 
 const ProfileId = 'black-box-model';
 const OutputId = 'output:1';

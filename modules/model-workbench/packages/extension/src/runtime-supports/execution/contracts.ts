@@ -1,4 +1,4 @@
-import type { JsonValue, ProfileId } from '@ta-agent/workbench-domain';
+import type { JsonValue, ProfileId } from '@print-an-agent/workbench-domain';
 
 import type { ExecutionObservation } from '../../execution-protocol/contracts.js';
 import type { ExtensionCallOptions } from '../../foundation/extension-runtime.js';

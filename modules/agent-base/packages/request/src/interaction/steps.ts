@@ -1,10 +1,10 @@
-import { ModelInvocationError } from '@ta-agent/model-invocation-core';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import {
   AgentSessionError,
   defineSessionTurnPresentation,
   supportsSessionPresentation,
-} from '@ta-agent/base-session';
-import { type StepOverrides } from '@ta-agent/workflow-core';
+} from '@print-an-agent/base-session';
+import { type StepOverrides } from '@print-an-agent/workflow-core';
 import { invokeRequestInteraction } from './invoke.js';
 import { createInteractionEventAccounting } from './budgets.js';
 import type { DefaultRequestWorkflowContext } from '../default/context.js';

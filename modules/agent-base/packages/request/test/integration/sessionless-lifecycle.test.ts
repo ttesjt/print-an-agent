@@ -3,8 +3,12 @@ import {
   createActor,
   ModelInvocationError,
   type ActorEngineInteractionRequest,
-} from '@ta-agent/model-invocation-core';
-import { runWithExecutionTimeout, skipWorkflow, STEP_CARDINALITY } from '@ta-agent/workflow-core';
+} from '@print-an-agent/model-invocation-core';
+import {
+  runWithExecutionTimeout,
+  skipWorkflow,
+  STEP_CARDINALITY,
+} from '@print-an-agent/workflow-core';
 import { createSessionlessRequestWorkflow } from '../../src/index.js';
 import { assistant, generationActor, outputChannel } from '../support/sessionless.js';
 

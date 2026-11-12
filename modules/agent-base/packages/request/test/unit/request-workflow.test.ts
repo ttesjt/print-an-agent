@@ -1,12 +1,12 @@
-import type { WorkflowContext } from '@ta-agent/workflow-core';
-import { defineAgentIdentity } from '@ta-agent/base-identity';
-import { type BaseAgentRunContext } from '@ta-agent/base-runtime';
+import type { WorkflowContext } from '@print-an-agent/workflow-core';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { type BaseAgentRunContext } from '@print-an-agent/base-runtime';
 import {
   SKIP_STEP,
   STEP_CARDINALITY,
   type Step,
   type StepOverrides,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 import { describe, expect, it } from 'vitest';
 import {
   createRequestStepDefinitions,

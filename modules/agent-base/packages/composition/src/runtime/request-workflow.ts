@@ -9,10 +9,10 @@ import {
   type RequestAgentRunContext,
   type RequestPolicy,
   type RequestRuntimeResources,
-} from '@ta-agent/base-request';
-import { AgentSessionError, supportsSessionPresentation } from '@ta-agent/base-session';
-import { bindAgentWorkflow } from '@ta-agent/base-runtime';
-import { mergeStepOverrides, resolveStepRegistry } from '@ta-agent/workflow-core';
+} from '@print-an-agent/base-request';
+import { AgentSessionError, supportsSessionPresentation } from '@print-an-agent/base-session';
+import { bindAgentWorkflow } from '@print-an-agent/base-runtime';
+import { mergeStepOverrides, resolveStepRegistry } from '@print-an-agent/workflow-core';
 import type { ComposeAgentOptions } from './types.js';
 
 export function composeRequestWorkflow(

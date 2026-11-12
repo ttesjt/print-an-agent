@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { JsonValue } from '@ta-agent/workbench-domain';
-import type { TypedOutputInvokerCapability } from '@ta-agent/workbench-extension';
-import { createMemoryPersistence } from '@ta-agent/workbench-persistence';
+import type { JsonValue } from '@print-an-agent/workbench-domain';
+import type { TypedOutputInvokerCapability } from '@print-an-agent/workbench-extension';
+import { createMemoryPersistence } from '@print-an-agent/workbench-persistence';
 
 import {
   CanonicalOutputInvokerAmbiguousError,

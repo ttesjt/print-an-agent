@@ -3,14 +3,14 @@ import {
   type ManagedAgentNamespacePort,
   type MemoryProvisioningRequest,
   type RetrievalMemoryManagementCapability,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
   parseMutation,
   replayRetrievalMutation,
   type RetrievalResources,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 
 /** Non-Registry consumer: borrowed explicit resources, native workflows and native replay only. */
 export function directRetrievalMemory<N>(

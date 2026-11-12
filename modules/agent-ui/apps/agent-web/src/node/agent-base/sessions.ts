@@ -1,11 +1,11 @@
-import { parseAgentId } from '@ta-agent/base-identity';
-import { AgentSessionError, parseSessionBranchId, parseTurnId } from '@ta-agent/base-session';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { AgentSessionError, parseSessionBranchId, parseTurnId } from '@print-an-agent/base-session';
 import type {
   SessionManagementResult,
   SessionDetails,
   SessionNavigationSnapshot,
   SessionBranchMutationResult,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import type { SessionManagementPort } from '../../application/ports.js';
 import { reference } from './history.js';
 import { sessionFailure } from './failures.js';

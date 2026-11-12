@@ -4,7 +4,7 @@ import {
   EMPTY_TOOL_REGISTRY,
   defineToolPermissionPolicy,
   validateToolExecutionPolicy,
-} from '@ta-agent/base-tool';
+} from '@print-an-agent/base-tool';
 import { AgentRequestError } from '../../errors.js';
 import { DEFAULT_REQUEST_POLICY } from '../../policy.js';
 import { bindGenerationResources } from '../resources.js';

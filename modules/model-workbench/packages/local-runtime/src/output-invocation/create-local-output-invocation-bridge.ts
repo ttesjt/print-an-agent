@@ -1,7 +1,10 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 
-import { parseJsonValue } from '@ta-agent/workbench-domain';
-import { OutputInvocationKind, type ExtensionCallOptions } from '@ta-agent/workbench-extension';
+import { parseJsonValue } from '@print-an-agent/workbench-domain';
+import {
+  OutputInvocationKind,
+  type ExtensionCallOptions,
+} from '@print-an-agent/workbench-extension';
 
 import { resolveLocalProcessCommand } from '../command-bridge/command-configuration.js';
 import {

@@ -4,7 +4,7 @@ import type {
   LostInitializationRun,
   InitializationModelBase,
   SucceededInitializationRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 export interface SucceededInitializationCommit {
   readonly run: SucceededInitializationRun;

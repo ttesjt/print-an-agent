@@ -11,7 +11,7 @@ import {
   type MemoryVersionReference,
   type ForkMemoryInput,
   type ListMemoryVersionsInput,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 
 /** Independent consumer fixture: no SQLite, Registry, Profile or private Memory implementation. */
 export class IndependentHistoryStore implements MemoryHistoryStore {

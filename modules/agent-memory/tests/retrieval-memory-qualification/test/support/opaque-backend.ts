@@ -12,7 +12,7 @@ import {
   type StoredEntry,
   type RetrievalReceipt,
   type RetrievalHit,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 /** Test-only remote-shaped endpoint. No filesystem, SQLite, path or connection in its port. */
 export function opaqueBackend() {
   const spaces = new Map<string, RetrievalSpace>();

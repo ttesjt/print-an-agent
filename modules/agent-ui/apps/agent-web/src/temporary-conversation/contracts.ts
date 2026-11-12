@@ -1,4 +1,4 @@
-import type { ConversationReasoningBlock } from '@ta-agent/ui-contracts';
+import type { ConversationReasoningBlock } from '@print-an-agent/ui-contracts';
 
 export const TEMPORARY_EVENT = Object.freeze({
   OPENED: 'opened',

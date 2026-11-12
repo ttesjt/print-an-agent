@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { Workflow, skipWorkflow } from '@ta-agent/workflow-core';
+import { Workflow, skipWorkflow } from '@print-an-agent/workflow-core';
 import {
   createRetrievalCreateDefinition,
   createRetrievalIngestDefinition,

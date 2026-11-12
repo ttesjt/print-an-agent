@@ -2,14 +2,14 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   createSqliteSessionPersistence,
   resolveSqliteRequestJournalTableNames,
   resolveSqliteSessionTableNames,
-} from '@ta-agent/base-local-adapters';
-import { createRequestFingerprint, parseRequestIdempotencyKey } from '@ta-agent/base-request';
-import { parseTurnId } from '@ta-agent/base-session';
+} from '@print-an-agent/base-local-adapters';
+import { createRequestFingerprint, parseRequestIdempotencyKey } from '@print-an-agent/base-request';
+import { parseTurnId } from '@print-an-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
   createSharedSqliteStandaloneDefinition,

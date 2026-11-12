@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/base-tool",
+  "name": "@print-an-agent/base-tool",
   "version": "0.1.0",
   "description": "Provider-independent tool schemas, permission intersection, registry, and bounded execution for Agent Base.",
   "private": true,
@@ -29,7 +29,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/model-invocation-core": "workspace:*"
+    "@print-an-agent/model-invocation-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

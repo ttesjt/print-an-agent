@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ContextMemoryError } from '@ta-agent/context-memory';
+import { ContextMemoryError } from '@print-an-agent/context-memory';
 import { borrowed, domain, fileStores, FaultDatabase } from './support/fixtures.js';
 
 const createInput = { memoryId: 'm', requestId: 'create', items: [{ content: 'remember' }] };

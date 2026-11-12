@@ -2,7 +2,7 @@ import {
   ModelInvocationError,
   type ProviderCredentialResolver,
   type ProviderModelReference,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 
 export async function resolveEmbeddingHeaders(
   reference: ProviderModelReference,

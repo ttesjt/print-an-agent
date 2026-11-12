@@ -1,4 +1,4 @@
-import { WorkflowBundle } from '@ta-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
 import type { MemoryHistoryStore, ReadMemoryVersionContextInput } from '../contracts/history.js';
 import type { ReadContextResult } from '../contracts/inputs.js';
 import { readMemoryVersionContext } from '../domain/read-version-context.js';

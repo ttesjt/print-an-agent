@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { InvalidWorkbenchValueError, parseProfileId } from '@ta-agent/workbench-domain';
+import { InvalidWorkbenchValueError, parseProfileId } from '@print-an-agent/workbench-domain';
 
 import {
   CapabilityDispatchKind,

@@ -1,4 +1,4 @@
-import type { AgentDetails, AgentSummary, WorkspaceAgentPort } from '@ta-agent/ui-contracts';
+import type { AgentDetails, AgentSummary, WorkspaceAgentPort } from '@print-an-agent/ui-contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { WorkspaceLocation } from '../application/workspace-location.js';
 

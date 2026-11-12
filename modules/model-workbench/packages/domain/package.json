@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/workbench-domain",
+  "name": "@print-an-agent/workbench-domain",
   "version": "0.1.0",
   "description": "Pure Model Workbench profile, execution, model asset, and lineage concepts.",
   "private": true,

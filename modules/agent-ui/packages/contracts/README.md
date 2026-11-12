@@ -1,4 +1,4 @@
-# `@ta-agent/ui-contracts`
+# `@print-an-agent/ui-contracts`
 
 Browser-safe ports and view models consumed by Agent UI applications.
 

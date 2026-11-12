@@ -1,4 +1,4 @@
-import type { TextEmbeddingCapability } from '@ta-agent/model-invocation-core';
+import type { TextEmbeddingCapability } from '@print-an-agent/model-invocation-core';
 import type {
   ChunkContent,
   EntryPage,

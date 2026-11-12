@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { ModelInvocationError } from '@ta-agent/model-invocation-core';
-import { supportsSessionExecution, parseTurnId } from '@ta-agent/base-session';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
+import { supportsSessionExecution, parseTurnId } from '@print-an-agent/base-session';
 import { compactionFixture, compactionMessage } from '../support/compaction-fixture.js';
 import { testCompactionCounter } from '../support/compaction-token-counter.js';
 

@@ -12,14 +12,14 @@ import {
   type SessionNavigationPortFactory,
   type SessionNavigationPorts,
   type StagedManagedAgentNamespace,
-} from '@ta-agent/base-composition';
-import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-composition';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
 import {
   createResourceScope,
   ResourceCleanupError,
   type ResourceCloseOptions,
   type ResourceScope,
-} from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-composition/resource-registry';
 import { AgentBaseStandaloneError } from '../../errors.js';
 import type { StandaloneRuntimePorts } from '../../runtime/materialize-standalone-agent.js';
 import type { StandaloneAgentConfig, CreateStandaloneMemoryProfileOptions } from '../../types.js';

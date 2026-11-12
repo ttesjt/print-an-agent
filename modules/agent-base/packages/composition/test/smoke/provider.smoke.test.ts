@@ -1,4 +1,4 @@
-import { DEFAULT_REQUEST_POLICY } from '@ta-agent/base-request';
+import { DEFAULT_REQUEST_POLICY } from '@print-an-agent/base-request';
 import { describe, expect, it } from 'vitest';
 import { createProviderAgentAPI, type ProviderConfigInput } from '../../src/index.js';
 

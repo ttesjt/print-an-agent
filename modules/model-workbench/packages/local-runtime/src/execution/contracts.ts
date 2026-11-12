@@ -1,5 +1,5 @@
-import type { JsonObject } from '@ta-agent/workbench-domain';
-import type { ExecutionSupportRuntime } from '@ta-agent/workbench-extension';
+import type { JsonObject } from '@print-an-agent/workbench-domain';
+import type { ExecutionSupportRuntime } from '@print-an-agent/workbench-extension';
 
 import type { LocalExecutionReceiptKind } from '../foundation/constants.js';
 

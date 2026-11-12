@@ -3,9 +3,9 @@ import {
   createAgentRuntimeService,
   createSessionManagementService,
   createSessionNavigationService,
-} from '@ta-agent/base-composition';
-import { createMemorySessionPersistence } from '@ta-agent/base-local-adapters';
-import { parseAgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-composition';
+import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { createStandaloneMemorySetup, createStandaloneAgent } from '../../src/index.js';
 import {

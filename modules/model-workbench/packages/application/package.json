@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/workbench-application",
+  "name": "@print-an-agent/workbench-application",
   "version": "0.1.0",
   "description": "Official Model Workbench application composition and defaults.",
   "private": true,
@@ -25,11 +25,11 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/workbench-control-plane": "workspace:*",
-    "@ta-agent/workbench-domain": "workspace:*",
-    "@ta-agent/workbench-extension": "workspace:*",
-    "@ta-agent/workbench-persistence": "workspace:*",
-    "@ta-agent/workbench-setup": "workspace:*"
+    "@print-an-agent/workbench-control-plane": "workspace:*",
+    "@print-an-agent/workbench-domain": "workspace:*",
+    "@print-an-agent/workbench-extension": "workspace:*",
+    "@print-an-agent/workbench-persistence": "workspace:*",
+    "@print-an-agent/workbench-setup": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

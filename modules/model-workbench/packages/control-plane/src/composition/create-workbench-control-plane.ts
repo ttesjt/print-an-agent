@@ -9,8 +9,8 @@ import {
   ModelOperationKind,
   ModelRunStatus,
   type ProfileId,
-} from '@ta-agent/workbench-domain';
-import { findResolvedProfile } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-domain';
+import { findResolvedProfile } from '@print-an-agent/workbench-setup';
 
 import type {
   ModelWorkbenchControlPlane,

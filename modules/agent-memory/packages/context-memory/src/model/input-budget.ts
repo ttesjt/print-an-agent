@@ -2,7 +2,7 @@ import {
   requireTokenMeasurement,
   type TextTokenInput,
   type TokenCounter,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { ModelMemoryRequest } from './input.js';
 import { assertMemoryNotAborted, ContextMemoryError } from '../errors.js';
 

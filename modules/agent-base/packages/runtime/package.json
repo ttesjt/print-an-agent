@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/base-runtime",
+  "name": "@print-an-agent/base-runtime",
   "version": "0.1.0",
   "description": "Agent Operations, Run ownership and Workflow Core bindings.",
   "private": true,
@@ -29,9 +29,9 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/base-identity": "workspace:*",
-    "@ta-agent/base-observability": "workspace:*",
-    "@ta-agent/workflow-core": "workspace:*"
+    "@print-an-agent/base-identity": "workspace:*",
+    "@print-an-agent/base-observability": "workspace:*",
+    "@print-an-agent/workflow-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

@@ -7,8 +7,11 @@ import type {
   RunningModelRun,
   StartingModelRun,
   TerminalModelRun,
-} from '@ta-agent/workbench-domain';
-import type { ExecutionSupportRuntime, ExecutionTerminal } from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-domain';
+import type {
+  ExecutionSupportRuntime,
+  ExecutionTerminal,
+} from '@print-an-agent/workbench-extension';
 
 import type { WaitForRunOptions } from '../queries/contracts.js';
 

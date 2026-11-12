@@ -1,4 +1,4 @@
-import type { ExecutionFailure, JsonValue } from '@ta-agent/workbench-domain';
+import type { ExecutionFailure, JsonValue } from '@print-an-agent/workbench-domain';
 
 import { CapabilityDispatchKind, ExecutionStatus } from './constants.js';
 

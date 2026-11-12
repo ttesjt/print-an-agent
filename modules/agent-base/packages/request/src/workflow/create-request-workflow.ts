@@ -1,4 +1,4 @@
-import { Workflow, type WorkflowContext } from '@ta-agent/workflow-core';
+import { Workflow, type WorkflowContext } from '@print-an-agent/workflow-core';
 import { AgentRequestError } from '../errors.js';
 import { REQUEST_WORKFLOW_NAME, type RequestStepName } from './names.js';
 import { createRequestStepDefinitions } from './step-definitions.js';

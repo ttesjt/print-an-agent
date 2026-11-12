@@ -1,4 +1,4 @@
-import type { CompletedConversationTurn } from '@ta-agent/ui-contracts';
+import type { CompletedConversationTurn } from '@print-an-agent/ui-contracts';
 import { act, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';

@@ -4,9 +4,9 @@ import {
   createSessionNavigationService,
   type ManagedAgentDefinitionConfig,
   type MaterializedManagedAgent,
-} from '@ta-agent/base-composition';
-import { parseAgentId } from '@ta-agent/base-identity';
-import { parseSessionId } from '@ta-agent/base-session';
+} from '@print-an-agent/base-composition';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseSessionId } from '@print-an-agent/base-session';
 import {
   createStandaloneMemorySetup,
   type StandaloneAgentConfig,

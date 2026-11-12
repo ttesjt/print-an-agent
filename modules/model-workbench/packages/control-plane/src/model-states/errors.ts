@@ -1,4 +1,4 @@
-import type { ModelOperationKind, ProfileId, RunId } from '@ta-agent/workbench-domain';
+import type { ModelOperationKind, ProfileId, RunId } from '@print-an-agent/workbench-domain';
 
 import { WorkbenchControlPlaneError } from '../foundation/errors.js';
 

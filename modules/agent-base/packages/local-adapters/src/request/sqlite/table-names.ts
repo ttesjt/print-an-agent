@@ -1,4 +1,4 @@
-import { AgentRequestError } from '@ta-agent/base-request';
+import { AgentRequestError } from '@print-an-agent/base-request';
 
 export type SqliteRequestJournalTableName = 'schema' | 'entries';
 

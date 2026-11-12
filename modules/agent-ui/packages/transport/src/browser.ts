@@ -3,7 +3,7 @@ import type {
   ConversationInteractionEventConsumer,
   StartConversationInteractionInput,
   WorkspacePorts,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import { fail, TransportProtocolError, type Decoder } from './decoder.js';
 import { WEB_TRANSPORT_LIMITS } from './limits.js';
 import { interactionEvent, interactionInput } from './schemas.js';

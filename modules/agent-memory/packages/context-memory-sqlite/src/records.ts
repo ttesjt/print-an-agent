@@ -5,7 +5,7 @@ import {
   parseMemoryReceipt,
   type MemorySnapshot,
   type MemoryReceipt,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 
 export function readSnapshot(database: DatabaseSync, memoryId: string): MemorySnapshot | undefined {
   return storedRecord(memoryId, () => {

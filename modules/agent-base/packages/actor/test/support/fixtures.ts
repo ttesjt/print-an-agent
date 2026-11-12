@@ -2,13 +2,13 @@ import type {
   ActorEngineInput,
   ActorEngineInteractionRequest,
   ActorEngineDirectRequest,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   defineAssistantModelMessage,
   defineProviderModelExecutionProvenance,
   type AssistantModelMessage,
-} from '@ta-agent/model-invocation-core';
-import type { ToolRuntime } from '@ta-agent/base-tool';
+} from '@print-an-agent/model-invocation-core';
+import type { ToolRuntime } from '@print-an-agent/base-tool';
 
 export function assistantMessage(text: string): AssistantModelMessage {
   return defineAssistantModelMessage({

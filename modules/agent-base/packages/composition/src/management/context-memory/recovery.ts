@@ -4,7 +4,7 @@ import {
   type SessionLifecycleQueryPort,
   type RecoverSessionExecutionsInput,
   type SessionReference,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import type { CoordinatedSessionMaintenancePort } from '../contracts/session-management.js';
 import type { ManagementOperationOptions } from '../contracts/operation.js';
 

@@ -2,7 +2,7 @@ import {
   MemoryOutputSink,
   MemorySessionAdapter,
   MemoryRequestJournalAdapter,
-} from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-local-adapters';
 import { describe, expect, it, vi } from 'vitest';
 import { createDeterministicAgentAPI } from '../../src/index.js';
 

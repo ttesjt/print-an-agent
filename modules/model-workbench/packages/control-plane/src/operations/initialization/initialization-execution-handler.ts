@@ -12,25 +12,25 @@ import {
   type StartingInitializationRun,
   type StartingModelRun,
   type TerminalInitializationRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   ExecutionStatus,
   WorkbenchExtensionError,
   type ExecutionSupportRuntime,
   type ExecutionTerminal,
   type InitializationCapabilityResult,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import {
   findResolvedInitializer,
   findResolvedProfile,
   type ResolvedInitializerSlot,
   type ResolvedWorkbenchSetup,
-} from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-setup';
 import {
   WorkbenchPersistenceError,
   type InitializationCommitter,
   type RunRepository,
-} from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-persistence';
 
 import { completeInitialization, recordInitializationFailure } from './complete-initialization.js';
 import {

@@ -3,13 +3,13 @@ import {
   parseInitializerId,
   parseProfileId,
   parseRunId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   findResolvedInitializer,
   findResolvedProfile,
   type ResolvedWorkbenchSetup,
-} from '@ta-agent/workbench-setup';
-import type { RunRepository } from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-setup';
+import type { RunRepository } from '@print-an-agent/workbench-persistence';
 import type { StartInitializationInput, StartInitializationResult } from './contracts.js';
 import { InitializerSlotNotFoundError } from './errors.js';
 import type { InitializationExecutionHandler } from './initialization-execution-handler.js';

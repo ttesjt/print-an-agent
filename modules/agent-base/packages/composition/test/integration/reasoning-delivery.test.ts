@@ -1,5 +1,5 @@
-import type { ModelInteractionEventSink } from '@ta-agent/model-invocation-core';
-import { DEFAULT_REQUEST_POLICY } from '@ta-agent/base-request';
+import type { ModelInteractionEventSink } from '@print-an-agent/model-invocation-core';
+import { DEFAULT_REQUEST_POLICY } from '@print-an-agent/base-request';
 import { describe, expect, it, vi } from 'vitest';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';
 

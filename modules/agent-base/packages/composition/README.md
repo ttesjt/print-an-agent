@@ -1,4 +1,4 @@
-# `@ta-agent/base-composition`
+# `@print-an-agent/base-composition`
 
 Optional Memory management uses Definition-owned typed operation provisioning. See the
 [Standalone consumer guide](../standalone-agent/MEMORY.md) for the Context Service, direct factories,
@@ -8,7 +8,7 @@ Agent Base application composition contracts and the official Standard runtime a
 
 Production source is organized by feature boundary. The existing Standard single-Agent composition
 lives under `src/runtime/`; the package-root `src/index.ts` is only the stable public re-export
-boundary. Consumers continue to import `@ta-agent/base-composition` and must not deep-import feature
+boundary. Consumers continue to import `@print-an-agent/base-composition` and must not deep-import feature
 internals. Runtime implementation remains self-contained: it does not import through the package
 root or depend on another composition feature's implementation.
 
@@ -51,7 +51,7 @@ before publishing successful application history.
 
 ## Optional Resource Registry
 
-`@ta-agent/base-composition/resource-registry` is a dedicated public subpath for the package's
+`@print-an-agent/base-composition/resource-registry` is a dedicated public subpath for the package's
 resource-assembly subsystem. Blueprint, Provider, Registry and Scope live under
 `src/resource-registry/`, independently of runtime assembly and generic management Services.
 They are not re-exported from the package root. The subpath uses no Agent, Workflow, Memory,
@@ -313,6 +313,6 @@ deadline; it is not renewed for each model call. See the Session package for Ste
 
 Generic Identity lifecycle and Config-authority coordination belong to `composition/management`.
 Concrete adapter selection, filesystem layout, SQLite schemas and table naming, Standalone Config
-fields, and credential binding belong to `@ta-agent/base-standalone-agent` or another injected
+fields, and credential binding belong to `@print-an-agent/base-standalone-agent` or another injected
 profile. Automatic compaction scheduling, advanced branch lifecycle, provider failover, and product
 UX also remain outside Composition.

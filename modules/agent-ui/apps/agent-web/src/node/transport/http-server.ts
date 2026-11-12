@@ -2,7 +2,7 @@ import {
   readJsonRequest,
   writeJsonResponse,
   writeInteractionResponse,
-} from '@ta-agent/ui-transport/node';
+} from '@print-an-agent/ui-transport/node';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { once } from 'node:events';
 import type { AgentWebPorts } from '../../application/ports.js';

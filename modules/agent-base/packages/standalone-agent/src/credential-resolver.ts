@@ -1,7 +1,7 @@
 import type {
   ProviderCredentialResolutionRequest,
   ProviderCredentialResolver,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type {
   StandaloneCredentialRuntimeOptions,
   StandaloneCredentialBindingInput,

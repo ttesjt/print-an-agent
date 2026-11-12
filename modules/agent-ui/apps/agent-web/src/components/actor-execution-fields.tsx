@@ -6,7 +6,7 @@ import {
   FormField,
   Stack,
   TextInput,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 import type { AgentExecutionSettings } from '../application/agent-config.js';
 import type { ModelConfigurationFieldsProps } from './model-configuration-fields.js';
 

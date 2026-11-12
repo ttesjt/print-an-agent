@@ -3,7 +3,7 @@ import type {
   ConversationInteractionEvent,
   ConversationSessionAdmission,
   ConversationToolActivity,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import { describe, expect, it } from 'vitest';
 import { interactionEvent } from '../../src/transport/schemas.js';
 
@@ -13,7 +13,7 @@ import {
   interactionAssistantText,
   interactionReasoningBlocks,
   reduceInteractionEvent,
-} from '@ta-agent/ui-workspace/testing';
+} from '@print-an-agent/ui-workspace/testing';
 
 describe('conversation interaction reducer', () => {
   it('decodes admission through a closed, validated transport record', () => {

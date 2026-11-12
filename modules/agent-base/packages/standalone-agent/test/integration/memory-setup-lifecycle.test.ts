@@ -2,10 +2,10 @@ import {
   createAgentManagementService,
   createAgentRuntimeService,
   createSessionManagementService,
-} from '@ta-agent/base-composition';
-import { parseAgentId } from '@ta-agent/base-identity';
-import { createMemorySessionPersistence } from '@ta-agent/base-local-adapters';
-import { ResourceCleanupError } from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-composition';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
+import { ResourceCleanupError } from '@print-an-agent/base-composition/resource-registry';
 import { describe, expect, it, vi } from 'vitest';
 import { createStandaloneAgent, createStandaloneMemorySetup } from '../../src/index.js';
 import {

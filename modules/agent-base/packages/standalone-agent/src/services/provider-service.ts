@@ -2,7 +2,7 @@ import {
   createProviderRuntime,
   type ProviderReadiness,
   type ProviderRuntimeInspection,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import { createStandaloneCredentialResolver } from '../credential-resolver.js';
 import type {
   StandaloneAgentConfig,

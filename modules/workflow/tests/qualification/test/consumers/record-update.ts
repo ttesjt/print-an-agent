@@ -3,8 +3,8 @@ import {
   skipWorkflow,
   RUN_WORKFLOW,
   type WorkflowContext,
-} from '@ta-agent/workflow-core';
-import type { BundleWorkflowDefinition } from '@ta-agent/workflow-bundle';
+} from '@print-an-agent/workflow-core';
+import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
 
 export interface CatalogRecord {
   readonly revision: number;

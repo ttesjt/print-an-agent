@@ -1,8 +1,8 @@
-import type { ConversationSessionAdmission } from '@ta-agent/ui-contracts';
+import type { ConversationSessionAdmission } from '@print-an-agent/ui-contracts';
 export type {
   WorkspaceConversationPort as ConversationManagementPort,
   WorkspaceSessionPort as SessionManagementPort,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 export interface ConversationCommitTarget {
   readonly agentId: string;
   readonly branchId: string;

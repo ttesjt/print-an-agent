@@ -1,5 +1,5 @@
-import type { ActorDirectResult } from '@ta-agent/model-invocation-core';
-import type { WorkflowLifecycle } from '@ta-agent/workflow-core';
+import type { ActorDirectResult } from '@print-an-agent/model-invocation-core';
+import type { WorkflowLifecycle } from '@print-an-agent/workflow-core';
 import { AgentRequestError } from '../errors.js';
 import { publishOutput, sessionlessOutputFailure } from './output.js';
 import type { SessionlessOutputOutcome, SessionlessValidatedRequest } from './contracts.js';

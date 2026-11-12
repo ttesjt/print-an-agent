@@ -6,7 +6,7 @@ import {
   MemoryMutations,
   parseMemorySnapshot,
   readMemoryContext,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { TestMemoryStore, gate } from './support/store.js';
 import { errorCode } from './support/errors.js';
 import { testCounter } from './support/counter.js';

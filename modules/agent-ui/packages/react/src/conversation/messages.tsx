@@ -1,4 +1,4 @@
-import type { ConversationUserMessage } from '@ta-agent/ui-contracts';
+import type { ConversationUserMessage } from '@print-an-agent/ui-contracts';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 
 import { joinStyleHooks } from '../internal/style-hooks.js';

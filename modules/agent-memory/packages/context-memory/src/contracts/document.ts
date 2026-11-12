@@ -1,4 +1,4 @@
-import type { TokenMeasurement } from '@ta-agent/model-invocation-core';
+import type { TokenMeasurement } from '@print-an-agent/model-invocation-core';
 
 export type JsonValue = null | boolean | number | string | readonly JsonValue[] | JsonObject;
 export interface JsonObject {

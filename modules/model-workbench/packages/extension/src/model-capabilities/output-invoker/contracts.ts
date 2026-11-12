@@ -3,7 +3,7 @@ import {
   type ModelOutput,
   type OutputArtifactName,
   type ProfileId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import { OutputInvocationKind } from './constants.js';
 import type { ExtensionCallOptions } from '../../foundation/extension-runtime.js';

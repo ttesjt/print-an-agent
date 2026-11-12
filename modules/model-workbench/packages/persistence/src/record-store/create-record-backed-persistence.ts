@@ -1,4 +1,4 @@
-import type { ProfileId } from '@ta-agent/workbench-domain';
+import type { ProfileId } from '@print-an-agent/workbench-domain';
 
 import type { ProfilePersistence } from '../ports/profile-persistence-adapter.js';
 import { createRecordStoreExportCommitter } from './record-store-export-committer.js';

@@ -13,14 +13,14 @@ import {
   type ExecutionFailure,
   type InitializationModelBase,
   type TerminalInitializationRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   ExecutionStatus,
   type ExecutionTerminal,
   type InitializationCapabilityResult,
-} from '@ta-agent/workbench-extension';
-import type { ResolvedInitializerSlot } from '@ta-agent/workbench-setup';
-import type { InitializationCommitter } from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-extension';
+import type { ResolvedInitializerSlot } from '@print-an-agent/workbench-setup';
+import type { InitializationCommitter } from '@print-an-agent/workbench-persistence';
 
 import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';
 import type { WorkbenchIdSource } from '../../ports/workbench-id-source.js';

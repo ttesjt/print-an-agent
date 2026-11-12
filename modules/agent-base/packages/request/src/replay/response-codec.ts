@@ -1,19 +1,19 @@
 import {
   defineAssistantModelMessage,
   type AssistantModelMessage,
-} from '@ta-agent/model-invocation-core';
-import { parseSessionBranchId, parseSessionId } from '@ta-agent/base-session';
+} from '@print-an-agent/model-invocation-core';
+import { parseSessionBranchId, parseSessionId } from '@print-an-agent/base-session';
 import {
   parseToolName,
   type ToolCallId,
   type ToolRunInspection,
   type ToolRunRecord,
-} from '@ta-agent/base-tool';
+} from '@print-an-agent/base-tool';
 import {
   type ToolDescriptor,
   type ToolObjectSchema,
   type ToolValueSchema,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { AgentResponse } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
 import { parseRequestJournalRequestId } from './identifiers.js';

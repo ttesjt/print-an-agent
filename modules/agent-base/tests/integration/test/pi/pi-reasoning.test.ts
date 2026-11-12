@@ -1,13 +1,13 @@
-import type { ModelInteractionEvent } from '@ta-agent/model-invocation-core';
+import type { ModelInteractionEvent } from '@print-an-agent/model-invocation-core';
 import {
   createBoundedToolRuntime,
   createToolRegistry,
   defineTool,
   defineToolPermissionPolicy,
   DEFAULT_TOOL_EXECUTION_POLICY,
-} from '@ta-agent/base-tool';
+} from '@print-an-agent/base-tool';
 import { describe, expect, it } from 'vitest';
-import { createPiFauxRuntime, createPiProviderRuntime } from '@ta-agent/model-invocation-pi';
+import { createPiFauxRuntime, createPiProviderRuntime } from '@print-an-agent/model-invocation-pi';
 import { createOpenAICompatibleTestServer } from '../../support/pi-provider-server.js';
 
 function tools(signal: AbortSignal, enabled: boolean) {

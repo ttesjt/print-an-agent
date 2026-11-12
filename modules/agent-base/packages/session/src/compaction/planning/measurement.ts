@@ -4,7 +4,7 @@ import {
   TOKEN_MEASUREMENT_ACCURACY,
   type TextTokenInput,
   type TokenCounter,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { AgentSessionError } from '../../errors.js';
 
 export function bindSessionCompactionTokenCounter(

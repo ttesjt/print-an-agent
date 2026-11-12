@@ -1,6 +1,6 @@
 import { act } from 'react';
 import { afterEach, expect, it } from 'vitest';
-import type { WorkspacePorts } from '@ta-agent/ui-contracts';
+import type { WorkspacePorts } from '@print-an-agent/ui-contracts';
 import { collectionHash } from '../src/index.js';
 import {
   button,

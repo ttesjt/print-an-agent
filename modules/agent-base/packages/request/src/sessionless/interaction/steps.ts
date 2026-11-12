@@ -1,4 +1,4 @@
-import { requireInteractionCapability } from '@ta-agent/model-invocation-core';
+import { requireInteractionCapability } from '@print-an-agent/model-invocation-core';
 import { AgentRequestError } from '../../errors.js';
 import { requireValue } from '../../preparation/state-value.js';
 import { buildInteractionRequest } from '../../preparation/interaction-request.js';

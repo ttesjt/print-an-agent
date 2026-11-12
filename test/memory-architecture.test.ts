@@ -50,8 +50,8 @@ it('keeps the independent consumer test-only, with only declared public dependen
   const pkg = manifest(consumerRoot);
   expect(pkg.dependencies ?? {}).toEqual({});
   expect(pkg.exports).toBeUndefined();
-  expect(pkg.devDependencies?.['@ta-agent/context-memory']).toBe('workspace:*');
-  expect(pkg.devDependencies?.['@ta-agent/context-memory-sqlite']).toBe('workspace:*');
+  expect(pkg.devDependencies?.['@print-an-agent/context-memory']).toBe('workspace:*');
+  expect(pkg.devDependencies?.['@print-an-agent/context-memory-sqlite']).toBe('workspace:*');
   for (const path of sources(consumerRoot)) {
     for (const specifier of imports(path)) {
       if (
@@ -69,7 +69,7 @@ it('keeps the independent consumer test-only, with only declared public dependen
           .slice(0, specifier.startsWith('@') ? 2 : 1)
           .join('/');
         expect(pkg.devDependencies, `${path}: ${specifier}`).toHaveProperty(packageName);
-        if (specifier.startsWith('@ta-agent/')) expect(specifier, path).toBe(packageName);
+        if (specifier.startsWith('@print-an-agent/')) expect(specifier, path).toBe(packageName);
       }
     }
   }
@@ -79,11 +79,13 @@ it('keeps domain/adapter runtime dependencies narrow and does not duplicate a Wo
   const domain = join(memoryRoot, 'packages/context-memory');
   const adapter = join(memoryRoot, 'packages/context-memory-sqlite');
   expect(Object.keys(manifest(domain).dependencies ?? {}).sort()).toEqual([
-    '@ta-agent/model-invocation-core',
-    '@ta-agent/workflow-bundle',
-    '@ta-agent/workflow-core',
+    '@print-an-agent/model-invocation-core',
+    '@print-an-agent/workflow-bundle',
+    '@print-an-agent/workflow-core',
   ]);
-  expect(manifest(adapter).dependencies).toEqual({ '@ta-agent/context-memory': 'workspace:*' });
+  expect(manifest(adapter).dependencies).toEqual({
+    '@print-an-agent/context-memory': 'workspace:*',
+  });
   for (const path of [...sources(join(domain, 'src')), ...sources(join(adapter, 'src'))]) {
     expect(readFileSync(path, 'utf8'), path).not.toMatch(
       /class (?:Workflow|ExecutionScope|StepRuntime)\b|as unknown as/
@@ -99,10 +101,10 @@ it('keeps domain/adapter runtime dependencies narrow and does not duplicate a Wo
 });
 
 it.each([
-  '@ta-agent/context-memory/src/index.js',
-  '@ta-agent/context-memory-sqlite/src/store.js',
-  '@ta-agent/base-runtime',
-  '@ta-agent/model-invocation-pi',
+  '@print-an-agent/context-memory/src/index.js',
+  '@print-an-agent/context-memory-sqlite/src/store.js',
+  '@print-an-agent/base-runtime',
+  '@print-an-agent/model-invocation-pi',
 ])(
   'rejects qualification consumer importing %s through the effective boundary',
   async (dependency) => {
@@ -117,16 +119,16 @@ it.each([
   }
 );
 it.each([
-  '@ta-agent/base-runtime',
-  '@ta-agent/self-learn-domain',
-  '@ta-agent/workbench-application',
-  '@ta-agent/ui-contracts',
-  '@ta-agent/model-invocation-pi',
-  '@ta-agent/model-invocation-token-counters',
-  '@ta-agent/model-invocation-embedding-http',
+  '@print-an-agent/base-runtime',
+  '@print-an-agent/self-learn-domain',
+  '@print-an-agent/workbench-application',
+  '@print-an-agent/ui-contracts',
+  '@print-an-agent/model-invocation-pi',
+  '@print-an-agent/model-invocation-token-counters',
+  '@print-an-agent/model-invocation-embedding-http',
   '@earendil-works/pi-ai',
-  '@ta-agent/context-memory-sqlite',
-  '@ta-agent/retrieval-memory',
+  '@print-an-agent/context-memory-sqlite',
+  '@print-an-agent/retrieval-memory',
   'node:sqlite',
 ])('rejects Context Memory importing %s through the real ESLint boundary', async (dependency) => {
   const results = await eslint.lintText(`import '${dependency}';\n`, {
@@ -140,9 +142,9 @@ it.each([
 });
 
 it.each([
-  '@ta-agent/base-runtime',
-  '@ta-agent/self-learn-domain',
-  '@ta-agent/workbench-application',
+  '@print-an-agent/base-runtime',
+  '@print-an-agent/self-learn-domain',
+  '@print-an-agent/workbench-application',
 ])('rejects SQLite adapter importing %s through the real ESLint boundary', async (dependency) => {
   const results = await eslint.lintText(`import '${dependency}';\n`, {
     filePath: `${root}modules/agent-memory/packages/context-memory-sqlite/src/index.ts`,
@@ -155,10 +157,10 @@ it.each([
 });
 
 it.each([
-  ['modules/workflow/packages/core/src/index.ts', '@ta-agent/context-memory'],
-  ['modules/workflow/packages/bundle/src/index.ts', '@ta-agent/context-memory-sqlite'],
-  ['modules/model-invocation/packages/core/src/index.ts', '@ta-agent/context-memory'],
-  ['modules/model-invocation/packages/pi/src/index.ts', '@ta-agent/context-memory-sqlite'],
+  ['modules/workflow/packages/core/src/index.ts', '@print-an-agent/context-memory'],
+  ['modules/workflow/packages/bundle/src/index.ts', '@print-an-agent/context-memory-sqlite'],
+  ['modules/model-invocation/packages/core/src/index.ts', '@print-an-agent/context-memory'],
+  ['modules/model-invocation/packages/pi/src/index.ts', '@print-an-agent/context-memory-sqlite'],
 ])('forbids reverse dependency from %s to %s', async (path, dependency) => {
   const results = await eslint.lintText(`import '${dependency}';\n`, {
     filePath: `${root}${path}`,

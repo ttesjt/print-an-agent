@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MemoryMeter, MemoryMutations, type MemoryStore } from '@ta-agent/context-memory';
+import { MemoryMeter, MemoryMutations, type MemoryStore } from '@print-an-agent/context-memory';
 import { testCounter } from './counter.js';
 
 /** Adapter-neutral assertions; setup owns per-test cleanup and supplies a fresh store. */

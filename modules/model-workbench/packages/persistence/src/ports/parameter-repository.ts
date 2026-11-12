@@ -3,7 +3,7 @@ import type {
   ModelBase,
   ModelModification,
   ModificationId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import type { PersistencePage, PersistencePageRequest } from './persistence-page.js';
 
 export interface ParameterRepository {

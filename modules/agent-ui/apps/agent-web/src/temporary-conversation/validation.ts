@@ -1,4 +1,4 @@
-import { array, object, text, schemas, fail } from '@ta-agent/ui-transport';
+import { array, object, text, schemas, fail } from '@print-an-agent/ui-transport';
 import type { TemporaryConversationRequest } from './contracts.js';
 
 export const TEMPORARY_LIMITS = Object.freeze({

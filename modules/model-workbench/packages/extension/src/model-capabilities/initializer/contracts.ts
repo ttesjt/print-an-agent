@@ -6,7 +6,7 @@ import {
   type ProfileId,
   type RunId,
   type Sha256Digest,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import type { CapabilityDispatch } from '../../execution-protocol/contracts.js';
 import { parseClosedRecord } from '../../foundation/parsing.js';

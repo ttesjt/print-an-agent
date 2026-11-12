@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
-import { readMemoryContext } from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+import { readMemoryContext } from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import { borrowed, domain, fileStores } from './support/fixtures.js';
 
 it('persists full snapshots and request receipts across connections and reopen', async () => {

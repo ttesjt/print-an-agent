@@ -3,14 +3,14 @@ import {
   createActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@ta-agent/base-actor';
-import { type ActorInteractionHandler } from '@ta-agent/model-invocation-core';
-import { MemoryAgentTraceAdapter } from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-actor';
+import { type ActorInteractionHandler } from '@print-an-agent/model-invocation-core';
+import { MemoryAgentTraceAdapter } from '@print-an-agent/base-local-adapters';
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/model-invocation-core';
-import { DEFAULT_REQUEST_POLICY } from '@ta-agent/base-request';
+} from '@print-an-agent/model-invocation-core';
+import { DEFAULT_REQUEST_POLICY } from '@print-an-agent/base-request';
 import { describe, expect, it } from 'vitest';
 import { composeAgent, FOREGROUND_AGENT_OPERATION_NAME } from '../../src/index.js';
 

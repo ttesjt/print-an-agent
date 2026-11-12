@@ -1,4 +1,4 @@
-import { fail, literal, object, union, type Decoder } from '@ta-agent/ui-transport';
+import { fail, literal, object, union, type Decoder } from '@print-an-agent/ui-transport';
 import { id } from '../../memory/schemas/common.js';
 import {
   memoryCapabilities,

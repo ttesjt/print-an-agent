@@ -6,8 +6,8 @@ import {
   modelMemorySignal,
   type ModelMemoryContext,
   type ModelMemoryDefinition,
-} from '@ta-agent/context-memory';
-import type { Step } from '@ta-agent/workflow-core';
+} from '@print-an-agent/context-memory';
+import type { Step } from '@print-an-agent/workflow-core';
 import { consumer } from './support/model.js';
 import { memoryPath, ownedStore } from './support/storage.js';
 

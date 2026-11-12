@@ -1,4 +1,4 @@
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   assertMemoryNotAborted,
   assertReceiptMatches,
@@ -10,7 +10,7 @@ import {
   type CommitStatus,
   type MemoryReceipt,
   type MutationResult,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import type {
   AgentMemoryReference,
   ContextMemoryManagementCapability,

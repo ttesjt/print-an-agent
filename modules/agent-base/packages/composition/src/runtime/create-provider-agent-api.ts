@@ -3,7 +3,7 @@ import {
   createActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@ta-agent/base-actor';
+} from '@print-an-agent/base-actor';
 import { createAgentAPI } from './agent-api.js';
 import { composeAgent } from './compose-agent.js';
 import { createProviderRuntime } from './provider-runtime.js';

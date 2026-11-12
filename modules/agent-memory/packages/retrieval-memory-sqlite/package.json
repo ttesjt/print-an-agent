@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/retrieval-memory-sqlite",
+  "name": "@print-an-agent/retrieval-memory-sqlite",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -23,11 +23,11 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/retrieval-memory": "workspace:*",
+    "@print-an-agent/retrieval-memory": "workspace:*",
     "sqlite-vec": "0.1.9"
   },
   "devDependencies": {
-    "@ta-agent/model-invocation-core": "workspace:*",
+    "@print-an-agent/model-invocation-core": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

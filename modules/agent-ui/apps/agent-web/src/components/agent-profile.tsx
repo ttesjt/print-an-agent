@@ -1,4 +1,4 @@
-import { Stack } from '@ta-agent/ui-react';
+import { Stack } from '@print-an-agent/ui-react';
 import type { DefaultConfigurationController } from '../agent/use-default-configuration.js';
 import type { ModelManagementController } from '../agent/use-model-management.js';
 import { AgentWorkspace } from './agent-workspace.js';

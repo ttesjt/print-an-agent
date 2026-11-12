@@ -48,7 +48,7 @@ memory: {
   embeddings: [{
     embeddingRef: capability.descriptor.representationRef,
     chunkerRef: installedChunker.ref,
-    metricRef: COSINE_METRIC_REF, // imported from @ta-agent/retrieval-memory
+    metricRef: COSINE_METRIC_REF, // imported from @print-an-agent/retrieval-memory
     label: 'My installed embedding recipe',
   }],
 }
@@ -122,5 +122,5 @@ errors expose stable codes, safe budget/revision details and commit notices, not
 environment values, arbitrary provider errors or stacks.
 
 For independent CLI-style consumption use the public `createContextMemoryManagementService` /
-`createRetrievalMemoryManagementService` from `@ta-agent/base-composition` with a caller-owned setup.
+`createRetrievalMemoryManagementService` from `@print-an-agent/base-composition` with a caller-owned setup.
 No HTTP, UI or Registry dependency is required in the generic Service consumer.

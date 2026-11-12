@@ -1,11 +1,11 @@
 import {
   defineResourceProvider,
   ResourceToken,
-} from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-composition/resource-registry';
 import {
   createMemorySessionPersistence,
   type CoordinatedSessionPersistence,
-} from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-local-adapters';
 import type { CreateStandaloneMemoryProfileOptions } from '../../types.js';
 import { parseAllocationBinding, describeAllocation } from './allocation-binding.js';
 

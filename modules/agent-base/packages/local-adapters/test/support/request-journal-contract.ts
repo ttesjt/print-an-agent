@@ -1,12 +1,12 @@
-import { defineAgentIdentity } from '@ta-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
   defineProviderModelExecutionProvenance,
   defineProviderModelReference,
   type ModelExecutionProvenance,
-} from '@ta-agent/model-invocation-core';
-import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@ta-agent/base-session';
+} from '@print-an-agent/model-invocation-core';
+import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@print-an-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
   AgentRequestError,
@@ -15,7 +15,7 @@ import {
   type AgentResponse,
   type InspectableRequestJournalPort,
   type RequestJournalReference,
-} from '@ta-agent/base-request';
+} from '@print-an-agent/base-request';
 
 const model = defineProviderModelReference({ provider: 'faux', model: 'faux-model' });
 

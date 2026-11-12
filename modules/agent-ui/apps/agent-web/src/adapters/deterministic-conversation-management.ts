@@ -10,7 +10,7 @@ import type {
   ReadConversationInput,
   RewindSessionBranchInput,
   StartConversationInteractionInput,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 
 import type { ConversationManagementPort } from '../application/ports.js';
 import type { DeterministicSessionManagement } from './deterministic-session-management.js';

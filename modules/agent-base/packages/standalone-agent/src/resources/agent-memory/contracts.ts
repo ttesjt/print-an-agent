@@ -3,20 +3,23 @@ import type {
   MemoryWorkflowDefinitions,
   MemoryStore,
   VersionedMemoryWorkflowDefinitions,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import type {
   RetrievalBackend,
   RetrievalChunker,
   RetrievalPolicy,
   RetrievalWorkflowDefinitions,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import type {
   TextEmbeddingCapability,
   TextTokenInput,
   TokenCounter,
-} from '@ta-agent/model-invocation-core';
-import type { ResourceAcquisition } from '@ta-agent/base-composition/resource-registry';
-import type { ContextMemoryToolScope, createContextMemoryTools } from '@ta-agent/base-composition';
+} from '@print-an-agent/model-invocation-core';
+import type { ResourceAcquisition } from '@print-an-agent/base-composition/resource-registry';
+import type {
+  ContextMemoryToolScope,
+  createContextMemoryTools,
+} from '@print-an-agent/base-composition';
 
 export type MemoryTextCounter = TokenCounter<TextTokenInput>;
 export type MemoryCapabilityAcquirer<T> = (

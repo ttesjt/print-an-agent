@@ -9,7 +9,7 @@ import {
   TOKEN_MEASUREMENT_SCOPE,
   TEXT_TOKEN_INPUT_CONTRACT,
   type TokenMeasurement,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { assertMemoryBudget } from '../domain/budget.js';
 
 function parseMeasurement(

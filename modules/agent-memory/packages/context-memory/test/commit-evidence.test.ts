@@ -5,7 +5,7 @@ import {
   MemoryMeter,
   MemoryMutations,
   type CommitStatus,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { testCounter } from './support/counter.js';
 import { TestMemoryStore } from './support/store.js';
 

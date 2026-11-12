@@ -1,5 +1,5 @@
 import { Worker } from 'node:worker_threads';
-import { assertNotAborted, RetrievalMemoryError } from '@ta-agent/retrieval-memory';
+import { assertNotAborted, RetrievalMemoryError } from '@print-an-agent/retrieval-memory';
 import type { WorkerConfiguration, WorkerOperation, WorkerReply } from './protocol.js';
 import { restoreFailures } from './failures.js';
 interface Pending {

@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/base-session",
+  "name": "@print-an-agent/base-session",
   "version": "0.1.0",
   "description": "Generic Session ports, navigation, and compaction workflows for Agent Base.",
   "private": true,
@@ -29,12 +29,12 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/base-observability": "workspace:*",
-    "@ta-agent/base-actor": "workspace:*",
-    "@ta-agent/base-identity": "workspace:*",
-    "@ta-agent/model-invocation-core": "workspace:*",
-    "@ta-agent/base-runtime": "workspace:*",
-    "@ta-agent/workflow-core": "workspace:*"
+    "@print-an-agent/base-observability": "workspace:*",
+    "@print-an-agent/base-actor": "workspace:*",
+    "@print-an-agent/base-identity": "workspace:*",
+    "@print-an-agent/model-invocation-core": "workspace:*",
+    "@print-an-agent/base-runtime": "workspace:*",
+    "@print-an-agent/workflow-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

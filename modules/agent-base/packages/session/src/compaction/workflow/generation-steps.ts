@@ -1,5 +1,5 @@
-import { AgentActorError, SESSION_COMPACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
-import { ActorError, ModelInvocationError } from '@ta-agent/model-invocation-core';
+import { AgentActorError, SESSION_COMPACTION_RESPONSIBILITY_ID } from '@print-an-agent/base-actor';
+import { ActorError, ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import { AgentSessionError } from '../../errors.js';
 import { SESSION_COMPACTION_REJECTION_REASON } from '../planning/contracts.js';
 import { requireCompactionState } from './guards.js';

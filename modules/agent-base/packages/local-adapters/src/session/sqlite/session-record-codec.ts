@@ -1,4 +1,4 @@
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import { quoteSqliteIdentifier } from './table-names.js';
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import {
@@ -11,7 +11,7 @@ import {
   type SessionReference,
   type SessionTurn,
   type TurnId,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { decodeAssistantMessage, decodeUserMessage } from './message-codec.js';
 import type { SqliteSessionTableNames } from './table-names.js';
 

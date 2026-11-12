@@ -3,12 +3,12 @@ import {
   ContextMemoryError,
   createMemoryApplyDefinition,
   createMemoryGetReceiptDefinition,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { createDeterministicAgentAPI } from '../../src/index.js';
-import { executeSessionNavigation } from '@ta-agent/base-session';
-import { supportsSessionMemoryNavigation } from '@ta-agent/base-session';
-import { createMemorySessionPersistence } from '@ta-agent/base-local-adapters';
-import { parseAgentId } from '@ta-agent/base-identity';
+import { executeSessionNavigation } from '@print-an-agent/base-session';
+import { supportsSessionMemoryNavigation } from '@print-an-agent/base-session';
+import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import { recoverSessionWithContextMemory, createSessionContextMemory } from '../../src/index.js';
 import { runtimeMemoryFixture, memoryToolPermissions } from '../support/runtime-context-memory.js';
 

@@ -7,7 +7,7 @@ import type {
   ModificationId,
   OutputId,
   RunId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import type {
   PersistenceRecordCollection,

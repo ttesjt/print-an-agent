@@ -1,4 +1,4 @@
-import type { AgentId, AgentIdentity } from '@ta-agent/base-identity';
+import type { AgentId, AgentIdentity } from '@print-an-agent/base-identity';
 
 export type ConfigValue =
   | null

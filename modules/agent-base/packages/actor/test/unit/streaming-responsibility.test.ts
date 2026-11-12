@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import {
   defineAssistantModelMessage,
   defineProviderModelExecutionProvenance,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   createActorCatalog,
   createResponsibilityCatalog,

@@ -4,7 +4,7 @@ import {
   resolveCompactionTarget,
   resolveExecutionPolicy,
   resolveMemoryConfig,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { errorCode } from './support/errors.js';
 
 const config = () => resolveMemoryConfig({ measurementRef: 'counter:v1' });

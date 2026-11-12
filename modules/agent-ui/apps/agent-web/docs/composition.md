@@ -81,8 +81,8 @@ start another request. Explicit cancellation, clear/reset, or unmount still canc
 
 ## Reusing components independently
 
-Import structure and behavior from `@ta-agent/ui-react`. Import
-`@ta-agent/ui-styles/default.css` separately if desired. Consumers may omit styles entirely, or
+Import structure and behavior from `@print-an-agent/ui-react`. Import
+`@print-an-agent/ui-styles/default.css` separately if desired. Consumers may omit styles entirely, or
 override tokens/classes without changing component behavior. Components neither import a theme
 nor know the Agent Web port/store/transport shape. The Gallery's separate `consumer.html` entry
 demonstrates the same interactive Notes composition with no stylesheet, the default stylesheet,

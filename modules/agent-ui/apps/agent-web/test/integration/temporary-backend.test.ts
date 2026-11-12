@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, it } from 'vitest';
-import type { ActorEngineStreamingRequest } from '@ta-agent/model-invocation-core';
+import type { ActorEngineStreamingRequest } from '@print-an-agent/model-invocation-core';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { createWebBackendServices } from '../../src/node/agent-base/profile.js';
 import { createWebTemporaryConversationPort } from '../../src/node/agent-base/temporary-conversation/service.js';

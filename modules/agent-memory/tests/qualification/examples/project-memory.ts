@@ -2,15 +2,15 @@ import type {
   CompletionCapability,
   TextTokenInput,
   TokenCounter,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   createContextMemoryBundle,
   createModelMemoryResources,
   createCompletionMemoryPlanner,
   MemoryMeter,
   type ReadContextResult,
-} from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+} from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 
 /** A minimal host. The caller owns the Completion and counter; this host owns only its store. */
 export async function runProjectMemoryExample(options: {

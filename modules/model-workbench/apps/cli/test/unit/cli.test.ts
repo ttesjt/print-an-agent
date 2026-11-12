@@ -2,7 +2,7 @@ import { mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { OutputInvocationKind, type ModelWorkbench } from '@ta-agent/workbench-application';
+import { OutputInvocationKind, type ModelWorkbench } from '@print-an-agent/workbench-application';
 import { describe, expect, it, vi } from 'vitest';
 
 import {

@@ -1,4 +1,4 @@
-import { Workflow } from '@ta-agent/workflow-core';
+import { Workflow } from '@print-an-agent/workflow-core';
 import { finalizeSessionExecution } from '../../lifecycle/workflow-execution.js';
 import { AgentSessionError } from '../../errors.js';
 import { SESSION_NAVIGATION_WORKFLOW_NAME } from './names.js';

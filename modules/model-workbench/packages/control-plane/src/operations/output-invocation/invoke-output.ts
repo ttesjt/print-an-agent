@@ -1,5 +1,5 @@
-import { parseJsonValue } from '@ta-agent/workbench-domain';
-import { OutputInvocationKind } from '@ta-agent/workbench-extension';
+import { parseJsonValue } from '@print-an-agent/workbench-domain';
+import { OutputInvocationKind } from '@print-an-agent/workbench-extension';
 
 import type { InvokeOutputInput, OutputInvocation } from './contracts.js';
 import { OutputInvocationCapabilityError } from './errors.js';

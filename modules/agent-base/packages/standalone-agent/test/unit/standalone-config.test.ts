@@ -1,5 +1,5 @@
 import { bootstrapTestAgent } from '../support/owned-setup.js';
-import { DEFAULT_SESSION_COMPACTION_POLICY } from '@ta-agent/base-session';
+import { DEFAULT_SESSION_COMPACTION_POLICY } from '@print-an-agent/base-session';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

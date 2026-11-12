@@ -1,8 +1,8 @@
-import { defineResourceProvider } from '@ta-agent/base-composition/resource-registry';
-import { ContextMemoryError, type MemoryStore } from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
-import { RetrievalMemoryError, type RetrievalBackend } from '@ta-agent/retrieval-memory';
-import { openSqliteRetrievalBackend } from '@ta-agent/retrieval-memory-sqlite';
+import { defineResourceProvider } from '@print-an-agent/base-composition/resource-registry';
+import { ContextMemoryError, type MemoryStore } from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
+import { RetrievalMemoryError, type RetrievalBackend } from '@print-an-agent/retrieval-memory';
+import { openSqliteRetrievalBackend } from '@print-an-agent/retrieval-memory-sqlite';
 import type { MemoryRecipe } from '../examples/memory-composition.js';
 import { describeResource } from '../examples/tokens.js';
 

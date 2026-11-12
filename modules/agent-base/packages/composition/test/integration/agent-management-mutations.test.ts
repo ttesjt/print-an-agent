@@ -1,5 +1,5 @@
-import { AgentConfigError } from '@ta-agent/base-config';
-import { parseAgentId } from '@ta-agent/base-identity';
+import { AgentConfigError } from '@print-an-agent/base-config';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import { describe, expect, it, vi } from 'vitest';
 import { createAgentManagementService } from '../../src/index.js';
 import { createManagedAgentFixture } from '../support/managed-agent-management.js';

@@ -1,11 +1,11 @@
 import type { AssistantMessage } from '@earendil-works/pi-ai';
 import type { AgentEvent } from '@earendil-works/pi-agent-core';
-import { ModelInvocationError } from '@ta-agent/model-invocation-core';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import type {
   ModelInteractionEvent,
   ModelInteractionRequest,
   AssistantModelMessage,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { toModelMessage } from './pi-message-mapping.js';
 import { readablePiDelta } from './pi-generation-event.js';
 import type { PiToolAdapterState } from './pi-tool-adapter.js';

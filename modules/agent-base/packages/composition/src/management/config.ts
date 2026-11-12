@@ -3,7 +3,7 @@ import {
   normalizeConfigValue,
   type AgentConfigCodec,
   type ConfigValue,
-} from '@ta-agent/base-config';
+} from '@print-an-agent/base-config';
 
 function encodeConfig<TConfig>(codec: AgentConfigCodec<TConfig>, config: TConfig): ConfigValue {
   try {

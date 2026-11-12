@@ -1,5 +1,5 @@
-import { deriveEvidenceDigest, parseJsonValue } from '@ta-agent/workbench-domain';
-import type { ArtifactHandoffSupportRuntime } from '@ta-agent/workbench-extension';
+import { deriveEvidenceDigest, parseJsonValue } from '@print-an-agent/workbench-domain';
+import type { ArtifactHandoffSupportRuntime } from '@print-an-agent/workbench-extension';
 
 import { WorkbenchSetupKind } from '../foundation/constants.js';
 import { assertUnique, parseArray, parseClosedRecord, sortBy } from '../foundation/parsing.js';

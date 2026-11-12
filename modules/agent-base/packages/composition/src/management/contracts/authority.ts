@@ -1,5 +1,5 @@
-import type { AgentConfigWriteAdapter } from '@ta-agent/base-config';
-import type { AgentIdentityCatalogPort } from '@ta-agent/base-identity';
+import type { AgentConfigWriteAdapter } from '@print-an-agent/base-config';
+import type { AgentIdentityCatalogPort } from '@print-an-agent/base-identity';
 import type { ManagedAgentNamespaceReference } from './namespace.js';
 
 /** Authoritative Identity and Config ports scoped to one managed Agent. */

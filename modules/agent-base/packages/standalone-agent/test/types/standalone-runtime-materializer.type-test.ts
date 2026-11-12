@@ -1,6 +1,6 @@
-import type { AgentIdentity } from '@ta-agent/base-identity';
-import type { RequestJournalPort } from '@ta-agent/base-request';
-import type { CompactableSessionPort } from '@ta-agent/base-session';
+import type { AgentIdentity } from '@print-an-agent/base-identity';
+import type { RequestJournalPort } from '@print-an-agent/base-request';
+import type { CompactableSessionPort } from '@print-an-agent/base-session';
 import {
   materializeStandaloneAgentRuntime,
   createStandaloneAgent,

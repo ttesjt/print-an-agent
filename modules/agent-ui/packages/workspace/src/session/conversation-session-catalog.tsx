@@ -1,4 +1,11 @@
-import { Alert, Button, EmptyState, SessionListItem, Spinner, Stack } from '@ta-agent/ui-react';
+import {
+  Alert,
+  Button,
+  EmptyState,
+  SessionListItem,
+  Spinner,
+  Stack,
+} from '@print-an-agent/ui-react';
 
 import type { ConversationManagementController } from '../conversation/use-conversation-management.js';
 import type { SessionManagementController } from './use-session-management.js';

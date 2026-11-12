@@ -2,7 +2,7 @@ import type {
   SessionDetails,
   SessionNavigationSnapshot,
   SessionSummary,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import { act } from 'react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 

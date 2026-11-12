@@ -3,7 +3,7 @@ import {
   completedLineageForBranch,
   type CommitSessionCompactionRequest,
   type SessionCompaction,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   createMemorySessionSnapshot,
   validateMemoryContext,

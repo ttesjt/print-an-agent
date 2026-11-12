@@ -1,6 +1,9 @@
 import type { RequestPolicy } from './contracts.js';
 import { AgentRequestError } from './errors.js';
-import { MAX_EXECUTION_TIMEOUT_MILLISECONDS, NO_EXECUTION_TIMEOUT } from '@ta-agent/workflow-core';
+import {
+  MAX_EXECUTION_TIMEOUT_MILLISECONDS,
+  NO_EXECUTION_TIMEOUT,
+} from '@print-an-agent/workflow-core';
 
 export const NO_REQUEST_TIMEOUT = NO_EXECUTION_TIMEOUT;
 

@@ -12,7 +12,7 @@ import {
   type ActionSize,
   type ActionTone,
   type IconButtonAppearance,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 
 import { GallerySection } from './gallery-section.js';
 

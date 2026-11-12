@@ -10,7 +10,7 @@ import {
   type ModelProfile,
   type JsonObject,
   parseJsonValue,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import {
   assertUnique,

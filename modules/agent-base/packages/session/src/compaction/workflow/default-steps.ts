@@ -1,4 +1,4 @@
-import type { StepOverrides } from '@ta-agent/workflow-core';
+import type { StepOverrides } from '@print-an-agent/workflow-core';
 import { buildCompactedContext } from './composites.js';
 import {
   inspectSession,

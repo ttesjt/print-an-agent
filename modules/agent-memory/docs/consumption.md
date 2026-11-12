@@ -20,7 +20,7 @@ Host: owns and lends store / meter / planner / policies
 ```
 
 Choose a real consumer-compatible `TokenCounter<TextTokenInput>` from Model Invocation Core; one can
-be supplied by an Actor or explicitly configured using `@ta-agent/model-invocation-token-counters`.
+be supplied by an Actor or explicitly configured using `@print-an-agent/model-invocation-token-counters`.
 Bind its descriptor's `measurementRef`. An encoding is an explicit host choice, not a guess from a
 model name. Hard limits require exact text measurement. Estimates are allowed only where the
 applicable budget policy permits them; text fragment counts are not whole-request token counts.

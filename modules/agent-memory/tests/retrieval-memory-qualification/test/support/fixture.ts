@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { onTestFinished } from 'vitest';
-import { createTextEmbedder } from '@ta-agent/model-invocation-core';
+import { createTextEmbedder } from '@print-an-agent/model-invocation-core';
 import {
   createCodepointChunker,
   createRetrievalMemoryBundle,
@@ -10,8 +10,8 @@ import {
   createRetrievalQueries,
   createRetrievalWorkflowResources,
   COSINE_METRIC_REF,
-} from '@ta-agent/retrieval-memory';
-import { openSqliteRetrievalBackend } from '@ta-agent/retrieval-memory-sqlite';
+} from '@print-an-agent/retrieval-memory';
+import { openSqliteRetrievalBackend } from '@print-an-agent/retrieval-memory-sqlite';
 import { opaqueBackend } from './opaque-backend.js';
 export async function fixture(kind: 'opaque' | 'sqlite' = 'opaque') {
   const directory = mkdtempSync(join(tmpdir(), 'retrieval-consumer-'));

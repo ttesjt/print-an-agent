@@ -1,16 +1,16 @@
 import {
   defineActorInvocationPolicy,
   type ActorInvocationPolicy,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   defineProviderTransportLivenessPolicy,
   type ProviderTransportLivenessPolicy,
-} from '@ta-agent/model-invocation-core';
-import { DEFAULT_REQUEST_POLICY, validateRequestPolicy } from '@ta-agent/base-request';
+} from '@print-an-agent/model-invocation-core';
+import { DEFAULT_REQUEST_POLICY, validateRequestPolicy } from '@print-an-agent/base-request';
 import {
   DEFAULT_SESSION_COMPACTION_POLICY,
   validateSessionCompactionPolicy,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { AgentBaseStandaloneError } from './errors.js';
 import type {
   StandaloneRequestExecutionConfig,

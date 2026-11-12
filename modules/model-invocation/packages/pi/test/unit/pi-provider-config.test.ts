@@ -1,4 +1,4 @@
-import { ModelInvocationError } from '@ta-agent/model-invocation-core';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import { describe, expect, it } from 'vitest';
 import { definePiProviderConfig } from '../../src/index.js';
 

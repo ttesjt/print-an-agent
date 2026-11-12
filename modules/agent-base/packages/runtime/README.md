@@ -1,6 +1,6 @@
-# `@ta-agent/base-runtime`
+# `@print-an-agent/base-runtime`
 
-Agent execution ownership over the independent `@ta-agent/workflow-core` package.
+Agent execution ownership over the independent `@print-an-agent/workflow-core` package.
 
 - `Agent` owns typed Operations, invocation permissions, cycle detection, parent/child Run
   correlation and Operation executor drainage.
@@ -11,7 +11,7 @@ Agent execution ownership over the independent `@ta-agent/workflow-core` package
 - Workflow Catalogs and optional configuration registries organize exact binding references.
 
 Import `Workflow`, Step types, registries, overrides, signal composition and timeout helpers directly
-from `@ta-agent/workflow-core`. Agent Base does not re-export or duplicate that execution kernel.
+from `@print-an-agent/workflow-core`. Agent Base does not re-export or duplicate that execution kernel.
 
 ```ts
 const bound = bindAgentWorkflow({

@@ -6,8 +6,8 @@ import {
   FormField,
   Stack,
   Textarea,
-} from '@ta-agent/ui-react';
-import { useRevisionedEditor } from '@ta-agent/ui-workspace';
+} from '@print-an-agent/ui-react';
+import { useRevisionedEditor } from '@print-an-agent/ui-workspace';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RetrievalMemoryPort } from '../contracts.js';
 import type { retrievalReceipt } from '../schemas/retrieval.js';

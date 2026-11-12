@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { EMBEDDING_TASK, EmbeddingError } from '@ta-agent/model-invocation-core';
+import { EMBEDDING_TASK, EmbeddingError } from '@print-an-agent/model-invocation-core';
 import type { EntryRepresentation, RetrievalEntry, RetrievalSpace } from '../contracts/data.js';
 import type { ChunkerResolver, EmbeddingResolver } from '../contracts/ports.js';
 import type { RetrievalPolicy } from '../config.js';

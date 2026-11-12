@@ -1,4 +1,4 @@
-import { parseJsonValue, type JsonValue } from '@ta-agent/workbench-domain';
+import { parseJsonValue, type JsonValue } from '@print-an-agent/workbench-domain';
 
 import { invalidExtension, parseDomainValue } from '../foundation/validation.js';
 

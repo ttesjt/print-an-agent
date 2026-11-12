@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
-import { createAgentTraceEmitter, type AgentTraceEvent } from '@ta-agent/base-observability';
-import { skipWorkflow } from '@ta-agent/workflow-core';
+import { createAgentTraceEmitter, type AgentTraceEvent } from '@print-an-agent/base-observability';
+import { skipWorkflow } from '@print-an-agent/workflow-core';
 import { bindAgentWorkflow } from '../../src/index.js';
 import { context, workflow } from '../support/workflow-binding.js';
 

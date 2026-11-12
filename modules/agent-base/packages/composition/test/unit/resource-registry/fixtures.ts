@@ -1,7 +1,7 @@
 import {
   ResourceToken,
   type ResourceErrorCode,
-} from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-composition/resource-registry';
 import { expect } from 'vitest';
 
 export function expectResourceError(run: () => unknown, code: ResourceErrorCode): void {

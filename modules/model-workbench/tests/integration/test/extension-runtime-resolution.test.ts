@@ -6,7 +6,7 @@ import {
   parseArtifactReference,
   parseProfileId,
   parseRunId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   CapabilityDispatchKind,
   defineArtifactHandoffSupport,
@@ -14,8 +14,8 @@ import {
   defineExtensionValueContract,
   defineInitializerCapability,
   ExecutionStatus,
-} from '@ta-agent/workbench-extension';
-import { RuntimeBindingKind, resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-extension';
+import { RuntimeBindingKind, resolveWorkbenchSetup } from '@print-an-agent/workbench-setup';
 
 describe('Extension Runtime resolution', () => {
   it('resolves static selectors into typed process-local callable resources', async () => {

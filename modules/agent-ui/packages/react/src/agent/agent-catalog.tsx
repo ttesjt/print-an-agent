@@ -1,4 +1,4 @@
-import type { AgentLifecycleStatus, AgentSummary } from '@ta-agent/ui-contracts';
+import type { AgentLifecycleStatus, AgentSummary } from '@print-an-agent/ui-contracts';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 
 import { Button } from '../actions/button.js';

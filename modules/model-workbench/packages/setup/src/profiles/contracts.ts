@@ -7,14 +7,14 @@ import type {
   JsonObject,
   Sha256Digest,
   TrainerId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import type {
   ArtifactHandoffSupportRuntime,
   ExporterCapabilityRuntime,
   InitializerCapabilityRuntime,
   OutputInvokerCapabilityRuntime,
   TrainerCapabilityRuntime,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 
 import type {
   ResolvedExecutionRuntimeBinding,

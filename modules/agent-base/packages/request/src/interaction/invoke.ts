@@ -1,8 +1,8 @@
 import type {
   ActorInteractionRequest,
   InteractionCapability,
-} from '@ta-agent/model-invocation-core';
-import { composeExecutionSignal } from '@ta-agent/workflow-core';
+} from '@print-an-agent/model-invocation-core';
+import { composeExecutionSignal } from '@print-an-agent/workflow-core';
 import { requireValue } from '../preparation/state-value.js';
 import type { RequestInteractionState } from './state.js';
 import { InteractionToolExecution } from './tool-execution.js';

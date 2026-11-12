@@ -1,6 +1,6 @@
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { quoteSqliteIdentifier } from './table-names.js';
-import { AgentRequestError } from '@ta-agent/base-request';
+import { AgentRequestError } from '@print-an-agent/base-request';
 import { runImmediateTransaction } from './database.js';
 import { createRequestJournalMigration } from './migrations/0001_create_request_journal.js';
 import type { SqliteRequestJournalTableNames } from './table-names.js';

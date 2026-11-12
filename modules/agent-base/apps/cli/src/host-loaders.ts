@@ -22,7 +22,7 @@ import {
   type StandaloneRawAgent,
   type StandaloneSessionNavigationService,
   type StandaloneSessionManagementService,
-} from '@ta-agent/base-standalone-agent';
+} from '@print-an-agent/base-standalone-agent';
 import { AgentBaseCliError } from './errors.js';
 import type {
   AgentBaseCliAgentManager,

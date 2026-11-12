@@ -2,16 +2,16 @@ import {
   composeAgent,
   createProviderRuntime,
   CONTEXT_MEMORY_TOOL_NAMES,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   BUILT_IN_RESPONSIBILITIES,
   MAIN_ACTOR_ID,
   createActorCatalog,
   createResponsibilityCatalog,
-} from '@ta-agent/base-actor';
-import type { AgentIdentity } from '@ta-agent/base-identity';
-import type { RequestJournalPort, RequestContextMemory } from '@ta-agent/base-request';
-import type { CompactableSessionPort } from '@ta-agent/base-session';
+} from '@print-an-agent/base-actor';
+import type { AgentIdentity } from '@print-an-agent/base-identity';
+import type { RequestJournalPort, RequestContextMemory } from '@print-an-agent/base-request';
+import type { CompactableSessionPort } from '@print-an-agent/base-session';
 import { createStandaloneCredentialResolver } from '../credential-resolver.js';
 import { AgentBaseStandaloneError } from '../errors.js';
 import { resolveStandaloneTextTokenCounter } from './token-counter.js';

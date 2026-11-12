@@ -1,11 +1,14 @@
-import { createTokenCounter, TEXT_TOKEN_INPUT_CONTRACT } from '@ta-agent/model-invocation-core';
+import {
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+} from '@print-an-agent/model-invocation-core';
 import {
   createRetrievalContext,
   createRetrievalQueries,
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
   createRetrievalReadContextDefinition,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import { expect, it } from 'vitest';
 import { fixture } from './support/fixture.js';
 function counter(nonadditive = false, estimated = false) {

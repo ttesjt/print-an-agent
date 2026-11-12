@@ -1,5 +1,5 @@
 import { AgentRunError } from '../types/errors.js';
-import { composeExecutionSignal } from '@ta-agent/workflow-core';
+import { composeExecutionSignal } from '@print-an-agent/workflow-core';
 
 type OperationExecutionOutcome<TOutput> =
   | Readonly<{ status: 'pending' }>

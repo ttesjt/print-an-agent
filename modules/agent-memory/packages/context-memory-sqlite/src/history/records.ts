@@ -7,7 +7,7 @@ import {
   parseMemorySnapshot,
   type MemorySnapshot,
   type MemoryVersionReference,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { decodeHistory, encodeHistory, snapshotDigest, type HistoryRecord } from './codec.js';
 
 function decodeRow(value: unknown): HistoryRecord {

@@ -3,12 +3,12 @@ import { constants as fileConstants } from 'node:fs';
 import { access, open, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { JsonValue } from '@ta-agent/workbench-domain';
+import type { JsonValue } from '@print-an-agent/workbench-domain';
 import {
   ExecutionStatus,
   parseExecutionObservation,
   type ExecutionTerminal,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 
 import { parseLocalCommandLaunchRecord } from '../command-bridge/command-configuration.js';
 import {

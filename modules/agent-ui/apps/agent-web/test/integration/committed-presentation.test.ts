@@ -1,10 +1,10 @@
 // @vitest-environment node
 import { expect, it } from 'vitest';
-import type { ConversationInteractionEvent } from '@ta-agent/ui-contracts';
+import type { ConversationInteractionEvent } from '@print-an-agent/ui-contracts';
 import {
   createSubmittingInteraction,
   executeConversationInteraction,
-} from '@ta-agent/ui-workspace/testing';
+} from '@print-an-agent/ui-workspace/testing';
 import {
   createWebBackendServices,
   type WebBackendServices,

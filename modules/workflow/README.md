@@ -1,7 +1,7 @@
 # Workflow
 
 Domain-independent, replaceable named Steps over a run-local context. The public packages are
-`@ta-agent/workflow-core` for execution and `@ta-agent/workflow-bundle` for shared-resource assembly.
+`@print-an-agent/workflow-core` for execution and `@print-an-agent/workflow-bundle` for shared-resource assembly.
 Neither knows about Agents, model providers, memory or persistence.
 Steps and borrowed Resources are bound at assembly; each run supplies input and execution options
 and owns independent state, result and cancellation.

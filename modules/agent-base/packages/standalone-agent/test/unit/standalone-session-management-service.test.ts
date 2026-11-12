@@ -1,8 +1,8 @@
-import type { SessionManagementService } from '@ta-agent/base-composition';
+import type { SessionManagementService } from '@print-an-agent/base-composition';
 import {
   defineSessionExecutionFence,
   defineSessionLifecycleSnapshot,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { describe, expect, it, vi } from 'vitest';
 import { projectStandaloneSessionManagementService } from '../../src/services/session-management-service.js';
 

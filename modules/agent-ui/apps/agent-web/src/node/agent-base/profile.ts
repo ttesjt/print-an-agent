@@ -16,33 +16,36 @@ import {
   type SessionContextMemoryCoordinator,
   CONTEXT_MEMORY_TOOL_NAMES,
   recoverSessionWithContextMemory,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   createActorCatalog,
   createResponsibilityCatalog,
   BUILT_IN_RESPONSIBILITIES,
   MAIN_ACTOR_ID,
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
-} from '@ta-agent/base-actor';
-import { type ActorEngine } from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/base-actor';
+import { type ActorEngine } from '@print-an-agent/model-invocation-core';
 import {
   createMemorySessionPersistence,
   createSqliteSessionPersistence,
   type CoordinatedSessionPersistence,
-} from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-local-adapters';
 import {
   createStandaloneMemorySetup,
   createStandaloneDirectorySetup,
   type StandaloneSessionContextMemory,
-} from '@ta-agent/base-standalone-agent';
-import { supportsSessionMemoryNavigation, supportsSessionExecution } from '@ta-agent/base-session';
-import type { AgentId } from '@ta-agent/base-identity';
-import type { ToolRegistry } from '@ta-agent/base-tool';
+} from '@print-an-agent/base-standalone-agent';
+import {
+  supportsSessionMemoryNavigation,
+  supportsSessionExecution,
+} from '@print-an-agent/base-session';
+import type { AgentId } from '@print-an-agent/base-identity';
+import type { ToolRegistry } from '@print-an-agent/base-tool';
 import type { AgentWebConfig } from '../../application/agent-config.js';
 import { WEB_AGENT_CONFIG_CODEC } from './config.js';
 import { presentationStepOverrides } from './stream-sink.js';
 import { createWebModelRuntime, actorInvocation, webActorInstructions } from './model-runtime.js';
-import { DEFAULT_REQUEST_POLICY } from '@ta-agent/base-request';
+import { DEFAULT_REQUEST_POLICY } from '@print-an-agent/base-request';
 import { validatePresentationWait } from './presentation-wait.js';
 import { createWebMemoryPorts } from '../memory/ports.js';
 import type { WebMemoryOptions } from '../memory/options.js';
@@ -226,8 +229,8 @@ function assembleServices<Handle>(
               ports.maintenance
             ),
             recoverSessionPersistence: async (
-              request: import('@ta-agent/base-session').RecoverSessionExecutionsInput,
-              call?: import('@ta-agent/base-composition').ManagementOperationOptions
+              request: import('@print-an-agent/base-session').RecoverSessionExecutionsInput,
+              call?: import('@print-an-agent/base-composition').ManagementOperationOptions
             ) => {
               if (!supportsSessionMemoryNavigation(ports.session))
                 throw new Error('Session Memory recovery is not installed.');

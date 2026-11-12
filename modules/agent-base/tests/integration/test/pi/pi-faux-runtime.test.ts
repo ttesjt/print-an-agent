@@ -5,7 +5,7 @@ import {
   defineProviderModelExecutionProvenance,
   defineProviderModelReference,
   type ModelInteractionEvent,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   AgentToolError,
   createBoundedToolRuntime,
@@ -16,9 +16,9 @@ import {
   defineTool,
   defineToolPermissionPolicy,
   type ToolExecutionRequest,
-} from '@ta-agent/base-tool';
+} from '@print-an-agent/base-tool';
 import { describe, expect, it, vi } from 'vitest';
-import { createPiFauxRuntime } from '@ta-agent/model-invocation-pi';
+import { createPiFauxRuntime } from '@print-an-agent/model-invocation-pi';
 
 function prompt(text: string) {
   return Object.freeze({ role: 'user' as const, text, timestamp: 1 });

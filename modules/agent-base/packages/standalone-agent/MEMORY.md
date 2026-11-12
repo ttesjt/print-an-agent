@@ -9,8 +9,8 @@ run post-turn observation, or alter Session lifecycle.
 All three setup factories accept an optional second argument:
 
 ```ts
-import { createStandaloneDirectorySetup } from '@ta-agent/base-standalone-agent';
-import { createContextMemoryManagementService } from '@ta-agent/base-composition';
+import { createStandaloneDirectorySetup } from '@print-an-agent/base-standalone-agent';
+import { createContextMemoryManagementService } from '@print-an-agent/base-composition';
 
 const setup = createStandaloneDirectorySetup(
   { rootDirectory, readEnvironmentVariable: () => undefined },

@@ -1,15 +1,18 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
-} from '@ta-agent/base-actor';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+} from '@print-an-agent/base-actor';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import {
   createVersionedContextMemoryBundle,
   createVersionedContextMemoryResources,
   MemoryMeter,
   type VersionedMemoryWorkflowDefinitions,
-} from '@ta-agent/context-memory';
-import { MemorySessionAdapter, type SqliteSessionAdapter } from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/context-memory';
+import {
+  MemorySessionAdapter,
+  type SqliteSessionAdapter,
+} from '@print-an-agent/base-local-adapters';
 import { CONTEXT_MEMORY_TOOL_NAMES, createSessionContextMemory } from '../../src/index.js';
 import { TEST_COMPACTION_TOKEN_COUNTER } from './compaction-token-counter.js';
 

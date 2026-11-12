@@ -5,8 +5,8 @@ import type {
   SessionNavigationOutcome,
   SessionNavigationOperationOptions,
   TurnId,
-} from '@ta-agent/base-session';
-import type { AgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-session';
+import type { AgentId } from '@print-an-agent/base-identity';
 import type { ManagedAgentNamespace } from './namespace.js';
 
 /** The exact out-of-band capability required by the standard Session navigation Service. */

@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
-import { SKIP_STEP } from '@ta-agent/workflow-core';
+import { SKIP_STEP } from '@print-an-agent/workflow-core';
 import { textReport, type TextFiles } from '../consumers/text-report.js';
 
 it('runs a standalone file-processing consumer with injected real I/O through public exports', async () => {

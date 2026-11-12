@@ -6,7 +6,7 @@ import {
   defineStandaloneAgentBootstrapConfig,
   type CreateStandaloneMemoryProfileOptions,
   type CreateSharedSqliteStandaloneProfileOptions,
-} from '@ta-agent/base-standalone-agent';
+} from '@print-an-agent/base-standalone-agent';
 
 /** Existing bootstrap fixtures remain useful data; ownership is explicitly held by the test. */
 export async function bootstrapTestAgent(

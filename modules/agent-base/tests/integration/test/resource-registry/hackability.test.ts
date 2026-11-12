@@ -2,9 +2,12 @@ import {
   borrowResource,
   createResourceScope,
   defineResourceProvider,
-} from '@ta-agent/base-composition/resource-registry';
-import { createTokenCounter, TEXT_TOKEN_INPUT_CONTRACT } from '@ta-agent/model-invocation-core';
-import { createMemoryEditDefinition } from '@ta-agent/context-memory';
+} from '@print-an-agent/base-composition/resource-registry';
+import {
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+} from '@print-an-agent/model-invocation-core';
+import { createMemoryEditDefinition } from '@print-an-agent/context-memory';
 import { expect, it, vi } from 'vitest';
 import {
   bindMemoryFactories,

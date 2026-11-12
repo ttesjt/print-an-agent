@@ -2,14 +2,14 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { defineAgentIdentity } from '@ta-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
 import { describe, expect, it } from 'vitest';
 import {
   resolveAgentConfig,
   writeAgentConfig,
   type AgentConfigCodec,
   type ConfigValue,
-} from '@ta-agent/base-config';
+} from '@print-an-agent/base-config';
 import { SqliteAgentConfigAdapter } from '../../src/index.js';
 
 interface TestConfig {

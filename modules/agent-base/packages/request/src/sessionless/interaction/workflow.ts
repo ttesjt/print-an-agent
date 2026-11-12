@@ -5,7 +5,7 @@ import {
   mergeStepOverrides,
   type Step,
   type StepDefinitions,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 import { AgentRequestError } from '../../errors.js';
 import { resolveRequestInstructions } from '../../preparation/instructions.js';
 import { buildRequestTools } from '../../preparation/tools.js';

@@ -1,6 +1,6 @@
 # Composition Resource Registry
 
-An optional, domain-neutral subsystem of `@ta-agent/base-composition`. A Blueprint chooses providers; a Scope
+An optional, domain-neutral subsystem of `@print-an-agent/base-composition`. A Blueprint chooses providers; a Scope
 owns their acquisitions; a Registry resolves typed requests. Workflows/Steps receive explicit
 capabilities, not the Registry. Generic application Services request capabilities through Definition
 factories/resolvers; Profile-specific resource-resolution Services may directly use the Registry.
@@ -21,7 +21,7 @@ import {
   compileResourceBlueprint,
   defineResourceProvider,
   createResourceScope,
-} from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-composition/resource-registry';
 
 const counter = new ResourceToken('counter', {
   parseBinding(input: unknown): string {
@@ -83,7 +83,10 @@ its entire hidden dependency closure alive. The Profile must preserve the same a
 that aggregate and any other consumers; structural type similarity cannot prove this for it.
 
 ```ts
-import { borrowResource, bindResourceScope } from '@ta-agent/base-composition/resource-registry';
+import {
+  borrowResource,
+  bindResourceScope,
+} from '@print-an-agent/base-composition/resource-registry';
 
 // Requires counter's provider to explicitly allow borrowed binding.
 const retained = createResourceScope(blueprint, {

@@ -4,7 +4,7 @@ import {
   type ProviderCredentialResolver,
   type TextEmbeddingCapability,
   type TextEmbeddingRequest,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { readConfigRecord, prepareHttpEmbeddingConfig } from './config.js';
 import { requestHttpEmbeddings } from './transport.js';
 import type { CreateHttpTextEmbedderOptions } from './types.js';

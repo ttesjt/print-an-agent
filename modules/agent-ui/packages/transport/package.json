@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/ui-transport",
+  "name": "@print-an-agent/ui-transport",
   "version": "0.1.0",
   "description": "Optional validated HTTP and NDJSON transport for Agent UI ports.",
   "private": true,
@@ -46,6 +46,6 @@
     "node": ">=24.15.0 <25"
   },
   "dependencies": {
-    "@ta-agent/ui-contracts": "workspace:*"
+    "@print-an-agent/ui-contracts": "workspace:*"
   }
 }

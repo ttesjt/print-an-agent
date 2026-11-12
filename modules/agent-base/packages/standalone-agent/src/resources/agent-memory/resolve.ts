@@ -2,10 +2,10 @@ import type {
   ResourceRegistry,
   ResourceRequest,
   ResourceCallOptions,
-} from '@ta-agent/base-composition/resource-registry';
-import { ResourceCleanupError } from '@ta-agent/base-composition/resource-registry';
-import { ContextMemoryError } from '@ta-agent/context-memory';
-import { RetrievalMemoryError } from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/base-composition/resource-registry';
+import { ResourceCleanupError } from '@print-an-agent/base-composition/resource-registry';
+import { ContextMemoryError } from '@print-an-agent/context-memory';
+import { RetrievalMemoryError } from '@print-an-agent/retrieval-memory';
 
 /** Translate lifecycle failure at the concrete composition boundary, never in generic Services. */
 export async function resolveMemoryResource<B, V>(

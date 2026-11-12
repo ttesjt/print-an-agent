@@ -9,8 +9,8 @@ import {
   Stack,
   Textarea,
   TextInput,
-} from '@ta-agent/ui-react';
-import { useWorkspaceBoundary, type WorkspaceEditBoundary } from '@ta-agent/ui-workspace';
+} from '@print-an-agent/ui-react';
+import { useWorkspaceBoundary, type WorkspaceEditBoundary } from '@print-an-agent/ui-workspace';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MemoryCapabilities, RetrievalMemoryPort } from '../contracts.js';
 import type { retrievalReceipt } from '../schemas/retrieval.js';

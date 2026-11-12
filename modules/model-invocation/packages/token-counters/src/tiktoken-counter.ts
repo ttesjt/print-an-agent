@@ -5,7 +5,7 @@ import {
   TokenMeasurementError,
   type TextTokenInput,
   type TokenCounter,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { Tiktoken } from 'js-tiktoken/lite';
 import { readCounterOptions } from './counter-options.js';
 

@@ -1,4 +1,4 @@
-import type { CollectionAccessPort, CollectionChoice } from '@ta-agent/ui-contracts';
+import type { CollectionAccessPort, CollectionChoice } from '@print-an-agent/ui-contracts';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { beforeAll, afterAll, afterEach, expect, it, vi } from 'vitest';
@@ -6,7 +6,7 @@ import {
   CollectionApplication,
   type CollectionConnection,
 } from '../../src/collection/collection-application.js';
-import { collectionHash, readCollectionLocation } from '@ta-agent/ui-workspace';
+import { collectionHash, readCollectionLocation } from '@print-an-agent/ui-workspace';
 import { createBrowserComposition } from '../../src/application/browser-composition.js';
 import { domEnvironment } from '../support/dom-environment.js';
 

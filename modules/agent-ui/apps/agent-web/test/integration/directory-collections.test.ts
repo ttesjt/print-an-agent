@@ -3,8 +3,8 @@ import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
-import { defineActorEngine, type ActorEngine } from '@ta-agent/model-invocation-core';
-import type { ConversationInteractionEvent } from '@ta-agent/ui-contracts';
+import { defineActorEngine, type ActorEngine } from '@print-an-agent/model-invocation-core';
+import type { ConversationInteractionEvent } from '@print-an-agent/ui-contracts';
 import { createDirectoryCollectionHost } from '../../src/node/collections/directory-host.js';
 import { createDirectoryCollectionAccess } from '../../src/adapters/directory-collection-access.js';
 import { startLocalAgentWebServer } from '../../src/node/transport/http-server.js';

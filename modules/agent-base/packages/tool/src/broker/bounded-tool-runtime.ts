@@ -16,7 +16,7 @@ import type {
   ToolExecutionOptions,
   ToolSchemaValue,
   ToolObjectSchema,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { AgentToolError, type AgentToolErrorCode } from '../errors.js';
 import { validateToolExecutionPolicy } from '../execution-policy.js';
 import { resolveEffectiveTools } from '../permission-policy.js';

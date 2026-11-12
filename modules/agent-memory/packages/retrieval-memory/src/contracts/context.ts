@@ -2,7 +2,7 @@ import type {
   TextTokenInput,
   TokenCounter,
   TokenMeasurement,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { RetrievalHit, SearchResult, RetrievalSource } from './data.js';
 import type { SearchInput } from './inputs.js';
 export interface ReadContextInput extends Omit<SearchInput, 'topK'> {

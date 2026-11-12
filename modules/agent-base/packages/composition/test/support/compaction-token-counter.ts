@@ -1,4 +1,7 @@
-import { createTokenCounter, TEXT_TOKEN_INPUT_CONTRACT } from '@ta-agent/model-invocation-core';
+import {
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+} from '@print-an-agent/model-invocation-core';
 
 /** Test vocabulary: one token per UTF-16 code unit; never a production model estimate. */
 export function testCompactionCounter(

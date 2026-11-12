@@ -1,8 +1,8 @@
-import { AgentActorError } from '@ta-agent/base-actor';
-import { ActorError } from '@ta-agent/model-invocation-core';
-import { ModelInvocationError } from '@ta-agent/model-invocation-core';
-import { AgentToolError } from '@ta-agent/base-tool';
-import { AgentSessionError, supportsSessionExecution } from '@ta-agent/base-session';
+import { AgentActorError } from '@print-an-agent/base-actor';
+import { ActorError } from '@print-an-agent/model-invocation-core';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
+import { AgentToolError } from '@print-an-agent/base-tool';
+import { AgentSessionError, supportsSessionExecution } from '@print-an-agent/base-session';
 import type { OutputFailure } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
 import { RequestReplayFailedError } from '../replay/replay-error.js';

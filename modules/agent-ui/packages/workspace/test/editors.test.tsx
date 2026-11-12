@@ -1,7 +1,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, expect, it } from 'vitest';
-import type { MutationOutcome, RevisionedValue } from '@ta-agent/ui-contracts';
+import type { MutationOutcome, RevisionedValue } from '@print-an-agent/ui-contracts';
 import { useRevisionedEditor, useWorkspaceBoundary, useWorkspaceMutation } from '../src/index.js';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });

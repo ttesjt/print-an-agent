@@ -1,4 +1,4 @@
-import type { AgentId } from '@ta-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity';
 import {
   normalizeListRetiredSessionsInput,
   normalizeListSessionsInput,
@@ -22,7 +22,7 @@ import {
   type SessionLifecycleSnapshot,
   type SessionReference,
   type SessionTurnPage,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import type {
   CoordinatedSessionMaintenancePort,
   SessionManagementCapability,

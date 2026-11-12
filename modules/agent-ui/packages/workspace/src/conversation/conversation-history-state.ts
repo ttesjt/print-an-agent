@@ -1,4 +1,4 @@
-import type { ConversationPage, ConversationTurn } from '@ta-agent/ui-contracts';
+import type { ConversationPage, ConversationTurn } from '@print-an-agent/ui-contracts';
 
 export type ConversationHistoryState =
   | Readonly<{ readonly status: 'idle' }>

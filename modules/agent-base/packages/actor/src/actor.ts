@@ -3,8 +3,8 @@ import {
   type ActorDefinition as ModelActorDefinition,
   type ActorDefinitionInput as ModelActorDefinitionInput,
   type ResolvedActor as ResolvedModelActor,
-} from '@ta-agent/model-invocation-core';
-import { parseToolName, type ToolName } from '@ta-agent/base-tool';
+} from '@print-an-agent/model-invocation-core';
+import { parseToolName, type ToolName } from '@print-an-agent/base-tool';
 import { AgentActorError } from './errors.js';
 
 export interface ActorDefinitionInput extends ModelActorDefinitionInput {

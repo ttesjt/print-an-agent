@@ -1,5 +1,5 @@
-import { fail, WEB_TRANSPORT_LIMITS } from '@ta-agent/ui-transport';
-import { type HttpTransportOptions } from '@ta-agent/ui-transport/browser';
+import { fail, WEB_TRANSPORT_LIMITS } from '@print-an-agent/ui-transport';
+import { type HttpTransportOptions } from '@print-an-agent/ui-transport/browser';
 import {
   memoryCapabilities,
   type ContextMemoryPort,
@@ -8,7 +8,7 @@ import {
 } from './contracts.js';
 import { contextCodecs } from './schemas/context.js';
 import { retrievalCodecs } from './schemas/retrieval.js';
-import type { Decoder } from '@ta-agent/ui-transport';
+import type { Decoder } from '@print-an-agent/ui-transport';
 import { assertMemoryReply } from './correlation.js';
 
 /** Each returned port is permanently bound to this URL/Collection, never to a mutable active root. */

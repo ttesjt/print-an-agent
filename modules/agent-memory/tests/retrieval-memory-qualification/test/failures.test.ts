@@ -3,7 +3,7 @@ import {
   createRetrievalMutations,
   createRetrievalQueries,
   RetrievalMemoryError,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import { fixture } from './support/fixture.js';
 it('rejects Unicode before remote reads and preserves valid supplementary characters', async () => {
   const f = await fixture();

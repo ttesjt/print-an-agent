@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/model-invocation-core';
-import { supportsSessionPresentation, parseTurnId } from '@ta-agent/base-session';
+} from '@print-an-agent/model-invocation-core';
+import { supportsSessionPresentation, parseTurnId } from '@print-an-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
   createStandaloneProviderService,

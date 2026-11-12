@@ -3,7 +3,7 @@ import {
   type ProviderCredentialResolver,
   type TextEmbeddingRequest,
   type TextEmbeddingVector,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { PreparedHttpEmbeddingConfig } from './config.js';
 import { resolveEmbeddingHeaders } from './credentials.js';
 import { readEmbeddingResponseBody } from './response-body.js';

@@ -1,5 +1,5 @@
-import type { WorkflowContext, WorkflowEvent } from '@ta-agent/workflow-core';
-import { WorkflowBundle, type BundleWorkflowDefinition } from '@ta-agent/workflow-bundle';
+import type { WorkflowContext, WorkflowEvent } from '@print-an-agent/workflow-core';
+import { WorkflowBundle, type BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
 import { expect, it, vi } from 'vitest';
 import { readDefinition, writeDefinition, type ReadContext } from '../support/definitions.js';
 

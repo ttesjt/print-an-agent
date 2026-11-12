@@ -1,5 +1,5 @@
-import { MemoryOutputSink, MemorySessionAdapter } from '@ta-agent/base-local-adapters';
-import type { ActorInteractionRequest } from '@ta-agent/model-invocation-core';
+import { MemoryOutputSink, MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
+import type { ActorInteractionRequest } from '@print-an-agent/model-invocation-core';
 import {
   AgentSessionError,
   MAX_SESSION_PRESENTATION_CHARACTERS,
@@ -7,13 +7,13 @@ import {
   parseTurnId,
   type NavigableCompactableSessionPort,
   type SessionExecutionPort,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   requireInteractionEvent,
   DEFAULT_REQUEST_POLICY,
   type DefaultRequestWorkflowContext,
-} from '@ta-agent/base-request';
-import { SKIP_STEP } from '@ta-agent/workflow-core';
+} from '@print-an-agent/base-request';
+import { SKIP_STEP } from '@print-an-agent/workflow-core';
 import { describe, expect, it, vi } from 'vitest';
 import { FOREGROUND_AGENT_OPERATION_NAME } from '../../src/index.js';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';

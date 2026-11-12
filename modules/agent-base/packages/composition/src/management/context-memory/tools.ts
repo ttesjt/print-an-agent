@@ -1,6 +1,6 @@
-import { defineTool, type ToolDefinition } from '@ta-agent/base-tool';
-import { AgentSessionError } from '@ta-agent/base-session';
-import type { ItemCommand } from '@ta-agent/context-memory';
+import { defineTool, type ToolDefinition } from '@print-an-agent/base-tool';
+import { AgentSessionError } from '@print-an-agent/base-session';
+import type { ItemCommand } from '@print-an-agent/context-memory';
 
 export const CONTEXT_MEMORY_TOOL_NAMES = Object.freeze([
   'read_context_memory',

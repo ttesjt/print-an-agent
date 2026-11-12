@@ -1,7 +1,7 @@
-import { MemoryOutputSink } from '@ta-agent/base-local-adapters';
-import { DEFAULT_REQUEST_POLICY, requireInteractionEvent } from '@ta-agent/base-request';
-import { parseSessionId } from '@ta-agent/base-session';
-import { SKIP_STEP } from '@ta-agent/workflow-core';
+import { MemoryOutputSink } from '@print-an-agent/base-local-adapters';
+import { DEFAULT_REQUEST_POLICY, requireInteractionEvent } from '@print-an-agent/base-request';
+import { parseSessionId } from '@print-an-agent/base-session';
+import { SKIP_STEP } from '@print-an-agent/workflow-core';
 import { describe, expect, it, vi } from 'vitest';
 import { createDeterministicAgentAPI, FOREGROUND_AGENT_OPERATION_NAME } from '../../src/index.js';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';

@@ -2,12 +2,12 @@ import { readFile, rm, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { parseProfileId } from '@ta-agent/workbench-domain';
+import { parseProfileId } from '@print-an-agent/workbench-domain';
 import {
   CapabilityDispatchKind,
   ExecutionStatus,
   type ExecutionObservation,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {

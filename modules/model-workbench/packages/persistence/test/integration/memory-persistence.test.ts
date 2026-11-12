@@ -34,7 +34,7 @@ import {
   startModelRunExecution,
   updateModelRunProgress,
   type InitializationModelBase,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import {
   createMemoryPersistence,

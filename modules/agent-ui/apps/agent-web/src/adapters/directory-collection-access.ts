@@ -1,4 +1,4 @@
-import type { CollectionAccessPort } from '@ta-agent/ui-contracts';
+import type { CollectionAccessPort } from '@print-an-agent/ui-contracts';
 import { createHttpAgentWebPorts } from './http-agent-web-ports.js';
 import { connectHttpMemory } from '../memory/browser.js';
 import type { CollectionConnection } from '../collection/collection-application.js';

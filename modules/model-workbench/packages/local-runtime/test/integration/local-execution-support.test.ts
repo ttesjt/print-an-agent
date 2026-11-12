@@ -2,8 +2,8 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { parseProfileId } from '@ta-agent/workbench-domain';
-import { ExecutionStatus } from '@ta-agent/workbench-extension';
+import { parseProfileId } from '@print-an-agent/workbench-domain';
+import { ExecutionStatus } from '@print-an-agent/workbench-extension';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {

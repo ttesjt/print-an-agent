@@ -4,8 +4,8 @@ import {
   type ManagedAgentCompositionDefinition,
   type ManagedAgentCommitResult,
   type ManagedAgentSnapshot,
-} from '@ta-agent/base-composition';
-import { parseAgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-composition';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import { defineStandaloneAgentConfig, defineStandaloneAgentManifest } from '../../src/config.js';
 import type {
   StandaloneAgentConfig,

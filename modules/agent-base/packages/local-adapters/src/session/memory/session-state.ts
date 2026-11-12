@@ -1,9 +1,9 @@
-import type { AgentId } from '@ta-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity';
 import {
   defineAssistantModelMessage,
   type ContextModelMessage,
   type ModelMessage,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   AgentSessionError,
   MAX_SESSION_COMPACTION_CHARACTERS,
@@ -22,7 +22,7 @@ import {
   type SessionLifecycleState,
   type SessionExecutionId,
   type SessionExecutionLease,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 
 export interface StoredMemoryBranch {
   readonly branchId: SessionBranchId;
@@ -33,7 +33,7 @@ export interface StoredMemoryBranch {
 }
 
 export interface StoredMemorySession {
-  readonly memoryRecords: Map<string, import('@ta-agent/base-session').SessionMemoryRecord>;
+  readonly memoryRecords: Map<string, import('@print-an-agent/base-session').SessionMemoryRecord>;
   lifecycle: SessionLifecycleState;
   executionRevision: number;
   executionState: 'ready' | 'recovering';

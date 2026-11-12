@@ -1,4 +1,4 @@
-import { AgentWorkspace, type AgentWorkspaceProps } from '@ta-agent/ui-workspace';
+import { AgentWorkspace, type AgentWorkspaceProps } from '@print-an-agent/ui-workspace';
 import { useMemo } from 'react';
 import type { AgentWebConfig } from './application/agent-config.js';
 import type { AgentWebPorts } from './application/ports.js';

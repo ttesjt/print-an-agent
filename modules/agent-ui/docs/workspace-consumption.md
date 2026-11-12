@@ -2,16 +2,16 @@
 
 ## Choose the level of reuse
 
-Use `@ta-agent/ui-react` for individual controlled components. Use `@ta-agent/ui-workspace` for the
+Use `@print-an-agent/ui-react` for individual controlled components. Use `@print-an-agent/ui-workspace` for the
 complete application experience: Agent catalog/profile, Session selection/lifecycle/navigation,
 concurrent interactions, drafts, Session admission, cancellation, history reconciliation, navigation
 guards and default layout. `agent-web` uses this same implementation; it is not a controller template
 that consumers copy. All packages remain independent of Agent Base and of product runtimes.
 
 ```tsx
-import { AgentWorkspace } from '@ta-agent/ui-workspace';
-import type { WorkspacePorts } from '@ta-agent/ui-contracts';
-import '@ta-agent/ui-styles/default.css';
+import { AgentWorkspace } from '@print-an-agent/ui-workspace';
+import type { WorkspacePorts } from '@print-an-agent/ui-contracts';
+import '@print-an-agent/ui-styles/default.css';
 
 export function Product({ ports }: { readonly ports: WorkspacePorts }) {
   return <AgentWorkspace ports={ports} profileLabel="Research workspace" />;
@@ -167,7 +167,7 @@ still obscure a durable backend commit: reconcile history, not automatic resubmi
 
 ## Optional transport and backend wiring
 
-`@ta-agent/ui-transport/browser` offers `createHttpWorkspacePorts({baseUrl, capabilities})`.
+`@print-an-agent/ui-transport/browser` offers `createHttpWorkspacePorts({baseUrl, capabilities})`.
 Explicit capabilities can come from host composition or a decoded host advertisement; omission
 does not imply support. They are display capability information, never security authorization.
 The root exports common codecs/commands; `/node` exports `readJsonRequest`,
@@ -189,7 +189,7 @@ preparation failure, committed settings with coordination failure, concurrent ad
 pending history recovery and edits during an authorised Collection switch. It does not copy the
 workspace's controllers or import the default Agent Web application.
 
-`@ta-agent/ui-workspace/testing` exports common qualification entry points:
+`@print-an-agent/ui-workspace/testing` exports common qualification entry points:
 
 - `qualifyWorkspaceCatalog(ports)`: follows real cursors and checks unique, independently inspectable
   identities. It is read-only and bounded by a configurable maximum page count.

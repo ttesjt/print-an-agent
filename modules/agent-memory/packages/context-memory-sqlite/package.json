@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/context-memory-sqlite",
+  "name": "@print-an-agent/context-memory-sqlite",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -24,11 +24,11 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/context-memory": "workspace:*"
+    "@print-an-agent/context-memory": "workspace:*"
   },
   "devDependencies": {
-    "@ta-agent/workflow-core": "workspace:*",
-    "@ta-agent/model-invocation-core": "workspace:*",
+    "@print-an-agent/workflow-core": "workspace:*",
+    "@print-an-agent/model-invocation-core": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

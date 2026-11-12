@@ -1,11 +1,11 @@
 import { onTestFinished, vi } from 'vitest';
-import { createCodepointChunker, COSINE_METRIC_REF } from '@ta-agent/retrieval-memory';
+import { createCodepointChunker, COSINE_METRIC_REF } from '@print-an-agent/retrieval-memory';
 import {
   createTextEmbedder,
   createTokenCounter,
   TEXT_TOKEN_INPUT_CONTRACT,
   type TextEmbeddingRequest,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { startLocalAgentWebServer } from '../../src/node/transport/http-server.js';
 import { createHttpAgentWebPorts } from '../../src/adapters/http-agent-web-ports.js';

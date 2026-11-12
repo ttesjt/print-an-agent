@@ -12,7 +12,7 @@ import {
   type ActorEngineStreamingRequest,
   type ProviderTransportLivenessPolicy,
   type ModelGenerationEventSink,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { toPiInvocationOptions, normalizeProviderFailure } from './pi-invocation.js';
 import { readablePiDelta } from './pi-generation-event.js';
 import { toModelMessage } from './pi-message-mapping.js';

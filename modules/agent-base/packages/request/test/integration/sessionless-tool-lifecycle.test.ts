@@ -1,12 +1,12 @@
 import { setImmediate } from 'node:timers/promises';
 import { expect, it } from 'vitest';
-import type { InteractionTools } from '@ta-agent/model-invocation-core';
+import type { InteractionTools } from '@print-an-agent/model-invocation-core';
 import {
   createToolRegistry,
   DEFAULT_TOOL_EXECUTION_POLICY,
   defineTool,
   type ToolExecutionRequest,
-} from '@ta-agent/base-tool';
+} from '@print-an-agent/base-tool';
 import { createSessionlessRequestWorkflow } from '../../src/index.js';
 import { assistant, interactionActor, outputChannel } from '../support/sessionless.js';
 

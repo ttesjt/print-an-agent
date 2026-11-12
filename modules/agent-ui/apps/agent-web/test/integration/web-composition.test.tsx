@@ -7,7 +7,7 @@ import {
   BrowserAgentWeb,
   createBrowserComposition,
 } from '../../src/application/browser-composition.js';
-import { readWorkspaceLocation, workspaceHash } from '@ta-agent/ui-workspace';
+import { readWorkspaceLocation, workspaceHash } from '@print-an-agent/ui-workspace';
 import { createHttpAgentWebPorts } from '../../src/adapters/http-agent-web-ports.js';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { createOfflineWebEngine } from '../../src/node/offline-engine.js';

@@ -1,4 +1,4 @@
-import type { WorkspacePorts } from '@ta-agent/ui-contracts';
+import type { WorkspacePorts } from '@print-an-agent/ui-contracts';
 import { object, optional, union, literal } from './decoder.js';
 
 /** Advertisement, not authorization. Servers still enforce access on every operation. */

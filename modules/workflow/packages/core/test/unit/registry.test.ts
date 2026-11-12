@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { WorkflowDefinitionError, StepDefinitions } from '@ta-agent/workflow-core';
+import type { WorkflowDefinitionError, StepDefinitions } from '@print-an-agent/workflow-core';
 import {
   mergeStepOverrides,
   resolveStepRegistry,
   SKIP_STEP,
   STEP_CARDINALITY,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 
 type TestStepName = 'required' | 'optional';
 type TestContext = { readonly input: number };

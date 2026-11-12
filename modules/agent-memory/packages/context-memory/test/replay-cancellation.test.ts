@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { MemoryMeter, MemoryMutations, type MemoryStore } from '@ta-agent/context-memory';
+import { MemoryMeter, MemoryMutations, type MemoryStore } from '@print-an-agent/context-memory';
 import { testCounter } from './support/counter.js';
 import { TestMemoryStore } from './support/store.js';
 

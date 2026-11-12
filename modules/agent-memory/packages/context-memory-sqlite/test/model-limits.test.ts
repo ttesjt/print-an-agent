@@ -4,8 +4,11 @@ import {
   createModelMemoryResources,
   MemoryMeter,
   createMemoryCompactDefinition,
-} from '@ta-agent/context-memory';
-import { createTokenCounter, TEXT_TOKEN_INPUT_CONTRACT } from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/context-memory';
+import {
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+} from '@print-an-agent/model-invocation-core';
 import { modelFixture, firstId } from './support/model.js';
 import { borrowed } from './support/fixtures.js';
 import { testCounter } from './support/counter.js';

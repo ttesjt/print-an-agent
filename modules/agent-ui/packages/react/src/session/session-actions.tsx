@@ -1,4 +1,4 @@
-import type { SessionLifecycleStatus } from '@ta-agent/ui-contracts';
+import type { SessionLifecycleStatus } from '@print-an-agent/ui-contracts';
 import { useId, type ComponentPropsWithRef, type FormEvent, type ReactNode } from 'react';
 
 import { Button } from '../actions/button.js';

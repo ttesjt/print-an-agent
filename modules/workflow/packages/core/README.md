@@ -1,11 +1,11 @@
-# @ta-agent/workflow-core
+# @print-an-agent/workflow-core
 
 A domain-independent execution core: reusable Workflow definitions, replaceable named Steps,
 run-local state/results, cooperative cancellation, and joined parallel execution. No runtime package
 dependencies.
 
 ```ts
-import { Workflow } from '@ta-agent/workflow-core';
+import { Workflow } from '@print-an-agent/workflow-core';
 
 const sum = new Workflow<'sum', readonly number[], void, void, number>({
   name: 'sum',

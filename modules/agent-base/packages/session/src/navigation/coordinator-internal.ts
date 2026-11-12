@@ -10,7 +10,7 @@ import type {
   ValidatedSessionNavigationCommand,
 } from './contracts.js';
 import { toSessionNavigationSnapshot } from './lineage.js';
-import type { AgentId } from '@ta-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity';
 
 interface NavigationRecord {
   readonly [key: string]: unknown;

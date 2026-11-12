@@ -1,5 +1,5 @@
 import type { AssistantMessageEvent } from '@earendil-works/pi-ai';
-import type { TextDeltaEvent, ReasoningDeltaEvent } from '@ta-agent/model-invocation-core';
+import type { TextDeltaEvent, ReasoningDeltaEvent } from '@print-an-agent/model-invocation-core';
 
 /** Publish readable data only; provider signatures, redaction and end snapshots stay private. */
 export function readablePiDelta(

@@ -1,5 +1,5 @@
-import type { Step, WorkflowContext } from '@ta-agent/workflow-core';
-import type { BundleWorkflowDefinition } from '@ta-agent/workflow-bundle';
+import type { Step, WorkflowContext } from '@print-an-agent/workflow-core';
+import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
 
 export interface ReadPorts {
   read(id: string, signal: AbortSignal): Promise<string>;

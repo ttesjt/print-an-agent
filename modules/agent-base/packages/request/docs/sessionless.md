@@ -1,6 +1,6 @@
 # Sessionless Request Workflows
 
-`createSessionlessRequestWorkflow()` assembles a real `@ta-agent/workflow-core` Workflow over an
+`createSessionlessRequestWorkflow()` assembles a real `@print-an-agent/workflow-core` Workflow over an
 independent Actor. It requires no Agent, AgentOperation, Session, Journal, main Actor, catalog, local
 adapter or persistent configuration. It does not automatically load or save conversation history.
 
@@ -25,9 +25,9 @@ resources are bound at assembly; each `.run()` supplies only input and execution
 class or API facade is needed:
 
 ```ts
-import { createActor } from '@ta-agent/model-invocation-core';
-import { createProviderRuntime } from '@ta-agent/base-composition';
-import { createSessionlessRequestWorkflow } from '@ta-agent/base-request';
+import { createActor } from '@print-an-agent/model-invocation-core';
+import { createProviderRuntime } from '@print-an-agent/base-composition';
+import { createSessionlessRequestWorkflow } from '@print-an-agent/base-request';
 
 // providerOptions is host-owned configuration, including its credential resolver if required.
 const provider = createProviderRuntime(providerOptions);
@@ -183,7 +183,7 @@ Session trace identity is produced. Output/prompt/history content is not automat
 observation. Hosts own additional content logging and its privacy policy.
 
 The Workflow adds no default deadline. For a whole-call boundary, wrap `.run()` with
-`runWithExecutionTimeout()` from `@ta-agent/workflow-core`, pass its effective signal to `.run()` and
+`runWithExecutionTimeout()` from `@print-an-agent/workflow-core`, pass its effective signal to `.run()` and
 provide an owner-specific timeout failure factory when enabling a deadline. `null` adds no timer but
 preserves cancellation. Actor invocation and provider transport deadlines remain independent;
 child timeout failures are not relabeled as the host's timeout.

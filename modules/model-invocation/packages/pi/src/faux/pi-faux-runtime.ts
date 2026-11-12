@@ -4,12 +4,12 @@ import {
   type Context,
   type StreamOptions,
 } from '@earendil-works/pi-ai';
-import { type ActorInvocationConfig } from '@ta-agent/model-invocation-core';
+import { type ActorInvocationConfig } from '@print-an-agent/model-invocation-core';
 import {
   ModelInvocationError,
   DEFAULT_PROVIDER_TRANSPORT_LIVENESS_POLICY,
   defineProviderModelReference,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { createPiActorEngine, PiActorRuntime } from '../runtime/pi-actor-runtime.js';
 import {
   cloneRequestSnapshot,

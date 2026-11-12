@@ -7,7 +7,7 @@ import {
   MAX_SESSION_PRESENTATION_BLOCKS,
   type SessionTurnPresentationReference,
   type SessionTurnPresentationRecord,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { quoteSqliteIdentifier, type SqliteSessionTableNames } from './table-names.js';
 
 export function readSqliteTurnPresentation(

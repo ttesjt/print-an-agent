@@ -1,5 +1,5 @@
 import { sessionWrite } from './session-write.js';
-import { defineAgentIdentity } from '@ta-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
@@ -7,7 +7,7 @@ import {
   defineProviderModelReference,
   type AssistantModelMessage,
   type UserModelMessage,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { describe, expect, it } from 'vitest';
 import {
   AgentSessionError,
@@ -17,7 +17,7 @@ import {
   type NavigableCompactableSessionPort,
   type SessionMetadataPort,
   type SessionQueryPort,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 
 const model = defineProviderModelReference({ provider: 'faux', model: 'faux-model' });
 const usage = Object.freeze({

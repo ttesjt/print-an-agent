@@ -1,4 +1,4 @@
-import { AgentRequestError, createRequestFingerprint } from '@ta-agent/base-request';
+import { AgentRequestError, createRequestFingerprint } from '@print-an-agent/base-request';
 import { describe, expect, it } from 'vitest';
 import { MemoryRequestJournalAdapter } from '../../src/index.js';
 import {

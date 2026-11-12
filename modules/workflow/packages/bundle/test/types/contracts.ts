@@ -1,5 +1,5 @@
-import { Workflow, type RunnableWorkflow } from '@ta-agent/workflow-core';
-import { WorkflowBundle, type BundleWorkflowDefinition } from '@ta-agent/workflow-bundle';
+import { Workflow, type RunnableWorkflow } from '@print-an-agent/workflow-core';
+import { WorkflowBundle, type BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
 import {
   readDefinition,
   writeDefinition,

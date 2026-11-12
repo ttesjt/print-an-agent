@@ -6,7 +6,7 @@ import {
   parseArtifactReference,
   parseProfileId,
   parseRunId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   CapabilityDispatchKind,
   defineArtifactHandoffSupport,
@@ -19,7 +19,7 @@ import {
   ExecutionStatus,
   ModelCapabilityKind,
   type TypedInitializerCapability,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 
 import {
   RuntimeBindingKind,

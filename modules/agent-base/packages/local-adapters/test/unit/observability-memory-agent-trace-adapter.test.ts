@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { AgentObservabilityError, createAgentTraceEmitter } from '@ta-agent/base-observability';
+import {
+  AgentObservabilityError,
+  createAgentTraceEmitter,
+} from '@print-an-agent/base-observability';
 import { MemoryAgentTraceAdapter } from '../../src/index.js';
 
 describe('MemoryAgentTraceAdapter', () => {

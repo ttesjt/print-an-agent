@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { defineAgentIdentity } from '@ta-agent/base-identity';
-import type { AgentId, AgentIdentity } from '@ta-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentId, AgentIdentity } from '@print-an-agent/base-identity';
 import {
   createAgentTraceEmitter,
   traceErrorCode,
   type AgentTraceEmitter,
   type AgentTraceRuntimeOptions,
-} from '@ta-agent/base-observability';
+} from '@print-an-agent/base-observability';
 import type { AgentDefinition, RunnableAgent } from '../types/agent.js';
 import type {
   AgentOperationDefinition,
@@ -26,7 +26,7 @@ import {
   AgentOperationExecutionProtocol,
   type AgentOperationExecutorOutcome,
 } from './agent-operation-execution.js';
-import { composeExecutionSignal } from '@ta-agent/workflow-core';
+import { composeExecutionSignal } from '@print-an-agent/workflow-core';
 import { createAgentWorkflowCatalog } from './workflow-catalog.js';
 
 interface InvocationLineage {

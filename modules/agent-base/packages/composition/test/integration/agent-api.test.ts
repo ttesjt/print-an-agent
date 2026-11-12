@@ -10,13 +10,13 @@ import {
   MAIN_ACTOR_ID,
   SESSION_COMPACTION_RESPONSIBILITY_ID,
   type ResponsibilityDefinitionInput,
-} from '@ta-agent/base-actor';
+} from '@print-an-agent/base-actor';
 import {
   ModelInvocationError,
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
   type AssistantModelMessage,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   MemoryAgentTraceAdapter,
   MemoryOutputSink,
@@ -24,14 +24,14 @@ import {
   MemorySessionAdapter,
   SqliteRequestJournalAdapter,
   SqliteSessionAdapter,
-} from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-local-adapters';
 import {
   AgentRequestError,
   createRequestFingerprint,
   parseRequestIdempotencyKey,
   REQUEST_WORKFLOW_NAME,
   RequestReplayFailedError,
-} from '@ta-agent/base-request';
+} from '@print-an-agent/base-request';
 import {
   AgentSessionError,
   DEFAULT_SESSION_BRANCH_ID,
@@ -39,13 +39,13 @@ import {
   parseSessionBranchId,
   parseSessionId,
   SESSION_COMPACTION_WORKFLOW_NAME,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   AgentToolError,
   createToolRegistry,
   defineTool,
   type ToolExecutionRequest,
-} from '@ta-agent/base-tool';
+} from '@print-an-agent/base-tool';
 import { describe, expect, it, vi } from 'vitest';
 import {
   composeAgent,

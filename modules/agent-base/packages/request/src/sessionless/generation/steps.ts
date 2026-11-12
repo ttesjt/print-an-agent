@@ -2,8 +2,8 @@ import {
   requireCompletionCapability,
   requireStreamingCapability,
   type ModelGenerationEvent,
-} from '@ta-agent/model-invocation-core';
-import { composeExecutionSignal } from '@ta-agent/workflow-core';
+} from '@print-an-agent/model-invocation-core';
+import { composeExecutionSignal } from '@print-an-agent/workflow-core';
 import { resolveRequestInstructions } from '../../preparation/instructions.js';
 import { requireValue } from '../../preparation/state-value.js';
 import { deliverTextDelta, deliverReasoningDelta } from '../../delivery/steps.js';

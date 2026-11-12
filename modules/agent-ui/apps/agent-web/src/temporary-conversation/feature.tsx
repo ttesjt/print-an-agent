@@ -1,5 +1,5 @@
-import type { AgentDetails } from '@ta-agent/ui-contracts';
-import { Alert, Button, ConfirmationDialog } from '@ta-agent/ui-react';
+import type { AgentDetails } from '@print-an-agent/ui-contracts';
+import { Alert, Button, ConfirmationDialog } from '@print-an-agent/ui-react';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { AgentManagementPort } from '../application/ports.js';
 import type { AgentWebConfig } from '../application/agent-config.js';

@@ -7,7 +7,7 @@ import {
   parseItemContent,
   parseModelOperations,
   projectModelOperations,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { errorCode } from './support/errors.js';
 
 it('accepts short, empty and multiline input but does not accept a caller-selected add ID', () => {

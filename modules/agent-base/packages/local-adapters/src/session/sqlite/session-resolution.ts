@@ -4,7 +4,7 @@ import {
   DEFAULT_SESSION_BRANCH_ID,
   type ResolvedSessionReference,
   type SessionReference,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { readClock, runImmediateTransaction } from './database.js';
 import { loadSqliteSessionSnapshot } from './session-navigation-storage.js';
 import { quoteSqliteIdentifier, type SqliteSessionTableNames } from './table-names.js';

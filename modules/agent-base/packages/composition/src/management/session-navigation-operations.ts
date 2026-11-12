@@ -1,4 +1,4 @@
-import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
 import {
   AgentSessionError,
   executeSessionNavigation,
@@ -9,7 +9,7 @@ import {
   type SessionNavigationCoordinatorPort,
   type SessionNavigationOperationOptions,
   type SessionNavigationOutcome,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import type { ManagedAgentNamespacePort } from './contracts/namespace.js';
 import type {
   ForkManagedSessionBranchInput,

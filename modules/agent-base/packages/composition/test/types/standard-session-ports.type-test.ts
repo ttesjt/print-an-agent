@@ -1,4 +1,4 @@
-import type { CompactableSessionPort, InspectableSessionPort } from '@ta-agent/base-session';
+import type { CompactableSessionPort, InspectableSessionPort } from '@print-an-agent/base-session';
 import {
   composeAgent,
   composeAgentWithExtensions,

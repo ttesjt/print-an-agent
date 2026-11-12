@@ -1,4 +1,4 @@
-import { AgentSessionError } from '@ta-agent/base-session';
+import { AgentSessionError } from '@print-an-agent/base-session';
 
 export type SqliteSessionTableName = 'schema' | 'sessions' | 'turns' | 'branches' | 'compactions';
 

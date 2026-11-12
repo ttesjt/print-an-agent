@@ -40,5 +40,5 @@ binds resources, then calls `workflow.run({ input })` without creating an Agent 
 
 Cross-package imports use declared exports, never another package's source directory. Cross-module
 relative imports are forbidden. Architecture tests and ESLint enforce the dependency direction.
-Existing workspace package identities use the `@ta-agent/*` npm scope; Python distributions use
+Existing workspace package identities use the `@print-an-agent/*` npm scope; Python distributions use
 `ta-agent-*` and import modules use `ta_agent_*`.

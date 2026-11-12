@@ -1,4 +1,4 @@
-import { WorkflowBundle } from '@ta-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
 import {
   createMemoryCreateDefinition,
   createMemoryApplyDefinition,
@@ -11,7 +11,7 @@ import {
   createMemoryCompactDefinition,
   type ModelMemoryResources,
   type ModelMemoryWorkflowDefinitions,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 
 /** Entire native Bundle graph supplied by this consumer, not a Registry runner or wrapper. */
 export function customContextBundle(

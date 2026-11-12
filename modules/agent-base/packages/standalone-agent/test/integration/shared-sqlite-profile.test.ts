@@ -2,8 +2,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createRequestFingerprint, parseRequestIdempotencyKey } from '@ta-agent/base-request';
-import { supportsSessionExecution } from '@ta-agent/base-session';
+import { createRequestFingerprint, parseRequestIdempotencyKey } from '@print-an-agent/base-request';
+import { supportsSessionExecution } from '@print-an-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import {
   AgentBaseStandaloneError,

@@ -1,4 +1,4 @@
-import { JsonSchemaDialect } from '@ta-agent/workbench-extension';
+import { JsonSchemaDialect } from '@print-an-agent/workbench-extension';
 
 import { PythonModelBackendDType, PythonModelBackendDevice } from './constants.js';
 

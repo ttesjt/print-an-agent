@@ -3,7 +3,7 @@ import {
   defineAssistantModelMessage,
   defineProviderModelExecutionProvenance,
   type ModelMessage,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 
 function textFromAssistant(message: AssistantMessage): string {
   return message.content

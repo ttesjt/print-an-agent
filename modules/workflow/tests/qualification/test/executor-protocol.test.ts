@@ -4,7 +4,7 @@ import {
   type Step,
   type WorkflowContext,
   type StepExecutor,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 import { gate, onAbort, causes } from './support/execution.js';
 
 type Context = WorkflowContext<'main' | 'child', void, void, void, number>;

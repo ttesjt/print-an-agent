@@ -12,8 +12,8 @@ import {
   type JsonValue,
   type ProfileId,
   type RunId,
-} from '@ta-agent/workbench-domain';
-import { ExecutionStatus } from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-domain';
+import { ExecutionStatus } from '@print-an-agent/workbench-extension';
 
 import {
   LOCAL_EXECUTION_LAUNCH_FILE,

@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/context-memory",
+  "name": "@print-an-agent/context-memory",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -24,12 +24,12 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/workflow-core": "workspace:*",
-    "@ta-agent/workflow-bundle": "workspace:*",
-    "@ta-agent/model-invocation-core": "workspace:*"
+    "@print-an-agent/workflow-core": "workspace:*",
+    "@print-an-agent/workflow-bundle": "workspace:*",
+    "@print-an-agent/model-invocation-core": "workspace:*"
   },
   "devDependencies": {
-    "@ta-agent/model-invocation-token-counters": "workspace:*",
+    "@print-an-agent/model-invocation-token-counters": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

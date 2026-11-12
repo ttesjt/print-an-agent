@@ -13,7 +13,7 @@ import {
   type MemoryVersionReference,
   type ListMemoryVersionsInput,
   type StoreCommit,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { createHash } from 'node:crypto';
 
 /** Independent test-only adapter: no SQLite schema, codec, connection or Registry. */

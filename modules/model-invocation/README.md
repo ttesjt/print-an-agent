@@ -4,7 +4,7 @@ Independent, named Actor invocation through replaceable Engines. Consumers can r
 or Interaction capabilities without creating an Agent, Session, tool registry, or Workflow.
 Independent text Embedding and Token Measurement capabilities are also available without an Actor.
 
-`@ta-agent/model-invocation-core` owns messages, usage, execution provenance, capability declarations,
+`@print-an-agent/model-invocation-core` owns messages, usage, execution provenance, capability declarations,
 Actor definitions and bindings, invocation deadlines, and validated Engine protocols. It has no
 production dependencies. Interaction receives a borrowed minimal tool-execution port; permission
 policy, execution budgets and resource disposal belong to its consumer.
@@ -37,7 +37,7 @@ cooperative. Engines must honor signals; arbitrary executable code cannot be for
 Agent Base owns Responsibility routing, permissions, Request/Session integration and application
 lifecycle. Product adapters own model-specific bridges. This module has no product knowledge.
 
-`@ta-agent/model-invocation-pi` supplies the ordinary Pi-backed Engine and deterministic faux profile.
+`@print-an-agent/model-invocation-pi` supplies the ordinary Pi-backed Engine and deterministic faux profile.
 It supports Pi's builtin model catalog and explicit OpenAI-compatible endpoints. Provider credentials,
 reasoning/developer-role declarations and transport liveness are explicit adapter configuration.
 Applications can bind that Engine to an Actor directly; Agent Base consumes the same adapter.
@@ -79,7 +79,7 @@ packages, local provider fixtures, public contracts and enforced dependency dire
 Core provides `TextEmbeddingCapability` and `createTextEmbedder()` separately from generation.
 Requests contain a document/query task, uniquely identified texts and an `AbortSignal`; successful
 results contain a complete, ordered batch of immutable numeric vectors and the binding's stable
-representation reference. The optional `@ta-agent/model-invocation-embedding-http` package provides
+representation reference. The optional `@print-an-agent/model-invocation-embedding-http` package provides
 explicit OpenAI-compatible HTTP embedding, including keyless or credential-reference authentication.
 It does not use the Pi generation interface or require generation capabilities.
 
@@ -96,7 +96,7 @@ supplies its own cancellation signal. Host code owns initialization, sharing and
 counters. `bindTextTokenCounter()` validates and freezes the standalone-text descriptor, preserves the
 implementation receiver and validates each returned identity and result. Text, content and request
 scopes are not interchangeable. Optional official local implementations live in
-`@ta-agent/model-invocation-token-counters`; Core does not import them.
+`@print-an-agent/model-invocation-token-counters`; Core does not import them.
 The Pi adapter accepts an optional runtime `textTokenCounter` and exposes its descriptor through
 inspection without changing provider requests or discovering an encoding. High-level Standalone
 configuration resolves explicit declarations; neither Pi nor Core owns a model-to-tokenizer registry.

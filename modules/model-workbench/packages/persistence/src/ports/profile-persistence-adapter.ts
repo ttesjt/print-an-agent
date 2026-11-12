@@ -1,4 +1,4 @@
-import type { JsonObject, ProfileId } from '@ta-agent/workbench-domain';
+import type { JsonObject, ProfileId } from '@print-an-agent/workbench-domain';
 
 import type { ExportCommitter } from './export-committer.js';
 import type { InitializationCommitter } from './initialization-committer.js';

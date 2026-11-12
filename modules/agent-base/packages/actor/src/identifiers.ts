@@ -1,4 +1,4 @@
-import { parseActorId } from '@ta-agent/model-invocation-core';
+import { parseActorId } from '@print-an-agent/model-invocation-core';
 import { AgentActorError } from './errors.js';
 
 declare const responsibilityIdBrand: unique symbol;

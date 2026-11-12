@@ -1,4 +1,4 @@
-# `@ta-agent/base-identity`
+# `@print-an-agent/base-identity`
 
 Stable Agent identity primitives and adapter-driven lifecycle catalogs.
 
@@ -6,7 +6,7 @@ An Agent ID is a logical namespace key, not a filesystem path. Adapters must sti
 containment and storage isolation independently.
 
 ```ts
-import { defineAgentIdentity } from '@ta-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
 
 const identity = defineAgentIdentity({
   id: 'bro',
@@ -21,7 +21,7 @@ create/read/list/disable/reactivate application functions over an injected catal
 deliberately has no concrete storage choice, hard delete, ID mutation, filesystem layout, or product
 personality semantics.
 
-Official Memory and SQLite implementations live in `@ta-agent/base-local-adapters`. Consumers may
+Official Memory and SQLite implementations live in `@print-an-agent/base-local-adapters`. Consumers may
 use those local implementations or provide any catalog adapter that satisfies this package's port.
 
 `renameAgentIdentity()` changes only `displayName`, using the Identity revision for CAS. It preserves

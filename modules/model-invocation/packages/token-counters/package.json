@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/model-invocation-token-counters",
+  "name": "@print-an-agent/model-invocation-token-counters",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -23,7 +23,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/model-invocation-core": "workspace:*",
+    "@print-an-agent/model-invocation-core": "workspace:*",
     "js-tiktoken": "1.0.21"
   },
   "devDependencies": {

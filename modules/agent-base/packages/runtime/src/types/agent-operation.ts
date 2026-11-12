@@ -1,5 +1,5 @@
-import type { AgentIdentity } from '@ta-agent/base-identity';
-import type { AgentTraceEmitter } from '@ta-agent/base-observability';
+import type { AgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentTraceEmitter } from '@print-an-agent/base-observability';
 import type { AnyAgentRunContext, BaseAgentRunContext } from './context.js';
 import type { AgentWorkflow } from './workflow.js';
 

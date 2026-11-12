@@ -2,10 +2,10 @@ import type {
   AssistantModelMessage,
   TextDeltaEvent,
   ReasoningDeltaEvent,
-} from '@ta-agent/model-invocation-core';
-import type { SessionBranchId, SessionId } from '@ta-agent/base-session';
-import type { ToolRunInspection } from '@ta-agent/base-tool';
-import type { ExecutionTimeoutMilliseconds } from '@ta-agent/workflow-core';
+} from '@print-an-agent/model-invocation-core';
+import type { SessionBranchId, SessionId } from '@print-an-agent/base-session';
+import type { ToolRunInspection } from '@print-an-agent/base-tool';
+import type { ExecutionTimeoutMilliseconds } from '@print-an-agent/workflow-core';
 import type { RequestIdempotencyKey } from './replay/contracts.js';
 
 export interface AgentRequestInput {

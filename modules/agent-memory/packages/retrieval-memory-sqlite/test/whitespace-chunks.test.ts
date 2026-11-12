@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import {
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import { fixture } from './support/fixture.js';
 
 it.each([' ', '\n'])(

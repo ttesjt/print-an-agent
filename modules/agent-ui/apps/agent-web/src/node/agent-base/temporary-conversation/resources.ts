@@ -1,6 +1,6 @@
-import { createActor, type ModelMessage } from '@ta-agent/model-invocation-core';
-import type { ManagedAgentSnapshot } from '@ta-agent/base-composition';
-import type { SessionlessOutputSink } from '@ta-agent/base-request';
+import { createActor, type ModelMessage } from '@print-an-agent/model-invocation-core';
+import type { ManagedAgentSnapshot } from '@print-an-agent/base-composition';
+import type { SessionlessOutputSink } from '@print-an-agent/base-request';
 import type { AgentWebConfig } from '../../../application/agent-config.js';
 import type { TemporaryHistoryPair } from '../../../temporary-conversation/contracts.js';
 import {

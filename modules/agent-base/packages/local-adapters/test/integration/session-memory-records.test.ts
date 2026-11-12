@@ -2,8 +2,8 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
-import { parseAgentId } from '@ta-agent/base-identity';
-import { parseTurnId, parseSessionBranchId } from '@ta-agent/base-session';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseTurnId, parseSessionBranchId } from '@print-an-agent/base-session';
 import { MemorySessionAdapter, SqliteSessionAdapter } from '../../src/index.js';
 import { assistantMessage } from '../support/session-port-contract.js';
 

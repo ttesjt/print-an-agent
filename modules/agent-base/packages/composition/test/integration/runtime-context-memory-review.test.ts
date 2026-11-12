@@ -2,16 +2,16 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it, onTestFinished, vi } from 'vitest';
-import { SqliteSessionAdapter } from '@ta-agent/base-local-adapters';
-import { AgentSessionError, executeSessionNavigation } from '@ta-agent/base-session';
+import { SqliteSessionAdapter } from '@print-an-agent/base-local-adapters';
+import { AgentSessionError, executeSessionNavigation } from '@print-an-agent/base-session';
 import {
   ContextMemoryError,
   createMemoryApplyDefinition,
   createMemoryForkDefinition,
-} from '@ta-agent/context-memory';
-import type { VersionedMemoryWorkflowDefinitions } from '@ta-agent/context-memory';
-import { skipWorkflow } from '@ta-agent/workflow-core';
-import { parseAgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/context-memory';
+import type { VersionedMemoryWorkflowDefinitions } from '@print-an-agent/context-memory';
+import { skipWorkflow } from '@print-an-agent/workflow-core';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import { createDeterministicAgentAPI } from '../../src/index.js';
 import { MemoryJournal } from '../../src/management/context-memory/journal.js';
 import { runtimeMemoryFixture, memoryToolPermissions } from '../support/runtime-context-memory.js';

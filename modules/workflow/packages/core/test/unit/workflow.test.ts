@@ -5,7 +5,7 @@ import {
   skipWorkflow,
   Workflow,
   type WorkflowEvent,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 import {
   gate,
   leaves,

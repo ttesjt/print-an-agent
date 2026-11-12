@@ -1,4 +1,4 @@
-import { resolveTextTokenCounterConfig } from '@ta-agent/model-invocation-token-counters';
+import { resolveTextTokenCounterConfig } from '@print-an-agent/model-invocation-token-counters';
 import { AgentBaseStandaloneError } from '../errors.js';
 import type { StandaloneProviderConfig, StandaloneTokenCounterRuntimeOptions } from '../types.js';
 

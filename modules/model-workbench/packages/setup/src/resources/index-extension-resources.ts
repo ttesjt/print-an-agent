@@ -2,7 +2,7 @@ import {
   type ModelCapabilityRuntime,
   type ArtifactHandoffSupportRuntime,
   type ExecutionSupportRuntime,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 
 import { assertUnique } from '../foundation/parsing.js';
 import type { WorkbenchExtensionResources } from '../resolution/contracts.js';

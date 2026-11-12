@@ -4,7 +4,7 @@ import {
   type WorkflowContext,
   type WorkflowDefinition,
   type StepOverrides,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 
 export type Names = 'entry' | 'group' | 'left' | 'right' | 'other' | 'after';
 export type Context = WorkflowContext<Names, void, { visited: string[] }, void, string[]>;

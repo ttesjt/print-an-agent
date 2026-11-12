@@ -1,11 +1,11 @@
-import { ModelInvocationError } from '@ta-agent/model-invocation-core';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import {
   AgentSessionError,
   defineSessionTurnPresentation,
   supportsSessionPresentation,
   MAX_SESSION_PRESENTATION_CHARACTERS,
   MAX_SESSION_PRESENTATION_BLOCKS,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import type { DefaultRequestWorkflowContext } from '../default/context.js';
 import { requireInteractionEvent } from './state.js';
 

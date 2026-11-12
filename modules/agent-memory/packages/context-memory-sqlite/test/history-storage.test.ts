@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { expect, it } from 'vitest';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import { borrowed, domain, fileStores } from './support/fixtures.js';
 
 it('reconstructs every version across multiple baselines and does not record no-op versions', async () => {

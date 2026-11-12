@@ -3,7 +3,7 @@ import { selectSessionCompactionSource } from '../source-selection.js';
 import { resolveSessionCompactionTarget } from '../planning/target.js';
 import { AgentSessionError } from '../../errors.js';
 import type { SessionCompactionCondition } from './types.js';
-import { RUN_WORKFLOW, skipWorkflow } from '@ta-agent/workflow-core';
+import { RUN_WORKFLOW, skipWorkflow } from '@print-an-agent/workflow-core';
 
 export function createShouldCompactSessionCondition(): SessionCompactionCondition {
   return async ({ input: context, resources }) => {

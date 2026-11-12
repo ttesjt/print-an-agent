@@ -4,8 +4,8 @@ import {
   createModelMemoryResources,
   MemoryMeter,
   type ModelEditOperation,
-} from '@ta-agent/context-memory';
-import { ModelInvocationError } from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/context-memory';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import { modelFixture } from './support/model.js';
 import { gate, borrowed } from './support/fixtures.js';
 import { testCounter } from './support/counter.js';

@@ -1,6 +1,6 @@
 import { isAbsolute, resolve } from 'node:path';
 
-import type { LocalCommandDefinition } from '@ta-agent/workbench-local-runtime';
+import type { LocalCommandDefinition } from '@print-an-agent/workbench-local-runtime';
 
 import {
   PYTHON_MODEL_BACKEND_DEVICE_ENVIRONMENT_VARIABLE,

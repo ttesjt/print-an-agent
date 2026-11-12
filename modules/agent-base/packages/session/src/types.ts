@@ -1,9 +1,9 @@
-import type { AgentId } from '@ta-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity';
 import type {
   AssistantModelMessage,
   ModelMessage,
   UserModelMessage,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { SessionContextSnapshot } from './compaction/contracts.js';
 import type { SessionWriteAuthority } from './lifecycle/execution.js';
 

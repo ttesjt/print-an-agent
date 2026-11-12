@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { createRetrievalMutations } from '@ta-agent/retrieval-memory';
+import { createRetrievalMutations } from '@print-an-agent/retrieval-memory';
 import { fixture } from './support/fixture.js';
 it('publishes and reopens authority, vectors and receipts together', async () => {
   const f = await fixture();

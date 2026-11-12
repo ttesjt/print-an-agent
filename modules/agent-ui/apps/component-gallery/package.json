@@ -1,12 +1,12 @@
 {
-  "name": "@ta-agent/ui-component-gallery",
+  "name": "@print-an-agent/ui-component-gallery",
   "version": "0.1.0",
   "description": "Developer visual qualification application for Agent UI public components.",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "pnpm run build:dependencies && tsc --noEmit && vite build",
-    "build:dependencies": "pnpm --filter @ta-agent/ui-react build",
+    "build:dependencies": "pnpm --filter @print-an-agent/ui-react build",
     "clean": "rm -rf dist *.tsbuildinfo",
     "dev": "pnpm run build:dependencies && vite",
     "test": "pnpm run build && vitest run",
@@ -20,8 +20,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ta-agent/ui-react": "workspace:*",
-    "@ta-agent/ui-styles": "workspace:*",
+    "@print-an-agent/ui-react": "workspace:*",
+    "@print-an-agent/ui-styles": "workspace:*",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

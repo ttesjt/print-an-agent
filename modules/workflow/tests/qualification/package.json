@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/workflow-qualification",
+  "name": "@print-an-agent/workflow-qualification",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,8 +11,8 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "@ta-agent/workflow-bundle": "workspace:*",
-    "@ta-agent/workflow-core": "workspace:*",
+    "@print-an-agent/workflow-bundle": "workspace:*",
+    "@print-an-agent/workflow-core": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

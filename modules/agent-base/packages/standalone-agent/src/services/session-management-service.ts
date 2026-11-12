@@ -1,8 +1,8 @@
 import type {
   ManagementOperationOptions,
   SessionManagementService,
-} from '@ta-agent/base-composition';
-import { parseAgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-composition';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   parseSessionId,
   parseTurnId,
@@ -12,7 +12,7 @@ import {
   type SessionLifecycleListPage,
   type SessionLifecycleSnapshot,
   type SessionTurnPage,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 
 export interface StandaloneSessionReferenceInput {
   readonly agentId: string;

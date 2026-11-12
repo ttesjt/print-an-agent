@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
-import { ContextMemoryError } from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+import { ContextMemoryError } from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import { consumer } from './support/model.js';
 import { memoryPath, ownedStore, borrowDatabase } from './support/storage.js';
 import { FaultDatabase } from './support/fault-database.js';

@@ -1,12 +1,12 @@
-import { type ModelOutput, type ProfileId } from '@ta-agent/workbench-domain';
+import { type ModelOutput, type ProfileId } from '@print-an-agent/workbench-domain';
 import type {
   MaterializedModelOutput,
   MaterializedOutputArtifact,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import {
   findProfileArtifactHandoffSupport,
   type ResolvedModelProfile,
-} from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-setup';
 
 import { OutputInvocationArtifactMaterializationError } from './errors.js';
 import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';

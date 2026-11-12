@@ -1,4 +1,4 @@
-import type { OutputInvokerId } from '@ta-agent/workbench-domain';
+import type { OutputInvokerId } from '@print-an-agent/workbench-domain';
 
 import { invalidSetup } from '../foundation/parsing.js';
 import type { ResolvedOutputInvokerSlot } from './contracts.js';

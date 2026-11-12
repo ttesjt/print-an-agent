@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/base-config",
+  "name": "@print-an-agent/base-config",
   "version": "0.1.0",
   "description": "Storage-agnostic Agent configuration lifecycle and adapter contracts.",
   "private": true,
@@ -29,7 +29,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/base-identity": "workspace:*"
+    "@print-an-agent/base-identity": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

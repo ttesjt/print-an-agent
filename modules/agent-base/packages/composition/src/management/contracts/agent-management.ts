@@ -1,4 +1,8 @@
-import type { AgentId, AgentIdentityInput, AgentIdentitySnapshot } from '@ta-agent/base-identity';
+import type {
+  AgentId,
+  AgentIdentityInput,
+  AgentIdentitySnapshot,
+} from '@print-an-agent/base-identity';
 import type { ManagementOperationOptions } from './operation.js';
 import type { AgentConfigProjectionStatus } from './projection.js';
 

@@ -9,7 +9,7 @@ import type {
   MutationResult,
   ReadContextInput,
   ReadContextResult,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import type {
   CreateInput,
   EntryInput,
@@ -30,7 +30,7 @@ import type {
   SearchResult,
   SpaceInput,
   UpdateInput,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import type { ManagedAgentNamespace } from './namespace.js';
 
 /** Public logical reference; independent of Config revision, runtime generation and storage path. */

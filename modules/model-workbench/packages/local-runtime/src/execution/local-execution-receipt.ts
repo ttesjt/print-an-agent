@@ -1,4 +1,4 @@
-import { parseJsonValue, type JsonObject, type JsonValue } from '@ta-agent/workbench-domain';
+import { parseJsonValue, type JsonObject, type JsonValue } from '@print-an-agent/workbench-domain';
 
 import { LocalExecutionReceiptKind } from '../foundation/constants.js';
 import { InvalidLocalRuntimeReceiptError } from '../foundation/errors.js';

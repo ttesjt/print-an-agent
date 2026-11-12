@@ -4,7 +4,7 @@ import {
   MemoryMeter,
   MemoryMutations,
   type MemoryStore,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { TestMemoryStore, gate } from './support/store.js';
 import { testCounter } from './support/counter.js';
 

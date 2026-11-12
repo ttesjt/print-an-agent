@@ -2,16 +2,16 @@ import {
   defineAssistantModelMessage,
   defineProviderModelExecutionProvenance,
   defineProviderModelReference,
-} from '@ta-agent/model-invocation-core';
-import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@ta-agent/base-session';
+} from '@print-an-agent/model-invocation-core';
+import { DEFAULT_SESSION_BRANCH_ID, parseSessionId } from '@print-an-agent/base-session';
 import {
   createBoundedToolRuntime,
   DEFAULT_TOOL_EXECUTION_POLICY,
   DENY_ALL_TOOL_PERMISSION_POLICY,
   EMPTY_TOOL_REGISTRY,
-} from '@ta-agent/base-tool';
+} from '@print-an-agent/base-tool';
 import { describe, expect, it } from 'vitest';
-import { AgentRequestError } from '@ta-agent/base-request';
+import { AgentRequestError } from '@print-an-agent/base-request';
 import { MemoryOutputSink } from '../../src/index.js';
 
 const model = defineProviderModelReference({ provider: 'faux', model: 'faux-model' });

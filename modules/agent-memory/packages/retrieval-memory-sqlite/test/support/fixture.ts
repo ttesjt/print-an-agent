@@ -2,18 +2,18 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { onTestFinished } from 'vitest';
-import { createTextEmbedder } from '@ta-agent/model-invocation-core';
+import { createTextEmbedder } from '@print-an-agent/model-invocation-core';
 import {
   COSINE_METRIC_REF,
   createCodepointChunker,
   createRetrievalMutations,
   prepareCosineVector,
   type BackendSearch,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import {
   openSqliteRetrievalBackend,
   type OwnedRetrievalBackend,
-} from '@ta-agent/retrieval-memory-sqlite';
+} from '@print-an-agent/retrieval-memory-sqlite';
 export async function fixture() {
   const directory = mkdtempSync(join(tmpdir(), 'retrieval-memory-test-'));
   const path = join(directory, 'memory.db');

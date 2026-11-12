@@ -14,12 +14,12 @@ import {
   type RuntimeMemorySessionPort,
   CONTEXT_MEMORY_TOOL_NAMES,
   recoverSessionWithContextMemory,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   createResourceScope,
   ResourceCleanupError,
   type ResourceScope,
-} from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-composition/resource-registry';
 import type { StandaloneAgentConfig, StandaloneRawAgent } from '../../types.js';
 import type { StandaloneRuntimePorts } from '../../runtime/materialize-standalone-agent.js';
 import { setupCloseFailure, type StandaloneSetupCloseOptions } from '../../profiles/setup.js';
@@ -29,7 +29,7 @@ import { contextMemoryProvisioning } from './context.js';
 import { retrievalMemoryProvisioning } from './retrieval.js';
 import type { AgentMemoryStorageBinding, StandaloneMemoryManagementOptions } from './contracts.js';
 import { runtimeMemoryProvisioning, runtimeMemorySession } from './runtime.js';
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import { RuntimeMemoryLifetime } from './runtime-lifetime.js';
 
 type BaseDefinition<N> = SessionManagedAgentCompositionDefinition<

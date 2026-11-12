@@ -1,5 +1,8 @@
 import { expect, it } from 'vitest';
-import { createContextMemoryBundle, createModelMemoryResources } from '@ta-agent/context-memory';
+import {
+  createContextMemoryBundle,
+  createModelMemoryResources,
+} from '@print-an-agent/context-memory';
 import { modelFixture } from './support/model.js';
 import { borrowed, gate, FaultDatabase } from './support/fixtures.js';
 

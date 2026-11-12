@@ -1,4 +1,4 @@
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   AgentSessionError,
   DEFAULT_SESSION_BRANCH_ID,
@@ -11,7 +11,7 @@ import {
   type SessionExecutionLease,
   type SessionNavigationCoordinatorPort,
   type SessionSnapshot,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createAgentManagementService,

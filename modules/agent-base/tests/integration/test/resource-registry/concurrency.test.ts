@@ -1,5 +1,5 @@
-import { createResourceScope } from '@ta-agent/base-composition/resource-registry';
-import { createMemoryEditDefinition } from '@ta-agent/context-memory';
+import { createResourceScope } from '@print-an-agent/base-composition/resource-registry';
+import { createMemoryEditDefinition } from '@print-an-agent/context-memory';
 import { expect, it } from 'vitest';
 import {
   defineMemoryRecipe,

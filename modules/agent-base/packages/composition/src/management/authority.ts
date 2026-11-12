@@ -1,4 +1,8 @@
-import { resolveAgentConfig, writeAgentConfig, type AgentConfigCodec } from '@ta-agent/base-config';
+import {
+  resolveAgentConfig,
+  writeAgentConfig,
+  type AgentConfigCodec,
+} from '@print-an-agent/base-config';
 import {
   AgentIdentityError,
   createAgentIdentity,
@@ -7,7 +11,7 @@ import {
   type AgentId,
   type AgentIdentity,
   type AgentIdentitySnapshot,
-} from '@ta-agent/base-identity';
+} from '@print-an-agent/base-identity';
 import { managedAgentConfigsEqual } from './config.js';
 import type { ManagedAgentAuthorityPorts } from './contracts/authority.js';
 import type { ManagedAgentConfigSnapshot } from './contracts/agent-management.js';

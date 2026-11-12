@@ -2,14 +2,14 @@ import type {
   ActorInvocationConfig,
   ActorInvocationPolicy,
   ActorInvocationPolicyInput,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type {
   ComposeAgentOptions,
   composeAgent,
   DefinedProviderConfig,
   ProviderConfigInput,
-} from '@ta-agent/base-composition';
-import type { AgentIdentity, AgentIdentityInput } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-composition';
+import type { AgentIdentity, AgentIdentityInput } from '@print-an-agent/base-identity';
 import type {
   MemoryAuthorityFactory,
   MemorySessionPersistenceFactory,
@@ -17,9 +17,9 @@ import type {
 import type {
   ProviderTransportLivenessPolicy,
   ProviderTransportLivenessPolicyInput,
-} from '@ta-agent/model-invocation-core';
-import type { RequestPolicy } from '@ta-agent/base-request';
-import type { SessionCompactionPolicy } from '@ta-agent/base-session';
+} from '@print-an-agent/model-invocation-core';
+import type { RequestPolicy } from '@print-an-agent/base-request';
+import type { SessionCompactionPolicy } from '@print-an-agent/base-session';
 import type {
   StandaloneManagedSqliteTableNamingInput,
   StandaloneSharedSqliteTableNamingInput,
@@ -28,7 +28,7 @@ import type {
   TextTokenCounterConfig,
   TextTokenCounterConfigInput,
   TextTokenCounterReferenceResolver,
-} from '@ta-agent/model-invocation-token-counters';
+} from '@print-an-agent/model-invocation-token-counters';
 
 export interface StandaloneCredentialBindingInput {
   readonly reference: string;

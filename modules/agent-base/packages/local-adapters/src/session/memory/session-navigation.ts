@@ -6,7 +6,7 @@ import {
   type SessionBranchId,
   type AppliedSessionNavigation,
   type ApplySessionNavigationRequest,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   createMemorySessionSnapshot,
   inheritMemoryCompaction,

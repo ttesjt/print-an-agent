@@ -3,8 +3,8 @@ import {
   createContextMemoryHistoryBundle,
   createContextMemoryHistoryResources,
   findContextMemoryCommit,
-} from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+} from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import { borrowed, domain, fileStores, FaultDatabase } from './support/fixtures.js';
 
 const request = {

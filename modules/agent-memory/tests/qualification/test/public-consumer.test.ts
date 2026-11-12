@@ -1,11 +1,11 @@
 import { expect, it } from 'vitest';
-import { Workflow } from '@ta-agent/workflow-core';
+import { Workflow } from '@print-an-agent/workflow-core';
 import {
   MemoryMeter,
   createMemoryEditDefinition,
   readMemoryVersionContext,
-} from '@ta-agent/context-memory';
-import { createTiktokenTextCounter } from '@ta-agent/model-invocation-token-counters';
+} from '@print-an-agent/context-memory';
+import { createTiktokenTextCounter } from '@print-an-agent/model-invocation-token-counters';
 import { consumer, plannerActor, vocabularyCounter } from './support/model.js';
 import { memoryPath, ownedStore } from './support/storage.js';
 import { runProjectMemoryExample } from '../examples/project-memory.js';

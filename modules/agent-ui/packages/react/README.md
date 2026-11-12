@@ -1,9 +1,9 @@
-# `@ta-agent/ui-react`
+# `@print-an-agent/ui-react`
 
 Unstyled React behavior and accessible component structure for Agent UI applications.
 
 Components expose stable `ta-ui-*` global classes and `data-*` state hooks. They do not import CSS,
-contain inline visual rules, or choose a theme. Applications can install `@ta-agent/ui-styles` or
+contain inline visual rules, or choose a theme. Applications can install `@print-an-agent/ui-styles` or
 provide their own stylesheet for the same hooks.
 
 The package includes:

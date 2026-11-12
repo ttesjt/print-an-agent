@@ -1,4 +1,4 @@
-import type { AgentFieldError } from '@ta-agent/ui-contracts';
+import type { AgentFieldError } from '@print-an-agent/ui-contracts';
 import {
   object,
   text,

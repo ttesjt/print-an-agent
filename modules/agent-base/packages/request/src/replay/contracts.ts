@@ -1,4 +1,4 @@
-import type { SessionReference, SessionWriteAuthority } from '@ta-agent/base-session';
+import type { SessionReference, SessionWriteAuthority } from '@print-an-agent/base-session';
 import type { AgentResponse } from '../contracts.js';
 
 declare const requestIdempotencyKeyBrand: unique symbol;

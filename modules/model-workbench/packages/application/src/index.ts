@@ -39,7 +39,7 @@ export {
   TrainingCapabilityError,
   WorkbenchControlPlaneError,
   WorkbenchGeneratedIdKind,
-} from '@ta-agent/workbench-control-plane';
+} from '@print-an-agent/workbench-control-plane';
 export type {
   ExportOperations,
   InitializationOperations,
@@ -70,17 +70,17 @@ export type {
   TrainingOperations,
   WaitForRunOptions,
   WorkbenchIdSource,
-} from '@ta-agent/workbench-control-plane';
+} from '@print-an-agent/workbench-control-plane';
 export {
   OutputInvocationTargetEvidenceKind,
   OutputInvocationKind,
   type CompletedOutputInvocation,
   type OutputInvocation,
   type StreamingOutputInvocation,
-} from '@ta-agent/workbench-control-plane';
+} from '@print-an-agent/workbench-control-plane';
 
 export type {
   ProfilePersistence,
   ProfilePersistenceAdapter,
   ProfilePersistenceScope,
-} from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-persistence';

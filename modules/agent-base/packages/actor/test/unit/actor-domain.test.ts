@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { requireInteractionCapability } from '@ta-agent/model-invocation-core';
+import { requireInteractionCapability } from '@print-an-agent/model-invocation-core';
 import {
   parseModelExecutionProvenanceType,
   type AssistantModelMessage,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   AgentActorError,
   createActorCatalog,
@@ -16,7 +16,7 @@ import {
   defineActorInvocationPolicy,
   narrowActorCapabilities,
   parseActorId,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { EMPTY_TOOL_RUNTIME, fakeEngine, type FakeEngineInspection } from '../support/fixtures.js';
 
 function inspection(): FakeEngineInspection {

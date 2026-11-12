@@ -3,7 +3,7 @@ import {
   parseJsonValue,
   type JsonObject,
   type JsonValue,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import type { Static } from 'typebox';
 import Schema, { type Validator } from 'typebox/schema';
 

@@ -1,5 +1,5 @@
-import { MemoryManagementError } from '@ta-agent/base-composition';
-import type { Decoder } from '@ta-agent/ui-transport';
+import { MemoryManagementError } from '@print-an-agent/base-composition';
+import type { Decoder } from '@print-an-agent/ui-transport';
 import type { MemoryFailure } from '../../memory/schemas/common.js';
 
 interface Target {

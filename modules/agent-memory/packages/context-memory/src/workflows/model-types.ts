@@ -1,5 +1,5 @@
-import type { BundleWorkflowDefinition } from '@ta-agent/workflow-bundle';
-import { composeExecutionSignal, type WorkflowContext } from '@ta-agent/workflow-core';
+import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
+import { composeExecutionSignal, type WorkflowContext } from '@print-an-agent/workflow-core';
 import type { ModelEditOperation } from '../contracts/document.js';
 import type { ModelMemoryInput } from '../contracts/model.js';
 import type { MutationResult } from '../contracts/receipt.js';

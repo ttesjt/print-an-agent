@@ -1,9 +1,9 @@
-import { Workflow } from '@ta-agent/workflow-core';
+import { Workflow } from '@print-an-agent/workflow-core';
 import {
   createRetrievalIngestDefinition,
   findRetrievalCommit,
   RetrievalMemoryError,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import { expect, it } from 'vitest';
 import { fixture } from './support/fixture.js';
 it('does not let an executor-supplied unknown status overwrite a known receipt', async () => {

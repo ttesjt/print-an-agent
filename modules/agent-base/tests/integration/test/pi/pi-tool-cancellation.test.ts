@@ -5,8 +5,8 @@ import {
   DEFAULT_TOOL_EXECUTION_POLICY,
   defineTool,
   defineToolPermissionPolicy,
-} from '@ta-agent/base-tool';
-import { createPiFauxRuntime } from '@ta-agent/model-invocation-pi';
+} from '@print-an-agent/base-tool';
+import { createPiFauxRuntime } from '@print-an-agent/model-invocation-pi';
 
 it('forwards Pi loop cancellation to a tool with an independent runtime owner', async () => {
   const owner = new AbortController();

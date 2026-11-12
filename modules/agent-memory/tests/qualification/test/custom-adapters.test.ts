@@ -4,8 +4,8 @@ import {
   type MemoryStore,
   type MemoryRenderer,
   type StoreCommit,
-} from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+} from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import { consumer, vocabularyCounter } from './support/model.js';
 import { borrowDatabase } from './support/storage.js';
 

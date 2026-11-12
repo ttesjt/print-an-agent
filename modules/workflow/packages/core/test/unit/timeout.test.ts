@@ -5,7 +5,7 @@ import {
   NO_EXECUTION_TIMEOUT,
   runWithExecutionTimeout,
   type ExecutionTimeoutMilliseconds,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 
 afterEach(() => {
   vi.useRealTimers();

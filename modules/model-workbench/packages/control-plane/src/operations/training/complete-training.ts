@@ -17,14 +17,14 @@ import {
   type TerminalTrainingRun,
   type TrainingLineage,
   type TrainingModelBase,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   ExecutionStatus,
   type ExecutionTerminal,
   type TrainingCapabilityResult,
-} from '@ta-agent/workbench-extension';
-import type { TrainingCommitter } from '@ta-agent/workbench-persistence';
-import type { ResolvedTrainerSlot } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-extension';
+import type { TrainingCommitter } from '@print-an-agent/workbench-persistence';
+import type { ResolvedTrainerSlot } from '@print-an-agent/workbench-setup';
 
 import { TrainingArtifactVerificationError } from './errors.js';
 import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';

@@ -1,6 +1,6 @@
 # Workflow Core execution contract
 
-Execution semantics, customization boundaries and resource ownership for `@ta-agent/workflow-core`.
+Execution semantics, customization boundaries and resource ownership for `@print-an-agent/workflow-core`.
 
 ## Public shape and ownership
 

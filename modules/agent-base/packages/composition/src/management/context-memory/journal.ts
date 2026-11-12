@@ -5,8 +5,11 @@ import {
   type SessionMemoryRecordKind,
   type SessionReference,
   type SessionWriteAuthority,
-} from '@ta-agent/base-session';
-import { parseMemoryVersionReference, type MemoryVersionReference } from '@ta-agent/context-memory';
+} from '@print-an-agent/base-session';
+import {
+  parseMemoryVersionReference,
+  type MemoryVersionReference,
+} from '@print-an-agent/context-memory';
 
 export function memoryObject(value: unknown): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value))

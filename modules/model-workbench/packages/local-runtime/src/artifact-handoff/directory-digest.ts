@@ -3,8 +3,8 @@ import { constants as fileConstants } from 'node:fs';
 import { lstat, open, readdir, type FileHandle } from 'node:fs/promises';
 import { join, sep } from 'node:path';
 
-import type { Sha256Digest } from '@ta-agent/workbench-domain';
-import { parseSha256Digest } from '@ta-agent/workbench-domain';
+import type { Sha256Digest } from '@print-an-agent/workbench-domain';
+import { parseSha256Digest } from '@print-an-agent/workbench-domain';
 
 import type { LocalArtifactDigestOptions } from './contracts.js';
 

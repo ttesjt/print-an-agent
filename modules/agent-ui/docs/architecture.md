@@ -24,7 +24,7 @@ React components own DOM structure, behavior, state, accessibility, and stable s
 `data-*` hooks. They do not own visual rules, import component-local CSS, use inline styles, or load
 the optional default stylesheet.
 
-The default stylesheet is exported independently by `@ta-agent/ui-styles`. It uses prefixed CSS
+The default stylesheet is exported independently by `@print-an-agent/ui-styles`. It uses prefixed CSS
 custom properties, low-specificity semantic classes, and ordered cascade layers. Consumers can
 import it unchanged, override it after import, or replace it entirely while retaining component
 behavior.
@@ -40,15 +40,15 @@ values. App Shell derives optional sidebar and inspector columns from the region
 
 ## Package roles
 
-`@ta-agent/ui-contracts` owns framework-neutral, browser-safe view models and narrow ports. It must
+`@print-an-agent/ui-contracts` owns framework-neutral, browser-safe view models and narrow ports. It must
 not depend on React, a state manager, another Agent UI package, or a domain runtime.
 
-`@ta-agent/ui-react` may consume `@ta-agent/ui-contracts`, React, and ReactDOM for explicit browser
+`@print-an-agent/ui-react` may consume `@print-an-agent/ui-contracts`, React, and ReactDOM for explicit browser
 portal ownership. It owns reusable DOM structure, interaction behavior, accessibility, and local
 presentation state. It must not depend on the styles package, an application store, a transport
 client, or a product package.
 
-`@ta-agent/ui-styles` implements the semantic style hooks. It does not own behavior or import the
+`@print-an-agent/ui-styles` implements the semantic style hooks. It does not own behavior or import the
 React and contracts packages.
 
 `ui-workspace` owns reusable page composition, routing coordination and application-wide interaction
@@ -71,12 +71,12 @@ selection. Authoritative admission promotes them to navigable Sessions before mo
 
 `apps/` contains independently startable, buildable, or deployable composition roots.
 
-`@ta-agent/ui-agent-web` is the general-purpose Agent Web composition root. It installs
+`@print-an-agent/ui-agent-web` is the general-purpose Agent Web composition root. It installs
 `ui-workspace` for shared lifecycle, Session/conversation orchestration, routes and state. It owns
 the Agent Base adapter, model configuration extension, directory host, credentials and transport
 binding. It does not maintain another implementation of the shared controllers.
 
-`@ta-agent/ui-component-gallery` is a developer visual-qualification application. It displays the
+`@print-an-agent/ui-component-gallery` is a developer visual-qualification application. It displays the
 public components, bounded variants, themes, responsive behavior, accessibility, and semantic DOM.
 It does not connect a backend, hold formal business state, or implement reusable components.
 

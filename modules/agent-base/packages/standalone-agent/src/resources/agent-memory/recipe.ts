@@ -4,19 +4,19 @@ import {
   compileResourceBlueprint,
   defineResourceProvider,
   type ResourceAcquisition,
-} from '@ta-agent/base-composition/resource-registry';
-import { ContextMemoryError, type MemoryStore } from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+} from '@print-an-agent/base-composition/resource-registry';
+import { ContextMemoryError, type MemoryStore } from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import {
   RetrievalMemoryError,
   createCodepointChunker,
   type RetrievalBackend,
   type RetrievalChunker,
-} from '@ta-agent/retrieval-memory';
-import { openSqliteRetrievalBackend } from '@ta-agent/retrieval-memory-sqlite';
-import type { TextEmbeddingCapability } from '@ta-agent/model-invocation-core';
-import { createTiktokenTextCounter } from '@ta-agent/model-invocation-token-counters';
-import { validateMemoryIdentifier } from '@ta-agent/base-composition';
+} from '@print-an-agent/retrieval-memory';
+import { openSqliteRetrievalBackend } from '@print-an-agent/retrieval-memory-sqlite';
+import type { TextEmbeddingCapability } from '@print-an-agent/model-invocation-core';
+import { createTiktokenTextCounter } from '@print-an-agent/model-invocation-token-counters';
+import { validateMemoryIdentifier } from '@print-an-agent/base-composition';
 import type {
   AgentMemoryStorageBinding,
   MemoryTextCounter,

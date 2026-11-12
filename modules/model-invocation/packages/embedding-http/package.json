@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/model-invocation-embedding-http",
+  "name": "@print-an-agent/model-invocation-embedding-http",
   "version": "0.1.0",
   "description": "Explicit OpenAI-compatible HTTP text embedding capability.",
   "private": true,
@@ -24,7 +24,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/model-invocation-core": "workspace:*"
+    "@print-an-agent/model-invocation-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

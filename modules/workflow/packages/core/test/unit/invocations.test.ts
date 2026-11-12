@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SKIP_STEP, STEP_CARDINALITY } from '@ta-agent/workflow-core';
+import { SKIP_STEP, STEP_CARDINALITY } from '@print-an-agent/workflow-core';
 import { aborted, gate, leaves, once, options, workflow } from '../support/fixtures.js';
 
 describe('registered execution', () => {

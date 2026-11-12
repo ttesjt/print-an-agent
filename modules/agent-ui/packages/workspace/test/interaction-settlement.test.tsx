@@ -5,7 +5,7 @@ import type {
   ConversationInteractionEventConsumer,
   StartConversationInteractionInput,
   WorkspaceConversationPort,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import { useConversationManagement, type SessionSelectionState } from '../src/testing.js';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });

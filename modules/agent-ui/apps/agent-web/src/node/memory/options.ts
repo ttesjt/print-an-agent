@@ -1,4 +1,4 @@
-import type { StandaloneMemoryManagementOptions } from '@ta-agent/base-standalone-agent';
+import type { StandaloneMemoryManagementOptions } from '@print-an-agent/base-standalone-agent';
 import type { MemoryCapabilities } from '../../memory/contracts.js';
 
 /** Host chooses implementations and the safe descriptions advertised to this Collection's UI. */

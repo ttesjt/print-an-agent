@@ -1,6 +1,6 @@
 // @vitest-environment node
-import { parseAgentId } from '@ta-agent/base-identity';
-import { defineAssistantModelMessage } from '@ta-agent/model-invocation-core';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { defineAssistantModelMessage } from '@print-an-agent/model-invocation-core';
 import {
   parseSessionBranchId,
   parseSessionId,
@@ -9,7 +9,7 @@ import {
   type FailedSessionTurn,
   type SessionSnapshot,
   type SessionTurn,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { describe, expect, it } from 'vitest';
 import { visibleConversationTurns } from '../../src/node/agent-base/turn-order.js';
 

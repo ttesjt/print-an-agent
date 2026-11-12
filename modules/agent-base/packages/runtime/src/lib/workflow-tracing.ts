@@ -1,5 +1,5 @@
-import type { AgentTraceEmitter } from '@ta-agent/base-observability';
-import type { WorkflowObserver } from '@ta-agent/workflow-core';
+import type { AgentTraceEmitter } from '@print-an-agent/base-observability';
+import type { WorkflowObserver } from '@print-an-agent/workflow-core';
 
 /** Core owns execution metadata; the emitter already owns Agent identity and Run correlation. */
 export function createWorkflowTraceObserver(emitter: AgentTraceEmitter): WorkflowObserver {

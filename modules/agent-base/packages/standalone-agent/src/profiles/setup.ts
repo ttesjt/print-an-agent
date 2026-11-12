@@ -1,4 +1,4 @@
-import type { ManagedAgentCompositionDefinition } from '@ta-agent/base-composition';
+import type { ManagedAgentCompositionDefinition } from '@print-an-agent/base-composition';
 import type { StandaloneAgentConfig, StandaloneRawAgent } from '../types.js';
 import type { StandaloneRuntimePorts } from '../runtime/materialize-standalone-agent.js';
 import { AgentBaseStandaloneError } from '../errors.js';

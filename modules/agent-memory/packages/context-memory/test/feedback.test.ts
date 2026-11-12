@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { refineMemoryCompactionTarget } from '@ta-agent/context-memory';
+import { refineMemoryCompactionTarget } from '@print-an-agent/context-memory';
 
 const policy = { retrySafetyFactor: 0.9, minPlannerTargetTokens: 1 };
 it('tightens the body target from C while measuring acceptance by F', () => {

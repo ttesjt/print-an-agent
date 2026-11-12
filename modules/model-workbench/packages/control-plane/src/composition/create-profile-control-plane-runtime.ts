@@ -1,6 +1,6 @@
-import { ModelOperationKind } from '@ta-agent/workbench-domain';
-import type { ProfilePersistence } from '@ta-agent/workbench-persistence';
-import type { ResolvedModelProfile } from '@ta-agent/workbench-setup';
+import { ModelOperationKind } from '@print-an-agent/workbench-domain';
+import type { ProfilePersistence } from '@print-an-agent/workbench-persistence';
+import type { ResolvedModelProfile } from '@print-an-agent/workbench-setup';
 
 import type { WorkbenchControlPlaneConfiguration } from './contracts.js';
 import { createExecutionLifecycle } from '../execution/create-execution-lifecycle.js';

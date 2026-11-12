@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { Workflow, type WorkflowInputs } from '@ta-agent/workflow-core';
+import { Workflow, type WorkflowInputs } from '@print-an-agent/workflow-core';
 import { aborted, gate, options, workflow, type Context } from '../support/fixtures.js';
 
 it('captures the resource binding at assembly and uses it in factories, Steps, executor and hooks', async () => {

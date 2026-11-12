@@ -3,25 +3,25 @@ import {
   createActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@ta-agent/base-actor';
-import { type ActorInteractionHandler } from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/base-actor';
+import { type ActorInteractionHandler } from '@print-an-agent/model-invocation-core';
 import {
   MemoryAgentTraceAdapter,
   MemoryOutputSink,
   MemoryRequestJournalAdapter,
   MemorySessionAdapter,
-} from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-local-adapters';
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   createDefaultRequestStepOverrides,
   type DefaultRequestWorkflowContext,
   type RequestStepName,
-} from '@ta-agent/base-request';
-import type { Step } from '@ta-agent/workflow-core';
-import { createAgent } from '@ta-agent/base-runtime';
+} from '@print-an-agent/base-request';
+import type { Step } from '@print-an-agent/workflow-core';
+import { createAgent } from '@print-an-agent/base-runtime';
 import {
   createStandardAgentDefinition,
   FOREGROUND_AGENT_OPERATION_NAME,

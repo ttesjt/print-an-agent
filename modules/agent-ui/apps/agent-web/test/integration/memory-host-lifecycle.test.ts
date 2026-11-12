@@ -7,12 +7,12 @@ import {
   ContextMemoryError,
   createMemoryApplyDefinition,
   createMemoryGetReceiptDefinition,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import {
   createRetrievalIngestDefinition,
   createRetrievalReceiptDefinition,
-} from '@ta-agent/retrieval-memory';
-import { skipWorkflow } from '@ta-agent/workflow-core';
+} from '@print-an-agent/retrieval-memory';
+import { skipWorkflow } from '@print-an-agent/workflow-core';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { createDirectoryCollectionHost } from '../../src/node/collections/directory-host.js';
 import { startLocalAgentWebServer } from '../../src/node/transport/http-server.js';

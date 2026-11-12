@@ -1,6 +1,6 @@
 import { expect, expectTypeOf, it } from 'vitest';
-import { createActor, type ActorDirectResult } from '@ta-agent/model-invocation-core';
-import { Workflow } from '@ta-agent/workflow-core';
+import { createActor, type ActorDirectResult } from '@print-an-agent/model-invocation-core';
+import { Workflow } from '@print-an-agent/workflow-core';
 import { createSessionlessRequestService } from '../../src/index.js';
 import { interactionMessage } from '../support/interaction-agent.js';
 

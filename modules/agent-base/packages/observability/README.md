@@ -1,4 +1,4 @@
-# `@ta-agent/base-observability`
+# `@print-an-agent/base-observability`
 
 Privacy-safe correlated execution tracing for Agent Base.
 
@@ -11,7 +11,7 @@ model output, tool arguments/results,
 exception messages, credentials, endpoints, and Pi values are never trace fields.
 
 Tracing is diagnostic and fail-open. `NOOP_AGENT_TRACE_SINK` is the retention-free default.
-The explicit bounded `MemoryAgentTraceAdapter` lives in `@ta-agent/base-local-adapters`; production
+The explicit bounded `MemoryAgentTraceAdapter` lives in `@print-an-agent/base-local-adapters`; production
 consumers may replace the sink without changing execution contracts.
 
 Session traces include selected branch identifiers and numeric navigation revisions. A successful

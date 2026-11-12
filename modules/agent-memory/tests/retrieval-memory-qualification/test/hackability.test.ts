@@ -1,12 +1,15 @@
-import { Workflow } from '@ta-agent/workflow-core';
-import { createTokenCounter, TEXT_TOKEN_INPUT_CONTRACT } from '@ta-agent/model-invocation-core';
+import { Workflow } from '@print-an-agent/workflow-core';
+import {
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+} from '@print-an-agent/model-invocation-core';
 import {
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
   createRetrievalSearchDefinition,
   createRetrievalIngestDefinition,
   findRetrievalCommit,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import { expect, it } from 'vitest';
 import { fixture } from './support/fixture.js';
 it('replaces a complete Workflow definition and a named Step without forking the runner or adapter', async () => {

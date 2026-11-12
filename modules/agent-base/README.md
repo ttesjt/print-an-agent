@@ -27,12 +27,12 @@ starting an over-budget model invocation.
 The module is intentionally split between:
 
 - domain/utility packages, which own contracts and behavior without selecting local persistence;
-- `@ta-agent/base-local-adapters`, which owns the official reusable in-process and SQLite
+- `@print-an-agent/base-local-adapters`, which owns the official reusable in-process and SQLite
   implementations of those ports;
-- `@ta-agent/base-composition`, which owns the official Standard raw-Agent runtime composition plus
+- `@print-an-agent/base-composition`, which owns the official Standard raw-Agent runtime composition plus
   storage-neutral application management definitions and Services, and may project an `AgentAPI`
   convenience layer;
-- `@ta-agent/base-standalone-agent`, which binds those generic contracts to the current concrete
+- `@print-an-agent/base-standalone-agent`, which binds those generic contracts to the current concrete
   reference-application bootstrap, directory, and shared-SQLite profiles;
 - thin applications such as the CLI, which call the Standalone Services or raw Agent instead of
   composing another runtime or lifecycle owner.
@@ -44,31 +44,31 @@ Read [the Agent Base design](./docs/design.md) before adding packages.
 
 Current foundation packages:
 
-- `@ta-agent/base-identity`: stable Agent identity values and lifecycle catalog contracts;
-- `@ta-agent/base-config`: storage-agnostic typed configuration lifecycle and adapter contracts;
-- `@ta-agent/base-actor`: Agent Actor tool permissions and Responsibility routing over the independent
-  `@ta-agent/model-invocation-core` Actor and model protocols;
-- `@ta-agent/base-observability`: privacy-safe correlated trace contracts and no-op sink;
-- `@ta-agent/base-session`: generic Session, append-only navigation, and branch-scoped compaction
+- `@print-an-agent/base-identity`: stable Agent identity values and lifecycle catalog contracts;
+- `@print-an-agent/base-config`: storage-agnostic typed configuration lifecycle and adapter contracts;
+- `@print-an-agent/base-actor`: Agent Actor tool permissions and Responsibility routing over the independent
+  `@print-an-agent/model-invocation-core` Actor and model protocols;
+- `@print-an-agent/base-observability`: privacy-safe correlated trace contracts and no-op sink;
+- `@print-an-agent/base-session`: generic Session, append-only navigation, and branch-scoped compaction
   ports plus replaceable Workflows/Steps;
-- `@ta-agent/base-tool`: provider-independent schemas, registries, permission policy, and bounded
+- `@print-an-agent/base-tool`: provider-independent schemas, registries, permission policy, and bounded
   run-scoped Tool Broker;
-- `@ta-agent/base-runtime`: single-owner Agent, typed Operation/Run, Workflow Catalog, invocation
-  permissions, and result/trace bindings to `@ta-agent/workflow-core`;
-- `@ta-agent/base-request`: Session-aware foreground and independently callable Sessionless
+- `@print-an-agent/base-runtime`: single-owner Agent, typed Operation/Run, Workflow Catalog, invocation
+  permissions, and result/trace bindings to `@print-an-agent/workflow-core`;
+- `@print-an-agent/base-request`: Session-aware foreground and independently callable Sessionless
   Workflows, OutputSink/Journal contracts, and reusable narrow-context request Steps;
-- `@ta-agent/base-local-adapters`: official Memory, SQLite, local OutputSink, and bounded trace
+- `@print-an-agent/base-local-adapters`: official Memory, SQLite, local OutputSink, and bounded trace
   implementations for generic Agent Base ports;
-- `@ta-agent/base-composition`: the official Standard raw-Agent composition root, optional API
+- `@print-an-agent/base-composition`: the official Standard raw-Agent composition root, optional API
   template, and storage-neutral Agent management/runtime/Session Service contracts;
-- `@ta-agent/base-standalone-agent`: the current standalone reference Agent bootstrap and concrete
+- `@print-an-agent/base-standalone-agent`: the current standalone reference Agent bootstrap and concrete
   managed-profile boundary;
-- `@ta-agent/base-cli`: the thin `agent-base` executable over the standalone Agent.
+- `@print-an-agent/base-cli`: the thin `agent-base` executable over the standalone Agent.
 
 The composition package offers a deterministic provider profile and a formal ordinary-provider
 composition. Pi remains the pinned internal adapter rather than part of the high-level public API.
 Both profiles run the same bounded request/tool and direct-completion paths. Memory remains their
-zero-configuration development default, selected from `@ta-agent/base-local-adapters`, while callers
+zero-configuration development default, selected from `@print-an-agent/base-local-adapters`, while callers
 can inject that package's SQLite adapter to retain committed conversation history across new Agent
 instances.
 Completed assistant messages always carry one truthful execution-provenance envelope. Ordinary
@@ -94,9 +94,9 @@ does not materialize an Agent runtime or resolve provider credentials. Automatic
 scheduling, branch merge/delete/retention, durable trace/credential storage, OAuth, and broader
 provider qualification remain deferred.
 
-For managed use, `@ta-agent/base-composition` provides the storage-neutral Definition and narrow
+For managed use, `@print-an-agent/base-composition` provides the storage-neutral Definition and narrow
 Agent management, runtime-opening, and independent optional Session management/navigation Services.
-`@ta-agent/base-standalone-agent` binds those contracts to concrete resource namespace publication,
+`@print-an-agent/base-standalone-agent` binds those contracts to concrete resource namespace publication,
 independently typed domain adapters, and optional manifest projection. The default managed profile
 uses one explicitly configured root, one directory, and one SQLite database per Agent; an
 alternative profile uses one shared SQLite database for multiple AgentId-isolated Agents and no

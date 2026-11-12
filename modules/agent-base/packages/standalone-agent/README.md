@@ -1,4 +1,4 @@
-# `@ta-agent/base-standalone-agent`
+# `@print-an-agent/base-standalone-agent`
 
 The official Standalone application profile for Agent Base.
 
@@ -8,7 +8,7 @@ Optional Context/Retrieval provisioning and the Context management Service are d
 This package owns Standalone policy: stored Config vocabulary, provider and credential wiring,
 timeout policy, SQLite table naming, Memory/filesystem/shared-SQLite profiles, `agent.json` projection, and
 the Standard runtime materializer. Generic Agent lifecycle, runtime opening, out-of-band Session
-management, and Session navigation belong to `@ta-agent/base-composition`; Standalone consumes those
+management, and Session navigation belong to `@print-an-agent/base-composition`; Standalone consumes those
 services rather than reimplementing them.
 
 ## Config vocabulary
@@ -84,7 +84,7 @@ compaction fails with `SESSION_COMPACTION_TOKENIZER_NOT_CONFIGURED`.
 import {
   createStandaloneAgent,
   createStandaloneMemorySetup,
-} from '@ta-agent/base-standalone-agent';
+} from '@print-an-agent/base-standalone-agent';
 
 const setup = createStandaloneMemorySetup({
   readEnvironmentVariable: (name) => process.env[name],
@@ -113,7 +113,7 @@ then explicitly open again.
 For a durable Agent, subsequent opens use only storage location and Agent ID:
 
 ```ts
-import { createSharedSqliteStandaloneRuntimeService } from '@ta-agent/base-standalone-agent';
+import { createSharedSqliteStandaloneRuntimeService } from '@print-an-agent/base-standalone-agent';
 
 const runtime = createSharedSqliteStandaloneRuntimeService({
   databasePath: '/explicit/application/agent.sqlite',
@@ -144,11 +144,11 @@ import {
   createAgentRuntimeService,
   createSessionManagementService,
   createSessionNavigationService,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   createStandaloneMemorySetup,
   defineStandaloneAgentConfig,
-} from '@ta-agent/base-standalone-agent';
+} from '@print-an-agent/base-standalone-agent';
 
 const setup = createStandaloneMemorySetup({
   readEnvironmentVariable: (name) => process.env[name],
@@ -240,7 +240,7 @@ import {
   createStandaloneDirectoryRuntimeService,
   createStandaloneDirectorySessionNavigationService,
   createStandaloneDirectorySessionService,
-} from '@ta-agent/base-standalone-agent';
+} from '@print-an-agent/base-standalone-agent';
 
 const rootDirectory = '/explicit/application/agents';
 const agents = createStandaloneDirectoryManagementService({ rootDirectory });

@@ -1,7 +1,7 @@
-import type { AgentIdentity } from '@ta-agent/base-identity';
-import type { CompactSessionInput, SessionCompactionOutcome } from '@ta-agent/base-session';
-import type { AgentRequestInput, AgentResponse } from '@ta-agent/base-request';
-import type { AgentRunOptions } from '@ta-agent/base-runtime';
+import type { AgentIdentity } from '@print-an-agent/base-identity';
+import type { CompactSessionInput, SessionCompactionOutcome } from '@print-an-agent/base-session';
+import type { AgentRequestInput, AgentResponse } from '@print-an-agent/base-request';
+import type { AgentRunOptions } from '@print-an-agent/base-runtime';
 import {
   FOREGROUND_AGENT_OPERATION_NAME,
   SESSION_COMPACTION_AGENT_OPERATION_NAME,

@@ -1,8 +1,11 @@
-import type { RecentCollection, RecentCollectionsPersistencePort } from '@ta-agent/ui-contracts';
+import type {
+  RecentCollection,
+  RecentCollectionsPersistencePort,
+} from '@print-an-agent/ui-contracts';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, expect, it } from 'vitest';
-import { useRecentCollections } from '@ta-agent/ui-workspace';
+import { useRecentCollections } from '@print-an-agent/ui-workspace';
 
 const environment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
 const roots: Root[] = [];

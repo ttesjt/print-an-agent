@@ -1,6 +1,6 @@
 import { once } from 'node:events';
 import type { ServerResponse } from 'node:http';
-import { WEB_TRANSPORT_LIMITS, fail, TransportProtocolError } from '@ta-agent/ui-transport';
+import { WEB_TRANSPORT_LIMITS, fail, TransportProtocolError } from '@print-an-agent/ui-transport';
 import { TemporaryStreamProtocol } from '../../temporary-conversation/protocol.js';
 import { parseTemporaryRequest } from '../../temporary-conversation/validation.js';
 import type {

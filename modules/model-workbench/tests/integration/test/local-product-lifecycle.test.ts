@@ -4,8 +4,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-import { ModelOperationKind, ModelRunStatus } from '@ta-agent/workbench-domain';
-import { OutputInvocationKind } from '@ta-agent/workbench-extension';
+import { ModelOperationKind, ModelRunStatus } from '@print-an-agent/workbench-domain';
+import { OutputInvocationKind } from '@print-an-agent/workbench-extension';
 import { describe, expect, it } from 'vitest';
 
 import { createPublicLocalWorkbench } from './fixtures/public-local-workbench.js';

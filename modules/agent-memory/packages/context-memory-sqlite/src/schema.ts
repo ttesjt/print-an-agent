@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { ContextMemoryError } from '@ta-agent/context-memory';
+import { ContextMemoryError } from '@print-an-agent/context-memory';
 import { initializeHistorySchema } from './history/records.js';
 
 export function initializeMemorySchema(database: DatabaseSync): void {

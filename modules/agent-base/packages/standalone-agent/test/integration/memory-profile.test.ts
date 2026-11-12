@@ -6,8 +6,8 @@ import {
   createSessionNavigationService,
   defineManagedAgentComposition,
   type ManagedAgentAuthorityPorts,
-} from '@ta-agent/base-composition';
-import { parseAgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-composition';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import { describe, expect, it, vi } from 'vitest';
 
 import {

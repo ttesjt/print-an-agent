@@ -1,4 +1,7 @@
-import { readNdjsonResponse, type HttpTransportOptions } from '@ta-agent/ui-transport/browser';
+import {
+  readNdjsonResponse,
+  type HttpTransportOptions,
+} from '@print-an-agent/ui-transport/browser';
 import { parseTemporaryRequest } from '../../temporary-conversation/validation.js';
 import {
   TemporaryStreamProtocol,
@@ -6,7 +9,7 @@ import {
   type TemporaryTerminalEvent,
 } from '../../temporary-conversation/protocol.js';
 import type { TemporaryConversationPort } from '../../temporary-conversation/contracts.js';
-import { fail } from '@ta-agent/ui-transport';
+import { fail } from '@print-an-agent/ui-transport';
 
 export function createHttpTemporaryConversationPort(
   options: HttpTransportOptions = {}

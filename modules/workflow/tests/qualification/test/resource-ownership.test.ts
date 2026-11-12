@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { Workflow } from '@ta-agent/workflow-core';
+import { Workflow } from '@print-an-agent/workflow-core';
 import { execution, gate, onAbort, runOptions, causes, type Context } from './support/execution.js';
 
 it.each(['result', 'condition', 'state'] as const)(

@@ -1,6 +1,6 @@
-import { Alert, Button, Cluster, FormField, Textarea } from '@ta-agent/ui-react';
-import { useWorkspaceMutation, type WorkspaceEditBoundary } from '@ta-agent/ui-workspace';
-import type { MutationOutcome, MutationNotice } from '@ta-agent/ui-contracts';
+import { Alert, Button, Cluster, FormField, Textarea } from '@print-an-agent/ui-react';
+import { useWorkspaceMutation, type WorkspaceEditBoundary } from '@print-an-agent/ui-workspace';
+import type { MutationOutcome, MutationNotice } from '@print-an-agent/ui-contracts';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { MemoryMutationOutcome } from '../schemas/common.js';
 

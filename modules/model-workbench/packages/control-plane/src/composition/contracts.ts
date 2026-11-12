@@ -1,6 +1,6 @@
-import type { Sha256Digest } from '@ta-agent/workbench-domain';
-import type { ResolvedWorkbenchSetup } from '@ta-agent/workbench-setup';
-import type { ProfilePersistenceAdapter } from '@ta-agent/workbench-persistence';
+import type { Sha256Digest } from '@print-an-agent/workbench-domain';
+import type { ResolvedWorkbenchSetup } from '@print-an-agent/workbench-setup';
+import type { ProfilePersistenceAdapter } from '@print-an-agent/workbench-persistence';
 
 import type { InitializationOperations } from '../operations/initialization/contracts.js';
 import type { ExportOperations } from '../operations/export/contracts.js';

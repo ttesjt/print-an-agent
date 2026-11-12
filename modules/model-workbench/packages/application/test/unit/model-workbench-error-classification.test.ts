@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { WorkbenchControlPlaneError } from '@ta-agent/workbench-control-plane';
-import { InvalidWorkbenchValueError } from '@ta-agent/workbench-domain';
-import { WorkbenchExtensionError } from '@ta-agent/workbench-extension';
-import { PersistenceDataCorruptionError } from '@ta-agent/workbench-persistence';
-import { WorkbenchSetupError } from '@ta-agent/workbench-setup';
+import { WorkbenchControlPlaneError } from '@print-an-agent/workbench-control-plane';
+import { InvalidWorkbenchValueError } from '@print-an-agent/workbench-domain';
+import { WorkbenchExtensionError } from '@print-an-agent/workbench-extension';
+import { PersistenceDataCorruptionError } from '@print-an-agent/workbench-persistence';
+import { WorkbenchSetupError } from '@print-an-agent/workbench-setup';
 
 import { ModelWorkbenchErrorCategory, classifyModelWorkbenchError } from '../../src/index.js';
 

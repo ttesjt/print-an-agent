@@ -21,12 +21,12 @@ function sources(directory: string): string[] {
 it.each([
   'node:sqlite',
   'sqlite-vec',
-  '@ta-agent/retrieval-memory-sqlite',
-  '@ta-agent/context-memory',
-  '@ta-agent/model-invocation-embedding-http',
-  '@ta-agent/base-runtime',
-  '@ta-agent/self-learn-domain',
-  '@ta-agent/workbench-application',
+  '@print-an-agent/retrieval-memory-sqlite',
+  '@print-an-agent/context-memory',
+  '@print-an-agent/model-invocation-embedding-http',
+  '@print-an-agent/base-runtime',
+  '@print-an-agent/self-learn-domain',
+  '@print-an-agent/workbench-application',
 ])('rejects domain import %s through the effective configuration', async (dependency) => {
   const result = await eslint.lintText(`import '${dependency}';`, {
     filePath: join(path, 'src/index.ts'),
@@ -57,7 +57,7 @@ it('qualifies a test-only second consumer against package-root exports', () => {
         (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
         node.moduleSpecifier !== undefined &&
         ts.isStringLiteral(node.moduleSpecifier) &&
-        node.moduleSpecifier.text.startsWith('@ta-agent/')
+        node.moduleSpecifier.text.startsWith('@print-an-agent/')
       ) {
         const specifier = node.moduleSpecifier.text;
         expect(specifier.split('/')).toHaveLength(2);
@@ -69,10 +69,10 @@ it('qualifies a test-only second consumer against package-root exports', () => {
   }
 });
 it.each([
-  '@ta-agent/retrieval-memory/src/index.js',
-  '@ta-agent/base-runtime',
-  '@ta-agent/self-learn-api',
-  '@ta-agent/workbench-application',
+  '@print-an-agent/retrieval-memory/src/index.js',
+  '@print-an-agent/base-runtime',
+  '@print-an-agent/self-learn-api',
+  '@print-an-agent/workbench-application',
 ])('rejects independent consumer importing %s', async (dependency) => {
   const result = await eslint.lintText(`import '${dependency}';`, {
     filePath: join(consumer, 'test/backend-contract.test.ts'),
@@ -88,7 +88,7 @@ it('keeps retrieval production files focused and independent from Context Memory
   for (const source of [...sources(join(path, 'src')), ...sources(join(adapter, 'src'))]) {
     const text = readFileSync(source, 'utf8');
     expect(text.trimEnd().split('\n').length, source).toBeLessThanOrEqual(200);
-    expect(text).not.toMatch(/as unknown as|@ta-agent\/context-memory/);
+    expect(text).not.toMatch(/as unknown as|@print-an-agent\/context-memory/);
   }
 });
 it('keeps one native Workflow foundation and no unsafe type bridges', () => {

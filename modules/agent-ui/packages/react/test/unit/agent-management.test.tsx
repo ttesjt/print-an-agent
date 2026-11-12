@@ -1,4 +1,4 @@
-import type { AgentDetails, AgentSummary } from '@ta-agent/ui-contracts';
+import type { AgentDetails, AgentSummary } from '@print-an-agent/ui-contracts';
 import { act } from 'react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 

@@ -7,7 +7,7 @@ import {
   parseBaseId,
   parseProfileId,
   parseRunId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import {
   CapabilityDispatchKind,

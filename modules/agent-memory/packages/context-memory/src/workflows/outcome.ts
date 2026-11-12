@@ -1,4 +1,4 @@
-import type { StepExecutor } from '@ta-agent/workflow-core';
+import type { StepExecutor } from '@print-an-agent/workflow-core';
 import { ContextMemoryError } from '../errors.js';
 import { parseMemoryReceipt } from '../validation/receipt.js';
 import type { CommitStatus } from '../contracts/receipt.js';

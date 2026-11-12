@@ -1,4 +1,4 @@
-import type { AgentDetails, WorkspaceAgentPort } from '@ta-agent/ui-contracts';
+import type { AgentDetails, WorkspaceAgentPort } from '@print-an-agent/ui-contracts';
 import { useEffect, useRef, useState } from 'react';
 
 export function useAgentMetadata(

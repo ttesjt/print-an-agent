@@ -1,4 +1,4 @@
-import { Alert, Button, Cluster, FormField, Stack, TextInput } from '@ta-agent/ui-react';
+import { Alert, Button, Cluster, FormField, Stack, TextInput } from '@print-an-agent/ui-react';
 import { useEffect, useRef, useState } from 'react';
 import type { DirectoryListing } from './directory-contracts.js';
 

@@ -1,10 +1,10 @@
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   parseSessionId,
   normalizeSessionReference,
   type SessionReference,
   type SessionWriteAuthority,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   AgentRequestError,
   decodeAgentResponse,
@@ -23,7 +23,7 @@ import {
   type RequestJournalEntry,
   type RequestJournalReference,
   REQUEST_EXECUTION_INTERRUPTED,
-} from '@ta-agent/base-request';
+} from '@print-an-agent/base-request';
 import { memoryJournalCoordination } from '../persistence/memory-coordination.js';
 
 function journalKey(reference: RequestJournalReference): string {

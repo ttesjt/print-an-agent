@@ -1,11 +1,11 @@
 import { AgentRequestError } from '../errors.js';
-import { ActorError, ModelInvocationError } from '@ta-agent/model-invocation-core';
-import { AgentToolError } from '@ta-agent/base-tool';
-import { AgentActorError } from '@ta-agent/base-actor';
+import { ActorError, ModelInvocationError } from '@print-an-agent/model-invocation-core';
+import { AgentToolError } from '@print-an-agent/base-tool';
+import { AgentActorError } from '@print-an-agent/base-actor';
 import type { OutputFailure } from '../contracts.js';
 import type { SessionlessOutputOutcome, SessionlessOutputSink } from './contracts.js';
 import type { SessionlessValidatedRequest } from './contracts.js';
-import type { ActorDirectResult } from '@ta-agent/model-invocation-core';
+import type { ActorDirectResult } from '@print-an-agent/model-invocation-core';
 import { requireValue } from '../preparation/state-value.js';
 
 export async function openSessionlessOutput(context: {

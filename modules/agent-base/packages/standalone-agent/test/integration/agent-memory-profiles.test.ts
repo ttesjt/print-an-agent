@@ -2,20 +2,20 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it, onTestFinished, vi } from 'vitest';
-import { createAgentManagementService } from '@ta-agent/base-composition';
-import { parseAgentId } from '@ta-agent/base-identity';
+import { createAgentManagementService } from '@print-an-agent/base-composition';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   createTokenCounter,
   TEXT_TOKEN_INPUT_CONTRACT,
   createTextEmbedder,
-} from '@ta-agent/model-invocation-core';
-import { ContextMemoryError } from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+} from '@print-an-agent/model-invocation-core';
+import { ContextMemoryError } from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import {
   createCodepointChunker,
   COSINE_METRIC_REF,
   RetrievalMemoryError,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import {
   createStandaloneDirectorySetup,
   createSharedSqliteStandaloneSetup,

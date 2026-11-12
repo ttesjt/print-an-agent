@@ -1,4 +1,4 @@
-import type { ModelInteractionEvent } from '@ta-agent/model-invocation-core';
+import type { ModelInteractionEvent } from '@print-an-agent/model-invocation-core';
 import type { OutputStreamEvent } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
 import { requireValue } from '../preparation/state-value.js';

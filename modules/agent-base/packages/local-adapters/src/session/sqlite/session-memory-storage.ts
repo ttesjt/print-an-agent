@@ -6,7 +6,7 @@ import {
   type SessionMemoryRecordKey,
   type SessionReference,
   type WriteSessionMemoryRecord,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { quoteSqliteIdentifier as quote, type SqliteSessionTableNames } from './table-names.js';
 
 export function sessionMemoryTable(names: SqliteSessionTableNames): string {

@@ -3,10 +3,10 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { MemoryOutputSink } from '@ta-agent/base-local-adapters';
-import { ModelInvocationError } from '@ta-agent/model-invocation-core';
-import { createAgentAPI } from '@ta-agent/base-composition';
-import { createSharedSqliteStandaloneRuntimeService } from '@ta-agent/base-standalone-agent';
+import { MemoryOutputSink } from '@print-an-agent/base-local-adapters';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
+import { createAgentAPI } from '@print-an-agent/base-composition';
+import { createSharedSqliteStandaloneRuntimeService } from '@print-an-agent/base-standalone-agent';
 import { afterEach, describe, expect, it } from 'vitest';
 import { startLoopbackProvider, type LoopbackProvider } from './support/loopback-provider.js';
 

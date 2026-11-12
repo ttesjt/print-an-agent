@@ -1,4 +1,4 @@
-import { AgentRequestError, createSessionlessRequestWorkflow } from '@ta-agent/base-request';
+import { AgentRequestError, createSessionlessRequestWorkflow } from '@print-an-agent/base-request';
 import type {
   SessionlessGenerationServiceDefinition,
   SessionlessGenerationWorkflow,

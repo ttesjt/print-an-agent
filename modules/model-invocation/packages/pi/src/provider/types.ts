@@ -4,7 +4,7 @@ import type {
   TokenCounter,
   TextTokenInput,
   TokenCounterDescriptor,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type {
   ModelInteractionRuntime,
   ProviderCredentialResolver,
@@ -14,7 +14,7 @@ import type {
   ProviderModelReferenceInput,
   ProviderTransportLivenessPolicy,
   ProviderTransportLivenessPolicyInput,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 
 export interface PiBuiltinProviderConfigInput {
   readonly kind: 'builtin';

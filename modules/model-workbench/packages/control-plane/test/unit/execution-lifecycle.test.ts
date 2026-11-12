@@ -25,15 +25,15 @@ import {
   type RunningModelRun,
   type StartingModelRun,
   type TerminalModelRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   CapabilityDispatchKind,
   defineExecutionSupport,
   ExecutionStatus,
   type ExecutionSupportRuntime,
   type ExecutionTerminal,
-} from '@ta-agent/workbench-extension';
-import { createMemoryPersistence, type RunRepository } from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-extension';
+import { createMemoryPersistence, type RunRepository } from '@print-an-agent/workbench-persistence';
 
 import {
   StartingRunResumeKind,

@@ -6,7 +6,7 @@ import {
 import type {
   ModelInteractionEvent,
   ModelInteractionRequest,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { describe, expect, it } from 'vitest';
 import { createPiFauxRuntime } from '../../src/index.js';
 import { createPiEventSink, type PiRunState } from '../../src/runtime/pi-event-adapter.js';

@@ -2,13 +2,13 @@ import {
   createAgentManagementService,
   defineManagedAgentComposition,
   type ManagedAgentAuthorityPorts,
-} from '@ta-agent/base-composition';
-import { parseAgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-composition';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   MemoryAgentConfigAdapter,
   MemoryAgentIdentityCatalogAdapter,
-} from '@ta-agent/base-local-adapters';
-import { ResourceCleanupError } from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/base-local-adapters';
+import { ResourceCleanupError } from '@print-an-agent/base-composition/resource-registry';
 import { expect, it, vi } from 'vitest';
 import { createStandaloneMemorySetup } from '../../src/index.js';
 import { resourceProfileConfig } from '../support/resource-profile.js';

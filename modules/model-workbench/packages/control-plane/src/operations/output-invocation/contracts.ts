@@ -4,8 +4,8 @@ import type {
   OutputInvokerId,
   ProfileId,
   Sha256Digest,
-} from '@ta-agent/workbench-domain';
-import { OutputInvocationKind } from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-domain';
+import { OutputInvocationKind } from '@print-an-agent/workbench-extension';
 
 import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';
 

@@ -1,6 +1,6 @@
 import type { MemoryConfig, MemoryItem, MemoryMeasurement } from '../contracts/document.js';
 import { ContextMemoryError } from '../errors.js';
-import { TOKEN_MEASUREMENT_ACCURACY } from '@ta-agent/model-invocation-core';
+import { TOKEN_MEASUREMENT_ACCURACY } from '@print-an-agent/model-invocation-core';
 
 export function assertExactMemoryMeasurement(
   measurement: MemoryMeasurement,

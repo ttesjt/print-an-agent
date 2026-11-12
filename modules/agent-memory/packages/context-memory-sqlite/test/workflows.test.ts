@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { Workflow, skipWorkflow } from '@ta-agent/workflow-core';
+import { Workflow, skipWorkflow } from '@print-an-agent/workflow-core';
 import {
   createContextMemoryBundle,
   createContextMemoryResources,
@@ -7,8 +7,8 @@ import {
   createMemoryApplyDefinition,
   createMemoryReadContextDefinition,
   MemoryMeter,
-} from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+} from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import { borrowed, fileStores } from './support/fixtures.js';
 import { testCounter } from './support/counter.js';
 

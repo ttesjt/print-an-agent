@@ -1,4 +1,4 @@
-import { defineAgentIdentity } from '@ta-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
 import { describe, expect, it, vi } from 'vitest';
 import {
   AgentConfigError,

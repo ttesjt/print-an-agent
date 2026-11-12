@@ -3,20 +3,23 @@ import {
   createSessionContextMemory,
   createContextMemoryTools,
   createDeterministicAgentAPI,
-} from '@ta-agent/base-composition';
-import { MemorySessionAdapter } from '@ta-agent/base-local-adapters';
-import { executeSessionNavigation } from '@ta-agent/base-session';
-import { BUILT_IN_RESPONSIBILITIES } from '@ta-agent/base-actor';
-import { createTokenCounter, TEXT_TOKEN_INPUT_CONTRACT } from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/base-composition';
+import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
+import { executeSessionNavigation } from '@print-an-agent/base-session';
+import { BUILT_IN_RESPONSIBILITIES } from '@print-an-agent/base-actor';
+import {
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+} from '@print-an-agent/model-invocation-core';
 import {
   createVersionedContextMemoryBundle,
   createVersionedContextMemoryResources,
   createMemoryReadVersionContextDefinition,
   MemoryMeter,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { IndependentHistoryStore } from './support/independent-memory-store.js';
-import { parseToolName } from '@ta-agent/base-tool';
-import { SKIP_STEP } from '@ta-agent/workflow-core';
+import { parseToolName } from '@print-an-agent/base-tool';
+import { SKIP_STEP } from '@print-an-agent/workflow-core';
 
 it('consumes public contracts with independent resources, custom tools/Steps, exact pinning and inherited forks', async () => {
   const store = new IndependentHistoryStore();
@@ -165,7 +168,7 @@ it('consumes public contracts with independent resources, custom tools/Steps, ex
 it('can install an independent read capability or replace the named loading Step without Registry', async () => {
   const settle = vi.fn(() => Promise.resolve());
   const open = vi.fn(
-    (target: Parameters<import('@ta-agent/base-request').RequestContextMemory['open']>[0]) =>
+    (target: Parameters<import('@print-an-agent/base-request').RequestContextMemory['open']>[0]) =>
       Promise.resolve({
         inputVersion: { memoryId: target.session.sessionId, revision: 1 },
         text: 'custom external context',

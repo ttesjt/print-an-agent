@@ -1,4 +1,4 @@
-import type { ConversationReasoningBlock } from '@ta-agent/ui-contracts';
+import type { ConversationReasoningBlock } from '@print-an-agent/ui-contracts';
 import { useId, type ComponentPropsWithRef, type ReactNode } from 'react';
 
 import {

@@ -1,21 +1,21 @@
-import { ResourceToken } from '@ta-agent/base-composition/resource-registry';
+import { ResourceToken } from '@print-an-agent/base-composition/resource-registry';
 import type {
   MemoryStore,
   ModelMemoryResources,
   ModelMemoryWorkflowDefinitions,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import type {
   RetrievalBackend,
   RetrievalChunker,
   createRetrievalMemoryBundle,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import type {
   CompletionCapability,
   TextEmbeddingCapability,
   TextTokenInput,
   TokenCounter,
-} from '@ta-agent/model-invocation-core';
-import { WorkflowBundle } from '@ta-agent/workflow-bundle';
+} from '@print-an-agent/model-invocation-core';
+import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
 
 export type ContextBundle = WorkflowBundle<ModelMemoryResources, ModelMemoryWorkflowDefinitions>;
 export type RetrievalBundle = ReturnType<typeof createRetrievalMemoryBundle>;

@@ -5,7 +5,7 @@ import {
   requireCompletionCapability,
   type ModelGenerationEvent,
   type ProviderTransportLivenessPolicyInput,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { createPiProviderRuntime, createPiFauxRuntime } from '../../src/index.js';
 import { completionServer } from '../support/completion-server.js';
 

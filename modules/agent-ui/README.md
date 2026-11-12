@@ -9,19 +9,19 @@ the adapters that connect those contracts to a backend.
 
 The module keeps behavior and visual policy separate:
 
-- `@ta-agent/ui-contracts` owns browser-safe ports and view models.
-- `@ta-agent/ui-react` owns structure, behavior, accessibility, and stable global style hooks. It
+- `@print-an-agent/ui-contracts` owns browser-safe ports and view models.
+- `@print-an-agent/ui-react` owns structure, behavior, accessibility, and stable global style hooks. It
   contains no component-local stylesheet and does not import a default theme.
-- `@ta-agent/ui-styles` owns the optional default tokens, theme, base rules, and global semantic
+- `@print-an-agent/ui-styles` owns the optional default tokens, theme, base rules, and global semantic
   classes.
-- `@ta-agent/ui-workspace` owns the complete shared workspace, routing, scoped controllers and
+- `@print-an-agent/ui-workspace` owns the complete shared workspace, routing, scoped controllers and
   product-extension lifecycle helpers.
-- `@ta-agent/ui-transport` optionally shares validated HTTP/NDJSON; it is not required by workspace.
-- `@ta-agent/ui-agent-web` is the general-purpose Agent Web application composition root.
-- `@ta-agent/ui-component-gallery` is the developer visual-qualification application for the
+- `@print-an-agent/ui-transport` optionally shares validated HTTP/NDJSON; it is not required by workspace.
+- `@print-an-agent/ui-agent-web` is the general-purpose Agent Web application composition root.
+- `@print-an-agent/ui-component-gallery` is the developer visual-qualification application for the
   public component surface.
 
-Applications may import `@ta-agent/ui-styles/default.css`, override its tokens or semantic classes,
+Applications may import `@print-an-agent/ui-styles/default.css`, override its tokens or semantic classes,
 or omit it and provide their own implementation of the style hooks.
 
 Reusable components are store- and transport-agnostic. They consume UI-owned view models and narrow

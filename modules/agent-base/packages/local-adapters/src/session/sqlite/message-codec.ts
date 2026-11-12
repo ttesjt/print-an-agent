@@ -3,8 +3,8 @@ import {
   type AssistantModelMessage,
   type ContextModelMessage,
   type UserModelMessage,
-} from '@ta-agent/model-invocation-core';
-import { AgentSessionError, MAX_SESSION_COMPACTION_CHARACTERS } from '@ta-agent/base-session';
+} from '@print-an-agent/model-invocation-core';
+import { AgentSessionError, MAX_SESSION_COMPACTION_CHARACTERS } from '@print-an-agent/base-session';
 
 const MESSAGE_SCHEMA_VERSION = 1;
 const USER_MESSAGE_KEYS = Object.freeze(['role', 'schemaVersion', 'text', 'timestamp']);

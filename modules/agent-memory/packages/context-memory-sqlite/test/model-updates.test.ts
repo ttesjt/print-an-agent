@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { createMemoryCompactDefinition } from '@ta-agent/context-memory';
+import { createMemoryCompactDefinition } from '@print-an-agent/context-memory';
 import { modelFixture, firstId } from './support/model.js';
 
 it('observes structured experience, preserves metadata, and replays without another model call', async () => {

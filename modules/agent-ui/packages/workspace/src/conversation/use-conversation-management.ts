@@ -1,4 +1,4 @@
-import type { SessionRevision } from '@ta-agent/ui-contracts';
+import type { SessionRevision } from '@print-an-agent/ui-contracts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { KeyedOperationOwnership } from '../application/operation-ownership.js';

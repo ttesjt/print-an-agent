@@ -1,4 +1,4 @@
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import { AgentSessionError } from '../errors.js';
 import { parseSessionId, parseTurnId } from '../identifiers.js';
 import type { ListSessionsInput, ListSessionTurnsInput, SessionListCursor } from './contracts.js';

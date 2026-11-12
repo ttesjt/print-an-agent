@@ -1,4 +1,4 @@
-import { runWithExecutionTimeout } from '@ta-agent/workflow-core';
+import { runWithExecutionTimeout } from '@print-an-agent/workflow-core';
 import type { ModelMemoryOperation } from '../contracts/model.js';
 import { ContextMemoryError, assertMemoryNotAborted } from '../errors.js';
 import {

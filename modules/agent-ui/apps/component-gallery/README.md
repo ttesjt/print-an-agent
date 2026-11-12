@@ -7,7 +7,7 @@ combinations with bounded or natural-height reasoning content. Start, append, fi
 explicit deterministic application actions, not provider lifecycle detection. Manually toggle a
 block to take over automatic behavior. Navigation also exhibits all three semantic height limits.
 
-The Gallery imports reusable components only through `@ta-agent/ui-react` public exports and loads
+The Gallery imports reusable components only through `@print-an-agent/ui-react` public exports and loads
 the optional default visual system explicitly. It has no Agent Base backend, transport, product
 state, or reusable component implementation of its own. It currently qualifies Panel, layout,
 App Shell, themes, actions, form controls, accessible field relationships, and feedback states.
@@ -36,7 +36,7 @@ target or repair public `ta-ui-*` component hooks.
 Run its production build and qualification with:
 
 ```sh
-pnpm --filter @ta-agent/ui-component-gallery test
+pnpm --filter @print-an-agent/ui-component-gallery test
 ```
 
-Run it locally with `pnpm --filter @ta-agent/ui-component-gallery dev`.
+Run it locally with `pnpm --filter @print-an-agent/ui-component-gallery dev`.

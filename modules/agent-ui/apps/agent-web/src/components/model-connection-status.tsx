@@ -7,7 +7,7 @@ import {
   PanelHeader,
   Stack,
   Status,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 import type { ModelManagementController } from '../agent/use-model-management.js';
 
 export function ModelConnectionStatus({

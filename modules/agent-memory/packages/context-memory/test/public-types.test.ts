@@ -4,7 +4,7 @@ import type {
   ItemCommand,
   MemoryStore,
   ReadContextInput,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 
 it('keeps add identities, per-read render overrides and target modes out of the public contract', () => {
   expectTypeOf<MemoryStore['commit']>().toBeFunction();

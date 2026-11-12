@@ -6,7 +6,7 @@ import type {
   SucceededTrainingBaseRun,
   SucceededTrainingModificationRun,
   TrainingModelBase,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 export interface SucceededTrainingBaseCommit {
   readonly run: SucceededTrainingBaseRun;

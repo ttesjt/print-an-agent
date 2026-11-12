@@ -1,7 +1,7 @@
 import { lstatSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { AgentIdentityError } from '@ta-agent/base-identity';
+import { AgentIdentityError } from '@print-an-agent/base-identity';
 
 const DEFAULT_BUSY_TIMEOUT_MILLISECONDS = 5_000;
 const MAX_BUSY_TIMEOUT_MILLISECONDS = 2_147_483_647;

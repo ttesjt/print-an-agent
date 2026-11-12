@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { InvalidWorkbenchValueError } from '@ta-agent/workbench-domain';
+import { InvalidWorkbenchValueError } from '@print-an-agent/workbench-domain';
 
 import {
   JsonSchemaContractValidator,

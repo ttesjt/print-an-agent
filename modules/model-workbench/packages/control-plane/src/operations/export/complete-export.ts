@@ -14,15 +14,15 @@ import {
   type ExportLineage,
   type NamedOutputArtifact,
   type TerminalExportRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   ExecutionStatus,
   type ExecutionTerminal,
   type ExportCapabilityResult,
   type ExportedArtifact,
-} from '@ta-agent/workbench-extension';
-import type { ExportCommitter } from '@ta-agent/workbench-persistence';
-import type { ResolvedExporterSlot } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-extension';
+import type { ExportCommitter } from '@print-an-agent/workbench-persistence';
+import type { ResolvedExporterSlot } from '@print-an-agent/workbench-setup';
 
 import { ExportArtifactVerificationError } from './errors.js';
 import type { ModelWorkbenchOperationOptions } from '../../execution/contracts.js';

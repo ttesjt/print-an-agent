@@ -1,7 +1,7 @@
 import {
   ModelInvocationError,
   defineProviderModelReference,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { PiOpenAICompatibleProviderCompatibility } from './types.js';
 
 const BUILTIN_PROVIDER_CONFIG_KEYS = Object.freeze(['kind', 'reference']);

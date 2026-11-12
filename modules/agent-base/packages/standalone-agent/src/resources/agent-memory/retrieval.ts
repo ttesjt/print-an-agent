@@ -3,7 +3,7 @@ import {
   type RetrievalMemoryManagementCapability,
   type MemoryManagementOptions,
   type MemoryProvisioningRequest,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   createRetrievalContentBundle,
   createRetrievalQueries,
@@ -17,8 +17,8 @@ import {
   defineRetrievalPolicy,
   RetrievalMemoryError,
   type SpaceInput,
-} from '@ta-agent/retrieval-memory';
-import { WorkflowBundle } from '@ta-agent/workflow-bundle';
+} from '@print-an-agent/retrieval-memory';
+import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
 import { DEFAULT_MEMORY_MEASUREMENT_REF } from './recipe.js';
 import type { StandaloneMemoryManagementOptions } from './contracts.js';
 import type { MemoryAllocationResolver } from './context.js';

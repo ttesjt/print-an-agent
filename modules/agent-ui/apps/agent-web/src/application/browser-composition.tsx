@@ -1,4 +1,4 @@
-import { BrowserAgentWorkspace } from '@ta-agent/ui-workspace';
+import { BrowserAgentWorkspace } from '@print-an-agent/ui-workspace';
 import { useMemo } from 'react';
 import { createDefaultConnection } from './default-extension.js';
 import type { AppProps } from '../app.js';

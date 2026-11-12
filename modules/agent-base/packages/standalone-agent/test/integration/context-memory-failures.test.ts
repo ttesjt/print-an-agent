@@ -3,7 +3,7 @@ import {
   createAgentManagementService,
   createContextMemoryManagementService,
   MemoryManagementError,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   assertMemoryNotAborted,
   ContextMemoryError,
@@ -11,8 +11,11 @@ import {
   parseDeterministicMemoryRequest,
   requestDigest,
   type MemoryWorkflowDefinitions,
-} from '@ta-agent/context-memory';
-import { createTokenCounter, TEXT_TOKEN_INPUT_CONTRACT } from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/context-memory';
+import {
+  createTokenCounter,
+  TEXT_TOKEN_INPUT_CONTRACT,
+} from '@print-an-agent/model-invocation-core';
 import { createStandaloneMemorySetup } from '../../src/index.js';
 import { resourceProfileConfig } from '../support/resource-profile.js';
 

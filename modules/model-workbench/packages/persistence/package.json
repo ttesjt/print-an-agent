@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/workbench-persistence",
+  "name": "@print-an-agent/workbench-persistence",
   "version": "0.1.0",
   "description": "Model Workbench persistence ports and pluggable storage adapters.",
   "private": true,
@@ -25,7 +25,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/workbench-domain": "workspace:*"
+    "@print-an-agent/workbench-domain": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

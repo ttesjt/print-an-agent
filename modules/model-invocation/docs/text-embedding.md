@@ -1,9 +1,9 @@
 # Text embedding
 
 Text embedding is an independent model-invocation capability, not a generation Actor mode.
-`@ta-agent/model-invocation-core` exports its contracts, error class, task constants and
+`@print-an-agent/model-invocation-core` exports its contracts, error class, task constants and
 `createTextEmbedder()`. Optional HTTP execution lives in
-`@ta-agent/model-invocation-embedding-http`. Neither requires an Agent, Session, Workflow, catalog,
+`@print-an-agent/model-invocation-embedding-http`. Neither requires an Agent, Session, Workflow, catalog,
 generation capability, vector database or retrieval metric.
 
 ## Public contract
@@ -116,7 +116,7 @@ import {
   createTextEmbedder,
   EMBEDDING_TASK,
   type TextEmbedderDefinition,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 
 const definition: TextEmbedderDefinition = {
   representation: {
@@ -202,8 +202,8 @@ logs indiscriminately.
 ## HTTP adapter
 
 ```ts
-import { EMBEDDING_TASK } from '@ta-agent/model-invocation-core';
-import { createHttpTextEmbedder } from '@ta-agent/model-invocation-embedding-http';
+import { EMBEDDING_TASK } from '@print-an-agent/model-invocation-core';
+import { createHttpTextEmbedder } from '@print-an-agent/model-invocation-embedding-http';
 
 const embedder = createHttpTextEmbedder({
   config: {

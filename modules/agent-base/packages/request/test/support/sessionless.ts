@@ -4,7 +4,7 @@ import {
   type ActorEngineInput,
   type ActorInteractionHandler,
   type AssistantModelMessage,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { SessionlessOutputSink } from '../../src/index.js';
 
 export function interactionActor(interact: ActorInteractionHandler) {

@@ -1,4 +1,4 @@
-import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import {
   AgentConfigError,
@@ -8,7 +8,7 @@ import {
   type AgentConfigWriteAdapter,
   type AgentConfigWriteRequest,
   type ConfigValue,
-} from '@ta-agent/base-config';
+} from '@print-an-agent/base-config';
 import {
   defineConfigDatabaseConfiguration,
   runConfigTransaction,

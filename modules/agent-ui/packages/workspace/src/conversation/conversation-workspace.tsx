@@ -1,7 +1,7 @@
 import type {
   CompletedConversationTurn,
   ConversationTurn as TurnValue,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import {
   Alert,
   Button,
@@ -15,7 +15,7 @@ import {
   type ConversationComposerState,
   type ConversationTurnLabels,
   type ConversationTurnProps,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import type { SessionSelectionState } from '../session/use-session-management.js';

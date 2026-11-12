@@ -1,12 +1,12 @@
 import { expect, it } from 'vitest';
-import { Workflow, skipWorkflow } from '@ta-agent/workflow-core';
+import { Workflow, skipWorkflow } from '@print-an-agent/workflow-core';
 import {
   createContextMemoryBundle,
   createModelMemoryResources,
   createMemoryObserveDefinition,
   createMemoryEditDefinition,
   ContextMemoryError,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { borrowed } from './support/fixtures.js';
 import { modelFixture } from './support/model.js';
 

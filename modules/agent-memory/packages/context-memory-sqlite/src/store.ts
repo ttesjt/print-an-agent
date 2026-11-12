@@ -13,7 +13,7 @@ import {
   type MemorySnapshot,
   type MemoryReceipt,
   type StoreCommit,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { initializeMemorySchema } from './schema.js';
 import { readSnapshot, readReceipt } from './records.js';
 import { commitTransaction, forkTransaction } from './transaction.js';

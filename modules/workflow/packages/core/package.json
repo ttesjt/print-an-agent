@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/workflow-core",
+  "name": "@print-an-agent/workflow-core",
   "version": "0.1.0",
   "private": true,
   "type": "module",

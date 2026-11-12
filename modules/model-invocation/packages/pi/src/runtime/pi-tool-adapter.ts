@@ -1,7 +1,10 @@
 import type { AgentTool } from '@earendil-works/pi-agent-core';
-import { ModelInvocationError, type ToolExecutionOutcome } from '@ta-agent/model-invocation-core';
-import type { InteractionTools } from '@ta-agent/model-invocation-core';
-import { type ToolDescriptor, type ToolValueSchema } from '@ta-agent/model-invocation-core';
+import {
+  ModelInvocationError,
+  type ToolExecutionOutcome,
+} from '@print-an-agent/model-invocation-core';
+import type { InteractionTools } from '@print-an-agent/model-invocation-core';
+import { type ToolDescriptor, type ToolValueSchema } from '@print-an-agent/model-invocation-core';
 import { Type, type TSchema } from 'typebox';
 
 export interface PiToolAdapterState {

@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { afterEach, expect, it } from 'vitest';
-import type { ConversationInteractionEvent, WorkspacePorts } from '@ta-agent/ui-contracts';
+import type { ConversationInteractionEvent, WorkspacePorts } from '@print-an-agent/ui-contracts';
 import { createHttpWorkspacePorts } from '../src/browser.js';
 import {
   dispatchWorkspaceCommand,

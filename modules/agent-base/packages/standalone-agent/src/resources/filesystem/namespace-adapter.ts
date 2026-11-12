@@ -6,8 +6,8 @@ import {
   type ManagedAgentNamespace,
   type ManagedAgentNamespacePort,
   type StagedManagedAgentNamespace,
-} from '@ta-agent/base-composition';
-import { isAgentId, parseAgentId, type AgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-composition';
+import { isAgentId, parseAgentId, type AgentId } from '@print-an-agent/base-identity';
 import { AgentBaseStandaloneError } from '../../errors.js';
 import type { FilesystemAgentResourceNamespace } from './types.js';
 

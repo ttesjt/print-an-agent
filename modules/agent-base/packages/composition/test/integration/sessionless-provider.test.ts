@@ -1,16 +1,16 @@
 import { expect, it } from 'vitest';
-import { createActor } from '@ta-agent/model-invocation-core';
+import { createActor } from '@print-an-agent/model-invocation-core';
 import {
   createSessionlessRequestWorkflow,
   buildRequestTools,
   type OutputStreamEvent,
-} from '@ta-agent/base-request';
+} from '@print-an-agent/base-request';
 import {
   createToolRegistry,
   defineTool,
   defineToolPermissionPolicy,
   AgentToolError,
-} from '@ta-agent/base-tool';
+} from '@print-an-agent/base-tool';
 import { createProviderRuntime } from '../../src/index.js';
 import { scriptedProviderServer } from '../support/scripted-provider-server.js';
 

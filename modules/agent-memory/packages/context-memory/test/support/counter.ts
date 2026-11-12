@@ -3,7 +3,7 @@ import {
   TEXT_TOKEN_INPUT_CONTRACT,
   type TokenCounter,
   type TextTokenInput,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 
 /** Test-only vocabulary: one token per UTF-16 code unit. */
 export function testCounter(

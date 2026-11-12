@@ -1,9 +1,9 @@
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   parseSessionId,
   type SessionReference,
   type SessionWriteAuthority,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import {
   AgentRequestError,
@@ -22,7 +22,7 @@ import {
   type RequestJournalClaim,
   type RequestJournalEntry,
   type RequestJournalReference,
-} from '@ta-agent/base-request';
+} from '@print-an-agent/base-request';
 import {
   defineRequestJournalDatabaseConfiguration,
   readJournalClock,

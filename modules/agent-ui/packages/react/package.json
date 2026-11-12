@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/ui-react",
+  "name": "@print-an-agent/ui-react",
   "version": "0.1.0",
   "description": "Unstyled React behavior and accessible component structure for Agent UI.",
   "private": true,
@@ -32,7 +32,7 @@
     "react-dom": ">=19.0.0 <20"
   },
   "dependencies": {
-    "@ta-agent/ui-contracts": "workspace:*"
+    "@print-an-agent/ui-contracts": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "19.3.0",

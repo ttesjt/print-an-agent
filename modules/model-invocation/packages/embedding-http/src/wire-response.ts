@@ -2,7 +2,7 @@ import {
   EmbeddingError,
   type TextEmbeddingRequest,
   type TextEmbeddingVector,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 
 function isRecord(input: unknown): input is Record<string, unknown> {
   return typeof input === 'object' && input !== null && !Array.isArray(input);

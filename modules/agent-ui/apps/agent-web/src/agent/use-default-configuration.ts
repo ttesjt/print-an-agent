@@ -3,8 +3,8 @@ import type {
   AgentFieldError,
   AgentIdentityDraft,
   AgentManagementFailure,
-} from '@ta-agent/ui-contracts';
-import type { AgentIdentityFieldErrors } from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-contracts';
+import type { AgentIdentityFieldErrors } from '@print-an-agent/ui-react';
 import { useEffect, useRef, useState } from 'react';
 import type { AgentConfigFieldErrors, AgentWebConfig } from '../application/agent-config.js';
 import { DEFAULT_AGENT_CONFIG } from '../application/agent-config.js';

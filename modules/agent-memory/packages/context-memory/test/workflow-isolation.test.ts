@@ -3,7 +3,7 @@ import {
   createContextMemoryBundle,
   createContextMemoryResources,
   MemoryMeter,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { testCounter } from './support/counter.js';
 import { gate, TestMemoryStore } from './support/store.js';
 

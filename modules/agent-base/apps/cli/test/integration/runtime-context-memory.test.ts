@@ -6,7 +6,7 @@ import { expect, it, onTestFinished } from 'vitest';
 import {
   createStandaloneDirectoryManagementService,
   createStandaloneDirectorySetup,
-} from '@ta-agent/base-standalone-agent';
+} from '@print-an-agent/base-standalone-agent';
 import { loadAgentBaseCliRuntime } from '../../src/host-loaders.js';
 import { withCliRuntime } from '../../src/owned-runtime.js';
 

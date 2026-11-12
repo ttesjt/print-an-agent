@@ -1,22 +1,22 @@
-import type { ResolvedResponsibility, ResponsibilityRouter } from '@ta-agent/base-actor';
-import type { ActorInteractionRequest } from '@ta-agent/model-invocation-core';
-import type { ModelMessage, UserModelMessage } from '@ta-agent/model-invocation-core';
+import type { ResolvedResponsibility, ResponsibilityRouter } from '@print-an-agent/base-actor';
+import type { ActorInteractionRequest } from '@print-an-agent/model-invocation-core';
+import type { ModelMessage, UserModelMessage } from '@print-an-agent/model-invocation-core';
 import type {
   ActiveSessionTurn,
   ResolvedSessionReference,
   SessionPort,
   SessionTurnPresentation,
   SessionWriteAuthority,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import type {
   ToolExecutionPolicy,
   ToolName,
   ToolRegistry,
   ToolRuntime,
   ToolPermissionPolicy,
-} from '@ta-agent/base-tool';
-import type { BaseAgentRunContext } from '@ta-agent/base-runtime';
-import type { WorkflowContext } from '@ta-agent/workflow-core';
+} from '@print-an-agent/base-tool';
+import type { BaseAgentRunContext } from '@print-an-agent/base-runtime';
+import type { WorkflowContext } from '@print-an-agent/workflow-core';
 import type { RequestStepName } from '../workflow/names.js';
 import type { RequestInteractionState } from '../interaction/state.js';
 import type { RequestContextMemory, RequestMemoryRun } from '../context-memory/contracts.js';

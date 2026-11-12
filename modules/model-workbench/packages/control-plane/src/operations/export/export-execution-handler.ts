@@ -12,25 +12,25 @@ import {
   type StartingExportRun,
   type StartingModelRun,
   type TerminalExportRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   ExecutionStatus,
   WorkbenchExtensionError,
   type ExecutionSupportRuntime,
   type ExecutionTerminal,
   type ExportCapabilityResult,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import {
   WorkbenchPersistenceError,
   type ExportCommitter,
   type RunRepository,
-} from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-persistence';
 import {
   findResolvedExporter,
   findResolvedProfile,
   type ResolvedExporterSlot,
   type ResolvedWorkbenchSetup,
-} from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-setup';
 
 import { completeExport, recordExportFailure } from './complete-export.js';
 import { ExportArtifactVerificationError, ExportCapabilityError } from './errors.js';

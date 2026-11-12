@@ -2,14 +2,14 @@ import type {
   TextEmbeddingCapability,
   TextTokenInput,
   TokenCounter,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   createCodepointChunker,
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
   COSINE_METRIC_REF,
   type RetrievalBackend,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 /** Host composition only. The caller owns its backend/model and drains runs before closing them. */
 export function composeProjectKnowledge(options: {
   readonly backend: RetrievalBackend;

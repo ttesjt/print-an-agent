@@ -1,4 +1,4 @@
-import { WorkflowBundle } from '@ta-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
 import type { MemorySnapshot } from '../contracts/document.js';
 import type {
   ForkMemoryInput,

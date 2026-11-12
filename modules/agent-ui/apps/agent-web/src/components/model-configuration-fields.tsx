@@ -6,7 +6,7 @@ import {
   Select,
   Stack,
   TextInput,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 import type {
   AgentConfigFieldErrors,
   AgentWebConfig,

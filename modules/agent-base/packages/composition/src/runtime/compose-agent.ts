@@ -1,20 +1,20 @@
-import { createResponsibilityRouter, MAIN_ACTOR_ID } from '@ta-agent/base-actor';
-import { type ActorId } from '@ta-agent/model-invocation-core';
-import { defineAgentIdentity } from '@ta-agent/base-identity';
-import { NOOP_AGENT_TRACE_SINK } from '@ta-agent/base-observability';
+import { createResponsibilityRouter, MAIN_ACTOR_ID } from '@print-an-agent/base-actor';
+import { type ActorId } from '@print-an-agent/model-invocation-core';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { NOOP_AGENT_TRACE_SINK } from '@print-an-agent/base-observability';
 import {
   MemoryOutputSink,
   MemoryRequestJournalAdapter,
   MemorySessionAdapter,
   createMemorySessionPersistence,
-} from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-local-adapters';
 import {
   AgentRequestError,
   DEFAULT_REQUEST_POLICY,
   validateRequestPolicy,
   type RequestAgentRunContext,
   type RequestPolicy,
-} from '@ta-agent/base-request';
+} from '@print-an-agent/base-request';
 import {
   AgentSessionError,
   createDefaultSessionCompactionStepOverrides,
@@ -29,21 +29,21 @@ import {
   bindSessionCompactionTokenCounter,
   type CompactSessionInput,
   type SessionCompactionAgentRunContext,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   DEFAULT_TOOL_EXECUTION_POLICY,
   EMPTY_TOOL_REGISTRY,
   parseToolName,
   type ToolName,
   validateToolExecutionPolicy,
-} from '@ta-agent/base-tool';
+} from '@print-an-agent/base-tool';
 import {
   bindAgentWorkflow,
   createAgent,
   defineAgentOperation,
   type AgentOperationDefinitionMap,
-} from '@ta-agent/base-runtime';
-import { mergeStepOverrides, runWithExecutionTimeout } from '@ta-agent/workflow-core';
+} from '@print-an-agent/base-runtime';
+import { mergeStepOverrides, runWithExecutionTimeout } from '@print-an-agent/workflow-core';
 import { composeRequestWorkflow } from './request-workflow.js';
 import { AgentCompositionError } from './composition-error.js';
 import {

@@ -4,14 +4,14 @@ import type {
   SessionBranchSelectionOutcome,
   SessionNavigationInspectionOutcome,
   SessionNavigationService,
-} from '@ta-agent/base-composition';
-import { parseAgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-composition';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   parseSessionBranchId,
   parseSessionId,
   parseTurnId,
   type SessionNavigationOperationOptions,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 
 export interface StandaloneSessionNavigationReferenceInput {
   readonly agentId: string;

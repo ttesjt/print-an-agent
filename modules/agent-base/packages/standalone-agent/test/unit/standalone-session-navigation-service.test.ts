@@ -1,11 +1,11 @@
-import type { SessionNavigationService } from '@ta-agent/base-composition';
-import { parseAgentId } from '@ta-agent/base-identity';
+import type { SessionNavigationService } from '@print-an-agent/base-composition';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   DEFAULT_SESSION_BRANCH_ID,
   parseSessionBranchId,
   parseSessionId,
   type SessionNavigationSnapshot,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import { describe, expect, it, vi } from 'vitest';
 import { projectStandaloneSessionNavigationService } from '../../src/index.js';
 

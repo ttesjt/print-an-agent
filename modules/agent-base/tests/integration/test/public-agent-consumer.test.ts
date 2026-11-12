@@ -3,17 +3,17 @@ import {
   MAIN_ACTOR_ID,
   createActorCatalog,
   createResponsibilityCatalog,
-} from '@ta-agent/base-actor';
-import { type ActorEngineInteractionRequest } from '@ta-agent/model-invocation-core';
-import { composeAgent, createAgentAPI } from '@ta-agent/base-composition';
-import { MemoryAgentTraceAdapter, MemoryOutputSink } from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-actor';
+import { type ActorEngineInteractionRequest } from '@print-an-agent/model-invocation-core';
+import { composeAgent, createAgentAPI } from '@print-an-agent/base-composition';
+import { MemoryAgentTraceAdapter, MemoryOutputSink } from '@print-an-agent/base-local-adapters';
 import {
   ModelInvocationError,
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/model-invocation-core';
-import type { DefaultRequestWorkflowContext } from '@ta-agent/base-request';
-import { createToolRegistry, defineTool } from '@ta-agent/base-tool';
+} from '@print-an-agent/model-invocation-core';
+import type { DefaultRequestWorkflowContext } from '@print-an-agent/base-request';
+import { createToolRegistry, defineTool } from '@print-an-agent/base-tool';
 import { describe, expect, it, vi } from 'vitest';
 
 function createAssistantMessage(text: string) {

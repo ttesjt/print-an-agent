@@ -6,8 +6,8 @@ import {
   FormField,
   Select,
   Stack,
-} from '@ta-agent/ui-react';
-import type { WorkspaceEditBoundary } from '@ta-agent/ui-workspace';
+} from '@print-an-agent/ui-react';
+import type { WorkspaceEditBoundary } from '@print-an-agent/ui-workspace';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { WebMemoryPorts } from '../contracts.js';
 import { ContextMemoryPanel } from './context.js';

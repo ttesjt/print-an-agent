@@ -31,7 +31,7 @@ import {
   type StartingExportRun,
   type StartingInitializationRun,
   type StartingTrainingRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import type {
   SucceededExportCommit,

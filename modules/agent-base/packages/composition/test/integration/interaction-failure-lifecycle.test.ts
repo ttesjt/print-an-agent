@@ -1,4 +1,4 @@
-import type { ModelInteractionEventSink } from '@ta-agent/model-invocation-core';
+import type { ModelInteractionEventSink } from '@print-an-agent/model-invocation-core';
 import { describe, expect, it, vi } from 'vitest';
 import { interactionAgent, interactionMessage } from '../support/interaction-agent.js';
 

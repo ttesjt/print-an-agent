@@ -2,7 +2,7 @@ import {
   bindTextTokenCounter,
   type TextTokenInput,
   type TokenCounter,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { ExecutionPolicy } from '../contracts/document.js';
 import type { MemoryPlanner } from '../contracts/model.js';
 import type { MemoryMutationResources } from '../domain/mutations.js';
@@ -14,7 +14,7 @@ import {
 } from '../planning/feedback.js';
 import { createContextMemoryResources, type MemoryWorkflowResources } from './resources.js';
 import { ContextMemoryError } from '../errors.js';
-import { MAX_EXECUTION_TIMEOUT_MILLISECONDS } from '@ta-agent/workflow-core';
+import { MAX_EXECUTION_TIMEOUT_MILLISECONDS } from '@print-an-agent/workflow-core';
 
 export interface ModelMemoryResources extends MemoryWorkflowResources {
   readonly updates: MemoryUpdatePort;

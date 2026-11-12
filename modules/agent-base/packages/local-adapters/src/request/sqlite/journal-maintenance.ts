@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { REQUEST_EXECUTION_INTERRUPTED } from '@ta-agent/base-request';
-import { normalizeSessionReference, type SessionReference } from '@ta-agent/base-session';
+import { REQUEST_EXECUTION_INTERRUPTED } from '@print-an-agent/base-request';
+import { normalizeSessionReference, type SessionReference } from '@print-an-agent/base-session';
 import {
   quoteSqliteIdentifier as quote,
   type SqliteRequestJournalTableNames,

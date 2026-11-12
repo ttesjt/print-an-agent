@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { isAbsolute, resolve } from 'node:path';
 
-import { canonicalJson, parseJsonValue } from '@ta-agent/workbench-domain';
+import { canonicalJson, parseJsonValue } from '@print-an-agent/workbench-domain';
 
 import {
   DEFAULT_LOCAL_COMMAND_CANCELLATION_GRACE_MILLISECONDS,

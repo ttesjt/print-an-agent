@@ -1,5 +1,5 @@
 {
-  "name": "@ta-agent/base-cli",
+  "name": "@print-an-agent/base-cli",
   "version": "0.1.0",
   "description": "Thin standalone command-line entry point for Agent Base.",
   "private": true,
@@ -32,7 +32,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@ta-agent/base-standalone-agent": "workspace:*"
+    "@print-an-agent/base-standalone-agent": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

@@ -4,7 +4,7 @@ import {
   type Step,
   type WorkflowContext,
   type WorkflowDefinition,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 
 export type Names = 'main' | 'a' | 'b' | 'c';
 export type Context = WorkflowContext<

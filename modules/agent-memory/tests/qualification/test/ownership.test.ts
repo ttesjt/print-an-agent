@@ -1,6 +1,6 @@
 import { setImmediate } from 'node:timers/promises';
 import { expect, it } from 'vitest';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import { consumer } from './support/model.js';
 import { memoryPath, ownedStore, gate, borrowDatabase } from './support/storage.js';
 

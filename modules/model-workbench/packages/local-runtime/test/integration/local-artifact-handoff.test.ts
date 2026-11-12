@@ -7,7 +7,7 @@ import {
   parseArtifactReference,
   parseProfileId,
   parseSha256Digest,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {

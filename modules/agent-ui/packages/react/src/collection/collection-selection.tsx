@@ -1,4 +1,4 @@
-import type { CollectionChoice, CollectionReference } from '@ta-agent/ui-contracts';
+import type { CollectionChoice, CollectionReference } from '@print-an-agent/ui-contracts';
 import type { ReactNode } from 'react';
 
 import { Button } from '../actions/button.js';

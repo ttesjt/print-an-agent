@@ -8,7 +8,7 @@ import {
   type SessionNavigationPorts,
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import { withStandaloneMemoryManagement } from '../resources/agent-memory/setup.js';
 import type { StandaloneMemoryManagementOptions } from '../resources/agent-memory/contracts.js';
 import { STANDALONE_AGENT_CONFIG_CODEC } from '../config.js';

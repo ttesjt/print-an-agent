@@ -3,7 +3,7 @@ import type {
   CollectionReference,
   RecentCollection,
   RecentCollectionsPersistencePort,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export const RECENT_COLLECTION_LIMIT = 12;

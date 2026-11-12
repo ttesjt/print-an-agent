@@ -3,16 +3,16 @@ import type {
   SessionMemoryRecordKey,
   WriteSessionMemoryRecord,
   PublishSessionMemoryNavigation,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   readSessionMemoryRecord,
   writeSessionMemoryRecord,
   pendingSessionMemoryRecords,
   sessionHasMemoryBindings,
 } from './session-memory-storage.js';
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import type { DatabaseSync } from 'node:sqlite';
-import type { ModelMessage } from '@ta-agent/model-invocation-core';
+import type { ModelMessage } from '@print-an-agent/model-invocation-core';
 import {
   parseSessionId,
   parseTurnId,
@@ -58,7 +58,7 @@ import {
   type ListRetiredSessionsInput,
   type RetiredSessionListPage,
   AgentSessionError,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   defineSqliteDatabaseConfiguration,
   useSqliteDatabase,

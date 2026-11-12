@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { expect, it, vi } from 'vitest';
-import { ContextMemoryError } from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+import { ContextMemoryError } from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import { domain } from './support/fixtures.js';
 
 it('preserves transaction cleanup and native close failures independently', async () => {

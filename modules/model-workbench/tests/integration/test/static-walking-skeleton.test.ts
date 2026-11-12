@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createModelWorkbench } from '@ta-agent/workbench-application';
+import { createModelWorkbench } from '@print-an-agent/workbench-application';
 import {
   CapabilityDispatchKind,
   JsonValueContract,
@@ -8,8 +8,8 @@ import {
   defineExecutionSupport,
   defineInitializerCapability,
   ExecutionStatus,
-} from '@ta-agent/workbench-extension';
-import { RuntimeBindingKind } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-extension';
+import { RuntimeBindingKind } from '@print-an-agent/workbench-setup';
 
 describe('static Model Workbench walking skeleton', () => {
   it('calls a resolved Capability and retains only resulting dynamic assets', async () => {

@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { Workflow } from '@ta-agent/workflow-core';
+import { Workflow } from '@print-an-agent/workflow-core';
 
 it('cannot hide a late executor protocol violation inside a success hook', async () => {
   let retained: (() => Promise<void>) | undefined;

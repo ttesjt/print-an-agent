@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { createTextEmbedder } from '@ta-agent/model-invocation-core';
+import { createTextEmbedder } from '@print-an-agent/model-invocation-core';
 import {
   COSINE_METRIC_REF,
   createCodepointChunker,
   createRetrievalMutations,
   RetrievalMemoryError,
-} from '@ta-agent/retrieval-memory';
-import { openSqliteRetrievalBackend } from '@ta-agent/retrieval-memory-sqlite';
+} from '@print-an-agent/retrieval-memory';
+import { openSqliteRetrievalBackend } from '@print-an-agent/retrieval-memory-sqlite';
 
 const path = process.argv[2]!;
 const doubleFault = process.env.RETRIEVAL_TEST_DOUBLE_FAULT === '1';

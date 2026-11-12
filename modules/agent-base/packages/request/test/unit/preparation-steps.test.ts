@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Step } from '@ta-agent/workflow-core';
+import type { Step } from '@print-an-agent/workflow-core';
 import {
   resolveRequestInstructions,
   type InstructionsStepContext,

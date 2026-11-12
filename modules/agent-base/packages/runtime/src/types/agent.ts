@@ -1,5 +1,5 @@
-import type { AgentId, AgentIdentity } from '@ta-agent/base-identity';
-import type { AgentTraceRuntimeOptions } from '@ta-agent/base-observability';
+import type { AgentId, AgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentTraceRuntimeOptions } from '@print-an-agent/base-observability';
 import type {
   AgentOperationDefinitionMap,
   AgentOperationInputFromDefinition,

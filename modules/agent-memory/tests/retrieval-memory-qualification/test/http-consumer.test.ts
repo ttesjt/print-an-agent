@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { createHttpTextEmbedder } from '@ta-agent/model-invocation-embedding-http';
-import { createTiktokenTextCounter } from '@ta-agent/model-invocation-token-counters';
+import { createHttpTextEmbedder } from '@print-an-agent/model-invocation-embedding-http';
+import { createTiktokenTextCounter } from '@print-an-agent/model-invocation-token-counters';
 import { expect, it, onTestFinished } from 'vitest';
 import { composeProjectKnowledge } from '../examples/project-knowledge.js';
 import { fixture } from './support/fixture.js';

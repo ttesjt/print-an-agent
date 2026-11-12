@@ -2,16 +2,19 @@ import {
   createSessionContextMemory,
   type ContextMemoryWorkflows,
   type SessionContextMemoryService,
-} from '@ta-agent/base-composition';
-import { supportsSessionMemoryNavigation, supportsSessionExecution } from '@ta-agent/base-session';
+} from '@print-an-agent/base-composition';
+import {
+  supportsSessionMemoryNavigation,
+  supportsSessionExecution,
+} from '@print-an-agent/base-session';
 import {
   createVersionedContextMemoryBundle,
   createVersionedContextMemoryResources,
   MemoryMeter,
   supportsMemoryHistory,
-} from '@ta-agent/context-memory';
-import type { ManagedAgentNamespace } from '@ta-agent/base-composition';
-import type { RuntimeMemorySessionPort } from '@ta-agent/base-composition';
+} from '@print-an-agent/context-memory';
+import type { ManagedAgentNamespace } from '@print-an-agent/base-composition';
+import type { RuntimeMemorySessionPort } from '@print-an-agent/base-composition';
 import type { StandaloneMemoryManagementOptions } from './contracts.js';
 import type { MemoryAllocationResolver } from './context.js';
 import { DEFAULT_MEMORY_MEASUREMENT_REF } from './recipe.js';

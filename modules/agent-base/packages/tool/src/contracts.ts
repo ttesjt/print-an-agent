@@ -3,7 +3,7 @@ import type {
   ToolDescriptor,
   ToolObjectSchema,
   ToolSchemaValue,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 declare const toolNameBrand: unique symbol;
 declare const toolCallIdBrand: unique symbol;
 

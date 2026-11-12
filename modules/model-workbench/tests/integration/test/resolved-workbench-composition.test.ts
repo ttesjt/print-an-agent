@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createWorkbenchControlPlane } from '@ta-agent/workbench-control-plane';
+import { createWorkbenchControlPlane } from '@print-an-agent/workbench-control-plane';
 import {
   CapabilityDispatchKind,
   JsonSchemaDialect,
@@ -9,12 +9,12 @@ import {
   defineInitializerCapability,
   defineJsonSchemaContract,
   ExecutionStatus,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import {
   createMemoryPersistence,
   createSharedProfilePersistenceAdapter,
-} from '@ta-agent/workbench-persistence';
-import { RuntimeBindingKind, resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-persistence';
+import { RuntimeBindingKind, resolveWorkbenchSetup } from '@print-an-agent/workbench-setup';
 
 describe('resolved Workbench composition', () => {
   it('runs one governed Capability plus Runtime Support operation through both layers', async () => {

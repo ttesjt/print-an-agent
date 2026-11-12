@@ -1,4 +1,7 @@
-import type { ConversationReasoningBlock, ConversationUserMessage } from '@ta-agent/ui-contracts';
+import type {
+  ConversationReasoningBlock,
+  ConversationUserMessage,
+} from '@print-an-agent/ui-contracts';
 import {
   TEMPORARY_EVENT as E,
   type TemporaryConversationPort,
@@ -10,7 +13,7 @@ import {
   type TemporaryTerminalEvent,
 } from './protocol.js';
 import { parseTemporaryRequest, TEMPORARY_LIMITS } from './validation.js';
-import { integer } from '@ta-agent/ui-transport';
+import { integer } from '@print-an-agent/ui-transport';
 
 export interface TemporaryTarget {
   readonly agentId: string;

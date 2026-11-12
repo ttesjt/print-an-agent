@@ -1,5 +1,5 @@
 import type { ToolHandlerResult } from '../contracts.js';
-import type { ToolExecutionOutcome } from '@ta-agent/model-invocation-core';
+import type { ToolExecutionOutcome } from '@print-an-agent/model-invocation-core';
 import { AgentToolError } from '../errors.js';
 
 /** Cancellation is cooperative: do not release the caller until the handler has settled. */

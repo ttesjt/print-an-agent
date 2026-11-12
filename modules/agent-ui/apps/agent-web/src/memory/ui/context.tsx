@@ -10,8 +10,8 @@ import {
   Stack,
   Textarea,
   TextInput,
-} from '@ta-agent/ui-react';
-import { useRevisionedEditor } from '@ta-agent/ui-workspace';
+} from '@print-an-agent/ui-react';
+import { useRevisionedEditor } from '@print-an-agent/ui-workspace';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ContextMemoryPort } from '../contracts.js';
 import type { contextReceipt, contextSnapshot } from '../schemas/context.js';

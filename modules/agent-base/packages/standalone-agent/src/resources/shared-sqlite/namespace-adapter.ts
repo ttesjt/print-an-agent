@@ -5,8 +5,8 @@ import {
   ManagedAgentNamespaceError,
   type ManagedAgentNamespacePort,
   type StagedManagedAgentNamespace,
-} from '@ta-agent/base-composition';
-import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-composition';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
 import { AgentBaseStandaloneError } from '../../errors.js';
 import type { SharedSqliteAgentResourceNamespace } from './types.js';
 import {

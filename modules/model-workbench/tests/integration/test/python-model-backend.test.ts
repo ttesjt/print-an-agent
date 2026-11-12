@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createModelWorkbench } from '@ta-agent/workbench-application';
-import { ModelOperationKind, ModelRunStatus } from '@ta-agent/workbench-domain';
-import { OutputInvocationKind } from '@ta-agent/workbench-extension';
+import { createModelWorkbench } from '@print-an-agent/workbench-application';
+import { ModelOperationKind, ModelRunStatus } from '@print-an-agent/workbench-domain';
+import { OutputInvocationKind } from '@print-an-agent/workbench-extension';
 import {
   PythonModelBackendDevice,
   PythonModelBackendDType,
@@ -14,7 +14,7 @@ import {
   PythonModelBackendSlotId,
   TinyTransformerOutputFormat,
   createPythonModelBackendDefinition,
-} from '@ta-agent/workbench-python-model-backend-template-adapter';
+} from '@print-an-agent/workbench-python-model-backend-template-adapter';
 import { describe, expect, it } from 'vitest';
 
 const PROFILE_ID = 'profile.python-model-backend';

@@ -1,6 +1,6 @@
-import type { WorkbenchClock, WorkbenchIdSource } from '@ta-agent/workbench-control-plane';
-import type { ProfilePersistenceAdapter } from '@ta-agent/workbench-persistence';
-import type { WorkbenchExtensionResources } from '@ta-agent/workbench-setup';
+import type { WorkbenchClock, WorkbenchIdSource } from '@print-an-agent/workbench-control-plane';
+import type { ProfilePersistenceAdapter } from '@print-an-agent/workbench-persistence';
+import type { WorkbenchExtensionResources } from '@print-an-agent/workbench-setup';
 
 export interface ModelWorkbenchApplicationConfiguration {
   readonly setup: unknown;

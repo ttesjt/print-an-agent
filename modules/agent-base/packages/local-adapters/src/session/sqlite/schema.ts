@@ -4,7 +4,7 @@ import {
   sessionActivityIndexName,
   sessionRetirementIndexName,
 } from './table-names.js';
-import { AgentSessionError } from '@ta-agent/base-session';
+import { AgentSessionError } from '@print-an-agent/base-session';
 import { runImmediateTransaction } from './database.js';
 import { createSessionStoreMigration } from './migrations/0001_create_session_store.js';
 import { addSessionCompactionMigration } from './migrations/0002_add_session_compaction.js';

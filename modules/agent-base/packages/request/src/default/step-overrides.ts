@@ -1,8 +1,12 @@
-import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@ta-agent/base-actor';
-import { parseSessionId, parseTurnId, supportsSessionExecution } from '@ta-agent/base-session';
-import { defineToolPermissionPolicy } from '@ta-agent/base-tool';
+import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@print-an-agent/base-actor';
+import {
+  parseSessionId,
+  parseTurnId,
+  supportsSessionExecution,
+} from '@print-an-agent/base-session';
+import { defineToolPermissionPolicy } from '@print-an-agent/base-tool';
 import { buildRequestTools } from '../preparation/tools.js';
-import { SKIP_STEP, type StepOverrides } from '@ta-agent/workflow-core';
+import { SKIP_STEP, type StepOverrides } from '@print-an-agent/workflow-core';
 import type { OutputSink, ValidatedAgentRequest } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
 import { createRequestFingerprint } from '../replay/fingerprint.js';

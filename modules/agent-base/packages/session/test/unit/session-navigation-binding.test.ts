@@ -1,5 +1,5 @@
-import { parseAgentId } from '@ta-agent/base-identity';
-import { createAgentTraceEmitter, type AgentTraceEvent } from '@ta-agent/base-observability';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { createAgentTraceEmitter, type AgentTraceEvent } from '@print-an-agent/base-observability';
 import { expect, it, vi } from 'vitest';
 import {
   createDefaultSessionNavigationStepOverrides,

@@ -1,4 +1,4 @@
-import { defineExecutionSupport } from '@ta-agent/workbench-extension';
+import { defineExecutionSupport } from '@print-an-agent/workbench-extension';
 
 import { LOCAL_EXECUTION_PROTOCOL } from '../foundation/constants.js';
 import { parseLocalRootDirectory } from '../foundation/paths.js';

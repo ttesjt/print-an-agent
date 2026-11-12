@@ -3,7 +3,7 @@ import {
   type ContextMemoryManagementCapability,
   type ManagedAgentNamespacePort,
   type MemoryProvisioningRequest,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import {
   createContextMemoryBundle,
   createContextMemoryResources,
@@ -11,7 +11,7 @@ import {
   type DeterministicMemoryMutation,
   type MemoryMutationResources,
   type MemoryWorkflowDefinitions,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 
 /** A second application's direct provisioning recipe; resources are caller-owned, no Registry. */
 export function projectContextMemory<N>(

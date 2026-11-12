@@ -8,7 +8,7 @@ export type {
   ProfilePersistence,
   ProfilePersistenceAdapter,
   ProfilePersistenceScope,
-} from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-persistence';
 
 export {
   InitializationArtifactVerificationError,
@@ -67,7 +67,7 @@ export type {
   StreamingOutputInvocation,
 } from './operations/output-invocation/contracts.js';
 export { OutputInvocationTargetEvidenceKind } from './operations/output-invocation/contracts.js';
-export { OutputInvocationKind } from '@ta-agent/workbench-extension';
+export { OutputInvocationKind } from '@print-an-agent/workbench-extension';
 export type {
   InitializationOperations,
   StartInitializationInput,

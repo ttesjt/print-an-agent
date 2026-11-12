@@ -1,4 +1,4 @@
-import type { BaseId, ModelState, ModificationId } from '@ta-agent/workbench-domain';
+import type { BaseId, ModelState, ModificationId } from '@print-an-agent/workbench-domain';
 
 import type { ArtifactMaterialization } from '../../runtime-supports/artifact-handoff/contracts.js';
 

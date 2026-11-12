@@ -4,7 +4,7 @@ import type {
   InteractionCapability,
   ModelMessage,
   UserModelMessage,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type {
   ToolExecutionPolicy,
   ToolPermissionPolicy,
@@ -12,8 +12,8 @@ import type {
   ToolRegistry,
   ToolRunInspection,
   ToolRuntime,
-} from '@ta-agent/base-tool';
-import type { WorkflowContext, WorkflowDefinition } from '@ta-agent/workflow-core';
+} from '@print-an-agent/base-tool';
+import type { WorkflowContext, WorkflowDefinition } from '@print-an-agent/workflow-core';
 import type {
   BoundSessionlessGenerationResources,
   SessionlessGenerationPolicy,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveWorkbenchSetup } from '@ta-agent/workbench-setup';
+import { resolveWorkbenchSetup } from '@print-an-agent/workbench-setup';
 
 import {
   multiProfileExtensionResources,

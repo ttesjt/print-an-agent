@@ -2,7 +2,7 @@ import type {
   CollectionAccessPort,
   CollectionChoice,
   CollectionReference,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import {
   Alert,
   CollectionList,
@@ -12,11 +12,11 @@ import {
   PanelBody,
   Stack,
   Status,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { BrowserAgentWorkspace } from '../application/browser-composition.js';
 import type { WorkspaceExtension } from '../extensions.js';
-import type { WorkspacePorts } from '@ta-agent/ui-contracts';
+import type { WorkspacePorts } from '@print-an-agent/ui-contracts';
 import { useNavigationGuard } from '../application/use-navigation-guard.js';
 import {
   collectionHash,

@@ -2,7 +2,7 @@ import {
   InvalidWorkbenchValueError,
   parseJsonValue,
   type JsonValue,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import { WorkbenchExtensionError } from './errors.js';
 

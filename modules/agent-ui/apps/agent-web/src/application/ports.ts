@@ -16,7 +16,7 @@ import type {
   SessionNavigationPort,
   SessionPurgePort,
   AgentManagementResult,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import type { AgentModelStatus } from './agent-config.js';
 import type { TemporaryConversationPort } from '../temporary-conversation/contracts.js';
 import type { WebMemoryPorts } from '../memory/contracts.js';

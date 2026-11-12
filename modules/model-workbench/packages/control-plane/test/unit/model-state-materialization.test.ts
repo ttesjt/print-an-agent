@@ -17,9 +17,9 @@ import {
   parseTrainerId,
   type ModelBase,
   type ModelModification,
-} from '@ta-agent/workbench-domain';
-import { defineArtifactHandoffSupport } from '@ta-agent/workbench-extension';
-import type { ParameterRepository } from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-domain';
+import { defineArtifactHandoffSupport } from '@print-an-agent/workbench-extension';
+import type { ParameterRepository } from '@print-an-agent/workbench-persistence';
 
 import {
   ArtifactHandoffSupportNotFoundError,

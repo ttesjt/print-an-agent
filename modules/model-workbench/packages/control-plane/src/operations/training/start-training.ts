@@ -4,13 +4,13 @@ import {
   parseProfileId,
   parseRunId,
   parseTrainerId,
-} from '@ta-agent/workbench-domain';
-import type { RunRepository } from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-domain';
+import type { RunRepository } from '@print-an-agent/workbench-persistence';
 import {
   findResolvedProfile,
   findResolvedTrainer,
   type ResolvedWorkbenchSetup,
-} from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-setup';
 
 import type { StartTrainingInput, StartTrainingResult } from './contracts.js';
 import { TrainerSlotNotFoundError } from './errors.js';

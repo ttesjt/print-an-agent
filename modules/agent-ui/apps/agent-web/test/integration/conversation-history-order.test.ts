@@ -2,8 +2,8 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { defineActorEngine } from '@ta-agent/model-invocation-core';
-import type { ConversationInteractionEvent, ConversationTurn } from '@ta-agent/ui-contracts';
+import { defineActorEngine } from '@print-an-agent/model-invocation-core';
+import type { ConversationInteractionEvent, ConversationTurn } from '@print-an-agent/ui-contracts';
 import { describe, expect, it, vi } from 'vitest';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { createOfflineWebEngine } from '../../src/node/offline-engine.js';

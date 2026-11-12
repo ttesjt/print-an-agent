@@ -12,7 +12,7 @@ import {
   type StartExportInput,
   type StartInitializationInput,
   type StartTrainingInput,
-} from '@ta-agent/workbench-application';
+} from '@print-an-agent/workbench-application';
 
 type ModelStateInput = Parameters<ModelWorkbench['models']['compose']>[0];
 

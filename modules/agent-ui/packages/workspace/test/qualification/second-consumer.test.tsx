@@ -5,17 +5,17 @@ import type {
   CollectionAccessPort,
   CollectionOpenResult,
   ConversationPage,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import {
   AgentWorkspace,
   CollectionApplication,
   collectionHash,
   type CollectionConnection,
-} from '@ta-agent/ui-workspace';
+} from '@print-an-agent/ui-workspace';
 import {
   qualifyWorkspaceCatalog,
   qualifyWorkspaceInteraction,
-} from '@ta-agent/ui-workspace/testing';
+} from '@print-an-agent/ui-workspace/testing';
 import { deferred, researchBackend, type ResearchReference } from './research-backend.js';
 import { researchExtension } from './research-extension.js';
 

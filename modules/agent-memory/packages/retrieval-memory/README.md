@@ -17,8 +17,8 @@ does not change this configuration or the Entry revision.
 ## Assembly
 
 The host creates and owns its backend/model/client, supplies a formal
-`@ta-agent/model-invocation-core` TextEmbeddingCapability, and optionally an exact text TokenCounter.
-Use `@ta-agent/model-invocation-embedding-http` in the host when appropriate; Memory does not choose
+`@print-an-agent/model-invocation-core` TextEmbeddingCapability, and optionally an exact text TokenCounter.
+Use `@print-an-agent/model-invocation-embedding-http` in the host when appropriate; Memory does not choose
 an endpoint, download weights, discover credentials or supply a fake production model.
 
 ```ts
@@ -27,7 +27,7 @@ import {
   createCodepointChunker,
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 
 // backend, embedder and counter are explicitly supplied, host-owned capabilities.
 const chunker = createCodepointChunker();

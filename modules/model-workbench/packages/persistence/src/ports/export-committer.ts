@@ -4,7 +4,7 @@ import type {
   LostExportRun,
   ModelOutput,
   SucceededExportRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 export interface SucceededExportCommit {
   readonly run: SucceededExportRun;

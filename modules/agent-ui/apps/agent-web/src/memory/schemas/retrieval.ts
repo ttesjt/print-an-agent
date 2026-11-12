@@ -7,7 +7,7 @@ import {
   union,
   type Decoder,
   fail,
-} from '@ta-agent/ui-transport';
+} from '@print-an-agent/ui-transport';
 import {
   content,
   id,

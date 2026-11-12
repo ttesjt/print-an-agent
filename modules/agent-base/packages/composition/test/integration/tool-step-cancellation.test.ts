@@ -3,8 +3,8 @@ import {
   createActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@ta-agent/base-actor';
-import { createPiFauxRuntime } from '@ta-agent/model-invocation-pi';
+} from '@print-an-agent/base-actor';
+import { createPiFauxRuntime } from '@print-an-agent/model-invocation-pi';
 import {
   createDefaultRequestStepOverrides,
   createRequestWorkflow,
@@ -13,9 +13,9 @@ import {
   type AgentResponse,
   type DefaultRequestWorkflowContext,
   type RequestAgentRunContext,
-} from '@ta-agent/base-request';
-import { bindAgentWorkflow } from '@ta-agent/base-runtime';
-import { createToolRegistry, defineTool } from '@ta-agent/base-tool';
+} from '@print-an-agent/base-request';
+import { bindAgentWorkflow } from '@print-an-agent/base-runtime';
+import { createToolRegistry, defineTool } from '@print-an-agent/base-tool';
 import { expect, it, vi } from 'vitest';
 import { defaultRequestStep, interactionAgent } from '../support/interaction-agent.js';
 

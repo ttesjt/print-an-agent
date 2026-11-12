@@ -4,14 +4,14 @@ import {
   defineJsonSchemaContract,
   defineOutputInvokerCapability,
   defineTrainerCapability,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import {
   createLocalArtifactHandoffSupport,
   createLocalCommandBridge,
   createLocalExecutionSupport,
   createLocalOutputInvocationBridge,
-} from '@ta-agent/workbench-local-runtime';
-import { RuntimeBindingKind, type ModelProfileInput } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-local-runtime';
+import { RuntimeBindingKind, type ModelProfileInput } from '@print-an-agent/workbench-setup';
 
 import {
   PYTHON_MODEL_BACKEND_RUNTIME_BINDING_ID,

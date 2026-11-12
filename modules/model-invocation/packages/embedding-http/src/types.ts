@@ -2,7 +2,7 @@ import type {
   ProviderCredentialResolver,
   TextEmbeddingInvocationPolicy,
   TextEmbeddingLimits,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 
 export type HttpEmbeddingAuthentication =
   | Readonly<{ kind: 'keyless' }>

@@ -6,7 +6,7 @@ import {
   type AssistantMessage,
   type Message,
 } from '@earendil-works/pi-ai';
-import type { ModelMessage } from '@ta-agent/model-invocation-core';
+import type { ModelMessage } from '@print-an-agent/model-invocation-core';
 import type { PiFauxRequestSnapshot, PiFauxResponse, PiFauxToolResultSnapshot } from './types.js';
 
 function cloneModelMessage(message: ModelMessage): ModelMessage {

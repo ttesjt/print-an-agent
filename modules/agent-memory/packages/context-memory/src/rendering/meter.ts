@@ -4,7 +4,7 @@ import {
   type TextTokenInput,
   type TokenCounter,
   type TokenMeasurement,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type { MemoryConfig, MemoryItem, MemoryMeasurement } from '../contracts/document.js';
 import type { MemoryRenderer } from '../contracts/ports.js';
 import { resolveMemoryConfig } from '../config/parse.js';

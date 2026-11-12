@@ -1,7 +1,7 @@
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   defineStandaloneAgentConfig,
   type StandaloneAgentConfig,

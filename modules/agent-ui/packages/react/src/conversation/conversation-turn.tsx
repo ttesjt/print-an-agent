@@ -2,7 +2,7 @@ import type {
   ConversationReasoningBlock,
   ConversationToolActivity,
   ConversationUserMessage,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 
 import { Alert, Badge, Status } from '../feedback/feedback.js';

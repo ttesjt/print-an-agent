@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { jsonValue } from '@ta-agent/context-memory';
+import { jsonValue } from '@print-an-agent/context-memory';
 import { diffState, applyStateDelta } from '../src/history/delta.js';
 import { encodeHistory, decodeHistory, historyChainLimit } from '../src/history/codec.js';
 import { borrowed } from './support/fixtures.js';

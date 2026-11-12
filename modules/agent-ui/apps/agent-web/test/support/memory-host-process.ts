@@ -2,12 +2,12 @@
 import { resolve } from 'node:path';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { createCodepointChunker, COSINE_METRIC_REF } from '@ta-agent/retrieval-memory';
+import { createCodepointChunker, COSINE_METRIC_REF } from '@print-an-agent/retrieval-memory';
 import {
   createTextEmbedder,
   createTokenCounter,
   TEXT_TOKEN_INPUT_CONTRACT,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import type * as Backend from '../../src/node/agent-base/backend.js';
 import type * as Server from '../../src/node/transport/http-server.js';
 import type * as Collections from '../../src/node/collections/directory-host.js';

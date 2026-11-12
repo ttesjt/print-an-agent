@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { createMemoryEditDefinition, ContextMemoryError } from '@ta-agent/context-memory';
+import { createMemoryEditDefinition, ContextMemoryError } from '@print-an-agent/context-memory';
 import { consumer } from './support/model.js';
 import { ownedStore, memoryPath } from './support/storage.js';
 

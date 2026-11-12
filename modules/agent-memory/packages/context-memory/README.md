@@ -1,4 +1,4 @@
-# @ta-agent/context-memory
+# @print-an-agent/context-memory
 
 Context Memory maintains independent documents keyed by caller-selected `memoryId`. Snapshots contain
 ordered `{ id, content, metadata? }` items, configuration, revision and derived token measurement.
@@ -38,7 +38,7 @@ stale apply/configure revision, the boundary rechecks its receipt to recover con
 this does not retry the edit or relax CAS for genuinely stale writes.
 Empty additions are ignored; blank replacements remove their target; invalid commands publish nothing.
 
-`MemoryMeter` borrows a `TokenCounter<TextTokenInput>` from `@ta-agent/model-invocation-core` and a
+`MemoryMeter` borrows a `TokenCounter<TextTokenInput>` from `@print-an-agent/model-invocation-core` and a
 renderer. Use `new MemoryMeter({ counter })`, for example with an Actor's `textTokenCounter`, or inject
 `resolveCounter(measurementRef, signal)` for explicit host-owned selection. The requested identity must
 match the resolved descriptor; no alias, model-name inference or fallback is performed.

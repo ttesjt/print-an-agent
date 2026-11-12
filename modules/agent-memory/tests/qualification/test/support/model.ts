@@ -5,7 +5,7 @@ import {
   defineProviderModelExecutionProvenance,
   createTokenCounter,
   TEXT_TOKEN_INPUT_CONTRACT,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   createCompletionMemoryPlanner,
   createModelMemoryResources,
@@ -17,7 +17,7 @@ import {
   type ModelMemoryWorkflowDefinitions,
   type CompletionMemoryPlannerOptions,
   type MemoryStore,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 
 /** Exact for this test vocabulary only; not a tokenizer recommendation for real models. */
 export function vocabularyCounter(ref = 'qualification:codepoints:v1', multiplier = 1) {

@@ -1,4 +1,4 @@
-import type { AgentConfigCodec } from '@ta-agent/base-config';
+import type { AgentConfigCodec } from '@print-an-agent/base-config';
 import type { ManagedAgentAuthorityPortFactory } from './contracts/authority.js';
 import type { ManagedAgentNamespacePort } from './contracts/namespace.js';
 import type { AgentConfigProjectionPort } from './contracts/projection.js';

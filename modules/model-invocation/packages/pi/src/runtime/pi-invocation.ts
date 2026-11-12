@@ -1,5 +1,5 @@
-import type { ActorInvocationConfig } from '@ta-agent/model-invocation-core';
-import { ModelInvocationError } from '@ta-agent/model-invocation-core';
+import type { ActorInvocationConfig } from '@print-an-agent/model-invocation-core';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 export function toPiInvocationOptions(config: ActorInvocationConfig, apiKey: string | undefined) {
   return {
     ...(config.temperature === undefined ? {} : { temperature: config.temperature }),

@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
-import { defineActorEngine } from '@ta-agent/model-invocation-core';
-import { createToolRegistry, defineTool } from '@ta-agent/base-tool';
-import type { ConversationInteractionEvent } from '@ta-agent/ui-contracts';
+import { defineActorEngine } from '@print-an-agent/model-invocation-core';
+import { createToolRegistry, defineTool } from '@print-an-agent/base-tool';
+import type { ConversationInteractionEvent } from '@print-an-agent/ui-contracts';
 import { createAgentBaseWebPorts } from '../../src/node/agent-base/backend.js';
 import { createOfflineWebEngine } from '../../src/node/offline-engine.js';
 import { startLocalAgentWebServer } from '../../src/node/transport/http-server.js';
@@ -15,7 +15,7 @@ import { engineConfig, providerConfig } from '../support/agent-config.js';
 import {
   createSubmittingInteraction,
   reduceInteractionEvent,
-} from '@ta-agent/ui-workspace/testing';
+} from '@print-an-agent/ui-workspace/testing';
 
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {

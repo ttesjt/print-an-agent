@@ -1,6 +1,6 @@
 import type { AgentWebConfig } from '../application/agent-config.js';
 import { AGENT_CONFIG_DECODER } from '../application/agent-config-validation.js';
-import { object, union, literal, text, type Decoder, schemas } from '@ta-agent/ui-transport';
+import { object, union, literal, text, type Decoder, schemas } from '@print-an-agent/ui-transport';
 export const {
   id,
   revision,

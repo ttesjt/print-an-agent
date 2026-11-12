@@ -8,15 +8,15 @@ import {
   type ModelOutput,
   type RuntimeSupportId,
   type Sha256Digest,
-} from '@ta-agent/workbench-domain';
-import type { OutputRepository } from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-domain';
+import type { OutputRepository } from '@print-an-agent/workbench-persistence';
 import {
   findProfileArtifactHandoffSupport,
   findResolvedCanonicalOutputInvoker,
   findResolvedOutputInvoker,
   type ResolvedModelProfile,
   type ResolvedOutputInvokerSlot,
-} from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-setup';
 
 import {
   OutputInvocationTargetEvidenceKind,

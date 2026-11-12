@@ -2,8 +2,8 @@ import { expect, it } from 'vitest';
 import {
   createTiktokenTextCounter,
   TIKTOKEN_ENCODING,
-} from '@ta-agent/model-invocation-token-counters';
-import { MemoryMeter, MemoryMutations, readMemoryContext } from '@ta-agent/context-memory';
+} from '@print-an-agent/model-invocation-token-counters';
+import { MemoryMeter, MemoryMutations, readMemoryContext } from '@print-an-agent/context-memory';
 import { TestMemoryStore } from '../support/store.js';
 
 it('enforces an independent Memory budget through an official exact counter without Agent or model I/O', async () => {

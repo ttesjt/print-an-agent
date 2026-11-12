@@ -5,7 +5,7 @@ import {
   type SessionBranchId,
   type SessionSnapshot,
   type TurnId,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 
 type VisibleSessionTurn = CompletedSessionTurn | FailedSessionTurn;
 

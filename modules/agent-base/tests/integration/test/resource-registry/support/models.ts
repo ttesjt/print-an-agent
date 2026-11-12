@@ -7,8 +7,8 @@ import {
   type ActorDirectRequest,
   type TextEmbeddingRequest,
   type TextEmbeddingVector,
-} from '@ta-agent/model-invocation-core';
-import type { ModelEditOperation } from '@ta-agent/context-memory';
+} from '@print-an-agent/model-invocation-core';
+import type { ModelEditOperation } from '@print-an-agent/context-memory';
 
 export function instruction(request: ActorDirectRequest): string {
   const payload: unknown = JSON.parse(request.messages[0]?.text ?? 'null');

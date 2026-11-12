@@ -1,5 +1,5 @@
-import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
-import { Agent } from '@ta-agent/base-runtime';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
+import { Agent } from '@print-an-agent/base-runtime';
 import { createManagedAgentAuthorityPorts, readManagedAgentAuthority } from './authority.js';
 import type { ManagedAgentCompositionDefinition } from './definition.js';
 import { AgentManagementError } from './errors.js';

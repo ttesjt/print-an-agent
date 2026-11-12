@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { createRetrievalMemoryManagementService } from '@ta-agent/base-composition';
+import { createRetrievalMemoryManagementService } from '@print-an-agent/base-composition';
 import {
   assertNotAborted,
   createRetrievalIngestDefinition,
@@ -7,8 +7,8 @@ import {
   RetrievalMemoryError,
   mutationDigest,
   parseMutation,
-} from '@ta-agent/retrieval-memory';
-import { openSqliteRetrievalBackend } from '@ta-agent/retrieval-memory-sqlite';
+} from '@print-an-agent/retrieval-memory';
+import { openSqliteRetrievalBackend } from '@print-an-agent/retrieval-memory-sqlite';
 import { retrievalFixture, target, receipt } from '../support/retrieval-management.js';
 import { directRetrievalMemory } from '../support/direct-retrieval-memory.js';
 

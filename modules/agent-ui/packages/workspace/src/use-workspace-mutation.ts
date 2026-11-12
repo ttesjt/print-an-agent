@@ -1,4 +1,4 @@
-import type { MutationOutcome } from '@ta-agent/ui-contracts';
+import type { MutationOutcome } from '@print-an-agent/ui-contracts';
 import { useEffect, useRef, useState } from 'react';
 
 /** A scoped single-flight operation. Cancellation requests cooperation; it never declares rollback. */

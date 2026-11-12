@@ -17,9 +17,9 @@ All cross-package imports use public entry points.
 Run after dependency builds:
 
 ```sh
-pnpm --filter '@ta-agent/base-integration-tests^...' --if-present build
-pnpm --filter @ta-agent/base-integration-tests typecheck
-pnpm --filter @ta-agent/base-integration-tests test
+pnpm --filter '@print-an-agent/base-integration-tests^...' --if-present build
+pnpm --filter @print-an-agent/base-integration-tests typecheck
+pnpm --filter @print-an-agent/base-integration-tests test
 ```
 
 Failure/cancellation/cleanup evidence also lives in Standalone's `context-memory-failures.test.ts`,

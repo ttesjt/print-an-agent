@@ -5,8 +5,8 @@ const productionSource = [
 
 const publicImportRestrictions = [
   {
-    group: ['@ta-agent/*/src', '@ta-agent/*/src/**'],
-    message: 'Import only public @ta-agent package exports.',
+    group: ['@print-an-agent/*/src', '@print-an-agent/*/src/**'],
+    message: 'Import only public @print-an-agent package exports.',
   },
 ];
 
@@ -24,13 +24,13 @@ function moduleRestrictions(forbiddenGroups) {
 const workflowDomainRestrictions = [
   {
     group: [
-      '@ta-agent/base-*',
-      '@ta-agent/model-invocation-*',
-      '@ta-agent/workbench-*',
-      '@ta-agent/self-learn-*',
-      '@ta-agent/ui-*',
-      '@ta-agent/context-memory*',
-      '@ta-agent/retrieval-memory*',
+      '@print-an-agent/base-*',
+      '@print-an-agent/model-invocation-*',
+      '@print-an-agent/workbench-*',
+      '@print-an-agent/self-learn-*',
+      '@print-an-agent/ui-*',
+      '@print-an-agent/context-memory*',
+      '@print-an-agent/retrieval-memory*',
     ],
     message: 'Workflow must remain independent of Agent and product domains.',
   },
@@ -39,13 +39,13 @@ const workflowDomainRestrictions = [
 const modelInvocationDomainRestrictions = [
   {
     group: [
-      '@ta-agent/base-*',
-      '@ta-agent/workbench-*',
-      '@ta-agent/self-learn-*',
-      '@ta-agent/ui-*',
-      '@ta-agent/workflow-*',
-      '@ta-agent/context-memory*',
-      '@ta-agent/retrieval-memory*',
+      '@print-an-agent/base-*',
+      '@print-an-agent/workbench-*',
+      '@print-an-agent/self-learn-*',
+      '@print-an-agent/ui-*',
+      '@print-an-agent/workflow-*',
+      '@print-an-agent/context-memory*',
+      '@print-an-agent/retrieval-memory*',
     ],
     message: 'Model invocation must remain independent of Agent, Workflow and product domains.',
   },
@@ -54,13 +54,13 @@ const modelInvocationDomainRestrictions = [
 const memoryDomainRestrictions = [
   {
     group: [
-      '@ta-agent/base-*',
-      '@ta-agent/self-learn-*',
-      '@ta-agent/workbench-*',
-      '@ta-agent/ui-*',
-      '@ta-agent/model-invocation-pi',
-      '@ta-agent/model-invocation-token-counters',
-      '@ta-agent/model-invocation-embedding-http',
+      '@print-an-agent/base-*',
+      '@print-an-agent/self-learn-*',
+      '@print-an-agent/workbench-*',
+      '@print-an-agent/ui-*',
+      '@print-an-agent/model-invocation-pi',
+      '@print-an-agent/model-invocation-token-counters',
+      '@print-an-agent/model-invocation-embedding-http',
       '@earendil-works/pi-*',
     ],
     message: 'Memory capabilities must remain independent of Agent/product domains and providers.',
@@ -70,7 +70,7 @@ const memoryDomainRestrictions = [
 const registryQualificationRestrictions = [
   {
     regex:
-      '^@ta-agent/(?:base-(?!composition/resource-registry$)|self-learn-|workbench-|ui-|model-invocation-pi(?:/|$))|^@earendil-works/pi-',
+      '^@print-an-agent/(?:base-(?!composition/resource-registry$)|self-learn-|workbench-|ui-|model-invocation-pi(?:/|$))|^@earendil-works/pi-',
     message: 'Registry examples consume the public Composition subpath, not Agent/product APIs.',
   },
 ];
@@ -90,7 +90,7 @@ export const boundaryConfigs = Object.freeze([
     rules: moduleRestrictions([
       ...registryQualificationRestrictions,
       {
-        group: ['@ta-agent/base-composition/resource-registry', '**/resource-registry/**'],
+        group: ['@print-an-agent/base-composition/resource-registry', '**/resource-registry/**'],
         message:
           'Generic Services use Definition provisioning; Workflows use explicit resources. Profile resource-resolution Services may use Registry.',
       },
@@ -102,11 +102,11 @@ export const boundaryConfigs = Object.freeze([
     rules: moduleRestrictions([
       {
         group: [
-          '@ta-agent/base-*',
-          '@ta-agent/self-learn-*',
-          '@ta-agent/workbench-*',
-          '@ta-agent/ui-*',
-          '@ta-agent/model-invocation-pi',
+          '@print-an-agent/base-*',
+          '@print-an-agent/self-learn-*',
+          '@print-an-agent/workbench-*',
+          '@print-an-agent/ui-*',
+          '@print-an-agent/model-invocation-pi',
           '@earendil-works/pi-*',
         ],
         message: 'Memory qualification must be an independent public-package consumer.',
@@ -125,8 +125,8 @@ export const boundaryConfigs = Object.freeze([
         group: [
           'node:sqlite',
           'better-sqlite3',
-          '@ta-agent/context-memory-sqlite',
-          '@ta-agent/retrieval-memory*',
+          '@print-an-agent/context-memory-sqlite',
+          '@print-an-agent/retrieval-memory*',
         ],
         message:
           'Context Memory domain must not depend on storage or sibling capability implementations.',
@@ -141,8 +141,8 @@ export const boundaryConfigs = Object.freeze([
         group: [
           'node:sqlite',
           'sqlite-vec',
-          '@ta-agent/retrieval-memory-sqlite',
-          '@ta-agent/context-memory*',
+          '@print-an-agent/retrieval-memory-sqlite',
+          '@print-an-agent/context-memory*',
         ],
         message:
           'Retrieval Memory domain cannot depend on a concrete store or sibling memory capability.',
@@ -159,12 +159,12 @@ export const boundaryConfigs = Object.freeze([
       ...modelInvocationDomainRestrictions,
       {
         group: [
-          '@ta-agent/model-invocation-pi',
-          '@ta-agent/model-invocation-pi/**',
-          '@ta-agent/model-invocation-token-counters',
-          '@ta-agent/model-invocation-token-counters/**',
-          '@ta-agent/model-invocation-embedding-http',
-          '@ta-agent/model-invocation-embedding-http/**',
+          '@print-an-agent/model-invocation-pi',
+          '@print-an-agent/model-invocation-pi/**',
+          '@print-an-agent/model-invocation-token-counters',
+          '@print-an-agent/model-invocation-token-counters/**',
+          '@print-an-agent/model-invocation-embedding-http',
+          '@print-an-agent/model-invocation-embedding-http/**',
           '@earendil-works/pi-*',
           'typebox',
         ],
@@ -181,7 +181,7 @@ export const boundaryConfigs = Object.freeze([
     rules: moduleRestrictions([
       ...workflowDomainRestrictions,
       {
-        group: ['@ta-agent/workflow-bundle', '@ta-agent/workflow-bundle/**'],
+        group: ['@print-an-agent/workflow-bundle', '@print-an-agent/workflow-bundle/**'],
         message: 'Workflow Core must not depend on Bundle assembly.',
       },
     ]),
@@ -193,7 +193,7 @@ export const boundaryConfigs = Object.freeze([
     ],
     rules: moduleRestrictions([
       {
-        group: ['@ta-agent/base-*', '@ta-agent/self-learn-*'],
+        group: ['@print-an-agent/base-*', '@print-an-agent/self-learn-*'],
         message: 'Model Workbench must remain independent of Agent Base and Self-Learn Agent.',
       },
     ]),
@@ -205,7 +205,7 @@ export const boundaryConfigs = Object.freeze([
     ],
     rules: moduleRestrictions([
       {
-        group: ['@ta-agent/workbench-*', '@ta-agent/self-learn-*'],
+        group: ['@print-an-agent/workbench-*', '@print-an-agent/self-learn-*'],
         message: 'Agent Base must remain independent of Model Workbench and Self-Learn Agent.',
       },
     ]),
@@ -215,10 +215,10 @@ export const boundaryConfigs = Object.freeze([
     rules: moduleRestrictions([
       {
         group: [
-          '@ta-agent/base-*',
-          '@ta-agent/model-invocation-*',
-          '@ta-agent/workbench-*',
-          '@ta-agent/self-learn-*',
+          '@print-an-agent/base-*',
+          '@print-an-agent/model-invocation-*',
+          '@print-an-agent/workbench-*',
+          '@print-an-agent/self-learn-*',
         ],
         message: 'Reusable Agent UI packages must depend only on UI-owned contracts.',
       },
@@ -228,7 +228,7 @@ export const boundaryConfigs = Object.freeze([
     files: ['modules/agent-ui/apps/*/src/**/*.{ts,tsx}'],
     rules: moduleRestrictions([
       {
-        group: ['@ta-agent/workbench-*', '@ta-agent/self-learn-*'],
+        group: ['@print-an-agent/workbench-*', '@print-an-agent/self-learn-*'],
         message: 'Generic Agent UI applications must not depend on product-specific modules.',
       },
     ]),
@@ -240,13 +240,13 @@ export const boundaryConfigs = Object.freeze([
     rules: moduleRestrictions([
       {
         group: [
-          '@ta-agent/base-composition/resource-registry',
-          '@ta-agent/base-composition/resource-registry/**',
+          '@print-an-agent/base-composition/resource-registry',
+          '@print-an-agent/base-composition/resource-registry/**',
         ],
         message: 'Execution and authority domains must remain independent of composition Registry.',
       },
       {
-        group: ['@ta-agent/workbench-*', '@ta-agent/self-learn-*'],
+        group: ['@print-an-agent/workbench-*', '@print-an-agent/self-learn-*'],
         message: 'Agent Base must remain independent of product domains.',
       },
     ]),
@@ -259,12 +259,12 @@ export const boundaryConfigs = Object.freeze([
     ],
     rules: moduleRestrictions([
       {
-        group: ['@ta-agent/base-composition/resource-registry', '**/resource-registry/**'],
+        group: ['@print-an-agent/base-composition/resource-registry', '**/resource-registry/**'],
         message:
           'Generic application Services use Definition factories/resolvers; concrete Profile resource-resolution Services may use Registry.',
       },
       {
-        group: ['@ta-agent/workbench-*', '@ta-agent/self-learn-*'],
+        group: ['@print-an-agent/workbench-*', '@print-an-agent/self-learn-*'],
         message: 'Agent Base must remain independent of product domains.',
       },
     ]),
@@ -274,7 +274,7 @@ export const boundaryConfigs = Object.freeze([
     files: ['modules/agent-base/packages/composition/src/resource-registry/**/*.ts'],
     rules: moduleRestrictions([
       {
-        group: ['@ta-agent/*'],
+        group: ['@print-an-agent/*'],
         message: 'Composition Registry internals remain domain independent.',
       },
     ]),

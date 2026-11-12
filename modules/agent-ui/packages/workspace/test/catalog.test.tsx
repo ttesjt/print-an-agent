@@ -1,7 +1,7 @@
 import { afterEach, expect, it } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { AgentDetails, WorkspaceAgentPort } from '@ta-agent/ui-contracts';
+import type { AgentDetails, WorkspaceAgentPort } from '@print-an-agent/ui-contracts';
 import { useWorkspaceAgents } from '../src/agent/use-workspace-agents.js';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });

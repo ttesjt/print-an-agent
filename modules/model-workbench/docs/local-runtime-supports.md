@@ -1,6 +1,6 @@
 # Local Runtime Supports
 
-`@ta-agent/workbench-local-runtime` supplies default filesystem-backed implementations of the two
+`@print-an-agent/workbench-local-runtime` supplies default filesystem-backed implementations of the two
 Runtime Support SPIs. It does not implement or start a model operation. Initializer, Trainer,
 Exporter, and Output Invoker Capabilities remain the only model-operation entry points.
 

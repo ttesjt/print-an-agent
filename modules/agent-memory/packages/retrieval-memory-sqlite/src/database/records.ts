@@ -5,7 +5,7 @@ import {
   parseRetrievalReceipt,
   RetrievalMemoryError,
   type RetrievalSpace,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 function payload(value: unknown): unknown {
   if (typeof value !== 'string')
     throw new RetrievalMemoryError('STORAGE_FAILED', 'Invalid persisted JSON payload.');

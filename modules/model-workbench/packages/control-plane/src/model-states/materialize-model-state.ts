@@ -6,13 +6,13 @@ import type {
   ModelState,
   ProfileId,
   RunId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import type {
   ArtifactMaterialization,
   ArtifactHandoffSupportRuntime,
   MaterializedModelState,
-} from '@ta-agent/workbench-extension';
-import type { ParameterRepository } from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-extension';
+import type { ParameterRepository } from '@print-an-agent/workbench-persistence';
 
 import {
   ArtifactHandoffSupportNotFoundError,

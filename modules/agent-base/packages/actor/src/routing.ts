@@ -1,8 +1,8 @@
-import { satisfiesActorRequirements } from '@ta-agent/model-invocation-core';
+import { satisfiesActorRequirements } from '@print-an-agent/model-invocation-core';
 import type { ActorCatalogPort } from './catalog.js';
 import { AgentActorError } from './errors.js';
 import { MAIN_ACTOR_ID, type ResponsibilityId } from './identifiers.js';
-import type { ActorId } from '@ta-agent/model-invocation-core';
+import type { ActorId } from '@print-an-agent/model-invocation-core';
 import {
   defineResponsibility,
   resolveResponsibility,

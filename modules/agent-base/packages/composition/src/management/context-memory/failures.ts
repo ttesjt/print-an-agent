@@ -1,5 +1,5 @@
-import { AgentSessionError } from '@ta-agent/base-session';
-import { ContextMemoryError } from '@ta-agent/context-memory';
+import { AgentSessionError } from '@print-an-agent/base-session';
+import { ContextMemoryError } from '@print-an-agent/context-memory';
 
 /** Cleanup is independent of cancellation/commit; inspect the entire finite error tree. */
 export function hasSessionMemoryCleanupFailure(error: unknown): boolean {

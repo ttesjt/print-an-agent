@@ -1,4 +1,4 @@
-import { Button, Cluster, Stack, TextLink } from '@ta-agent/ui-react';
+import { Button, Cluster, Stack, TextLink } from '@print-an-agent/ui-react';
 import { useState } from 'react';
 
 import { ActionsGallery } from './gallery/actions-gallery.js';

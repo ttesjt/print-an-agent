@@ -1,4 +1,4 @@
-import type { InspectableRequestJournalPort } from '@ta-agent/base-request';
+import type { InspectableRequestJournalPort } from '@print-an-agent/base-request';
 import type {
   NavigableCompactableSessionPort,
   SessionMetadataPort,
@@ -10,7 +10,7 @@ import type {
   RecoverSessionExecutionsInput,
   SessionExecutionFence,
   SessionMemoryNavigationPort,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 
 export type LocalLifecycleSessionPort = NavigableCompactableSessionPort &
   SessionMetadataPort &

@@ -1,13 +1,13 @@
-import { ModelInvocationError } from '@ta-agent/model-invocation-core';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import {
   createBoundedToolRuntime,
   createToolRegistry,
   defineTool,
   defineToolPermissionPolicy,
   DEFAULT_TOOL_EXECUTION_POLICY,
-} from '@ta-agent/base-tool';
+} from '@print-an-agent/base-tool';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createPiProviderRuntime } from '@ta-agent/model-invocation-pi';
+import { createPiProviderRuntime } from '@print-an-agent/model-invocation-pi';
 import {
   createOpenAICompatibleTestServer,
   createScriptedOpenAICompatibleTestServer,

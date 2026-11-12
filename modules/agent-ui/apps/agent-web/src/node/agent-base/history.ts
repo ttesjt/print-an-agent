@@ -1,4 +1,4 @@
-import { parseAgentId } from '@ta-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity';
 import {
   AgentSessionError,
   parseSessionBranchId,
@@ -6,14 +6,14 @@ import {
   parseTurnId,
   type CompletedSessionTurn,
   type SessionReference,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import type {
   CompletedConversationTurn,
   ConversationPage,
   ConversationTurn,
   ReadConversationInput,
   ConversationToolActivity,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import type { WebBackendServices } from './profile.js';
 import { visibleConversationTurns } from './turn-order.js';
 

@@ -3,7 +3,7 @@ import {
   validateAgentTraceEvent,
   type AgentTraceEvent,
   type AgentTraceEventSink,
-} from '@ta-agent/base-observability';
+} from '@print-an-agent/base-observability';
 
 export interface MemoryAgentTraceAdapterOptions {
   readonly maxEvents: number;

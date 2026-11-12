@@ -5,7 +5,7 @@ import {
   TokenMeasurementError,
   type TextTokenInput,
   type TokenCounter,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { readCounterOptions } from './counter-options.js';
 
 export const DEFAULT_CHARACTERS_PER_TOKEN = 4;

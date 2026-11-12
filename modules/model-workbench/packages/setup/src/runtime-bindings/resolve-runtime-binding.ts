@@ -3,12 +3,12 @@ import {
   parseJsonValue,
   parseRuntimeBindingId,
   parseRuntimeSupportId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   RuntimeSupportKind,
   type ArtifactHandoffSupportRuntime,
   type ExecutionSupportRuntime,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 
 import { RuntimeBindingKind } from '../foundation/constants.js';
 import {

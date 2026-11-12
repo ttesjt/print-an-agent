@@ -1,4 +1,4 @@
-import { canonicalJson, jsonValue, type JsonValue } from '@ta-agent/context-memory';
+import { canonicalJson, jsonValue, type JsonValue } from '@print-an-agent/context-memory';
 
 type Path = readonly (string | number)[];
 export type StatePatch =

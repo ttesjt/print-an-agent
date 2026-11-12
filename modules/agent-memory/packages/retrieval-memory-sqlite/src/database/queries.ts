@@ -13,7 +13,7 @@ import {
   type RetrievalHit,
   type RetrievalChunk,
   type SearchResult,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import { requireStoredSpace } from './records.js';
 import { SQLITE_RETRIEVAL_LIMITS, vectorTable } from './schema.js';
 import { transaction } from './transaction.js';

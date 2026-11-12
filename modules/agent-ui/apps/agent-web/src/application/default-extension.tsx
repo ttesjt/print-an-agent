@@ -3,9 +3,9 @@ import type {
   WorkspaceExtension,
   WorkspaceExtensionProps,
   WorkspaceEditBoundary,
-} from '@ta-agent/ui-workspace';
-import { useWorkspaceBoundary } from '@ta-agent/ui-workspace';
-import { AgentCreateDialog, Alert, Cluster } from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-workspace';
+import { useWorkspaceBoundary } from '@print-an-agent/ui-workspace';
+import { AgentCreateDialog, Alert, Cluster } from '@print-an-agent/ui-react';
 import { useMemo } from 'react';
 import { createDefaultWorkspacePorts } from './default-ports.js';
 import type { AgentWebPorts } from './ports.js';

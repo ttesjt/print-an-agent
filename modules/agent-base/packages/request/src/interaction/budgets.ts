@@ -1,4 +1,7 @@
-import { ModelInvocationError, type ModelInteractionEvent } from '@ta-agent/model-invocation-core';
+import {
+  ModelInvocationError,
+  type ModelInteractionEvent,
+} from '@print-an-agent/model-invocation-core';
 
 interface InteractionBudgetContext {
   readonly state: { outputCharacterCount?: number };

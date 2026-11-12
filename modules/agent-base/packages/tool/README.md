@@ -1,4 +1,4 @@
-# `@ta-agent/base-tool`
+# `@print-an-agent/base-tool`
 
 Provider-independent tool schemas, immutable registries, permission intersection, and bounded
 run-scoped execution for Agent Base.

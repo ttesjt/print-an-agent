@@ -1,7 +1,7 @@
 import {
   MAX_EXECUTION_TIMEOUT_MILLISECONDS,
   runWithExecutionTimeout,
-} from '@ta-agent/workflow-core';
+} from '@print-an-agent/workflow-core';
 import { assertNotAborted, fail, RetrievalMemoryError } from '../errors.js';
 export interface RetrievalExecutionPolicy {
   readonly timeoutMilliseconds: number | null;

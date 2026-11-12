@@ -1,4 +1,4 @@
-import type { RecentCollectionsPersistencePort } from '@ta-agent/ui-contracts';
+import type { RecentCollectionsPersistencePort } from '@print-an-agent/ui-contracts';
 import { array, object, text } from '../transport/decoder.js';
 import {
   directoryChoice,

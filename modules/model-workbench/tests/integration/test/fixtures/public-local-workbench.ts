@@ -1,22 +1,22 @@
-import { createModelWorkbench } from '@ta-agent/workbench-application';
+import { createModelWorkbench } from '@print-an-agent/workbench-application';
 import {
   JsonValueContract,
   defineExporterCapability,
   defineInitializerCapability,
   defineOutputInvokerCapability,
   defineTrainerCapability,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import {
   createLocalArtifactHandoffSupport,
   createLocalCommandBridge,
   createLocalExecutionSupport,
   createLocalOutputInvocationBridge,
-} from '@ta-agent/workbench-local-runtime';
+} from '@print-an-agent/workbench-local-runtime';
 import {
   createSqliteProfilePersistenceAdapter,
   type SqliteProfilePersistenceAdapter,
-} from '@ta-agent/workbench-persistence';
-import { RuntimeBindingKind } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-persistence';
+import { RuntimeBindingKind } from '@print-an-agent/workbench-setup';
 
 export interface PublicLocalWorkbenchOptions {
   readonly rootDirectory: string;

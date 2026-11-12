@@ -2,7 +2,7 @@ import {
   createActorCatalog as createModelActorCatalog,
   type ActorId,
   type ActorEngineInput,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import {
   defineAgentActor,
   type ActorDefinition,

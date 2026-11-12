@@ -1,6 +1,6 @@
-import type { AgentConfigCodec, ConfigValue } from '@ta-agent/base-config';
-import { parseAgentId } from '@ta-agent/base-identity';
-import type { Agent } from '@ta-agent/base-runtime';
+import type { AgentConfigCodec, ConfigValue } from '@print-an-agent/base-config';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import type { Agent } from '@print-an-agent/base-runtime';
 import {
   defineManagedAgentComposition,
   ManagedAgentCompositionError,

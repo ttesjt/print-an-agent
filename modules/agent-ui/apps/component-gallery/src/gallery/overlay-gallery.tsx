@@ -9,7 +9,7 @@ import {
   PanelBody,
   PanelHeader,
   Stack,
-} from '@ta-agent/ui-react';
+} from '@print-an-agent/ui-react';
 import { useState } from 'react';
 
 import { GallerySection } from './gallery-section.js';

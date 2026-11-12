@@ -1,11 +1,11 @@
-import { defineAgentIdentity } from '@ta-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
 import {
   defineAssistantModelMessage,
   defineProviderModelExecutionProvenance,
   defineProviderModelReference,
   type AssistantModelMessage,
   type UserModelMessage,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_SESSION_COMPACTION_POLICY,

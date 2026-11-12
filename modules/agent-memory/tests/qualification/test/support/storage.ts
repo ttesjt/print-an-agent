@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach } from 'vitest';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 
 const cleanup: (() => void | Promise<void>)[] = [];
 afterEach(async () => {

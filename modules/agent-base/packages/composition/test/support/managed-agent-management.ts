@@ -1,10 +1,10 @@
-import type { AgentConfigCodec, ConfigValue } from '@ta-agent/base-config';
+import type { AgentConfigCodec, ConfigValue } from '@print-an-agent/base-config';
 import {
   MemoryAgentConfigAdapter,
   MemoryAgentIdentityCatalogAdapter,
-} from '@ta-agent/base-local-adapters';
-import { parseAgentId, type AgentId } from '@ta-agent/base-identity';
-import { createAgent, type Agent } from '@ta-agent/base-runtime';
+} from '@print-an-agent/base-local-adapters';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
+import { createAgent, type Agent } from '@print-an-agent/base-runtime';
 import { vi } from 'vitest';
 import {
   defineManagedAgentComposition,

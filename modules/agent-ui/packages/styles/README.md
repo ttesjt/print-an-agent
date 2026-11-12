@@ -1,11 +1,11 @@
-# `@ta-agent/ui-styles`
+# `@print-an-agent/ui-styles`
 
-Optional default visual system for the semantic hooks published by `@ta-agent/ui-react`.
+Optional default visual system for the semantic hooks published by `@print-an-agent/ui-react`.
 
 Import the complete default:
 
 ```ts
-import '@ta-agent/ui-styles/default.css';
+import '@print-an-agent/ui-styles/default.css';
 ```
 
 The package can be omitted. Consumers may instead implement the `ta-ui-*` classes themselves, or
@@ -14,20 +14,20 @@ import the default and override its prefixed custom properties and low-specifici
 Individual layers are also public:
 
 ```ts
-import '@ta-agent/ui-styles/tokens.css';
-import '@ta-agent/ui-styles/base.css';
-import '@ta-agent/ui-styles/layout.css';
-import '@ta-agent/ui-styles/components.css';
-import '@ta-agent/ui-styles/actions.css';
-import '@ta-agent/ui-styles/action-bar.css';
-import '@ta-agent/ui-styles/tooltip.css';
-import '@ta-agent/ui-styles/forms.css';
-import '@ta-agent/ui-styles/feedback.css';
-import '@ta-agent/ui-styles/overlays.css';
-import '@ta-agent/ui-styles/navigation.css';
-import '@ta-agent/ui-styles/agent-management.css';
-import '@ta-agent/ui-styles/session-management.css';
-import '@ta-agent/ui-styles/conversation.css';
+import '@print-an-agent/ui-styles/tokens.css';
+import '@print-an-agent/ui-styles/base.css';
+import '@print-an-agent/ui-styles/layout.css';
+import '@print-an-agent/ui-styles/components.css';
+import '@print-an-agent/ui-styles/actions.css';
+import '@print-an-agent/ui-styles/action-bar.css';
+import '@print-an-agent/ui-styles/tooltip.css';
+import '@print-an-agent/ui-styles/forms.css';
+import '@print-an-agent/ui-styles/feedback.css';
+import '@print-an-agent/ui-styles/overlays.css';
+import '@print-an-agent/ui-styles/navigation.css';
+import '@print-an-agent/ui-styles/agent-management.css';
+import '@print-an-agent/ui-styles/session-management.css';
+import '@print-an-agent/ui-styles/conversation.css';
 ```
 
 Set `data-ta-ui-theme="light"`, `"dark"`, or `"system"` on the document root or an embedded theme

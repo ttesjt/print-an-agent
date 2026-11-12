@@ -1,4 +1,4 @@
-import type { StepExecutor, WorkflowLifecycle } from '@ta-agent/workflow-core';
+import type { StepExecutor, WorkflowLifecycle } from '@print-an-agent/workflow-core';
 import type { RetrievalReceipt, CommitEvidence } from '../contracts/publication.js';
 import { RetrievalMemoryError } from '../errors.js';
 import { parseRetrievalReceipt } from '../domain/receipts.js';

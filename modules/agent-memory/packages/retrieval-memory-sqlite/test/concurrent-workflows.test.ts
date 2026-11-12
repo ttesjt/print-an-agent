@@ -1,9 +1,9 @@
-import { createTextEmbedder } from '@ta-agent/model-invocation-core';
+import { createTextEmbedder } from '@print-an-agent/model-invocation-core';
 import {
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
   findRetrievalCommit,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import { expect, it, vi } from 'vitest';
 import { fixture } from './support/fixture.js';
 it('cancels one in-flight model call while another Session-like Space proceeds on shared resources', async () => {

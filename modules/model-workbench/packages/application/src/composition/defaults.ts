@@ -4,7 +4,7 @@ import type {
   WorkbenchClock,
   WorkbenchGeneratedIdKind,
   WorkbenchIdSource,
-} from '@ta-agent/workbench-control-plane';
+} from '@print-an-agent/workbench-control-plane';
 
 export function createRandomWorkbenchIdSource(): WorkbenchIdSource {
   return Object.freeze({

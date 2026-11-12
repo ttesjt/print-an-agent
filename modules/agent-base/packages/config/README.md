@@ -1,11 +1,11 @@
-# `@ta-agent/base-config`
+# `@print-an-agent/base-config`
 
 Storage-agnostic Agent configuration contracts.
 
 The package owns config codecs, snapshots, optimistic revisions, resolution, and write semantics. It
 does not know whether an adapter persists to memory, a file, SQLite, or another service.
 
-Official Memory and SQLite implementations live in `@ta-agent/base-local-adapters`; this package
+Official Memory and SQLite implementations live in `@print-an-agent/base-local-adapters`; this package
 does not select either one.
 
 ```ts

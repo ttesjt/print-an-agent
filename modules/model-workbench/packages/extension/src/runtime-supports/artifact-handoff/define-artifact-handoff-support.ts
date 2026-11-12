@@ -6,7 +6,7 @@ import {
   parseRuntimeSupportId,
   type ArtifactReference,
   type RuntimeSupportId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import { RuntimeSupportKind, WorkbenchExtensionFamily } from '../../foundation/constants.js';
 import type { WorkbenchExtensionRuntime } from '../../foundation/extension-runtime.js';

@@ -3,7 +3,7 @@ import {
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
   createRetrievalQueries,
-} from '@ta-agent/retrieval-memory';
+} from '@print-an-agent/retrieval-memory';
 import { fixture } from './support/fixture.js';
 it('runs the full basic loop through public native workflows and real storage', async () => {
   const f = await fixture();

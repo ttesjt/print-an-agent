@@ -2,8 +2,8 @@ import type {
   ContextMemoryManagementCapability,
   MemoryManagementOptions,
   MemoryProvisioningRequest,
-} from '@ta-agent/base-composition';
-import { scopedAgentMemoryId } from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
+import { scopedAgentMemoryId } from '@print-an-agent/base-composition';
 import {
   createContextMemoryBundle,
   createContextMemoryResources,
@@ -16,8 +16,8 @@ import {
   type CreateMemoryInput,
   type ReadContextInput,
   type DeterministicMemoryMutation,
-} from '@ta-agent/context-memory';
-import type { ResourceRegistry } from '@ta-agent/base-composition/resource-registry';
+} from '@print-an-agent/context-memory';
+import type { ResourceRegistry } from '@print-an-agent/base-composition/resource-registry';
 import type { MemoryManagementRecipe } from './recipe.js';
 import { DEFAULT_MEMORY_MEASUREMENT_REF } from './recipe.js';
 import type { StandaloneMemoryManagementOptions } from './contracts.js';

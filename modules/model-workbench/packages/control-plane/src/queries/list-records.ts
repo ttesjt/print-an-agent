@@ -1,4 +1,4 @@
-import type { PersistencePage } from '@ta-agent/workbench-persistence';
+import type { PersistencePage } from '@print-an-agent/workbench-persistence';
 
 import { WorkbenchControlPlaneError } from '../foundation/errors.js';
 

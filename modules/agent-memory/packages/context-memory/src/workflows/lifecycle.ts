@@ -1,4 +1,4 @@
-import type { WorkflowLifecycle } from '@ta-agent/workflow-core';
+import type { WorkflowLifecycle } from '@print-an-agent/workflow-core';
 import { preserveMemoryCommit } from './outcome.js';
 
 export function memoryLifecycle<C extends { result: unknown }>(

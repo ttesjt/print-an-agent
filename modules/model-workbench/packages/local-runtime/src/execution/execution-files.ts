@@ -3,11 +3,11 @@ import { randomUUID } from 'node:crypto';
 import { open, rename, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { JsonValue, ProfileId } from '@ta-agent/workbench-domain';
+import type { JsonValue, ProfileId } from '@print-an-agent/workbench-domain';
 import {
   parseExecutionObservation,
   type ExecutionObservation,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 
 import {
   LOCAL_EXECUTION_CANCELLATION_FILE,

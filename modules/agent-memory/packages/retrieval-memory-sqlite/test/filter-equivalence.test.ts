@@ -1,4 +1,8 @@
-import { matchesMetadata, type MetadataFilter, type JsonObject } from '@ta-agent/retrieval-memory';
+import {
+  matchesMetadata,
+  type MetadataFilter,
+  type JsonObject,
+} from '@print-an-agent/retrieval-memory';
 import { expect, it } from 'vitest';
 import { fixture } from './support/fixture.js';
 it('matches the domain filter algebra through parameterized SQL including arbitrary keys and primitive types', async () => {

@@ -15,7 +15,7 @@ import type {
   SessionManagementResult,
   SessionNavigationSnapshot,
   SessionRevision,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 
 import type { SessionManagementPort } from '../application/ports.js';
 

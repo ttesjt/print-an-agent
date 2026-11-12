@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import type { MemoryMutations, MemoryStore } from '@ta-agent/context-memory';
+import type { MemoryMutations, MemoryStore } from '@print-an-agent/context-memory';
 import { domain, fileStores, gate } from './support/fixtures.js';
 
 const kinds = ['apply', 'configure'] as const;

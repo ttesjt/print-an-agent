@@ -1,6 +1,6 @@
-# `@ta-agent/base-actor`
+# `@print-an-agent/base-actor`
 
-Agent Base Actor permissions and Responsibility routing over `@ta-agent/model-invocation-core`.
+Agent Base Actor permissions and Responsibility routing over `@print-an-agent/model-invocation-core`.
 
 An Actor is a named callable LLM participant backed by a replaceable Engine. A Responsibility is a
 registered semantic reason for an LLM call with an ordered configurable Actor candidate list.

@@ -1,4 +1,4 @@
-import type { ModelInteractionEvent } from '@ta-agent/model-invocation-core';
+import type { ModelInteractionEvent } from '@print-an-agent/model-invocation-core';
 import { InteractionEventDelivery } from '../interaction/event-delivery.js';
 import type { RequestInteractionState } from '../interaction/state.js';
 

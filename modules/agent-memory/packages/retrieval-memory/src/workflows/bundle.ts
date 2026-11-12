@@ -1,4 +1,4 @@
-import { WorkflowBundle } from '@ta-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
 import * as definitions from './definitions.js';
 import type { RetrievalWorkflowResources } from './resources.js';
 import { createRetrievalReadContextDefinition } from './context.js';

@@ -12,25 +12,25 @@ import {
   type StartingModelRun,
   type StartingTrainingRun,
   type TerminalTrainingRun,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 import {
   ExecutionStatus,
   WorkbenchExtensionError,
   type ExecutionSupportRuntime,
   type ExecutionTerminal,
   type TrainingCapabilityResult,
-} from '@ta-agent/workbench-extension';
+} from '@print-an-agent/workbench-extension';
 import {
   WorkbenchPersistenceError,
   type RunRepository,
   type TrainingCommitter,
-} from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-persistence';
 import {
   findResolvedProfile,
   findResolvedTrainer,
   type ResolvedTrainerSlot,
   type ResolvedWorkbenchSetup,
-} from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-setup';
 
 import { completeTraining, recordTrainingFailure } from './complete-training.js';
 import { TrainingArtifactVerificationError, TrainingCapabilityError } from './errors.js';

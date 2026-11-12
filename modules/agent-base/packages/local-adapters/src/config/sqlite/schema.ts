@@ -1,6 +1,6 @@
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { quoteSqliteIdentifier } from './table-names.js';
-import { AgentConfigError } from '@ta-agent/base-config';
+import { AgentConfigError } from '@print-an-agent/base-config';
 import { runConfigTransaction } from './database.js';
 import { createConfigStoreMigration } from './migrations/0001_create_config_store.js';
 import type { SqliteAgentConfigTableNames } from './table-names.js';

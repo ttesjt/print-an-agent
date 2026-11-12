@@ -1,5 +1,8 @@
 import { expect, it } from 'vitest';
-import { createRetrievalContentBundle, replayRetrievalMutation } from '@ta-agent/retrieval-memory';
+import {
+  createRetrievalContentBundle,
+  replayRetrievalMutation,
+} from '@print-an-agent/retrieval-memory';
 import { fixture } from './support/fixture.js';
 
 it('browses, removes and recovers receipts with only the coherent Backend', async () => {

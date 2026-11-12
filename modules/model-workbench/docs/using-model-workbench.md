@@ -50,7 +50,7 @@ Asset records already contain their exact operation lineage and source Model Sta
 
 ## CLI
 
-`@ta-agent/workbench-cli` is deliberately not a configuration system. It loads a host-supplied
+`@print-an-agent/workbench-cli` is deliberately not a configuration system. It loads a host-supplied
 JavaScript module:
 
 ```js

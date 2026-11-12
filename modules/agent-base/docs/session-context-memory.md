@@ -22,11 +22,11 @@ own or close a Memory store. Materialization only consumes prepared ports.
 ## Standalone Profile installation
 
 ```typescript
-import { createStandaloneDirectorySetup } from '@ta-agent/base-standalone-agent';
+import { createStandaloneDirectorySetup } from '@print-an-agent/base-standalone-agent';
 import {
   createAgentRuntimeService,
   createSessionNavigationService,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 
 const setup = createStandaloneDirectorySetup(
   { rootDirectory, readEnvironmentVariable: (name) => process.env[name] },

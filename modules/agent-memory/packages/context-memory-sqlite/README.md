@@ -1,4 +1,4 @@
-# @ta-agent/context-memory-sqlite
+# @print-an-agent/context-memory-sqlite
 
 SQLite adapter for Context Memory. Each `memoryId` owns one current JSON snapshot row, independent
 request receipts and immutable history stored as periodic baselines plus state deltas.
@@ -6,8 +6,8 @@ There is no per-item SQL schema. See [versioning and storage rules](../context-m
 for historical reads, detached forks, legacy initialization and configurable delta-chain limits.
 
 ```ts
-import { MemoryMeter, MemoryMutations, readMemoryContext } from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+import { MemoryMeter, MemoryMutations, readMemoryContext } from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 
 // measurementRef is resolved by a host-supplied TokenCounter, not by this adapter.
 const store = new SqliteMemoryStore({ path: '/existing/directory/memory.sqlite' });

@@ -2,17 +2,17 @@ import type {
   CompletedConversationTurn,
   ConversationInteractionEventConsumer,
   StartConversationInteractionInput,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
 import type { ConversationManagementPort } from '../../src/application/ports.js';
-import { ConversationWorkspace } from '@ta-agent/ui-workspace/testing';
+import { ConversationWorkspace } from '@print-an-agent/ui-workspace/testing';
 import {
   useConversationManagement,
   type ConversationManagementController,
-} from '@ta-agent/ui-workspace/testing';
-import type { SessionSelectionState } from '@ta-agent/ui-workspace/testing';
+} from '@print-an-agent/ui-workspace/testing';
+import type { SessionSelectionState } from '@print-an-agent/ui-workspace/testing';
 
 type ControllerInput = Parameters<typeof useConversationManagement>[0];
 

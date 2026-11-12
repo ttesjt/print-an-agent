@@ -1,5 +1,5 @@
-import { parseAgentId } from '@ta-agent/base-identity';
-import { jsonValue } from '@ta-agent/context-memory';
+import { parseAgentId } from '@print-an-agent/base-identity';
+import { jsonValue } from '@print-an-agent/context-memory';
 import type { AgentMemoryReference, MemoryManagementOptions } from './contracts/memory.js';
 import { MemoryManagementError } from './memory-errors.js';
 import { validateMemoryIdentifier } from './memory-target.js';

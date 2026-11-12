@@ -1,4 +1,4 @@
-import type { ModelToolProtocolErrorCode } from '@ta-agent/model-invocation-core';
+import type { ModelToolProtocolErrorCode } from '@print-an-agent/model-invocation-core';
 
 export type AgentToolErrorCode =
   | ModelToolProtocolErrorCode

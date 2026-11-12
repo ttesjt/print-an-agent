@@ -4,15 +4,15 @@ import {
   createResponsibilityCatalog,
   createResponsibilityRouter,
   MAIN_ACTOR_ID,
-} from '@ta-agent/base-actor';
-import { defineActorEngine, type ActorDirectHandler } from '@ta-agent/model-invocation-core';
-import { defineAgentIdentity } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-actor';
+import { defineActorEngine, type ActorDirectHandler } from '@print-an-agent/model-invocation-core';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
 import {
   defineAssistantModelMessage,
   defineProviderModelExecutionProvenance,
   defineProviderModelReference,
-} from '@ta-agent/model-invocation-core';
-import { RUN_WORKFLOW } from '@ta-agent/workflow-core';
+} from '@print-an-agent/model-invocation-core';
+import { RUN_WORKFLOW } from '@print-an-agent/workflow-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createDefaultSessionCompactionStepOverrides,

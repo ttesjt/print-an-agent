@@ -8,7 +8,7 @@ import {
   schemas,
   fail,
   type Decoder,
-} from '@ta-agent/ui-transport';
+} from '@print-an-agent/ui-transport';
 import {
   TEMPORARY_EVENT as E,
   type TemporaryConversationEvent,

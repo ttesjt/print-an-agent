@@ -8,11 +8,11 @@ import {
   type SessionNavigationPorts,
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseSessionId } from '@ta-agent/base-session';
+import { parseSessionId } from '@print-an-agent/base-session';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createSharedSqliteStandaloneDefinition,

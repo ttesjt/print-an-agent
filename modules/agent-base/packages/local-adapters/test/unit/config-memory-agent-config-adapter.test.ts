@@ -7,8 +7,8 @@ import {
   type AgentConfigReadAdapter,
   type AgentConfigSnapshot,
   type ConfigValue,
-} from '@ta-agent/base-config';
-import { defineAgentIdentity } from '@ta-agent/base-identity';
+} from '@print-an-agent/base-config';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
 import { MemoryAgentConfigAdapter } from '../../src/index.js';
 
 interface TestConfig {

@@ -3,7 +3,7 @@ import {
   SqliteAgentIdentityCatalogAdapter,
   SqliteSessionAdapter,
   createSqliteSessionPersistence,
-} from '@ta-agent/base-local-adapters';
+} from '@print-an-agent/base-local-adapters';
 import type {
   ManagedAgentAuthorityPortFactory,
   ManagedAgentNamespace,
@@ -14,7 +14,7 @@ import type {
   SessionManagementPorts,
   SessionNavigationPortFactory,
   SessionNavigationPorts,
-} from '@ta-agent/base-composition';
+} from '@print-an-agent/base-composition';
 import type { StandaloneRuntimePorts } from '../../runtime/materialize-standalone-agent.js';
 import type { StandaloneAgentConfig } from '../../types.js';
 import type { SharedSqliteAgentResourceNamespace } from './types.js';

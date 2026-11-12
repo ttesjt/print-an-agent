@@ -1,7 +1,7 @@
 import { TEST_COMPACTION_TOKEN_COUNTER } from '../support/compaction-token-counter.js';
-import { MemorySessionAdapter } from '@ta-agent/base-local-adapters';
-import type { CompactableSessionPort, SessionExecutionPort } from '@ta-agent/base-session';
-import { SKIP_STEP } from '@ta-agent/workflow-core';
+import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
+import type { CompactableSessionPort, SessionExecutionPort } from '@print-an-agent/base-session';
+import { SKIP_STEP } from '@print-an-agent/workflow-core';
 import { expect, it } from 'vitest';
 import { createDeterministicAgentAPI } from '../../src/index.js';
 

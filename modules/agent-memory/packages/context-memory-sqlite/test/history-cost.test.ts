@@ -1,8 +1,8 @@
 import { DatabaseSync } from 'node:sqlite';
 import { stat } from 'node:fs/promises';
 import { expect, it } from 'vitest';
-import { canonicalJson, jsonValue } from '@ta-agent/context-memory';
-import { SqliteMemoryStore } from '@ta-agent/context-memory-sqlite';
+import { canonicalJson, jsonValue } from '@print-an-agent/context-memory';
+import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import { borrowed, domain, fileStores } from './support/fixtures.js';
 
 function numeric(value: unknown): number {

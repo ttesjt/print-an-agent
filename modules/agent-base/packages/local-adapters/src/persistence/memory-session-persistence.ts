@@ -2,7 +2,7 @@ import {
   AgentSessionError,
   normalizePurgeSessionInput,
   normalizeRecoverSessionExecutionsInput,
-} from '@ta-agent/base-session';
+} from '@print-an-agent/base-session';
 import {
   MemorySessionAdapter,
   type MemorySessionAdapterOptions,

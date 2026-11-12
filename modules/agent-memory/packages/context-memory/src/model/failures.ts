@@ -1,4 +1,4 @@
-import { ActorError } from '@ta-agent/model-invocation-core';
+import { ActorError } from '@print-an-agent/model-invocation-core';
 import { assertMemoryNotAborted, ContextMemoryError } from '../errors.js';
 
 export function isMemoryPlannerTimeout(cause: unknown): cause is ContextMemoryError {

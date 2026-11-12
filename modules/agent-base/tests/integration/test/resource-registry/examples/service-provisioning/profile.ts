@@ -8,8 +8,8 @@ import {
   type ResourceAcquisition,
   type ResourceCloseOptions,
   type ResourceRegistry,
-} from '@ta-agent/base-composition/resource-registry';
-import { WorkflowBundle } from '@ta-agent/workflow-bundle';
+} from '@print-an-agent/base-composition/resource-registry';
+import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
 import { createDocumentBundle, type DocumentBundle, type DocumentReader } from './workflow.js';
 import type { DocumentCallOptions, DocumentManagementDefinition } from './service.js';
 

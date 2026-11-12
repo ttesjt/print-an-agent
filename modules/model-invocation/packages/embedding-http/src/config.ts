@@ -2,7 +2,7 @@ import {
   defineProviderModelReference,
   EmbeddingError,
   type ProviderModelReference,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 
 /** Adapter config is a data-only closed record, never an executable provider extension bag. */
 export function readConfigRecord(value: unknown, keys: readonly string[]): Record<string, unknown> {

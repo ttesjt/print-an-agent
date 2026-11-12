@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import {
   createContextMemoryStateBundle,
   createContextMemoryStateResources,
-} from '@ta-agent/context-memory';
+} from '@print-an-agent/context-memory';
 import { borrowed } from './support/fixtures.js';
 
 it('inspects the exact persisted snapshot and replays complete inputs without measurement resources', async () => {

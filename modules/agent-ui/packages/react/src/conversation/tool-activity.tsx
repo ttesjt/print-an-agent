@@ -1,7 +1,7 @@
 import type {
   ConversationToolActivity as ToolActivityValue,
   ConversationToolActivityStatus,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 
 import { Badge } from '../feedback/feedback.js';

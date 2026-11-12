@@ -1,11 +1,11 @@
-import { AgentToolError } from '@ta-agent/base-tool';
+import { AgentToolError } from '@print-an-agent/base-tool';
 import type {
   InteractionTools,
   ToolCallProposal,
   ToolExecutionOptions,
   ToolExecutionOutcome,
-} from '@ta-agent/model-invocation-core';
-import { composeExecutionSignal } from '@ta-agent/workflow-core';
+} from '@print-an-agent/model-invocation-core';
+import { composeExecutionSignal } from '@print-an-agent/workflow-core';
 
 /** Request owns admitted Tool work; an Engine cannot discard its failure or lifetime. */
 export class InteractionToolExecution {

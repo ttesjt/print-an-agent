@@ -10,7 +10,7 @@ import type {
   OutputId,
   ProfileId,
   RunId,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import {
   PersistenceDataCorruptionError,

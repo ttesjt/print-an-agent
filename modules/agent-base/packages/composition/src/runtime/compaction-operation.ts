@@ -1,10 +1,10 @@
-import { AgentSessionError, type SessionCompactionPolicy } from '@ta-agent/base-session';
-import { runWithExecutionTimeout } from '@ta-agent/workflow-core';
+import { AgentSessionError, type SessionCompactionPolicy } from '@print-an-agent/base-session';
+import { runWithExecutionTimeout } from '@print-an-agent/workflow-core';
 import {
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
   type ResponsibilityRouter,
-} from '@ta-agent/base-actor';
-import type { TokenCounter, TextTokenInput } from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/base-actor';
+import type { TokenCounter, TextTokenInput } from '@print-an-agent/model-invocation-core';
 
 export async function resolveConsumerTokenCounter(
   router: ResponsibilityRouter,

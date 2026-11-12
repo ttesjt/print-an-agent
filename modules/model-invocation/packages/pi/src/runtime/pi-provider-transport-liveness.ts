@@ -2,7 +2,7 @@ import {
   ModelInvocationError,
   type ProviderTransportLivenessPolicy,
   type ProviderTransportTimeoutMilliseconds,
-} from '@ta-agent/model-invocation-core';
+} from '@print-an-agent/model-invocation-core';
 
 interface CreatePiProviderTransportLivenessBoundaryOptions {
   readonly parentSignal: AbortSignal;

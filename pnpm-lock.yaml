@@ -61,7 +61,7 @@ importers:
 
   modules/agent-base/apps/cli:
     dependencies:
-      '@ta-agent/base-standalone-agent':
+      '@print-an-agent/base-standalone-agent':
         specifier: workspace:*
         version: link:../../packages/standalone-agent
     devDependencies:
@@ -80,10 +80,10 @@ importers:
 
   modules/agent-base/packages/actor:
     dependencies:
-      '@ta-agent/base-tool':
+      '@print-an-agent/base-tool':
         specifier: workspace:*
         version: link:../tool
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
     devDependencies:
@@ -102,50 +102,50 @@ importers:
 
   modules/agent-base/packages/composition:
     dependencies:
-      '@ta-agent/base-actor':
+      '@print-an-agent/base-actor':
         specifier: workspace:*
         version: link:../actor
-      '@ta-agent/base-config':
+      '@print-an-agent/base-config':
         specifier: workspace:*
         version: link:../config
-      '@ta-agent/base-identity':
+      '@print-an-agent/base-identity':
         specifier: workspace:*
         version: link:../identity
-      '@ta-agent/base-local-adapters':
+      '@print-an-agent/base-local-adapters':
         specifier: workspace:*
         version: link:../local-adapters
-      '@ta-agent/base-observability':
+      '@print-an-agent/base-observability':
         specifier: workspace:*
         version: link:../observability
-      '@ta-agent/base-request':
+      '@print-an-agent/base-request':
         specifier: workspace:*
         version: link:../request
-      '@ta-agent/base-runtime':
+      '@print-an-agent/base-runtime':
         specifier: workspace:*
         version: link:../runtime
-      '@ta-agent/base-session':
+      '@print-an-agent/base-session':
         specifier: workspace:*
         version: link:../session
-      '@ta-agent/base-tool':
+      '@print-an-agent/base-tool':
         specifier: workspace:*
         version: link:../tool
-      '@ta-agent/context-memory':
+      '@print-an-agent/context-memory':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/context-memory
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@ta-agent/model-invocation-pi':
+      '@print-an-agent/model-invocation-pi':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/pi
-      '@ta-agent/retrieval-memory':
+      '@print-an-agent/retrieval-memory':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/retrieval-memory
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
     devDependencies:
-      '@ta-agent/context-memory-sqlite':
+      '@print-an-agent/context-memory-sqlite':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/context-memory-sqlite
       '@types/node':
@@ -163,7 +163,7 @@ importers:
 
   modules/agent-base/packages/config:
     dependencies:
-      '@ta-agent/base-identity':
+      '@print-an-agent/base-identity':
         specifier: workspace:*
         version: link:../identity
     devDependencies:
@@ -197,32 +197,32 @@ importers:
 
   modules/agent-base/packages/local-adapters:
     dependencies:
-      '@ta-agent/base-config':
+      '@print-an-agent/base-config':
         specifier: workspace:*
         version: link:../config
-      '@ta-agent/base-identity':
+      '@print-an-agent/base-identity':
         specifier: workspace:*
         version: link:../identity
-      '@ta-agent/base-observability':
+      '@print-an-agent/base-observability':
         specifier: workspace:*
         version: link:../observability
-      '@ta-agent/base-request':
+      '@print-an-agent/base-request':
         specifier: workspace:*
         version: link:../request
-      '@ta-agent/base-session':
+      '@print-an-agent/base-session':
         specifier: workspace:*
         version: link:../session
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
     devDependencies:
-      '@ta-agent/base-actor':
+      '@print-an-agent/base-actor':
         specifier: workspace:*
         version: link:../actor
-      '@ta-agent/base-runtime':
+      '@print-an-agent/base-runtime':
         specifier: workspace:*
         version: link:../runtime
-      '@ta-agent/base-tool':
+      '@print-an-agent/base-tool':
         specifier: workspace:*
         version: link:../tool
       '@types/node':
@@ -255,28 +255,28 @@ importers:
 
   modules/agent-base/packages/request:
     dependencies:
-      '@ta-agent/base-actor':
+      '@print-an-agent/base-actor':
         specifier: workspace:*
         version: link:../actor
-      '@ta-agent/base-identity':
+      '@print-an-agent/base-identity':
         specifier: workspace:*
         version: link:../identity
-      '@ta-agent/base-observability':
+      '@print-an-agent/base-observability':
         specifier: workspace:*
         version: link:../observability
-      '@ta-agent/base-runtime':
+      '@print-an-agent/base-runtime':
         specifier: workspace:*
         version: link:../runtime
-      '@ta-agent/base-session':
+      '@print-an-agent/base-session':
         specifier: workspace:*
         version: link:../session
-      '@ta-agent/base-tool':
+      '@print-an-agent/base-tool':
         specifier: workspace:*
         version: link:../tool
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
     devDependencies:
@@ -295,13 +295,13 @@ importers:
 
   modules/agent-base/packages/runtime:
     dependencies:
-      '@ta-agent/base-identity':
+      '@print-an-agent/base-identity':
         specifier: workspace:*
         version: link:../identity
-      '@ta-agent/base-observability':
+      '@print-an-agent/base-observability':
         specifier: workspace:*
         version: link:../observability
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
     devDependencies:
@@ -320,22 +320,22 @@ importers:
 
   modules/agent-base/packages/session:
     dependencies:
-      '@ta-agent/base-actor':
+      '@print-an-agent/base-actor':
         specifier: workspace:*
         version: link:../actor
-      '@ta-agent/base-identity':
+      '@print-an-agent/base-identity':
         specifier: workspace:*
         version: link:../identity
-      '@ta-agent/base-observability':
+      '@print-an-agent/base-observability':
         specifier: workspace:*
         version: link:../observability
-      '@ta-agent/base-runtime':
+      '@print-an-agent/base-runtime':
         specifier: workspace:*
         version: link:../runtime
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
     devDependencies:
@@ -354,49 +354,49 @@ importers:
 
   modules/agent-base/packages/standalone-agent:
     dependencies:
-      '@ta-agent/base-actor':
+      '@print-an-agent/base-actor':
         specifier: workspace:*
         version: link:../actor
-      '@ta-agent/base-composition':
+      '@print-an-agent/base-composition':
         specifier: workspace:*
         version: link:../composition
-      '@ta-agent/base-config':
+      '@print-an-agent/base-config':
         specifier: workspace:*
         version: link:../config
-      '@ta-agent/base-identity':
+      '@print-an-agent/base-identity':
         specifier: workspace:*
         version: link:../identity
-      '@ta-agent/base-local-adapters':
+      '@print-an-agent/base-local-adapters':
         specifier: workspace:*
         version: link:../local-adapters
-      '@ta-agent/base-request':
+      '@print-an-agent/base-request':
         specifier: workspace:*
         version: link:../request
-      '@ta-agent/base-session':
+      '@print-an-agent/base-session':
         specifier: workspace:*
         version: link:../session
-      '@ta-agent/context-memory':
+      '@print-an-agent/context-memory':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/context-memory
-      '@ta-agent/context-memory-sqlite':
+      '@print-an-agent/context-memory-sqlite':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/context-memory-sqlite
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@ta-agent/model-invocation-token-counters':
+      '@print-an-agent/model-invocation-token-counters':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/token-counters
-      '@ta-agent/retrieval-memory':
+      '@print-an-agent/retrieval-memory':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/retrieval-memory
-      '@ta-agent/retrieval-memory-sqlite':
+      '@print-an-agent/retrieval-memory-sqlite':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/retrieval-memory-sqlite
-      '@ta-agent/workflow-bundle':
+      '@print-an-agent/workflow-bundle':
         specifier: workspace:*
         version: link:../../../workflow/packages/bundle
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
     devDependencies:
@@ -415,7 +415,7 @@ importers:
 
   modules/agent-base/packages/tool:
     dependencies:
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
     devDependencies:
@@ -434,64 +434,64 @@ importers:
 
   modules/agent-base/tests/integration:
     devDependencies:
-      '@ta-agent/base-actor':
+      '@print-an-agent/base-actor':
         specifier: workspace:*
         version: link:../../packages/actor
-      '@ta-agent/base-composition':
+      '@print-an-agent/base-composition':
         specifier: workspace:*
         version: link:../../packages/composition
-      '@ta-agent/base-config':
+      '@print-an-agent/base-config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@ta-agent/base-identity':
+      '@print-an-agent/base-identity':
         specifier: workspace:*
         version: link:../../packages/identity
-      '@ta-agent/base-local-adapters':
+      '@print-an-agent/base-local-adapters':
         specifier: workspace:*
         version: link:../../packages/local-adapters
-      '@ta-agent/base-observability':
+      '@print-an-agent/base-observability':
         specifier: workspace:*
         version: link:../../packages/observability
-      '@ta-agent/base-request':
+      '@print-an-agent/base-request':
         specifier: workspace:*
         version: link:../../packages/request
-      '@ta-agent/base-runtime':
+      '@print-an-agent/base-runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
-      '@ta-agent/base-session':
+      '@print-an-agent/base-session':
         specifier: workspace:*
         version: link:../../packages/session
-      '@ta-agent/base-standalone-agent':
+      '@print-an-agent/base-standalone-agent':
         specifier: workspace:*
         version: link:../../packages/standalone-agent
-      '@ta-agent/base-tool':
+      '@print-an-agent/base-tool':
         specifier: workspace:*
         version: link:../../packages/tool
-      '@ta-agent/context-memory':
+      '@print-an-agent/context-memory':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/context-memory
-      '@ta-agent/context-memory-sqlite':
+      '@print-an-agent/context-memory-sqlite':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/context-memory-sqlite
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@ta-agent/model-invocation-pi':
+      '@print-an-agent/model-invocation-pi':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/pi
-      '@ta-agent/model-invocation-token-counters':
+      '@print-an-agent/model-invocation-token-counters':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/token-counters
-      '@ta-agent/retrieval-memory':
+      '@print-an-agent/retrieval-memory':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/retrieval-memory
-      '@ta-agent/retrieval-memory-sqlite':
+      '@print-an-agent/retrieval-memory-sqlite':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/retrieval-memory-sqlite
-      '@ta-agent/workflow-bundle':
+      '@print-an-agent/workflow-bundle':
         specifier: workspace:*
         version: link:../../../workflow/packages/bundle
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
       '@types/node':
@@ -509,17 +509,17 @@ importers:
 
   modules/agent-memory/packages/context-memory:
     dependencies:
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@ta-agent/workflow-bundle':
+      '@print-an-agent/workflow-bundle':
         specifier: workspace:*
         version: link:../../../workflow/packages/bundle
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
     devDependencies:
-      '@ta-agent/model-invocation-token-counters':
+      '@print-an-agent/model-invocation-token-counters':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/token-counters
       '@types/node':
@@ -534,14 +534,14 @@ importers:
 
   modules/agent-memory/packages/context-memory-sqlite:
     dependencies:
-      '@ta-agent/context-memory':
+      '@print-an-agent/context-memory':
         specifier: workspace:*
         version: link:../context-memory
     devDependencies:
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
       '@types/node':
@@ -556,13 +556,13 @@ importers:
 
   modules/agent-memory/packages/retrieval-memory:
     dependencies:
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@ta-agent/workflow-bundle':
+      '@print-an-agent/workflow-bundle':
         specifier: workspace:*
         version: link:../../../workflow/packages/bundle
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
     devDependencies:
@@ -578,14 +578,14 @@ importers:
 
   modules/agent-memory/packages/retrieval-memory-sqlite:
     dependencies:
-      '@ta-agent/retrieval-memory':
+      '@print-an-agent/retrieval-memory':
         specifier: workspace:*
         version: link:../retrieval-memory
       sqlite-vec:
         specifier: 0.1.9
         version: 0.1.9
     devDependencies:
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
       '@types/node':
@@ -600,19 +600,19 @@ importers:
 
   modules/agent-memory/tests/qualification:
     devDependencies:
-      '@ta-agent/context-memory':
+      '@print-an-agent/context-memory':
         specifier: workspace:*
         version: link:../../packages/context-memory
-      '@ta-agent/context-memory-sqlite':
+      '@print-an-agent/context-memory-sqlite':
         specifier: workspace:*
         version: link:../../packages/context-memory-sqlite
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@ta-agent/model-invocation-token-counters':
+      '@print-an-agent/model-invocation-token-counters':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/token-counters
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
       '@types/node':
@@ -627,22 +627,22 @@ importers:
 
   modules/agent-memory/tests/retrieval-memory-qualification:
     devDependencies:
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@ta-agent/model-invocation-embedding-http':
+      '@print-an-agent/model-invocation-embedding-http':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/embedding-http
-      '@ta-agent/model-invocation-token-counters':
+      '@print-an-agent/model-invocation-token-counters':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/token-counters
-      '@ta-agent/retrieval-memory':
+      '@print-an-agent/retrieval-memory':
         specifier: workspace:*
         version: link:../../packages/retrieval-memory
-      '@ta-agent/retrieval-memory-sqlite':
+      '@print-an-agent/retrieval-memory-sqlite':
         specifier: workspace:*
         version: link:../../packages/retrieval-memory-sqlite
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
       '@types/node':
@@ -657,58 +657,58 @@ importers:
 
   modules/agent-ui/apps/agent-web:
     dependencies:
-      '@ta-agent/base-actor':
+      '@print-an-agent/base-actor':
         specifier: workspace:*
         version: link:../../../agent-base/packages/actor
-      '@ta-agent/base-composition':
+      '@print-an-agent/base-composition':
         specifier: workspace:*
         version: link:../../../agent-base/packages/composition
-      '@ta-agent/base-config':
+      '@print-an-agent/base-config':
         specifier: workspace:*
         version: link:../../../agent-base/packages/config
-      '@ta-agent/base-identity':
+      '@print-an-agent/base-identity':
         specifier: workspace:*
         version: link:../../../agent-base/packages/identity
-      '@ta-agent/base-local-adapters':
+      '@print-an-agent/base-local-adapters':
         specifier: workspace:*
         version: link:../../../agent-base/packages/local-adapters
-      '@ta-agent/base-request':
+      '@print-an-agent/base-request':
         specifier: workspace:*
         version: link:../../../agent-base/packages/request
-      '@ta-agent/base-session':
+      '@print-an-agent/base-session':
         specifier: workspace:*
         version: link:../../../agent-base/packages/session
-      '@ta-agent/base-standalone-agent':
+      '@print-an-agent/base-standalone-agent':
         specifier: workspace:*
         version: link:../../../agent-base/packages/standalone-agent
-      '@ta-agent/base-tool':
+      '@print-an-agent/base-tool':
         specifier: workspace:*
         version: link:../../../agent-base/packages/tool
-      '@ta-agent/context-memory':
+      '@print-an-agent/context-memory':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/context-memory
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@ta-agent/retrieval-memory':
+      '@print-an-agent/retrieval-memory':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/retrieval-memory
-      '@ta-agent/ui-contracts':
+      '@print-an-agent/ui-contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@ta-agent/ui-react':
+      '@print-an-agent/ui-react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@ta-agent/ui-styles':
+      '@print-an-agent/ui-styles':
         specifier: workspace:*
         version: link:../../packages/styles
-      '@ta-agent/ui-transport':
+      '@print-an-agent/ui-transport':
         specifier: workspace:*
         version: link:../../packages/transport
-      '@ta-agent/ui-workspace':
+      '@print-an-agent/ui-workspace':
         specifier: workspace:*
         version: link:../../packages/workspace
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
       react:
@@ -748,10 +748,10 @@ importers:
 
   modules/agent-ui/apps/component-gallery:
     dependencies:
-      '@ta-agent/ui-react':
+      '@print-an-agent/ui-react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@ta-agent/ui-styles':
+      '@print-an-agent/ui-styles':
         specifier: workspace:*
         version: link:../../packages/styles
       react:
@@ -803,7 +803,7 @@ importers:
 
   modules/agent-ui/packages/react:
     dependencies:
-      '@ta-agent/ui-contracts':
+      '@print-an-agent/ui-contracts':
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
@@ -849,7 +849,7 @@ importers:
 
   modules/agent-ui/packages/transport:
     dependencies:
-      '@ta-agent/ui-contracts':
+      '@print-an-agent/ui-contracts':
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
@@ -868,10 +868,10 @@ importers:
 
   modules/agent-ui/packages/workspace:
     dependencies:
-      '@ta-agent/ui-contracts':
+      '@print-an-agent/ui-contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@ta-agent/ui-react':
+      '@print-an-agent/ui-react':
         specifier: workspace:*
         version: link:../react
     devDependencies:
@@ -914,7 +914,7 @@ importers:
 
   modules/model-invocation/packages/embedding-http:
     dependencies:
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -936,7 +936,7 @@ importers:
       '@earendil-works/pi-ai':
         specifier: 0.82.1
         version: 0.82.1(ws@8.21.2)(zod@4.4.3)
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../core
       typebox:
@@ -958,7 +958,7 @@ importers:
 
   modules/model-invocation/packages/token-counters:
     dependencies:
-      '@ta-agent/model-invocation-core':
+      '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../core
       js-tiktoken:
@@ -977,7 +977,7 @@ importers:
 
   modules/model-workbench/apps/cli:
     dependencies:
-      '@ta-agent/workbench-application':
+      '@print-an-agent/workbench-application':
         specifier: workspace:*
         version: link:../../packages/application
     devDependencies:
@@ -996,19 +996,19 @@ importers:
 
   modules/model-workbench/packages/application:
     dependencies:
-      '@ta-agent/workbench-control-plane':
+      '@print-an-agent/workbench-control-plane':
         specifier: workspace:*
         version: link:../control-plane
-      '@ta-agent/workbench-domain':
+      '@print-an-agent/workbench-domain':
         specifier: workspace:*
         version: link:../domain
-      '@ta-agent/workbench-extension':
+      '@print-an-agent/workbench-extension':
         specifier: workspace:*
         version: link:../extension
-      '@ta-agent/workbench-persistence':
+      '@print-an-agent/workbench-persistence':
         specifier: workspace:*
         version: link:../persistence
-      '@ta-agent/workbench-setup':
+      '@print-an-agent/workbench-setup':
         specifier: workspace:*
         version: link:../setup
     devDependencies:
@@ -1027,16 +1027,16 @@ importers:
 
   modules/model-workbench/packages/control-plane:
     dependencies:
-      '@ta-agent/workbench-domain':
+      '@print-an-agent/workbench-domain':
         specifier: workspace:*
         version: link:../domain
-      '@ta-agent/workbench-extension':
+      '@print-an-agent/workbench-extension':
         specifier: workspace:*
         version: link:../extension
-      '@ta-agent/workbench-persistence':
+      '@print-an-agent/workbench-persistence':
         specifier: workspace:*
         version: link:../persistence
-      '@ta-agent/workbench-setup':
+      '@print-an-agent/workbench-setup':
         specifier: workspace:*
         version: link:../setup
     devDependencies:
@@ -1070,7 +1070,7 @@ importers:
 
   modules/model-workbench/packages/extension:
     dependencies:
-      '@ta-agent/workbench-domain':
+      '@print-an-agent/workbench-domain':
         specifier: workspace:*
         version: link:../domain
       typebox:
@@ -1092,10 +1092,10 @@ importers:
 
   modules/model-workbench/packages/local-runtime:
     dependencies:
-      '@ta-agent/workbench-domain':
+      '@print-an-agent/workbench-domain':
         specifier: workspace:*
         version: link:../domain
-      '@ta-agent/workbench-extension':
+      '@print-an-agent/workbench-extension':
         specifier: workspace:*
         version: link:../extension
     devDependencies:
@@ -1114,7 +1114,7 @@ importers:
 
   modules/model-workbench/packages/persistence:
     dependencies:
-      '@ta-agent/workbench-domain':
+      '@print-an-agent/workbench-domain':
         specifier: workspace:*
         version: link:../domain
     devDependencies:
@@ -1133,10 +1133,10 @@ importers:
 
   modules/model-workbench/packages/setup:
     dependencies:
-      '@ta-agent/workbench-domain':
+      '@print-an-agent/workbench-domain':
         specifier: workspace:*
         version: link:../domain
-      '@ta-agent/workbench-extension':
+      '@print-an-agent/workbench-extension':
         specifier: workspace:*
         version: link:../extension
     devDependencies:
@@ -1155,13 +1155,13 @@ importers:
 
   modules/model-workbench/templates/python-model-backend/workbench-adapter:
     dependencies:
-      '@ta-agent/workbench-extension':
+      '@print-an-agent/workbench-extension':
         specifier: workspace:*
         version: link:../../../packages/extension
-      '@ta-agent/workbench-local-runtime':
+      '@print-an-agent/workbench-local-runtime':
         specifier: workspace:*
         version: link:../../../packages/local-runtime
-      '@ta-agent/workbench-setup':
+      '@print-an-agent/workbench-setup':
         specifier: workspace:*
         version: link:../../../packages/setup
     devDependencies:
@@ -1180,28 +1180,28 @@ importers:
 
   modules/model-workbench/tests/integration:
     devDependencies:
-      '@ta-agent/workbench-application':
+      '@print-an-agent/workbench-application':
         specifier: workspace:*
         version: link:../../packages/application
-      '@ta-agent/workbench-control-plane':
+      '@print-an-agent/workbench-control-plane':
         specifier: workspace:*
         version: link:../../packages/control-plane
-      '@ta-agent/workbench-domain':
+      '@print-an-agent/workbench-domain':
         specifier: workspace:*
         version: link:../../packages/domain
-      '@ta-agent/workbench-extension':
+      '@print-an-agent/workbench-extension':
         specifier: workspace:*
         version: link:../../packages/extension
-      '@ta-agent/workbench-local-runtime':
+      '@print-an-agent/workbench-local-runtime':
         specifier: workspace:*
         version: link:../../packages/local-runtime
-      '@ta-agent/workbench-persistence':
+      '@print-an-agent/workbench-persistence':
         specifier: workspace:*
         version: link:../../packages/persistence
-      '@ta-agent/workbench-python-model-backend-template-adapter':
+      '@print-an-agent/workbench-python-model-backend-template-adapter':
         specifier: workspace:*
         version: link:../../templates/python-model-backend/workbench-adapter
-      '@ta-agent/workbench-setup':
+      '@print-an-agent/workbench-setup':
         specifier: workspace:*
         version: link:../../packages/setup
       '@types/node':
@@ -1219,7 +1219,7 @@ importers:
 
   modules/workflow/packages/bundle:
     dependencies:
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -1247,10 +1247,10 @@ importers:
 
   modules/workflow/tests/qualification:
     devDependencies:
-      '@ta-agent/workflow-bundle':
+      '@print-an-agent/workflow-bundle':
         specifier: workspace:*
         version: link:../../packages/bundle
-      '@ta-agent/workflow-core':
+      '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../packages/core
       '@types/node':

@@ -11,14 +11,14 @@ import {
   defineOutputInvokerCapability,
   defineTrainerCapability,
   ExecutionStatus,
-} from '@ta-agent/workbench-extension';
-import { RuntimeBindingKind } from '@ta-agent/workbench-setup';
+} from '@print-an-agent/workbench-extension';
+import { RuntimeBindingKind } from '@print-an-agent/workbench-setup';
 import {
   createMemoryPersistence,
   type ProfilePersistence,
   type ProfilePersistenceAdapter,
   type ProfilePersistenceScope,
-} from '@ta-agent/workbench-persistence';
+} from '@print-an-agent/workbench-persistence';
 
 import { createModelWorkbench } from '../../src/index.js';
 

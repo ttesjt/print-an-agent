@@ -1,8 +1,8 @@
-import { Workflow, STEP_CARDINALITY } from '@ta-agent/workflow-core';
+import { Workflow, STEP_CARDINALITY } from '@print-an-agent/workflow-core';
 import { bindAgentWorkflow, type AgentWorkflow } from '../../src/index.js';
 import { describe, expect, it } from 'vitest';
-import { defineAgentIdentity } from '@ta-agent/base-identity';
-import type { AgentTraceEvent, AgentTraceEventSink } from '@ta-agent/base-observability';
+import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentTraceEvent, AgentTraceEventSink } from '@print-an-agent/base-observability';
 import type {
   AgentDefinitionError,
   AgentRunContextFactoryInput,

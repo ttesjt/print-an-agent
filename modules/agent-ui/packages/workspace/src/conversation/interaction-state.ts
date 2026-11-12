@@ -8,7 +8,7 @@ import type {
   ConversationToolActivity,
   ConversationUserMessage,
   ExistingConversationTarget,
-} from '@ta-agent/ui-contracts';
+} from '@print-an-agent/ui-contracts';
 
 interface CapturedReasoningBlock {
   readonly chunks: readonly string[];

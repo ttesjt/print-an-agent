@@ -3,7 +3,7 @@ import {
   parseExecutionFailure,
   parseJsonValue,
   type JsonValue,
-} from '@ta-agent/workbench-domain';
+} from '@print-an-agent/workbench-domain';
 
 import { parseClosedRecord } from '../foundation/parsing.js';
 import { CapabilityDispatchKind, ExecutionStatus } from './constants.js';

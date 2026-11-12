@@ -1,4 +1,4 @@
-import { WorkflowBundle } from '@ta-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
 import type { RetrievalBackend } from '../contracts/ports.js';
 import type { RetrievalPolicy } from '../config.js';
 import { createRetrievalContentQueries } from '../domain/queries.js';

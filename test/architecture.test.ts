@@ -17,36 +17,36 @@ const repositoryRoot = fileURLToPath(new URL('..', import.meta.url));
 
 const moduleRules = Object.freeze({
   'model-invocation': {
-    packagePrefix: '@ta-agent/model-invocation-',
+    packagePrefix: '@print-an-agent/model-invocation-',
     forbiddenPrefixes: [
-      '@ta-agent/base-',
-      '@ta-agent/workbench-',
-      '@ta-agent/self-learn-',
-      '@ta-agent/ui-',
-      '@ta-agent/workflow-',
+      '@print-an-agent/base-',
+      '@print-an-agent/workbench-',
+      '@print-an-agent/self-learn-',
+      '@print-an-agent/ui-',
+      '@print-an-agent/workflow-',
     ],
   },
   workflow: {
-    packagePrefix: '@ta-agent/workflow-',
+    packagePrefix: '@print-an-agent/workflow-',
     forbiddenPrefixes: [
-      '@ta-agent/base-',
-      '@ta-agent/model-invocation-',
-      '@ta-agent/workbench-',
-      '@ta-agent/self-learn-',
-      '@ta-agent/ui-',
+      '@print-an-agent/base-',
+      '@print-an-agent/model-invocation-',
+      '@print-an-agent/workbench-',
+      '@print-an-agent/self-learn-',
+      '@print-an-agent/ui-',
     ],
   },
   'model-workbench': {
-    packagePrefix: '@ta-agent/workbench-',
-    forbiddenPrefixes: ['@ta-agent/base-', '@ta-agent/self-learn-'],
+    packagePrefix: '@print-an-agent/workbench-',
+    forbiddenPrefixes: ['@print-an-agent/base-', '@print-an-agent/self-learn-'],
   },
   'agent-base': {
-    packagePrefix: '@ta-agent/base-',
-    forbiddenPrefixes: ['@ta-agent/workbench-', '@ta-agent/self-learn-'],
+    packagePrefix: '@print-an-agent/base-',
+    forbiddenPrefixes: ['@print-an-agent/workbench-', '@print-an-agent/self-learn-'],
   },
   'agent-ui': {
-    packagePrefix: '@ta-agent/ui-',
-    forbiddenPrefixes: ['@ta-agent/workbench-', '@ta-agent/self-learn-'],
+    packagePrefix: '@print-an-agent/ui-',
+    forbiddenPrefixes: ['@print-an-agent/workbench-', '@print-an-agent/self-learn-'],
   },
 });
 
@@ -257,11 +257,11 @@ describe('module architecture', () => {
     const files = typeScriptFiles(join(requestRoot, 'sessionless'));
     expect(files.length).toBeGreaterThan(0);
     const forbidden = [
-      '@ta-agent/base-runtime',
-      '@ta-agent/base-session',
-      '@ta-agent/base-local-adapters',
-      '@ta-agent/base-identity',
-      '@ta-agent/model-invocation-pi',
+      '@print-an-agent/base-runtime',
+      '@print-an-agent/base-session',
+      '@print-an-agent/base-local-adapters',
+      '@print-an-agent/base-identity',
+      '@print-an-agent/model-invocation-pi',
       'node:fs',
       'node:sqlite',
     ];
@@ -354,7 +354,7 @@ describe('module architecture', () => {
         );
         const typeboxDependency = manifest.dependencies?.typebox;
 
-        if (manifest.name === '@ta-agent/model-invocation-pi') {
+        if (manifest.name === '@print-an-agent/model-invocation-pi') {
           expect(manifest.dependencies?.['@earendil-works/pi-ai']).toBe('0.82.1');
           expect(manifest.dependencies?.['@earendil-works/pi-agent-core']).toBe('0.82.1');
           expect(piDependencies).toEqual([
@@ -396,9 +396,9 @@ describe('module architecture', () => {
       const manifest = JSON.parse(
         readFileSync(join(packageRoot, 'package.json'), 'utf8')
       ) as PackageManifest;
-      expect(declaredDependencies(manifest)).not.toContain('@ta-agent/base-local-adapters');
+      expect(declaredDependencies(manifest)).not.toContain('@print-an-agent/base-local-adapters');
       expect(
-        containsTextInTypeScript(join(packageRoot, 'test'), '@ta-agent/base-local-adapters'),
+        containsTextInTypeScript(join(packageRoot, 'test'), '@print-an-agent/base-local-adapters'),
         `${manifest.name ?? packageName} tests must use local fakes instead of official adapters`
       ).toBe(false);
     }
@@ -421,12 +421,12 @@ describe('module architecture', () => {
       readFileSync(join(packagesRoot, 'local-adapters', 'package.json'), 'utf8')
     ) as PackageManifest;
     expect(Object.keys(localManifest.dependencies ?? {}).sort()).toEqual([
-      '@ta-agent/base-config',
-      '@ta-agent/base-identity',
-      '@ta-agent/base-observability',
-      '@ta-agent/base-request',
-      '@ta-agent/base-session',
-      '@ta-agent/model-invocation-core',
+      '@print-an-agent/base-config',
+      '@print-an-agent/base-identity',
+      '@print-an-agent/base-observability',
+      '@print-an-agent/base-request',
+      '@print-an-agent/base-session',
+      '@print-an-agent/model-invocation-core',
     ]);
   });
 
@@ -436,16 +436,16 @@ describe('module architecture', () => {
       readFileSync(join(cliRoot, 'package.json'), 'utf8')
     ) as PackageManifest;
     const agentBaseRuntimeDependencies = Object.keys(manifest.dependencies ?? {}).filter((name) =>
-      name.startsWith('@ta-agent/base-')
+      name.startsWith('@print-an-agent/base-')
     );
 
-    expect(agentBaseRuntimeDependencies).toEqual(['@ta-agent/base-standalone-agent']);
+    expect(agentBaseRuntimeDependencies).toEqual(['@print-an-agent/base-standalone-agent']);
     for (const forbiddenImport of [
-      '@ta-agent/model-invocation-pi',
-      '@ta-agent/model-invocation-core',
-      '@ta-agent/base-request',
-      '@ta-agent/base-session',
-      '@ta-agent/base-composition',
+      '@print-an-agent/model-invocation-pi',
+      '@print-an-agent/model-invocation-core',
+      '@print-an-agent/base-request',
+      '@print-an-agent/base-session',
+      '@print-an-agent/base-composition',
       '@earendil-works/pi-',
     ]) {
       expect(containsTextInTypeScript(join(cliRoot, 'src'), forbiddenImport)).toBe(false);
@@ -478,8 +478,8 @@ describe('module architecture', () => {
     for (const sourceFile of typeScriptFiles(modulesRoot)) {
       for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
         if (
-          /^@ta-agent\/base-[^/]+\//u.test(specifier) &&
-          specifier !== '@ta-agent/base-composition/resource-registry'
+          /^@print-an-agent\/base-[^/]+\//u.test(specifier) &&
+          specifier !== '@print-an-agent/base-composition/resource-registry'
         ) {
           deepImports.push(`${normalize(relative(repositoryRoot, sourceFile))}: ${specifier}`);
         }
@@ -500,9 +500,11 @@ describe('module architecture', () => {
 
       for (const dependency of declaredDependencies(manifest)) {
         expect(
-          ['@ta-agent/base-', '@ta-agent/workbench-', '@ta-agent/self-learn-'].some((prefix) =>
-            dependency.startsWith(prefix)
-          ),
+          [
+            '@print-an-agent/base-',
+            '@print-an-agent/workbench-',
+            '@print-an-agent/self-learn-',
+          ].some((prefix) => dependency.startsWith(prefix)),
           `${manifest.name ?? entry.name} must not depend on a domain runtime`
         ).toBe(false);
       }
@@ -510,7 +512,7 @@ describe('module architecture', () => {
       for (const sourceFile of typeScriptFiles(join(packageRoot, 'src'))) {
         const source = readFileSync(sourceFile, 'utf8');
         expect(source, `${normalize(sourceFile)} must consume UI-owned contracts`).not.toMatch(
-          /@ta-agent\/(?:base-|workbench-|self-learn-)/u
+          /@print-an-agent\/(?:base-|workbench-|self-learn-)/u
         );
       }
     }
@@ -529,7 +531,7 @@ describe('module architecture', () => {
       for (const specifier of moduleSpecifiers(source)) {
         if (!isNode) {
           expect(specifier, `${normalize(file)} must remain browser-safe`).not.toMatch(
-            /^(?:node:|@ta-agent\/base-|@earendil-works\/pi-)/u
+            /^(?:node:|@print-an-agent\/base-|@earendil-works\/pi-)/u
           );
           if (specifier.startsWith('.')) {
             const resolvedImport = resolve(dirname(file), specifier);
@@ -543,8 +545,8 @@ describe('module architecture', () => {
             expect(normalize(relativeImport)).not.toMatch(/^node\//u);
           }
         }
-        expect(specifier).not.toMatch(/^@ta-agent\/base-[^/]+\//u);
-        expect(specifier).not.toBe('@ta-agent/base-observability');
+        expect(specifier).not.toMatch(/^@print-an-agent\/base-[^/]+\//u);
+        expect(specifier).not.toBe('@print-an-agent/base-observability');
         expect(specifier).not.toBe('node:sqlite');
       }
     }
@@ -577,18 +579,18 @@ describe('module architecture', () => {
     const stylesManifest = packageManifest('styles');
     const workspaceManifest = packageManifest('workspace');
     expect(productionDependencies(workspaceManifest)).toEqual([
-      '@ta-agent/ui-contracts',
-      '@ta-agent/ui-react',
+      '@print-an-agent/ui-contracts',
+      '@print-an-agent/ui-react',
     ]);
     expect(declaredPeerDependencies(workspaceManifest)).toEqual(['react', 'react-dom']);
     const transportManifest = packageManifest('transport');
-    expect(productionDependencies(transportManifest)).toEqual(['@ta-agent/ui-contracts']);
+    expect(productionDependencies(transportManifest)).toEqual(['@print-an-agent/ui-contracts']);
     expect(declaredPeerDependencies(transportManifest)).toEqual([]);
     const transportRoot = join(packagesRoot, 'transport', 'src');
     for (const file of typeScriptFiles(transportRoot)) {
       const imports = moduleSpecifiers(readFileSync(file, 'utf8'));
       expect(
-        imports.some((name) => name === 'react' || name.startsWith('@ta-agent/ui-workspace'))
+        imports.some((name) => name === 'react' || name.startsWith('@print-an-agent/ui-workspace'))
       ).toBe(false);
       if (file !== join(transportRoot, 'node.ts')) {
         expect(imports.some((name) => name.startsWith('node:') || name === './node.js')).toBe(
@@ -604,7 +606,7 @@ describe('module architecture', () => {
     const workspaceRoot = join(packagesRoot, 'workspace', 'src');
     for (const file of typeScriptFiles(workspaceRoot)) {
       for (const specifier of moduleSpecifiers(readFileSync(file, 'utf8'))) {
-        expect(specifier).not.toMatch(/^(?:node:|@ta-agent\/ui-transport)|\.css$/u);
+        expect(specifier).not.toMatch(/^(?:node:|@print-an-agent\/ui-transport)|\.css$/u);
         if (specifier.startsWith('.')) {
           expect(normalize(relative(workspaceRoot, resolve(dirname(file), specifier)))).not.toMatch(
             /^\.\./u
@@ -617,7 +619,7 @@ describe('module architecture', () => {
     expect(declaredPeerDependencies(contractsManifest)).toEqual([]);
     expect(
       productionDependencies(reactManifest).filter(
-        (dependency) => dependency !== '@ta-agent/ui-contracts'
+        (dependency) => dependency !== '@print-an-agent/ui-contracts'
       )
     ).toEqual([]);
     expect(declaredPeerDependencies(reactManifest)).toEqual(['react', 'react-dom']);
@@ -661,20 +663,20 @@ describe('module architecture', () => {
     const agentWebManifest = readAppManifest('agent-web');
     const galleryManifest = readAppManifest('component-gallery');
 
-    expect(agentWebManifest.name).toBe('@ta-agent/ui-agent-web');
-    expect(galleryManifest.name).toBe('@ta-agent/ui-component-gallery');
+    expect(agentWebManifest.name).toBe('@print-an-agent/ui-agent-web');
+    expect(galleryManifest.name).toBe('@print-an-agent/ui-component-gallery');
     expect(agentWebManifest.scripts?.dev).toBe('pnpm run build:dependencies && vite');
     expect(galleryManifest.scripts?.dev).toBe('pnpm run build:dependencies && vite');
     expect(productionDependencies(galleryManifest)).toEqual([
-      '@ta-agent/ui-react',
-      '@ta-agent/ui-styles',
+      '@print-an-agent/ui-react',
+      '@print-an-agent/ui-styles',
       'react',
       'react-dom',
     ]);
     expect(
       declaredDependencies(galleryManifest).filter((dependency) =>
-        ['@ta-agent/base-', '@ta-agent/workbench-', '@ta-agent/self-learn-'].some((prefix) =>
-          dependency.startsWith(prefix)
+        ['@print-an-agent/base-', '@print-an-agent/workbench-', '@print-an-agent/self-learn-'].some(
+          (prefix) => dependency.startsWith(prefix)
         )
       )
     ).toEqual([]);
@@ -703,16 +705,20 @@ describe('module architecture', () => {
       expect(
         imports.filter(
           (specifier) =>
-            specifier.startsWith('@ta-agent/ui-') &&
-            !['@ta-agent/ui-react', '@ta-agent/ui-styles/default.css'].includes(specifier)
+            specifier.startsWith('@print-an-agent/ui-') &&
+            !['@print-an-agent/ui-react', '@print-an-agent/ui-styles/default.css'].includes(
+              specifier
+            )
         ),
         `${normalize(sourceFile)} must use only documented public Agent UI exports`
       ).toEqual([]);
       expect(
         imports.filter((specifier) =>
-          ['@ta-agent/base-', '@ta-agent/workbench-', '@ta-agent/self-learn-'].some((prefix) =>
-            specifier.startsWith(prefix)
-          )
+          [
+            '@print-an-agent/base-',
+            '@print-an-agent/workbench-',
+            '@print-an-agent/self-learn-',
+          ].some((prefix) => specifier.startsWith(prefix))
         ),
         `${normalize(sourceFile)} must stay independent from domain runtimes`
       ).toEqual([]);
@@ -749,10 +755,10 @@ describe('module architecture', () => {
           );
         } else {
           expect([
-            '@ta-agent/ui-contracts',
-            '@ta-agent/ui-react',
-            '@ta-agent/ui-workspace',
-            '@ta-agent/ui-workspace/testing',
+            '@print-an-agent/ui-contracts',
+            '@print-an-agent/ui-react',
+            '@print-an-agent/ui-workspace',
+            '@print-an-agent/ui-workspace/testing',
             'react',
             'react-dom/client',
             'vitest',
@@ -763,12 +769,12 @@ describe('module architecture', () => {
     const app = join(uiRoot, 'apps', 'agent-web', 'src');
     expect(typeScriptFiles(join(app, 'conversation'))).toEqual([]);
     expect(typeScriptFiles(join(app, 'session'))).toEqual([]);
-    expect(readFileSync(join(app, 'app.tsx'), 'utf8')).toContain('@ta-agent/ui-workspace');
+    expect(readFileSync(join(app, 'app.tsx'), 'utf8')).toContain('@print-an-agent/ui-workspace');
     expect(readFileSync(join(app, 'adapters', 'http-agent-web-ports.ts'), 'utf8')).toContain(
-      '@ta-agent/ui-transport/browser'
+      '@print-an-agent/ui-transport/browser'
     );
     expect(readFileSync(join(app, 'node', 'transport', 'http-server.ts'), 'utf8')).toContain(
-      '@ta-agent/ui-transport/node'
+      '@print-an-agent/ui-transport/node'
     );
   });
 
@@ -851,9 +857,9 @@ describe('module architecture', () => {
       readFileSync(join(standaloneRoot, 'package.json'), 'utf8')
     ) as PackageManifest;
 
-    expect(declaredDependencies(manifest)).not.toContain('@ta-agent/model-invocation-pi');
+    expect(declaredDependencies(manifest)).not.toContain('@print-an-agent/model-invocation-pi');
     expect(
-      containsTextInTypeScript(join(standaloneRoot, 'src'), '@ta-agent/model-invocation-pi')
+      containsTextInTypeScript(join(standaloneRoot, 'src'), '@print-an-agent/model-invocation-pi')
     ).toBe(false);
     expect(containsTextInTypeScript(join(standaloneRoot, 'src'), '@earendil-works/pi-')).toBe(
       false
@@ -872,9 +878,12 @@ describe('module architecture', () => {
       readFileSync(join(compositionRoot, 'package.json'), 'utf8')
     ) as PackageManifest;
 
-    expect(declaredDependencies(manifest)).not.toContain('@ta-agent/base-standalone-agent');
+    expect(declaredDependencies(manifest)).not.toContain('@print-an-agent/base-standalone-agent');
     expect(
-      containsTextInTypeScript(join(compositionRoot, 'src'), '@ta-agent/base-standalone-agent')
+      containsTextInTypeScript(
+        join(compositionRoot, 'src'),
+        '@print-an-agent/base-standalone-agent'
+      )
     ).toBe(false);
   });
 
@@ -892,7 +901,7 @@ describe('module architecture', () => {
     expect(specifiers).toContain('./profiles/setup.js');
     expect(specifiers).not.toContain('./profiles/memory.js');
     expect(specifiers).not.toContain('./profiles/shared-sqlite.js');
-    expect(specifiers).not.toContain('@ta-agent/base-local-adapters');
+    expect(specifiers).not.toContain('@print-an-agent/base-local-adapters');
     // The runtime Ports type is allowed; bootstrap must not call the materializer itself.
     expect(bootstrap).not.toContain('materializeStandaloneAgentRuntime');
     expect(bootstrap).toContain('createAgentManagementService');
@@ -901,7 +910,7 @@ describe('module architecture', () => {
       join(sourceRoot, 'runtime', 'materialize-standalone-agent.ts'),
       'utf8'
     );
-    expect(moduleSpecifiers(materializer)).not.toContain('@ta-agent/base-local-adapters');
+    expect(moduleSpecifiers(materializer)).not.toContain('@print-an-agent/base-local-adapters');
     expect(materializer).not.toContain('createProviderAgentAPI');
     expect(materializer).not.toContain('createAgentAPI');
     expect(materializer).not.toContain('ports?:');
@@ -927,7 +936,7 @@ describe('module architecture', () => {
       if (isPathWithin(sourceFile, resourcesRoot)) continue;
       expect(
         moduleSpecifiers(readFileSync(sourceFile, 'utf8')).some(
-          (specifier) => specifier === '@ta-agent/base-local-adapters'
+          (specifier) => specifier === '@print-an-agent/base-local-adapters'
         ),
         `${normalize(sourceFile)} must receive provisioned Ports instead of selecting local adapters`
       ).toBe(false);
@@ -1048,8 +1057,8 @@ describe('module architecture', () => {
         for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
           const relativeTarget = resolveSourceModuleTarget(sourceFile, specifier);
           expect(
-            specifier === '@ta-agent/base-composition' ||
-              specifier.startsWith('@ta-agent/base-composition/') ||
+            specifier === '@print-an-agent/base-composition' ||
+              specifier.startsWith('@print-an-agent/base-composition/') ||
               relativeTarget === compositionSource ||
               relativeTarget === packageRootIndex ||
               (relativeTarget !== undefined && isPathWithin(relativeTarget, forbiddenPeerRoot)),
@@ -1069,9 +1078,9 @@ describe('module architecture', () => {
     const managementRoot = join(compositionSource, 'management');
     if (existsSync(managementRoot)) {
       const forbiddenManagementImports = [
-        '@ta-agent/base-local-adapters',
-        '@ta-agent/model-invocation-pi',
-        '@ta-agent/base-standalone-agent',
+        '@print-an-agent/base-local-adapters',
+        '@print-an-agent/model-invocation-pi',
+        '@print-an-agent/base-standalone-agent',
         'node:fs',
         'node:path',
         'node:sqlite',
@@ -1108,7 +1117,7 @@ describe('module architecture', () => {
       ...typeScriptFiles(join(compositionSource, 'management')),
     ]) {
       const source = readFileSync(publicContractFile, 'utf8');
-      expect(source).not.toContain('@ta-agent/model-invocation-pi');
+      expect(source).not.toContain('@print-an-agent/model-invocation-pi');
       expect(source).not.toMatch(/\bPi[A-Z]/);
     }
   });
@@ -1130,7 +1139,7 @@ describe('module architecture', () => {
           const source = readFileSync(declaration, 'utf8');
           for (const forbidden of [
             '@earendil-works/pi-',
-            '@ta-agent/model-invocation-pi',
+            '@print-an-agent/model-invocation-pi',
             "from 'typebox'",
             'from "typebox"',
             "from 'node:sqlite'",
@@ -1152,16 +1161,16 @@ describe('module architecture', () => {
       readFileSync(join(consumerRoot, 'package.json'), 'utf8')
     ) as PackageManifest;
     for (const dependency of declaredDependencies(manifest)) {
-      expect(dependency.startsWith('@ta-agent/workbench-')).toBe(false);
-      expect(dependency.startsWith('@ta-agent/self-learn-')).toBe(false);
+      expect(dependency.startsWith('@print-an-agent/workbench-')).toBe(false);
+      expect(dependency.startsWith('@print-an-agent/self-learn-')).toBe(false);
       expect(dependency.startsWith('@earendil-works/')).toBe(false);
       expect(dependency).not.toBe('typebox');
     }
     for (const sourceFile of typeScriptFiles(join(consumerRoot, 'test'))) {
       for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
-        if (!specifier.startsWith('@ta-agent/')) continue;
+        if (!specifier.startsWith('@print-an-agent/')) continue;
         expect(specifier).toMatch(
-          /^@ta-agent\/(?:(?:base-|model-invocation-)[^/]+|base-composition\/resource-registry|context-memory(?:-sqlite)?|retrieval-memory(?:-sqlite)?|workflow-(?:bundle|core))$/
+          /^@print-an-agent\/(?:(?:base-|model-invocation-)[^/]+|base-composition\/resource-registry|context-memory(?:-sqlite)?|retrieval-memory(?:-sqlite)?|workflow-(?:bundle|core))$/
         );
       }
       expect(normalize(sourceFile)).not.toContain(`${normalize('/src/')}`);

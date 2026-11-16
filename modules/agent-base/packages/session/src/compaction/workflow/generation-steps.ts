@@ -12,7 +12,7 @@ export async function resolveCompactionActor(
     SESSION_COMPACTION_RESPONSIBILITY_ID
   );
   context.state.responsibility = responsibility;
-  await context.input.traceEmitter?.record({
+  await context.state.agentRun.traceEmitter?.record({
     type: 'actor-resolved',
     workflowName: context.workflowName,
     workflowRunId: context.workflowRunId,

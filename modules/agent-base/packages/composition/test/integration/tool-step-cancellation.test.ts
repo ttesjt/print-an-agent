@@ -51,7 +51,7 @@ it('drains the real Pi tool loop after Step executor failure before closing Requ
       AgentResponse
     >({
       resources,
-      createState: () => ({}),
+      createState: ({ input }) => ({ agentRun: input }),
       stepOverrides: {
         ...createDefaultRequestStepOverrides(),
         buildTools: async (context) => {

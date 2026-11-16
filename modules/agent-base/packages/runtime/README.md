@@ -24,7 +24,9 @@ const bound = bindAgentWorkflow({
 // Supply bound in defineAgentOperation({ ... , workflowPlan: [bound] }).
 ```
 
-Inside a bound Workflow, `input` is the Agent Run Context, `state` is per-run business data,
+The binding passes the Agent Run Context to the Workflow's initialization callbacks as input.
+Each Workflow's `createState` prepares the business data exposed to Steps through `context.state`.
+Request and compaction retain the Agent Run as `context.state.agentRun`.
 `resources` contains capabilities bound when constructing the Workflow and `result` is a
 consumer-defined value. Those dependencies are shared across runs; mutable state, output, trace
 emitters and execution leases remain per-run. Core assembles the execution fields.

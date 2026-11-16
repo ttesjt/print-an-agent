@@ -45,7 +45,7 @@ export function composeRequestWorkflow(
   >({
     resources: Object.freeze({ ...resources, policy }),
     stepOverrides,
-    createState: () => ({}),
+    createState: ({ input }) => ({ agentRun: input }),
     lifecycle: { onError: failRequest, onFinally: releaseRequestExecution },
     ...(options.createWorkflowRunId === undefined
       ? {}

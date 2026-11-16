@@ -43,7 +43,7 @@ function isOutputSink(value: unknown): value is OutputSink {
 }
 
 function validateRequest(context: DefaultRequestWorkflowContext): Promise<void> {
-  const input: unknown = context.input.input;
+  const input: unknown = context.state.agentRun.input;
   if (typeof input !== 'object' || input === null) {
     throw new AgentRequestError('REQUEST_INPUT_INVALID', 'Agent request must be an object.');
   }
@@ -98,7 +98,7 @@ async function loadContextMemory(context: DefaultRequestWorkflowContext): Promis
     {
       session: requireValue(context.state.session, 'session'),
       turn: requireValue(context.state.turn, 'turn'),
-      requestId: context.input.runId,
+      requestId: context.state.agentRun.runId,
     },
     context.signal
   );
@@ -162,7 +162,7 @@ async function resolveRequestReplay(context: DefaultRequestWorkflowContext): Pro
       ...session,
       idempotencyKey: request.idempotencyKey,
       fingerprint: createRequestFingerprint({ message: request.message }),
-      requestId: context.input.runId,
+      requestId: context.state.agentRun.runId,
     });
   } catch (error: unknown) {
     if (error instanceof AgentRequestError && error.code === 'REQUEST_REPLAY_CONFLICT') {
@@ -196,7 +196,7 @@ async function resolveRequestReplay(context: DefaultRequestWorkflowContext): Pro
 async function resolveSession(context: DefaultRequestWorkflowContext): Promise<void> {
   const request = requireValue(context.state.request, 'request');
   context.state.session = await context.resources.session.resolve({
-    agentId: context.input.identity.id,
+    agentId: context.state.agentRun.identity.id,
     ...(request.sessionId === undefined ? {} : { sessionId: request.sessionId }),
   });
   if (supportsSessionExecution(context.resources.session)) {
@@ -219,7 +219,7 @@ async function beginRequest(context: DefaultRequestWorkflowContext): Promise<voi
   context.state.userMessage = userMessage;
   context.state.turn = await context.resources.session.beginTurn({
     ...session,
-    turnId: parseTurnId(context.input.runId),
+    turnId: parseTurnId(context.state.agentRun.runId),
     userMessage,
   });
 }

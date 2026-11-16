@@ -16,10 +16,10 @@ composition uses `bindAgentWorkflow()` from `@print-an-agent/base-runtime` to ap
 originating Agent Run. A condition skip returns `undefined` (no change); an active execution must
 produce a response or it fails with `REQUEST_OUTPUT_STATE_INVALID`.
 
-The standard Context separates the Agent Run (`context.input`), per-request working data
-(`context.state`), borrowed capabilities and policy (`context.resources`), and the output
-(`context.result`). Override Steps use the effective `context.signal`, not the original Agent Run
-signal. `createState` only constructs run-local data; ports remain owned by their supplying host.
+The standard Workflow's `createState` stores the Agent Run as `context.state.agentRun` alongside
+per-request working data. Steps access borrowed capabilities and policy through `context.resources`
+and write output through `context.result`. Override Steps use the effective `context.signal`.
+`createState` constructs run-local data, and ports remain owned by their supplying host.
 The bound `createOutputSink` is a factory: each request creates or supplies its own sink. Tools,
 execution leases and reasoning data remain in per-request state, and trace emitters remain on the
 Agent Run. Concurrent requests share prepared ports without sharing mutable request state.

@@ -31,7 +31,13 @@ class RecordingTraceSink implements AgentTraceEventSink {
 
 function textWorkflow(name: string, prefix: string): AgentWorkflow<TextRunContext, string> {
   return bindAgentWorkflow({
-    workflow: new Workflow<StepName, TextRunContext, Record<never, never>, undefined, string>({
+    workflow: new Workflow<
+      StepName,
+      TextRunContext,
+      { readonly input: TextRunContext },
+      undefined,
+      string
+    >({
       name,
       resources: undefined,
       entryStep: 'execute',
@@ -40,12 +46,12 @@ function textWorkflow(name: string, prefix: string): AgentWorkflow<TextRunContex
           cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
           skippable: false,
           step: (context) => {
-            context.result = `${prefix}:${context.input.input}`;
+            context.result = `${prefix}:${context.state.input.input}`;
             return Promise.resolve();
           },
         },
       },
-      createState: () => ({}),
+      createState: ({ input }) => ({ input }),
       createResult: () => '',
     }),
     applyResult: (context, result) => {
@@ -60,7 +66,13 @@ type NumberRunContext = BaseAgentRunContext<number, number>;
 
 function numberWorkflow(name: string): AgentWorkflow<NumberRunContext, number> {
   return bindAgentWorkflow({
-    workflow: new Workflow<StepName, NumberRunContext, Record<never, never>, undefined, number>({
+    workflow: new Workflow<
+      StepName,
+      NumberRunContext,
+      { readonly input: NumberRunContext },
+      undefined,
+      number
+    >({
       name,
       resources: undefined,
       entryStep: 'execute',
@@ -69,12 +81,12 @@ function numberWorkflow(name: string): AgentWorkflow<NumberRunContext, number> {
           cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
           skippable: false,
           step: (context) => {
-            context.result = context.input.input * 2;
+            context.result = context.state.input.input * 2;
             return Promise.resolve();
           },
         },
       },
-      createState: () => ({}),
+      createState: ({ input }) => ({ input }),
       createResult: () => 0,
     }),
     applyResult: (context, result) => {
@@ -155,7 +167,13 @@ describe('Agent Operations', () => {
     let observedSignal: AbortSignal | undefined;
     let mappedSignal: AbortSignal | undefined;
     const workflow = bindAgentWorkflow({
-      workflow: new Workflow<StepName, TextRunContext, Record<never, never>, undefined, string>({
+      workflow: new Workflow<
+        StepName,
+        TextRunContext,
+        { readonly input: TextRunContext },
+        undefined,
+        string
+      >({
         name: 'prepared-run',
         resources: undefined,
         entryStep: 'execute',
@@ -164,13 +182,13 @@ describe('Agent Operations', () => {
             cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
             skippable: false,
             step: (context) => {
-              observedInput = context.input.input;
-              observedSignal = context.input.signal;
+              observedInput = context.state.input.input;
+              observedSignal = context.state.input.signal;
               return Promise.reject(failure);
             },
           },
         },
-        createState: () => ({}),
+        createState: ({ input }) => ({ input }),
         createResult: () => '',
       }),
       applyResult: () => Promise.resolve(),
@@ -763,7 +781,13 @@ describe('Agent Operations', () => {
       Readonly<{ values: string[] }>;
 
     const parentWorkflow = bindAgentWorkflow({
-      workflow: new Workflow<StepName, ParentContext, Record<never, never>, undefined, string>({
+      workflow: new Workflow<
+        StepName,
+        ParentContext,
+        { readonly input: ParentContext },
+        undefined,
+        string
+      >({
         name: 'parent-workflow',
         resources: undefined,
         entryStep: 'execute',
@@ -772,12 +796,12 @@ describe('Agent Operations', () => {
             cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
             skippable: false,
             step: async (context) => {
-              const childResult = await context.input.operations.invoke('child', 6);
+              const childResult = await context.state.input.operations.invoke('child', 6);
               context.result = `child:${childResult}`;
             },
           },
         },
-        createState: () => ({}),
+        createState: ({ input }) => ({ input }),
         createResult: () => '',
       }),
       applyResult: (context, result) => {
@@ -851,7 +875,13 @@ describe('Agent Operations', () => {
       exposure: 'public',
       workflowPlan: [
         bindAgentWorkflow({
-          workflow: new Workflow<StepName, ParentContext, Record<never, never>, undefined, string>({
+          workflow: new Workflow<
+            StepName,
+            ParentContext,
+            { readonly input: ParentContext },
+            undefined,
+            string
+          >({
             name: 'parent-workflow',
             resources: undefined,
             entryStep: 'execute',
@@ -860,13 +890,13 @@ describe('Agent Operations', () => {
                 cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
                 skippable: false,
                 step: async (context) => {
-                  await context.input.operations.invoke('child', 1, {
+                  await context.state.input.operations.invoke('child', 1, {
                     signal: {} as AbortSignal,
                   });
                 },
               },
             },
-            createState: () => ({}),
+            createState: ({ input }) => ({ input }),
             createResult: () => '',
           }),
           applyResult: () => Promise.resolve(),
@@ -949,7 +979,13 @@ describe('Agent Operations', () => {
     type ParentContext = BaseAgentRunContext<string, string, typeof callableOperations>;
 
     const parentWorkflow = bindAgentWorkflow({
-      workflow: new Workflow<StepName, ParentContext, Record<never, never>, undefined, string>({
+      workflow: new Workflow<
+        StepName,
+        ParentContext,
+        { readonly input: ParentContext },
+        undefined,
+        string
+      >({
         name: 'cancellable-parent',
         resources: undefined,
         entryStep: 'execute',
@@ -958,14 +994,14 @@ describe('Agent Operations', () => {
             cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
             skippable: false,
             step: async (context) => {
-              await context.input.operations.invoke('cancellableChild', 1, {
+              await context.state.input.operations.invoke('cancellableChild', 1, {
                 signal: childLocalController.signal,
               });
               context.result = 'unreachable';
             },
           },
         },
-        createState: () => ({}),
+        createState: ({ input }) => ({ input }),
         createResult: () => '',
       }),
       applyResult: (context, result) => {
@@ -1137,7 +1173,13 @@ describe('Agent Operations', () => {
     }>;
 
     const workflow = bindAgentWorkflow({
-      workflow: new Workflow<StepName, UndeclaredContext, Record<never, never>, undefined, string>({
+      workflow: new Workflow<
+        StepName,
+        UndeclaredContext,
+        { readonly input: UndeclaredContext },
+        undefined,
+        string
+      >({
         name: 'undeclared-workflow',
         resources: undefined,
         entryStep: 'execute',
@@ -1146,13 +1188,13 @@ describe('Agent Operations', () => {
             cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
             skippable: false,
             step: async (context) => {
-              const unsafeInvoker = context.input.operations as unknown as UnsafeInvoker;
+              const unsafeInvoker = context.state.input.operations as unknown as UnsafeInvoker;
               await unsafeInvoker.invoke('hidden', 1);
               context.result = 'unreachable';
             },
           },
         },
-        createState: () => ({}),
+        createState: ({ input }) => ({ input }),
         createResult: () => '',
       }),
       applyResult: (context, result) => {
@@ -1201,7 +1243,7 @@ describe('Agent Operations', () => {
       invokeTarget: (context: C) => Promise<number>
     ): AgentWorkflow<C, number> {
       return bindAgentWorkflow({
-        workflow: new Workflow<StepName, C, Record<never, never>, undefined, number>({
+        workflow: new Workflow<StepName, C, { readonly input: C }, undefined, number>({
           name,
           resources: undefined,
           entryStep: 'execute',
@@ -1210,11 +1252,11 @@ describe('Agent Operations', () => {
               cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
               skippable: false,
               step: async (context) => {
-                context.result = await invokeTarget(context.input);
+                context.result = await invokeTarget(context.state.input);
               },
             },
           },
-          createState: () => ({}),
+          createState: ({ input }) => ({ input }),
           createResult: () => 0,
         }),
         applyResult: (context, result) => {
@@ -1338,7 +1380,13 @@ describe('Agent Operations', () => {
     });
 
     const noOutputWorkflow = bindAgentWorkflow({
-      workflow: new Workflow<StepName, NumberRunContext, Record<never, never>, undefined, number>({
+      workflow: new Workflow<
+        StepName,
+        NumberRunContext,
+        { readonly input: NumberRunContext },
+        undefined,
+        number
+      >({
         name: 'no-output-workflow',
         resources: undefined,
         entryStep: 'execute',
@@ -1347,12 +1395,12 @@ describe('Agent Operations', () => {
             cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
             skippable: false,
             step: (context) => {
-              context.result = context.input.input;
+              context.result = context.state.input.input;
               return Promise.resolve();
             },
           },
         },
-        createState: () => ({}),
+        createState: ({ input }) => ({ input }),
         createResult: () => 0,
       }),
       applyResult: () => Promise.resolve(),

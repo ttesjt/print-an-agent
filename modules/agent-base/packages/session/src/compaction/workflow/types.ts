@@ -46,6 +46,7 @@ export type SessionCompactionWorkflowContext = WorkflowContext<
   SessionCompactionOutcome | undefined
 >;
 export interface SessionCompactionState {
+  readonly agentRun: SessionCompactionAgentRunContext;
   snapshot?: SessionSnapshot;
   execution?: SessionExecutionLease;
   branchId?: SessionBranchId;

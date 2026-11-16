@@ -115,7 +115,7 @@ export function createGenerationWorkflow(options: SessionlessGenerationWorkflowO
       { gatherExternalContext: SKIP_STEP, validateResponse: SKIP_STEP },
       options.stepOverrides
     ),
-    createState: (): SessionlessGenerationState => ({}),
+    createState: ({ input }): SessionlessGenerationState => ({ input }),
     createResult: () => undefined,
     lifecycle: sessionlessLifecycle(options.lifecycle),
   });

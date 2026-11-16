@@ -26,7 +26,7 @@ export function createDefaultSessionNavigationStepOverrides(): StepOverrides<
       if (committed === undefined) return;
       const { applied, result } = committed;
       context.result = result;
-      await context.input.traceEmitter?.record({
+      await context.state.traceEmitter?.record({
         type: 'session-navigation-applied',
         workflowName: context.workflowName,
         workflowRunId: context.workflowRunId,

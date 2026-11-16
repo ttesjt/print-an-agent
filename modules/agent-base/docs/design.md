@@ -359,8 +359,10 @@ Request and compaction use `undefined` as an explicit no-change initial result. 
 reject normal execution without a result, while a condition skip bypasses those hooks and preserves
 the existing Agent output. No fake successful response or context patch is manufactured.
 
-Step state lives under `context.state`; ports and policies are in `context.resources`. In an
-Agent-bound Workflow, `context.input` is the Agent Run Context. The effective `context.signal`
+Each Workflow's `createState` converts its external input into the business data exposed under
+`context.state`. Request and compaction store their Agent Run Context as `context.state.agentRun`.
+Other Workflows may select or transform the input into an independently defined state shape.
+Ports and policies are in `context.resources`. The effective `context.signal`
 may additionally include a parallel group's cancellation; pass it explicitly to adapters and child
 Operation invocations. The Agent Run's own signal remains owned by its Operation.
 

@@ -16,6 +16,7 @@ export function createSessionNavigationWorkflow(options: CreateSessionNavigation
       agentId: input.agentId,
       input: input.navigation,
       resources,
+      ...(input.traceEmitter === undefined ? {} : { traceEmitter: input.traceEmitter }),
     }),
     lifecycle: {
       ...options.lifecycle,

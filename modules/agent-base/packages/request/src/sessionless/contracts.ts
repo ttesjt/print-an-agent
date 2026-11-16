@@ -69,6 +69,7 @@ export interface BoundSessionlessGenerationResources extends Omit<
 }
 
 export interface SessionlessGenerationState {
+  readonly input: SessionlessRequestInput;
   request?: SessionlessValidatedRequest;
   outputOutcome?: SessionlessOutputOutcome;
   actor?: ResolvedActor;

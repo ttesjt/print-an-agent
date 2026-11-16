@@ -4,15 +4,12 @@ import { validateSessionlessOutputSink } from './output.js';
 import { closedRecord, prepareSessionlessMessages } from './validation.js';
 import type { SessionlessGenerationContext, SessionlessGenerationState } from './contracts.js';
 
-type InputContext = Pick<
-  SessionlessGenerationContext,
-  'input' | 'resources' | 'signal' | 'workflowRunId'
-> & {
-  readonly state: Pick<SessionlessGenerationState, 'request'>;
+type InputContext = Pick<SessionlessGenerationContext, 'resources' | 'signal' | 'workflowRunId'> & {
+  readonly state: Pick<SessionlessGenerationState, 'input' | 'request'>;
 };
 
 export async function validateSessionlessRequest(context: InputContext): Promise<void> {
-  const input = closedRecord(context.input, ['message', 'history'], 'REQUEST_INPUT_INVALID');
+  const input = closedRecord(context.state.input, ['message', 'history'], 'REQUEST_INPUT_INVALID');
   const message = validateRequestMessage(
     input.message,
     context.resources.policy.maxMessageCharacters

@@ -26,7 +26,7 @@ export function createSessionCompactionWorkflow(options: CreateSessionCompaction
     entryStep: 'runSessionCompaction',
     stepDefinitions: createSessionCompactionStepDefinitions(),
     createResult: () => undefined,
-    createState: (): SessionCompactionWorkflowContext['state'] => ({}),
+    createState: ({ input }): SessionCompactionWorkflowContext['state'] => ({ agentRun: input }),
     lifecycle: {
       ...options.lifecycle,
       async onSuccess(context: SessionCompactionWorkflowContext) {

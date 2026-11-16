@@ -111,7 +111,7 @@ export function createInteractionWorkflow(options: SessionlessInteractionWorkflo
       { gatherExternalContext: SKIP_STEP, validateResponse: SKIP_STEP },
       options.stepOverrides
     ),
-    createState: (): SessionlessInteractionState => ({}),
+    createState: ({ input }): SessionlessInteractionState => ({ input }),
     createResult: () => undefined,
     lifecycle: sessionlessLifecycle(options.lifecycle, closeSessionlessTools),
   });

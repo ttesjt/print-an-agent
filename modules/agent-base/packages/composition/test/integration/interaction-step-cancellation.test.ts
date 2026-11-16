@@ -32,7 +32,7 @@ it.each(['executor', 'delivery'] as const)(
         AgentResponse
       >({
         resources,
-        createState: () => ({}),
+        createState: ({ input }) => ({ agentRun: input }),
         stepOverrides: {
           ...createDefaultRequestStepOverrides(),
           buildTools: async (context) => {

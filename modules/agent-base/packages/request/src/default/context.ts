@@ -60,6 +60,7 @@ export type DefaultRequestWorkflowContext = WorkflowContext<
 >;
 
 export interface RequestWorkflowState {
+  readonly agentRun: RequestAgentRunContext;
   contextMemory?: RequestMemoryRun;
   request?: ValidatedAgentRequest;
   session?: ResolvedSessionReference & SessionWriteAuthority;

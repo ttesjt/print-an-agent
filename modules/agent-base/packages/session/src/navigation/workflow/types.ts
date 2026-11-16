@@ -18,10 +18,13 @@ export interface SessionNavigationWorkflowInput {
   /** Per-invocation correlation; never retained in the Workflow's bound resources. */
   readonly traceEmitter?: AgentTraceEmitter;
 }
+export interface SessionNavigationWorkflowState extends SessionNavigationExecutionState {
+  readonly traceEmitter?: AgentTraceEmitter;
+}
 export type SessionNavigationWorkflowContext = WorkflowContext<
   SessionNavigationStepName,
   SessionNavigationWorkflowInput,
-  SessionNavigationExecutionState,
+  SessionNavigationWorkflowState,
   SessionNavigationResources,
   SessionNavigationOutcome | undefined
 >;
@@ -29,7 +32,7 @@ export type CreateSessionNavigationWorkflowOptions = Omit<
   WorkflowDefinition<
     SessionNavigationStepName,
     SessionNavigationWorkflowInput,
-    SessionNavigationExecutionState,
+    SessionNavigationWorkflowState,
     SessionNavigationResources,
     SessionNavigationOutcome | undefined
   >,

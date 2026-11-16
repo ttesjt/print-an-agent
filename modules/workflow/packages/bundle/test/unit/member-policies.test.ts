@@ -1,11 +1,11 @@
 import { skipWorkflow, type WorkflowEvent } from '@print-an-agent/workflow-core';
 import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
 import { expect, it, vi } from 'vitest';
-import { readDefinition, type ReadContext } from '../support/definitions.js';
+import { readDefinition, type ReadContext, type ReadInput } from '../support/definitions.js';
 
 it('preserves condition skipping and the initial result without creating state or closing resources', async () => {
   const resources = { read: vi.fn(() => Promise.resolve('value')), close: vi.fn() };
-  const createState = vi.fn(() => undefined);
+  const createState = vi.fn(({ input }: { input: ReadInput }) => ({ input }));
   const onFinally = vi.fn();
   const seen: ReadContext['resources'][] = [];
   const inspect: ReturnType<typeof readDefinition> = {

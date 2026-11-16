@@ -4,7 +4,12 @@ import { expect, it, vi } from 'vitest';
 import { readDefinition, writeDefinition, type ReadContext } from '../support/definitions.js';
 
 it('isolates state, result, counts, Run identities and observers across repeated and distinct members', async () => {
-  type Context = WorkflowContext<'main', number, { values: number[] }, { label: string }, number[]>;
+  type Context = WorkflowContext<
+    'main',
+    { input: number; values: number[] },
+    { label: string },
+    number[]
+  >;
   type Definition = BundleWorkflowDefinition<
     'main',
     number,
@@ -15,7 +20,10 @@ it('isolates state, result, counts, Run identities and observers across repeated
   const ready = Promise.withResolvers<void>();
   const release = Promise.withResolvers<void>();
   const contexts: Context[] = [];
-  const createState = vi.fn((): Context['state'] => ({ values: [] }));
+  const createState = vi.fn(({ input }: { input: number }): Context['state'] => ({
+    input,
+    values: [],
+  }));
   const definition: Definition = {
     name: 'first',
     entryStep: 'main',
@@ -27,10 +35,10 @@ it('isolates state, result, counts, Run identities and observers across repeated
         skippable: false,
         step: async (c) => {
           contexts.push(c);
-          c.state.values.push(c.input);
+          c.state.values.push(c.state.input);
           if (contexts.length === 3) ready.resolve();
           await release.promise;
-          c.result.push(c.input);
+          c.result.push(c.state.input);
         },
       },
     },

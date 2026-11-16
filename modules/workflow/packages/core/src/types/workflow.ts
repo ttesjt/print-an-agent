@@ -35,24 +35,23 @@ export interface WorkflowDefinition<TStepName extends string, TInput, TState, TR
   readonly entryStep: TStepName;
   readonly stepDefinitions: StepDefinitions<
     TStepName,
-    WorkflowContext<TStepName, TInput, TState, TResources, TResult>
+    WorkflowContext<TStepName, TState, TResources, TResult>
   >;
   readonly stepOverrides?: StepOverrides<
     TStepName,
-    WorkflowContext<TStepName, TInput, TState, TResources, TResult>
+    WorkflowContext<TStepName, TState, TResources, TResult>
   >;
   /** Pure synchronous factories; neither acquires resources. */
   readonly createResult: (inputs: WorkflowInputs<TInput, TResources>) => TResult;
+  /** Converts input to run-local data with a consumer-defined shape exposed to Steps and hooks. */
   readonly createState: (inputs: WorkflowInputs<TInput, TResources>) => TState;
   readonly condition?: (
     inputs: WorkflowInputs<TInput, TResources> & { readonly signal: AbortSignal }
   ) => WorkflowDecision | Promise<WorkflowDecision>;
-  readonly lifecycle?: WorkflowLifecycle<
-    WorkflowContext<TStepName, TInput, TState, TResources, TResult>
-  >;
+  readonly lifecycle?: WorkflowLifecycle<WorkflowContext<TStepName, TState, TResources, TResult>>;
   readonly executeStep?: StepExecutor<
     TStepName,
-    WorkflowContext<TStepName, TInput, TState, TResources, TResult>
+    WorkflowContext<TStepName, TState, TResources, TResult>
   >;
   readonly createRunId?: () => string;
 }

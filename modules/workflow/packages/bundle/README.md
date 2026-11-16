@@ -13,37 +13,42 @@ interface Store extends Reader {
   write(key: string, value: string, signal: AbortSignal): Promise<void>;
 }
 
-const inspect: BundleWorkflowDefinition<'read', string, void, Reader, string> = {
+const inspect: BundleWorkflowDefinition<'read', string, string, Reader, string> = {
   name: 'store.read',
   entryStep: 'read',
-  createState: () => undefined,
+  createState: ({ input }) => input,
   createResult: () => '',
   stepDefinitions: {
     read: {
       skippable: false,
       cardinality: 'at-most-once',
       step: async (context) => {
-        context.result = await context.resources.read(context.input, context.signal);
+        context.result = await context.resources.read(context.state, context.signal);
       },
     },
   },
 };
-const update: BundleWorkflowDefinition<'write', { key: string; value: string }, void, Store, void> =
-  {
-    name: 'store.write',
-    entryStep: 'write',
-    createState: () => undefined,
-    createResult: () => undefined,
-    stepDefinitions: {
-      write: {
-        skippable: false,
-        cardinality: 'at-most-once',
-        step: async (context) => {
-          await context.resources.write(context.input.key, context.input.value, context.signal);
-        },
+const update: BundleWorkflowDefinition<
+  'write',
+  { key: string; value: string },
+  { key: string; value: string },
+  Store,
+  void
+> = {
+  name: 'store.write',
+  entryStep: 'write',
+  createState: ({ input }) => ({ key: input.key, value: input.value }),
+  createResult: () => undefined,
+  stepDefinitions: {
+    write: {
+      skippable: false,
+      cardinality: 'at-most-once',
+      step: async (context) => {
+        await context.resources.write(context.state.key, context.state.value, context.signal);
       },
     },
-  };
+  },
+};
 
 const values = new Map<string, string>();
 const resources: Store = {

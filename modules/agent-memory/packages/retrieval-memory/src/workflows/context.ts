@@ -12,7 +12,7 @@ import { fail } from '../errors.js';
 import { jsonSnapshot } from '../validation/json.js';
 export type ContextStepName = 'runOperation' | 'prepareInput' | 'search' | 'select' | 'finalize';
 export interface ContextRunState {
-  input?: ReadContextInput;
+  input: ReadContextInput;
   candidate?: ContextCandidate;
   selected: readonly RetrievalHit[];
   signal?: AbortSignal;
@@ -35,7 +35,7 @@ export function createRetrievalReadContextDefinition(
     ...options,
     name: 'retrieval-memory:readContext',
     entryStep: 'runOperation',
-    createState: () => ({ selected: [] }),
+    createState: ({ input }) => ({ input, selected: [] }),
     createResult: () => ({ status: 'skipped', reason: 'Workflow condition skipped execution.' }),
     stepDefinitions: {
       runOperation: {
@@ -54,8 +54,8 @@ export function createRetrievalReadContextDefinition(
         skippable: false,
         cardinality: 'at-most-once',
         step: (context) => {
-          jsonSnapshot(context.input);
-          context.state.input = structuredClone(context.input);
+          jsonSnapshot(context.state.input);
+          context.state.input = structuredClone(context.state.input);
           return Promise.resolve();
         },
       },

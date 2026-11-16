@@ -25,11 +25,11 @@ export class Workflow<
   readonly #definition: WorkflowDefinition<TStepName, TInput, TState, TResources, TResult>;
   readonly #steps: ResolvedStepRegistry<
     TStepName,
-    WorkflowContext<TStepName, TInput, TState, TResources, TResult>
+    WorkflowContext<TStepName, TState, TResources, TResult>
   >;
   readonly #executor: StepExecutor<
     TStepName,
-    WorkflowContext<TStepName, TInput, TState, TResources, TResult>
+    WorkflowContext<TStepName, TState, TResources, TResult>
   >;
 
   constructor(definition: WorkflowDefinition<TStepName, TInput, TState, TResources, TResult>) {
@@ -86,7 +86,11 @@ export class Workflow<
       }
       if (decision.status !== 'run')
         throw new WorkflowRunError('WORKFLOW_CONDITION_INVALID', 'Invalid Workflow condition.');
-      const data = { ...inputs, state: definition.createState(inputs), result: initialResult };
+      const data = {
+        resources: definition.resources,
+        state: definition.createState(inputs),
+        result: initialResult,
+      };
       const runtime = new StepRuntime({
         data,
         reference,

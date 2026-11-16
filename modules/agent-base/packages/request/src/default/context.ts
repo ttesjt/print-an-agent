@@ -53,7 +53,6 @@ export type RequestAgentRunContext = BaseAgentRunContext<AgentRequestInput, Agen
 
 export type DefaultRequestWorkflowContext = WorkflowContext<
   RequestStepName,
-  RequestAgentRunContext,
   RequestWorkflowState,
   RequestRuntimeResources & { readonly policy: RequestPolicy },
   AgentResponse | undefined

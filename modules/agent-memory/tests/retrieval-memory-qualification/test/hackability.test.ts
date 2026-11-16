@@ -20,7 +20,7 @@ it('replaces a complete Workflow definition and a named Step without forking the
     stepOverrides: {
       prepareInput: (context) => {
         visits++;
-        context.state.input = { ...context.input, topK: 1 };
+        context.state.input = { ...context.state.input, topK: 1 };
         return Promise.resolve();
       },
     },

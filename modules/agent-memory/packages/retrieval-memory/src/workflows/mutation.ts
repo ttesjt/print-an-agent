@@ -15,7 +15,7 @@ export type RetrievalMutationOutcome = MutationResult | SkippedRetrieval;
 export type MutationStepName = 'runOperation' | 'prepareInput' | 'prepareCandidate' | 'publish';
 export interface MutationState<I> extends CommittedRunState {
   signal?: AbortSignal;
-  input?: I;
+  input: I;
   candidate?: PreparedMutation;
 }
 export type RetrievalMutationDefinition<
@@ -40,7 +40,7 @@ export function createRetrievalMutationDefinition<
     ...options,
     name: `retrieval-memory:${operation}`,
     entryStep: 'runOperation',
-    createState: () => ({}),
+    createState: ({ input }) => ({ input }),
     createResult: () => ({ status: 'skipped', reason: 'Workflow condition skipped execution.' }),
     executeStep: retrievalExecutor(options.executeStep),
     lifecycle: retrievalLifecycle(options.lifecycle),
@@ -60,8 +60,8 @@ export function createRetrievalMutationDefinition<
         skippable: false,
         cardinality: 'at-most-once',
         step: (context) => {
-          jsonSnapshot(context.input);
-          context.state.input = structuredClone(context.input);
+          jsonSnapshot(context.state.input);
+          context.state.input = structuredClone(context.state.input);
           return Promise.resolve();
         },
       },

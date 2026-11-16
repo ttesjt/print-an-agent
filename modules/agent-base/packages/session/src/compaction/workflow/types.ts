@@ -40,7 +40,6 @@ export interface SessionCompactionAgentRunContext extends BaseAgentRunContext<
 
 export type SessionCompactionWorkflowContext = WorkflowContext<
   SessionCompactionStepName,
-  SessionCompactionAgentRunContext,
   SessionCompactionState,
   SessionCompactionResources,
   SessionCompactionOutcome | undefined

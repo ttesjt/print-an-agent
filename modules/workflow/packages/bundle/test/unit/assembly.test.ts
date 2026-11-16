@@ -25,12 +25,12 @@ it('assembles real Core Workflows once with the exact shared adapter instance an
   const seen: ReadPorts[] = [];
   const inspect = readDefinition(async (c) => {
     seen.push(c.resources);
-    c.result = await c.resources.read(c.input.id, c.signal);
+    c.result = await c.resources.read(c.state.input.id, c.signal);
   });
   const update = writeDefinition(async (c) => {
     seen.push(c.resources);
-    await c.resources.write(c.input.id, c.input.value, c.signal);
-    c.result = c.input.value.length;
+    await c.resources.write(c.state.input.id, c.state.input.value, c.signal);
+    c.result = c.state.input.value.length;
   });
   const bundle = new WorkflowBundle({ resources: store, workflows: { update, inspect } });
   expect(store.values.size).toBe(0);

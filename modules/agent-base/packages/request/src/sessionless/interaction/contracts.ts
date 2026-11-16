@@ -72,7 +72,6 @@ export interface SessionlessInteractionState extends Omit<
 export type SessionlessInteractionStepName = SessionlessRequestStepName | 'buildTools';
 export type SessionlessInteractionContext = WorkflowContext<
   SessionlessInteractionStepName,
-  SessionlessRequestInput,
   SessionlessInteractionState,
   BoundSessionlessInteractionResources,
   SessionlessInteractionResponse | undefined

@@ -102,7 +102,6 @@ export const SESSIONLESS_REQUEST_STEP_NAMES = Object.freeze([
 export type SessionlessRequestStepName = (typeof SESSIONLESS_REQUEST_STEP_NAMES)[number];
 export type SessionlessGenerationContext = WorkflowContext<
   SessionlessRequestStepName,
-  SessionlessRequestInput,
   SessionlessGenerationState,
   BoundSessionlessGenerationResources,
   ActorDirectResult | undefined

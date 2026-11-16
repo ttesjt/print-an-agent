@@ -42,7 +42,6 @@ export type ModelMemoryDefinition<I extends ModelMemoryInput = ModelMemoryInput>
   >;
 export type ModelMemoryContext<I extends ModelMemoryInput = ModelMemoryInput> = WorkflowContext<
   ModelMemoryStepName,
-  I,
   ModelMemoryState<I>,
   ModelMemoryResources,
   MutationResult

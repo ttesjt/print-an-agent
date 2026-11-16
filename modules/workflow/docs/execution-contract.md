@@ -14,14 +14,19 @@ definition's Resources field does not change that binding.
 
 `createResult({input, resources})` and `createState({input, resources})` are pure synchronous
 factories. They provide business data, never a complete framework context or hidden acquired resources.
+`createState` converts external input into the consumer's run-local data. Its result may select,
+transform or consume the input with an independently defined shape, including primitive or `void`
+state. Input is available to conditions and state/result factories. Steps, executors and lifecycle
+hooks receive `WorkflowContext<StepName, State, Resources, Result>` with state, resources, result and
+execution controls. The constructed context has no `input` field.
 `context.result` is a typed shared result slot; object mutation and whole-value replacement are both
-allowed. `input`, `resources` and `state` references and execution fields cannot be reassigned.
+allowed. `resources` and `state` references and execution fields cannot be reassigned.
 The framework does not clone or deep-freeze referenced objects. Bound capabilities retain their class
 identity and mutable contents; consumers own adapter and closure concurrency safety. Each run creates
 its own state, result, admission/cancellation scopes, Step counts and observation. Binding does not
 acquire resources or grant ownership; per-operation leases/transactions keep their own release owner.
 
-Each Step receives a scope-bound context view. Views share input, state, resources and the result slot,
+Each Step receives a scope-bound context view. Views share state, resources and the result slot,
 but have their own effective signal and runner admission lifetime. Thus a parallel group can cancel
 its children without modifying the parent's context or signal. Retained child contexts cannot start
 late work after their invocation closes. No context view conveys ownership of borrowed resources.

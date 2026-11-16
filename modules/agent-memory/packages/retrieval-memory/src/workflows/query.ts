@@ -12,7 +12,7 @@ export type RetrievalReadOutcome<O> =
 export type QueryStepName = 'runOperation' | 'prepareInput' | 'executeQuery';
 export interface QueryState<I> extends CommittedRunState {
   signal?: AbortSignal;
-  input?: I;
+  input: I;
 }
 export type RetrievalQueryDefinition<
   I,
@@ -47,7 +47,7 @@ export function createRetrievalQueryDefinition<
     ...options,
     name: `retrieval-memory:${name}`,
     entryStep: 'runOperation',
-    createState: () => ({}),
+    createState: ({ input }) => ({ input }),
     createResult: () => ({ status: 'skipped', reason: 'Workflow condition skipped execution.' }),
     ...(receipt === undefined
       ? {}
@@ -70,8 +70,8 @@ export function createRetrievalQueryDefinition<
         skippable: false,
         cardinality: 'at-most-once',
         step: (context) => {
-          jsonSnapshot(context.input);
-          context.state.input = structuredClone(context.input);
+          jsonSnapshot(context.state.input);
+          context.state.input = structuredClone(context.state.input);
           return Promise.resolve();
         },
       },
@@ -81,7 +81,7 @@ export function createRetrievalQueryDefinition<
         step: async (context) => {
           const value = await execute(
             context.resources,
-            context.state.input as I,
+            context.state.input,
             context.state.signal ?? context.signal
           );
           const known = receipt?.(value);

@@ -28,7 +28,6 @@ interface TestState extends RequestWorkflowStateView {
 }
 type TestRequestContext = WorkflowContext<
   RequestStepName,
-  TestAgentContext,
   TestState,
   undefined,
   string | undefined

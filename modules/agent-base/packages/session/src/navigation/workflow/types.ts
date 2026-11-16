@@ -23,7 +23,6 @@ export interface SessionNavigationWorkflowState extends SessionNavigationExecuti
 }
 export type SessionNavigationWorkflowContext = WorkflowContext<
   SessionNavigationStepName,
-  SessionNavigationWorkflowInput,
   SessionNavigationWorkflowState,
   SessionNavigationResources,
   SessionNavigationOutcome | undefined

@@ -6,14 +6,17 @@ import {
 } from '@print-an-agent/workflow-core';
 
 type Name = 'report' | 'read' | 'normalize' | 'write';
+export interface ReportInput {
+  readonly source: string;
+  readonly destination: string;
+}
 export interface TextFiles {
   read(name: string, signal: AbortSignal): Promise<string>;
   write(name: string, content: string, signal: AbortSignal): Promise<void>;
 }
 export type ReportContext = WorkflowContext<
   Name,
-  { source: string; destination: string },
-  { text: string },
+  { source: string; destination: string; text: string },
   TextFiles,
   { written: string[] }
 >;
@@ -22,7 +25,7 @@ export type ReportContext = WorkflowContext<
 export function textReport(resources: TextFiles, overrides?: StepOverrides<Name, ReportContext>) {
   return new Workflow<
     Name,
-    ReportContext['input'],
+    ReportInput,
     ReportContext['state'],
     TextFiles,
     ReportContext['result']
@@ -30,7 +33,11 @@ export function textReport(resources: TextFiles, overrides?: StepOverrides<Name,
     name: 'text-report',
     resources,
     entryStep: 'report',
-    createState: () => ({ text: '' }),
+    createState: ({ input }) => ({
+      source: input.source,
+      destination: input.destination,
+      text: '',
+    }),
     createResult: () => ({ written: [] }),
     ...(overrides === undefined ? {} : { stepOverrides: overrides }),
     stepDefinitions: {
@@ -43,7 +50,7 @@ export function textReport(resources: TextFiles, overrides?: StepOverrides<Name,
         skippable: false,
         cardinality: 'at-most-once',
         step: async (c) => {
-          c.state.text = await c.resources.read(c.input.source, c.signal);
+          c.state.text = await c.resources.read(c.state.source, c.signal);
         },
       },
       normalize: {
@@ -58,8 +65,8 @@ export function textReport(resources: TextFiles, overrides?: StepOverrides<Name,
         skippable: false,
         cardinality: 'at-most-once',
         step: async (c) => {
-          await c.resources.write(c.input.destination, c.state.text, c.signal);
-          c.result.written.push(c.input.destination);
+          await c.resources.write(c.state.destination, c.state.text, c.signal);
+          c.result.written.push(c.state.destination);
         },
       },
     },

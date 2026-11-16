@@ -17,6 +17,51 @@ import {
 } from '../support/fixtures.js';
 
 describe('Workflow data and lifecycle', () => {
+  it('exposes transformed state to Steps, executors and hooks without a raw input field', async () => {
+    const views: object[] = [];
+    const flow = new Workflow<'main' | 'child', { message: string }, number, undefined, number>({
+      name: 'message-length',
+      resources: undefined,
+      entryStep: 'main',
+      createState: ({ input }) => input.message.length,
+      createResult: () => 0,
+      stepDefinitions: {
+        main: {
+          skippable: false,
+          cardinality: 'at-most-once',
+          step: (context) => {
+            views.push(context);
+            return context.runStep('child');
+          },
+        },
+        child: {
+          skippable: false,
+          cardinality: 'at-most-once',
+          step: (context) => {
+            views.push(context);
+            context.result = context.state;
+            return Promise.resolve();
+          },
+        },
+      },
+      executeStep: async ({ step, context }) => {
+        views.push(context);
+        await step(context);
+      },
+      lifecycle: {
+        onSuccess: (context) => {
+          views.push(context);
+        },
+        onFinally: (context) => {
+          views.push(context);
+        },
+      },
+    });
+    await expect(flow.run({ input: { message: 'hello' } })).resolves.toBe(5);
+    expect(views).toHaveLength(6);
+    expect(views.every((context) => !('input' in context))).toBe(true);
+  });
+
   it('resolves leaf overrides inside a composite and permits full entry replacement', async () => {
     const main = createSequentialStep<Names, Context>(['a', 'b']);
     const flow = workflow(main, {
@@ -43,7 +88,7 @@ describe('Workflow data and lifecycle', () => {
 
   it('initializes results before condition, skips state/hooks, and returns a fresh legal default', async () => {
     const order: string[] = [];
-    const state = vi.fn(() => ({ values: [] }));
+    const state = vi.fn(({ input }: { input: number }) => ({ input, values: [] }));
     const hook = vi.fn();
     const flow = workflow(() => Promise.resolve(), {
       createResult: () => {
@@ -67,16 +112,16 @@ describe('Workflow data and lifecycle', () => {
   });
 
   it('allows primitive replacement and a legitimate undefined result', async () => {
-    const scalar = new Workflow<'main', number, void, void, number>({
+    const scalar = new Workflow<'main', number, number, void, number>({
       name: 'scalar',
       resources: undefined,
       entryStep: 'main',
-      createState: () => undefined,
+      createState: ({ input }) => input * 2,
       createResult: () => 0,
       stepDefinitions: {
         main: {
           step: (c) => {
-            c.result = c.input * 2;
+            c.result = c.state;
             return Promise.resolve();
           },
           skippable: false,
@@ -104,7 +149,7 @@ describe('Workflow data and lifecycle', () => {
     const contexts: Context[] = [];
     const flow = workflow(async (c) => {
       contexts.push(c);
-      c.state.values.push(c.input);
+      c.state.values.push(c.state.input);
       if (++count === 2) ready.resolve();
       await ready.promise;
       await c.runStep('a');

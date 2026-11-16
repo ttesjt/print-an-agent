@@ -7,7 +7,6 @@ export interface RequestWorkflowStateView {
 }
 export type RequestWorkflowContext = WorkflowContext<
   RequestStepName,
-  unknown,
   RequestWorkflowStateView,
   unknown,
   unknown

@@ -331,8 +331,7 @@ directly; it knows nothing about Agent identity, Operations, result application 
 Each invocation receives a framework-owned context:
 
 ```ts
-interface WorkflowContext<N extends string, I, S, R, O> {
-  readonly input: I;
+interface WorkflowContext<N extends string, S, R, O> {
   readonly state: S;
   readonly resources: R;
   result: O;

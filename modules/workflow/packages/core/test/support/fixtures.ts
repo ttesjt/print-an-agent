@@ -7,13 +7,11 @@ import {
 } from '@print-an-agent/workflow-core';
 
 export type Names = 'main' | 'a' | 'b' | 'c';
-export type Context = WorkflowContext<
-  Names,
-  number,
-  { values: number[] },
-  { label: string },
-  number[]
->;
+export interface TestState {
+  readonly input: number;
+  values: number[];
+}
+export type Context = WorkflowContext<Names, TestState, { label: string }, number[]>;
 export const once = (step: Step<Context>, skippable = false) => ({
   step,
   skippable,
@@ -21,20 +19,18 @@ export const once = (step: Step<Context>, skippable = false) => ({
 });
 export function workflow(
   main: Step<Context>,
-  changes: Partial<
-    WorkflowDefinition<Names, number, { values: number[] }, { label: string }, number[]>
-  > = {}
+  changes: Partial<WorkflowDefinition<Names, number, TestState, { label: string }, number[]>> = {}
 ) {
-  return new Workflow<Names, number, { values: number[] }, { label: string }, number[]>({
+  return new Workflow<Names, number, TestState, { label: string }, number[]>({
     name: 'test',
     resources: { label: 'borrowed' },
     entryStep: 'main',
     createResult: () => [],
-    createState: () => ({ values: [] }),
+    createState: ({ input }) => ({ input, values: [] }),
     stepDefinitions: {
       main: once(main),
       a: once((context) => {
-        context.result.push(context.input);
+        context.result.push(context.state.input);
         return Promise.resolve();
       }),
       b: once(() => Promise.resolve(), true),

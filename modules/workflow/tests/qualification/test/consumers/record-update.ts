@@ -29,6 +29,8 @@ export interface UpdateInput {
   readonly title: string;
 }
 export interface UpdateState {
+  readonly id: string;
+  readonly title: string;
   record: CatalogRecord | undefined;
   limit: number | undefined;
 }
@@ -36,13 +38,7 @@ export type UpdateResult =
   | { readonly status: 'not-updated' }
   | { readonly status: 'updated'; readonly record: CatalogRecord };
 export type UpdateName = 'update' | 'load' | 'record' | 'rules' | 'validate' | 'commit';
-export type UpdateContext = WorkflowContext<
-  UpdateName,
-  UpdateInput,
-  UpdateState,
-  UpdatePorts,
-  UpdateResult
->;
+export type UpdateContext = WorkflowContext<UpdateName, UpdateState, UpdatePorts, UpdateResult>;
 
 export function recordUpdate(resources: UpdatePorts) {
   return new Workflow({ ...recordUpdateDefinition(), resources });
@@ -60,7 +56,12 @@ export function recordUpdateDefinition(): BundleWorkflowDefinition<
     name: 'record-update',
     entryStep: 'update',
     createResult: () => ({ status: 'not-updated' }),
-    createState: () => ({ record: undefined, limit: undefined }),
+    createState: ({ input }) => ({
+      id: input.id,
+      title: input.title,
+      record: undefined,
+      limit: undefined,
+    }),
     condition: ({ input }) => (input.enabled ? RUN_WORKFLOW : skipWorkflow('updates disabled')),
     stepDefinitions: {
       update: {
@@ -81,7 +82,7 @@ export function recordUpdateDefinition(): BundleWorkflowDefinition<
         skippable: false,
         cardinality: 'at-most-once',
         step: async (c) => {
-          c.state.record = await c.resources.records.read(c.input.id, c.signal);
+          c.state.record = await c.resources.records.read(c.state.id, c.signal);
         },
       },
       rules: {
@@ -95,7 +96,7 @@ export function recordUpdateDefinition(): BundleWorkflowDefinition<
         skippable: false,
         cardinality: 'at-most-once',
         step: (c) => {
-          if (c.state.limit === undefined || c.input.title.length > c.state.limit)
+          if (c.state.limit === undefined || c.state.title.length > c.state.limit)
             throw new Error('Title rejected.');
           return Promise.resolve();
         },
@@ -106,9 +107,9 @@ export function recordUpdateDefinition(): BundleWorkflowDefinition<
         step: async (c) => {
           if (c.state.record === undefined) throw new Error('Record was not loaded.');
           const record = await c.resources.records.compareAndSwap(
-            c.input.id,
+            c.state.id,
             c.state.record.revision,
-            c.input.title,
+            c.state.title,
             c.signal
           );
           c.result = { status: 'updated', record };

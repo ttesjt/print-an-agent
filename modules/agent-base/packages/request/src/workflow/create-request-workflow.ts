@@ -12,7 +12,7 @@ export function createRequestWorkflow<I, S extends RequestWorkflowStateView, R, 
     name: REQUEST_WORKFLOW_NAME,
     entryStep: 'runRequest',
     stepDefinitions:
-      createRequestStepDefinitions<WorkflowContext<RequestStepName, I, S, R, O | undefined>>(),
+      createRequestStepDefinitions<WorkflowContext<RequestStepName, S, R, O | undefined>>(),
     createResult: () => undefined,
     lifecycle: {
       ...options.lifecycle,

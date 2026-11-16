@@ -39,7 +39,12 @@ fields; the caller cannot supply a runner or replace signal/run identity. `Workf
 has no Resources parameter, and `RunnableWorkflow<Input, Result>` represents the already-assembled
 callable. Condition, result/state factories, executors, Steps and hooks receive the bound resources.
 
-The input/resources/state references are read-only, but not deep-frozen. Resources keep their original
+Use `createState({ input, resources })` to prepare all business data needed by Steps and hooks.
+Each Workflow defines its own state shape and may transform or consume input during initialization.
+`WorkflowContext<StepName, State, Resources, Result>` exposes that state through `context.state`.
+Conditions and state/result factories receive input at the invocation boundary.
+
+The resources/state references are read-only, but not deep-frozen. Resources keep their original
 object identity and class methods. Replacing `definition.resources` after construction does not rebind
 an assembled Workflow. Mutable adapter contents are still live; Core does not snapshot database data
 or freeze borrowed capabilities. Mutable state/result must be constructed afresh by their factories.

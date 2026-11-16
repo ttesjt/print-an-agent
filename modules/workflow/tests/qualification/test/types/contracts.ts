@@ -9,9 +9,11 @@ import {
 import { recordUpdate, type UpdateContext } from '../consumers/record-update.js';
 
 type Name = 'main' | 'child';
+interface Input {
+  readonly amount: number;
+}
 type Context = WorkflowContext<
   Name,
-  { amount: number },
   { count: number },
   { save(value: number): Promise<void> },
   number
@@ -22,7 +24,9 @@ export function verifyContext(context: Context, other: UpdateContext): void {
   void context.runStep('child');
   void context.parallel(['main', 'child']);
   context.state.count++;
-  context.result = context.input.amount;
+  context.result = context.state.count;
+  // @ts-expect-error raw input belongs to initialization, not the Step context
+  void context.input;
   // @ts-expect-error names are the registered union, not arbitrary strings
   void context.runStep('missing');
   // @ts-expect-error parallel names follow exactly the same contract
@@ -37,14 +41,14 @@ export function verifyContext(context: Context, other: UpdateContext): void {
   context.resources = { save: () => Promise.resolve() };
   // @ts-expect-error result is a number, not a string or untyped override bag
   context.result = 'wrong';
-  // @ts-expect-error consumers need not share compatible input/resources/result
+  // @ts-expect-error consumers need not share compatible state/resources/result
   const mismatched: Context = other;
   void mismatched;
 }
 
 export const definitions: WorkflowDefinition<
   Name,
-  Context['input'],
+  Input,
   Context['state'],
   Context['resources'],
   number
@@ -52,14 +56,14 @@ export const definitions: WorkflowDefinition<
   name: 'typed',
   resources: { save: () => Promise.resolve() },
   entryStep: 'main',
-  createState: () => ({ count: 0 }),
+  createState: ({ input }) => ({ count: input.amount }),
   createResult: () => 0,
   stepDefinitions: {
     main: { step: (c) => c.runStep('child'), skippable: false, cardinality: 'at-most-once' },
     child: {
       step: async (c) => {
-        await c.resources.save(c.input.amount);
-        c.result = c.input.amount;
+        await c.resources.save(c.state.count);
+        c.result = c.state.count;
       },
       skippable: false,
       cardinality: 'repeatable',
@@ -67,7 +71,7 @@ export const definitions: WorkflowDefinition<
   },
 };
 const valid = new Workflow(definitions);
-export const publicRunnable: RunnableWorkflow<Context['input'], number> = valid;
+export const publicRunnable: RunnableWorkflow<Input, number> = valid;
 export const invalidResult: typeof definitions = {
   ...definitions,
   // @ts-expect-error no uninitialized or fake-default result for a numeric result contract
@@ -88,7 +92,7 @@ export const resourceFactory: typeof definitions = {
   // @ts-expect-error Resources is a bound object, not a per-run factory
   resources: () => ({ save: () => Promise.resolve() }),
 };
-export const unexpectedRunResources: WorkflowRunOptions<Context['input']> = {
+export const unexpectedRunResources: WorkflowRunOptions<Input> = {
   input: { amount: 1 },
   // @ts-expect-error execution options cannot replace assembly-bound capabilities
   resources: definitions.resources,

@@ -22,12 +22,12 @@ it('captures the resource binding at assembly and uses it in factories, Steps, e
       seen.push(resources);
       return 0;
     },
-    createState: ({ resources }: WorkflowInputs<number, Store>) => {
+    createState: ({ input, resources }: WorkflowInputs<number, Store>) => {
       seen.push(resources);
-      return undefined;
+      return input;
     },
   };
-  const flow = new Workflow<'save', number, void, Store, number>({
+  const flow = new Workflow<'save', number, number, Store, number>({
     ...definition,
     condition: ({ resources }) => {
       seen.push(resources);
@@ -39,7 +39,7 @@ it('captures the resource binding at assembly and uses it in factories, Steps, e
         cardinality: 'at-most-once',
         step: async (c) => {
           seen.push(c.resources);
-          await c.resources.save(c.input);
+          await c.resources.save(c.state);
           c.result = c.resources.values.length;
           expect(Reflect.set(c, 'resources', replacement)).toBe(false);
         },
@@ -113,9 +113,9 @@ it('shares bound capabilities across parallel runs while isolating cancellation 
   const flow = workflow(
     async (c) => {
       contexts.push(c);
-      c.state.values.push(c.input);
+      c.state.values.push(c.state.input);
       if (contexts.length === 2) started.resolve();
-      if (c.input === 4) {
+      if (c.state.input === 4) {
         await aborted(c.signal);
         c.signal.throwIfAborted();
       } else {

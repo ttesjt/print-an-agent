@@ -10,13 +10,19 @@ export interface WorkflowInputs<TInput, TResources> {
   readonly resources: TResources;
 }
 
-export interface WorkflowContext<TStepName extends string, TInput, TState, TResources, TResult>
-  extends WorkflowInputs<TInput, TResources>, StepRunner<TStepName> {
+export interface WorkflowContext<
+  TStepName extends string,
+  TState,
+  TResources,
+  TResult,
+> extends StepRunner<TStepName> {
   readonly workflowName: string;
   readonly workflowRunId: string;
   readonly parentRunId: string | undefined;
   /** Effective signal for this execution scope, including enclosing parallel groups. */
   readonly signal: AbortSignal;
+  /** Assembly-bound capabilities borrowed by this run. */
+  readonly resources: TResources;
   readonly state: TState;
   result: TResult;
 }

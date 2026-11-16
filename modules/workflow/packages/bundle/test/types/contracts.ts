@@ -4,6 +4,7 @@ import {
   readDefinition,
   writeDefinition,
   type ReadContext,
+  type ReadInput,
   type WriteContext,
 } from '../support/definitions.js';
 
@@ -81,8 +82,8 @@ export function checkCalls(): void {
 
 export const incompatibleStep: BundleWorkflowDefinition<
   'read' | 'validate',
-  ReadContext['input'],
-  void,
+  ReadInput,
+  ReadContext['state'],
   ReadContext['resources'],
   string
 > = {

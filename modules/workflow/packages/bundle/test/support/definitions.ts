@@ -7,37 +7,41 @@ export interface ReadPorts {
 export interface WritePorts extends ReadPorts {
   write(id: string, value: string, signal: AbortSignal): Promise<void>;
 }
+export interface ReadInput {
+  readonly id: string;
+}
+export interface WriteInput extends ReadInput {
+  readonly value: string;
+}
 export type ReadContext = WorkflowContext<
   'read' | 'validate',
-  { id: string },
-  void,
+  { readonly input: ReadInput },
   ReadPorts,
   string
 >;
 export type WriteContext = WorkflowContext<
   'write' | 'validate',
-  { id: string; value: string },
-  void,
+  { readonly input: WriteInput },
   WritePorts,
   number
 >;
 export type ReadDefinition = BundleWorkflowDefinition<
   'read' | 'validate',
-  ReadContext['input'],
-  void,
+  ReadInput,
+  ReadContext['state'],
   ReadPorts,
   string
 >;
 export type WriteDefinition = BundleWorkflowDefinition<
   'write' | 'validate',
-  WriteContext['input'],
-  void,
+  WriteInput,
+  WriteContext['state'],
   WritePorts,
   number
 >;
 
-export const validateId: Step<{ readonly input: { readonly id: string } }> = (context) => {
-  if (context.input.id.trim() === '') throw new Error('Record ID is required.');
+export const validateId: Step<{ readonly state: { readonly input: ReadInput } }> = (context) => {
+  if (context.state.input.id.trim() === '') throw new Error('Record ID is required.');
   return Promise.resolve();
 };
 
@@ -45,7 +49,7 @@ export function readDefinition(step?: Step<ReadContext>): ReadDefinition {
   return {
     name: 'records.inspect',
     entryStep: 'read',
-    createState: () => undefined,
+    createState: ({ input }) => ({ input }),
     createResult: () => '',
     stepDefinitions: {
       read: {
@@ -54,7 +58,8 @@ export function readDefinition(step?: Step<ReadContext>): ReadDefinition {
         step: async (context) => {
           await context.runStep('validate');
           if (step !== undefined) await step(context);
-          else context.result = await context.resources.read(context.input.id, context.signal);
+          else
+            context.result = await context.resources.read(context.state.input.id, context.signal);
         },
       },
       validate: { step: validateId, skippable: false, cardinality: 'at-most-once' },
@@ -66,7 +71,7 @@ export function writeDefinition(step?: Step<WriteContext>): WriteDefinition {
   return {
     name: 'records.update',
     entryStep: 'write',
-    createState: () => undefined,
+    createState: ({ input }) => ({ input }),
     createResult: () => 0,
     stepDefinitions: {
       write: {
@@ -76,8 +81,12 @@ export function writeDefinition(step?: Step<WriteContext>): WriteDefinition {
           await context.runStep('validate');
           if (step !== undefined) await step(context);
           else {
-            await context.resources.write(context.input.id, context.input.value, context.signal);
-            context.result = context.input.value.length;
+            await context.resources.write(
+              context.state.input.id,
+              context.state.input.value,
+              context.signal
+            );
+            context.result = context.state.input.value.length;
           }
         },
       },

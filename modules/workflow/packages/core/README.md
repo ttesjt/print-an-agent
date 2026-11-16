@@ -7,28 +7,34 @@ dependencies.
 ```ts
 import { Workflow } from '@print-an-agent/workflow-core';
 
-const sum = new Workflow<'sum', readonly number[], void, void, number>({
+type SumInput = { readonly values: readonly number[]; readonly label: string };
+const sum = new Workflow<'sum', SumInput, readonly number[], void, number>({
   name: 'sum',
   resources: undefined,
   entryStep: 'sum',
-  createState: () => undefined,
+  createState: ({ input }) => input.values,
   createResult: () => 0,
   stepDefinitions: {
     sum: {
       skippable: false,
       cardinality: 'at-most-once',
       step: (context) => {
-        context.result = context.input.reduce((a, b) => a + b, 0);
+        context.result = context.state.reduce((a, b) => a + b, 0);
         return Promise.resolve();
       },
     },
   },
 });
 
-const result = await sum.run({ input: [1, 2, 3] }); // 6
+const result = await sum.run({ input: { values: [1, 2, 3], label: 'example' } }); // 6
 ```
 
 The five generic parameters are Step names, input, local state, bound resources, and result.
+`WorkflowContext<StepName, State, Resources, Result>` exposes the state returned by `createState`.
+The factory selects, transforms or consumes input to prepare the data Steps need, leaving replaceable
+business execution in the Steps. State may have any shape, including a primitive or `void`.
+Input is available to `run`, conditions and state/result
+factories. Steps, executors and lifecycle hooks access business data through `context.state`.
 Resources are provided alongside Steps at construction; every run borrows the same capability
 references through `context.resources`. `run()` accepts input and execution options, with no Resources
 override. `RunnableWorkflow<Input, Result>` describes the already-assembled callable.

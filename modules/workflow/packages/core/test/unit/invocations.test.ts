@@ -71,7 +71,7 @@ describe('registered execution', () => {
           c: {
             cardinality: STEP_CARDINALITY.REPEATABLE,
             step: (c) => {
-              c.result.push(8);
+              c.state.values.push(8);
               return Promise.resolve();
             },
           },
@@ -185,7 +185,7 @@ describe('registered execution', () => {
         } catch {
           caught = true;
         }
-        c.result = [999];
+        c.state.values = [999];
       },
       {
         stepOverrides: {
@@ -216,7 +216,7 @@ describe('registered execution', () => {
       stepOverrides: {
         a: (c) => {
           if (++attempts === 1) throw new Error('retry');
-          c.result = [7];
+          c.state.values = [7];
           return Promise.resolve();
         },
       },

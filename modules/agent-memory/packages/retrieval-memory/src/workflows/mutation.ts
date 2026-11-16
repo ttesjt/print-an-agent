@@ -4,9 +4,15 @@ import type { MutationResult } from '../contracts/publication.js';
 import type { PreparedMutation } from '../domain/mutations.js';
 import type { RetrievalMutationResources } from './resources.js';
 import { jsonSnapshot } from '../validation/json.js';
-import { fail } from '../errors.js';
+import { fail, RetrievalMemoryError } from '../errors.js';
 import { runRetrievalExecution } from './execution.js';
-import { retrievalExecutor, retrievalLifecycle, type CommittedRunState } from './outcomes.js';
+import {
+  createSkippedRetrievalResult,
+  preserveRetrievalCommit,
+  retrievalExecutor,
+  retrievalLifecycle,
+  type CommittedRunState,
+} from './outcomes.js';
 export interface SkippedRetrieval {
   readonly status: 'skipped';
   readonly reason: string;
@@ -17,6 +23,7 @@ export interface MutationState<I> extends CommittedRunState {
   signal?: AbortSignal;
   input: I;
   candidate?: PreparedMutation;
+  outcome?: RetrievalMutationOutcome;
 }
 export type RetrievalMutationDefinition<
   I,
@@ -41,7 +48,18 @@ export function createRetrievalMutationDefinition<
     name: `retrieval-memory:${operation}`,
     entryStep: 'runOperation',
     createState: ({ input }) => ({ input }),
-    createResult: () => ({ status: 'skipped', reason: 'Workflow condition skipped execution.' }),
+    createSkippedResult: createSkippedRetrievalResult,
+    createResult(state) {
+      if (state.outcome === undefined)
+        throw preserveRetrievalCommit(
+          new RetrievalMemoryError(
+            'REPRESENTATION_INVALID',
+            'Retrieval mutation completed without a publication.'
+          ),
+          state
+        );
+      return state.outcome;
+    },
     executeStep: retrievalExecutor(options.executeStep),
     lifecycle: retrievalLifecycle(options.lifecycle),
     stepDefinitions: {
@@ -91,7 +109,7 @@ export function createRetrievalMutationDefinition<
             context.state.signal ?? context.signal
           );
           context.state.receipt = structuredClone(result.receipt);
-          context.result = result;
+          context.state.outcome = result;
         },
       },
     },

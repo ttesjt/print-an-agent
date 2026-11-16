@@ -4,12 +4,7 @@ import { expect, it, vi } from 'vitest';
 import { readDefinition, writeDefinition, type ReadContext } from '../support/definitions.js';
 
 it('isolates state, result, counts, Run identities and observers across repeated and distinct members', async () => {
-  type Context = WorkflowContext<
-    'main',
-    { input: number; values: number[] },
-    { label: string },
-    number[]
-  >;
+  type Context = WorkflowContext<'main', { input: number; values: number[] }, { label: string }>;
   type Definition = BundleWorkflowDefinition<
     'main',
     number,
@@ -28,17 +23,16 @@ it('isolates state, result, counts, Run identities and observers across repeated
     name: 'first',
     entryStep: 'main',
     createState,
-    createResult: () => [],
+    createResult: ({ values }) => [...values],
     stepDefinitions: {
       main: {
         cardinality: 'at-most-once',
         skippable: false,
         step: async (c) => {
           contexts.push(c);
-          c.state.values.push(c.state.input);
           if (contexts.length === 3) ready.resolve();
           await release.promise;
-          c.result.push(c.state.input);
+          c.state.values.push(c.state.input);
         },
       },
     },
@@ -67,9 +61,10 @@ it('isolates state, result, counts, Run identities and observers across repeated
     release.resolve();
     await Promise.allSettled(runs);
   }
-  expect(await Promise.all(runs)).toEqual([[0], [1], [2]]);
+  const results = await Promise.all(runs);
+  expect(results).toEqual([[0], [1], [2]]);
   expect(new Set(contexts.map((c) => c.state)).size).toBe(3);
-  expect(new Set(contexts.map((c) => c.result)).size).toBe(3);
+  expect(new Set(results).size).toBe(3);
   expect(new Set(contexts.map((c) => c.workflowRunId)).size).toBe(3);
   expect(contexts.map((c) => c.state.values)).toEqual([[0], [1], [2]]);
   for (const [index, records] of events.entries()) {

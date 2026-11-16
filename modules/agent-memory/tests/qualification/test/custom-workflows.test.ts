@@ -81,7 +81,8 @@ function onePassCompact(): ModelMemoryDefinition {
         step: async (context) => {
           await context.runStep('prepareInput');
           await context.runStep('beginUpdate');
-          if (context.result.status !== 'skipped') return;
+          const output = context.state.operationOutput?.value;
+          if (output !== undefined && output.status !== 'skipped') return;
           const target = context.state.update?.targetTokens;
           if (target !== undefined) context.state.plannerTargetTokens = target;
           await context.runStep('planCompaction');

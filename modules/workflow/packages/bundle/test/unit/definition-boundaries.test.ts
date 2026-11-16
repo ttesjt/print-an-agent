@@ -41,6 +41,7 @@ it.each([
   () => readDefinition(),
   { ...readDefinition(), createState: undefined },
   { ...readDefinition(), createResult: undefined },
+  { ...readDefinition(), createSkippedResult: 'invalid' },
   { ...readDefinition(), lifecycle: { onFinally: 'invalid' } },
   { ...readDefinition(), executeStep: 1 },
   new Workflow({ ...readDefinition(), resources }),

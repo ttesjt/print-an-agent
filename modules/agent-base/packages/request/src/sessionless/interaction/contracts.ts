@@ -56,7 +56,7 @@ export interface SessionlessInteractionResponse extends ActorDirectResult {
 
 export interface SessionlessInteractionState extends Omit<
   SessionlessGenerationState,
-  'modelRequest' | 'response'
+  'modelRequest' | 'response' | 'completedResponse'
 > {
   target?: InteractionCapability;
   history?: readonly ModelMessage[];
@@ -67,14 +67,14 @@ export interface SessionlessInteractionState extends Omit<
   toolsClosed?: boolean;
   outputCharacterCount?: number;
   response?: SessionlessInteractionResponse;
+  completedResponse?: SessionlessInteractionResponse;
 }
 
 export type SessionlessInteractionStepName = SessionlessRequestStepName | 'buildTools';
 export type SessionlessInteractionContext = WorkflowContext<
   SessionlessInteractionStepName,
   SessionlessInteractionState,
-  BoundSessionlessInteractionResources,
-  SessionlessInteractionResponse | undefined
+  BoundSessionlessInteractionResources
 >;
 
 export interface SessionlessInteractionWorkflowOptions extends Pick<

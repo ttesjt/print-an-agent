@@ -83,7 +83,9 @@ calls `context.state.prepareInput()` to validate it as JSON and detach it into t
 `context.state.preparedInput` slot. An override that keeps downstream Steps can wrap the default
 Step or explicitly prepare the input. Deterministic overrides may pass a same-type replacement to
 `state.prepareInput(replacement)`; it is also validated and detached before the domain call.
-Returning without preparation does not admit a domain call. A condition-skipped mutation returns
+Returning without preparation does not admit a domain call. Default execution records
+`context.state.operationOutput = { value }` for the result projection. The wrapper distinguishes a
+completed lookup whose value is `undefined` from a Step that produced no output. A condition-skipped mutation returns
 `{ status: 'skipped', reason: 'condition-not-met' }` without a receipt. Skipped queries return undefined;
 missing receipt queries also return undefined, whereas a missing document read is an error.
 Default Executor/lifecycle wrappers retain an acknowledged mutation receipt if Step post-processing

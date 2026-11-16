@@ -17,25 +17,25 @@ export function createDocumentBundle(resources: DocumentWorkflowResources) {
   const read: BundleWorkflowDefinition<
     'read',
     { readonly documentId: string },
-    { readonly documentId: string; reads: number },
+    { readonly documentId: string; reads: number; text: string; runId: string },
     DocumentWorkflowResources,
     DocumentReadResult
   > = {
     name: 'documents.read',
     entryStep: 'read',
-    createState: ({ input }) => ({ documentId: input.documentId, reads: 0 }),
-    createResult: () => ({ text: '', runId: '', reads: 0 }),
+    createState: ({ input }) => ({ documentId: input.documentId, reads: 0, text: '', runId: '' }),
+    createResult: ({ text, runId, reads }) => ({ text, runId, reads }),
     stepDefinitions: {
       read: {
         skippable: false,
         cardinality: 'at-most-once',
         step: async (context) => {
-          const text = await context.resources.documents.read(
+          context.state.text = await context.resources.documents.read(
             context.state.documentId,
             context.signal
           );
           context.state.reads += 1;
-          context.result = { text, runId: context.workflowRunId, reads: context.state.reads };
+          context.state.runId = context.workflowRunId;
         },
       },
     },

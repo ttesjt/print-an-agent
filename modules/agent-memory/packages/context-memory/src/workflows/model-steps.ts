@@ -22,7 +22,7 @@ export function modelMemorySteps(operation: ModelMemoryOperation) {
         requirePreparedMemoryInput(context.state),
         modelMemorySignal(context)
       );
-      if (result.status === 'replayed') context.result = result.result;
+      if (result.status === 'replayed') context.state.operationOutput = { value: result.result };
       else context.state.update = result.update;
       context.state.compactionPasses = 0;
       delete context.state.plannerTargetTokens;
@@ -72,7 +72,8 @@ export function modelMemorySteps(operation: ModelMemoryOperation) {
       });
     },
     async commitCandidate(this: void, context: ModelMemoryContext) {
-      context.result = await requireUpdate(context).commit(modelMemorySignal(context));
+      const value = await requireUpdate(context).commit(modelMemorySignal(context));
+      context.state.operationOutput = { value };
     },
   };
 }

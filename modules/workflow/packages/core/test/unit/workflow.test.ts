@@ -17,14 +17,14 @@ import {
 } from '../support/fixtures.js';
 
 describe('Workflow data and lifecycle', () => {
-  it('exposes transformed state to Steps, executors and hooks without a raw input field', async () => {
+  it('exposes transformed state to Steps, executors and hooks without raw input or result fields', async () => {
     const views: object[] = [];
-    const flow = new Workflow<'main' | 'child', { message: string }, number, undefined, number>({
+    const flow = new Workflow<'main' | 'child', { message: string }, number, undefined, string>({
       name: 'message-length',
       resources: undefined,
       entryStep: 'main',
       createState: ({ input }) => input.message.length,
-      createResult: () => 0,
+      createResult: (length) => String(length),
       stepDefinitions: {
         main: {
           skippable: false,
@@ -39,7 +39,7 @@ describe('Workflow data and lifecycle', () => {
           cardinality: 'at-most-once',
           step: (context) => {
             views.push(context);
-            context.result = context.state;
+            expect(context.state).toBe(5);
             return Promise.resolve();
           },
         },
@@ -57,9 +57,9 @@ describe('Workflow data and lifecycle', () => {
         },
       },
     });
-    await expect(flow.run({ input: { message: 'hello' } })).resolves.toBe(5);
+    await expect(flow.run({ input: { message: 'hello' } })).resolves.toBe('5');
     expect(views).toHaveLength(6);
-    expect(views.every((context) => !('input' in context))).toBe(true);
+    expect(views.every((context) => !('input' in context) && !('result' in context))).toBe(true);
   });
 
   it('resolves leaf overrides inside a composite and permits full entry replacement', async () => {
@@ -67,7 +67,7 @@ describe('Workflow data and lifecycle', () => {
     const flow = workflow(main, {
       stepOverrides: {
         a: (c) => {
-          c.result = [12];
+          c.state.values = [12];
           return Promise.resolve();
         },
         b: SKIP_STEP,
@@ -78,7 +78,7 @@ describe('Workflow data and lifecycle', () => {
       await workflow(main, {
         stepOverrides: {
           main: (c) => {
-            c.result = [21];
+            c.state.values = [21];
             return Promise.resolve();
           },
         },
@@ -86,14 +86,17 @@ describe('Workflow data and lifecycle', () => {
     ).toEqual([21]);
   });
 
-  it('initializes results before condition, skips state/hooks, and returns a fresh legal default', async () => {
+  it('creates each skip result from the decision without running Steps, state creation or hooks', async () => {
     const order: string[] = [];
     const state = vi.fn(({ input }: { input: number }) => ({ input, values: [] }));
     const hook = vi.fn();
-    const flow = workflow(() => Promise.resolve(), {
-      createResult: () => {
-        order.push('result');
-        return [];
+    const entry = vi.fn(() => Promise.resolve());
+    const createResult = vi.fn(() => []);
+    const flow = workflow(entry, {
+      createResult,
+      createSkippedResult: ({ input, reason }) => {
+        order.push(reason);
+        return [input];
       },
       createState: state,
       condition: () => {
@@ -104,29 +107,24 @@ describe('Workflow data and lifecycle', () => {
     });
     const a = await flow.run(options());
     const b = await flow.run(options());
-    expect(a).toEqual([]);
+    expect(a).toEqual([4]);
     expect(a).not.toBe(b);
-    expect(order).toEqual(['result', 'condition', 'result', 'condition']);
+    expect(order).toEqual(['condition', 'no changes', 'condition', 'no changes']);
+    expect(entry).not.toHaveBeenCalled();
+    expect(createResult).not.toHaveBeenCalled();
     expect(state).not.toHaveBeenCalled();
     expect(hook).not.toHaveBeenCalled();
   });
 
-  it('allows primitive replacement and a legitimate undefined result', async () => {
+  it('projects primitive state and preserves a legitimate undefined result', async () => {
     const scalar = new Workflow<'main', number, number, void, number>({
       name: 'scalar',
       resources: undefined,
       entryStep: 'main',
       createState: ({ input }) => input * 2,
-      createResult: () => 0,
+      createResult: (value) => value,
       stepDefinitions: {
-        main: {
-          step: (c) => {
-            c.result = c.state;
-            return Promise.resolve();
-          },
-          skippable: false,
-          cardinality: 'at-most-once',
-        },
+        main: { step: () => Promise.resolve(), skippable: false, cardinality: 'at-most-once' },
       },
     });
     expect(await scalar.run({ input: 3 })).toBe(6);
@@ -143,13 +141,100 @@ describe('Workflow data and lifecycle', () => {
     expect(await none.run({ input: undefined })).toBeUndefined();
   });
 
+  it('rejects a condition skip without a result factory before creating state', async () => {
+    const createState = vi.fn(() => ({ input: 0, values: [] }));
+    const events: WorkflowEvent[] = [];
+    await expect(
+      workflow(() => Promise.resolve(), {
+        condition: () => skipWorkflow('no changes'),
+        createState,
+      }).run({
+        ...options(),
+        onEvent: (event) => {
+          events.push(event);
+        },
+      })
+    ).rejects.toMatchObject({ code: 'WORKFLOW_SKIP_RESULT_MISSING' });
+    expect(createState).not.toHaveBeenCalled();
+    expect(events.map((event) => event.type)).toEqual(['workflow-started', 'workflow-failed']);
+  });
+
+  it('projects after parallel work and onSuccess, then waits for onFinally before returning', async () => {
+    const childStarted = gate();
+    const releaseChild = gate();
+    const cleanupStarted = gate();
+    const releaseCleanup = gate();
+    const project = vi.fn((state: Context['state']) => [...state.values]);
+    const flow = workflow((context) => context.parallel(['a', 'b']), {
+      stepOverrides: {
+        b: async ({ state }) => {
+          childStarted.resolve();
+          await releaseChild.promise;
+          state.values.push(5);
+        },
+      },
+      createResult: project,
+      lifecycle: {
+        onSuccess({ state }) {
+          state.values.push(6);
+        },
+        async onFinally({ state }) {
+          cleanupStarted.resolve();
+          state.values.push(7);
+          await releaseCleanup.promise;
+        },
+      },
+    });
+    const settled = vi.fn();
+    const run = flow.run(options()).then((value) => {
+      settled();
+      return value;
+    });
+    try {
+      await childStarted.promise;
+      expect(project).not.toHaveBeenCalled();
+      releaseChild.resolve();
+      await cleanupStarted.promise;
+      expect(project).toHaveBeenCalledTimes(1);
+      expect(settled).not.toHaveBeenCalled();
+    } finally {
+      releaseChild.resolve();
+      releaseCleanup.resolve();
+    }
+    await expect(run).resolves.toEqual([4, 5, 6]);
+  });
+
+  it('preserves projection failure through onError and cleanup', async () => {
+    const projection = new Error('projection');
+    const cleanup = new Error('cleanup');
+    const onError = vi.fn();
+    const flow = workflow((context) => context.runStep('a'), {
+      createResult() {
+        throw projection;
+      },
+      lifecycle: {
+        onError,
+        onFinally() {
+          throw cleanup;
+        },
+      },
+    });
+    await expect(flow.run(options())).rejects.toMatchObject({
+      cause: projection,
+      errors: [projection, cleanup],
+    });
+    expect(onError).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ state: { input: 4, values: [4] } }),
+      projection
+    );
+  });
+
   it('isolates simultaneous runs and freezes execution fields without freezing business data', async () => {
     const ready = gate();
     let count = 0;
     const contexts: Context[] = [];
     const flow = workflow(async (c) => {
       contexts.push(c);
-      c.state.values.push(c.state.input);
       if (++count === 2) ready.resolve();
       await ready.promise;
       await c.runStep('a');
@@ -287,7 +372,7 @@ describe('Workflow data and lifecycle', () => {
     const committed = new AbortController();
     expect(
       await workflow((c) => {
-        c.result = [1];
+        c.state.values = [1];
         committed.abort();
         return Promise.resolve();
       }).run({ ...options(), signal: committed.signal })

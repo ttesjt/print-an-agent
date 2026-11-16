@@ -1,16 +1,16 @@
 import type { WorkflowLifecycle } from '@print-an-agent/workflow-core';
-import { preserveMemoryCommit } from './outcome.js';
+import { preserveMemoryCommit, type MemoryOperationOutput } from './outcome.js';
 
-export function memoryLifecycle<C extends { result: unknown }>(
+export function memoryLifecycle<C extends { state: MemoryOperationOutput<unknown> }>(
   hooks: WorkflowLifecycle<C> = {}
 ): WorkflowLifecycle<C> {
   const invoke = async (hook: ((context: C) => void | Promise<void>) | undefined, context: C) => {
     if (hook === undefined) return;
-    const result = structuredClone(context.result);
+    const output = structuredClone(context.state.operationOutput?.value);
     try {
       await hook(context);
     } catch (cause) {
-      throw preserveMemoryCommit(cause, result);
+      throw preserveMemoryCommit(cause, output);
     }
   };
   return {

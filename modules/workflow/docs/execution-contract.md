@@ -12,44 +12,50 @@ alongside its Step configuration. `resources: undefined` is explicit for resourc
 the binding. Every run uses the same resource instance captured at assembly. Replacing the original
 definition's Resources field does not change that binding.
 
-`createResult({input, resources})` and `createState({input, resources})` are pure synchronous
-factories. They provide business data, never a complete framework context or hidden acquired resources.
-`createState` converts external input into the consumer's run-local data. Its result may select,
-transform or consume the input with an independently defined shape, including primitive or `void`
-state. Input is available to conditions and state/result factories. Steps, executors and lifecycle
-hooks receive `WorkflowContext<StepName, State, Resources, Result>` with state, resources, result and
-execution controls. The constructed context has no `input` field.
-`context.result` is a typed shared result slot; object mutation and whole-value replacement are both
-allowed. `resources` and `state` references and execution fields cannot be reassigned.
+`createState({ input, resources })` converts external input into run-local business data. The
+consumer defines its shape, including callable, primitive or `void` state. Steps, executors and lifecycle
+hooks receive `WorkflowContext<StepName, State, Resources>` with state, resources and execution
+controls. Context views expose neither raw input nor a result slot. `createResult(state)`
+synchronously projects a `TResult` from state. `createSkippedResult({ input, reason })` produces the
+same return type when a condition skips. Treat state as read-only during projection. These functions
+transform data without acquiring resources. Both factories must return a synchronous value. A
+Promise or callable thenable fails with `WORKFLOW_RESULT_ASYNC`. Core observes native Promise
+rejections immediately and rejects custom thenables without calling their `then` method.
+Assembly rejects missing or malformed result factories with `WORKFLOW_RESULT_FACTORY_INVALID`
+if `createResult` is absent or either supplied factory is non-callable.
+`resources` and `state` references and execution fields cannot be reassigned.
 The framework does not clone or deep-freeze referenced objects. Bound capabilities retain their class
 identity and mutable contents; consumers own adapter and closure concurrency safety. Each run creates
-its own state, result, admission/cancellation scopes, Step counts and observation. Binding does not
+its own state, admission/cancellation scopes, Step counts and observation. Binding does not
 acquire resources or grant ownership; per-operation leases/transactions keep their own release owner.
 
-Each Step receives a scope-bound context view. Views share state, resources and the result slot,
+Each Step receives a scope-bound context view. Views share state and resources,
 but have their own effective signal and runner admission lifetime. Thus a parallel group can cancel
 its children without modifying the parent's context or signal. Retained child contexts cannot start
 late work after their invocation closes. No context view conveys ownership of borrowed resources.
 
-Result defaults must be truthful: `[]` for a change list, `0` for a count, `undefined` for `void`, or a
-consumer union such as `{status:'not-produced'} | {status:'produced', value: Document}`. A consumer
-that cannot supply a valid default must change its own result type, not cast a fake value. Core never
-adds an outcome envelope. Agent-specific patches and their safe application belong to the host.
+A consumer can use a union if skipping has a distinct outcome. Core adds no outcome envelope or
+default value. A supplied factory can return `undefined` when its return contract permits it.
+State need not match the result shape. If the projection returns a reference from state, it remains
+a shared reference. Project a separate object if cleanup might mutate referenced state.
 
 ## Run ordering
 
 1. Generate a run identity, emit start, reject already-cancelled admission.
-2. Create the initial result; evaluate condition with input/resources/effective signal.
-3. Check cancellation at this pre-execution boundary. If skipped, emit skipped and return the initial
-   result. No state factory or lifecycle hook runs on this path.
+2. Evaluate the condition with input/resources/effective signal.
+3. Check cancellation at this pre-execution boundary. If skipped, call `createSkippedResult`, emit
+   skipped and return its value. Without a skip factory, fail with `WORKFLOW_SKIP_RESULT_MISSING`.
+   A throwing skip factory fails the run. This path runs no Steps, state factory, normal result
+   projection or lifecycle hooks.
 4. Create state and assemble context. A factory failure emits failed; hooks requiring context do not
    run. The external resource owner's `try/finally` must cover the entire `run()` call.
 5. Admit the entry Step through the normal registry and executor. Track actual calls before running
    user code. Each invocation closes admission and joins its descendants before settling.
-6. Close run admission, drain all registered work, then call onSuccess; on execution/onSuccess failure
-   call onError. Always call onFinally for an assembled context. Hooks cannot start new Steps.
-7. Preserve execution, onError and onFinally errors in causal order. Emit completed/failed and return
-   the current result slot or throw. A cleanup-only failure throws (no second call to onError).
+6. Close run admission and drain all registered work. On success, call `onSuccess`, then
+   `createResult(state)`. On execution, success-hook or projection failure, call `onError`.
+7. Run `onFinally` for every assembled context. Hooks cannot start new Steps. Retain errors in causal
+   order, including cleanup errors. Emit completed and return the projected value only after successful
+   cleanup. A cleanup-only failure emits failed and throws without a second call to `onError`.
 
 Framework checks cancellation before starting work. It does not rewrite an awaited successful Step
 or committed result because cancellation arrived during/after that work. Adapters must honor signals

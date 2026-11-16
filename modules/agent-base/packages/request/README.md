@@ -17,8 +17,10 @@ originating Agent Run. A condition skip returns `undefined` (no change); an acti
 produce a response or it fails with `REQUEST_OUTPUT_STATE_INVALID`.
 
 The standard Workflow's `createState` stores the Agent Run as `context.state.agentRun` alongside
-per-request working data. Steps access borrowed capabilities and policy through `context.resources`
-and write output through `context.result`. Override Steps use the effective `context.signal`.
+per-request working data. Steps access borrowed capabilities and policy through `context.resources`.
+`state.response` holds the constructed answer, and `state.completedResponse` records the response
+after delivery, including replay. A replacement Step that handles the full response can supply
+`state.completedResponse` for the final projection. Override Steps use the effective `context.signal`.
 `createState` constructs run-local data, and ports remain owned by their supplying host.
 The bound `createOutputSink` is a factory: each request creates or supplies its own sink. Tools,
 execution leases and reasoning data remain in per-request state, and trace emitters remain on the

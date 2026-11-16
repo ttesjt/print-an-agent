@@ -9,25 +9,23 @@ import { runParallel } from './parallel.js';
 import { ExecutionScope } from './scope.js';
 import { runInScope } from './run-in-scope.js';
 
-type Context<N extends string, S, R, O> = WorkflowContext<N, S, R, O>;
-
-export class StepRuntime<N extends string, S, R, O> {
+export class StepRuntime<N extends string, S, R> {
   readonly #invocations = new Map<N, 'running' | 'settled'>();
   readonly #protocolFailures: unknown[] = [];
   #sequence = 0;
 
   constructor(
     readonly options: {
-      data: RunData<S, R, O>;
+      data: RunData<S, R>;
       reference: WorkflowEventReference;
       root: ExecutionScope;
-      steps: ResolvedStepRegistry<N, Context<N, S, R, O>>;
-      executor: StepExecutor<N, Context<N, S, R, O>>;
+      steps: ResolvedStepRegistry<N, WorkflowContext<N, S, R>>;
+      executor: StepExecutor<N, WorkflowContext<N, S, R>>;
       events: WorkflowEventEmitter;
     }
   ) {}
 
-  context(scope = this.options.root): Context<N, S, R, O> {
+  context(scope = this.options.root): WorkflowContext<N, S, R> {
     return createContext(
       this.options.data,
       this.options.reference,

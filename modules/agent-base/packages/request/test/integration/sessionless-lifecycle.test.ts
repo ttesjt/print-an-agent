@@ -117,6 +117,25 @@ it('retains default skip when only cardinality is overridden and reports the act
   expect(events).toContain('gatherExternalContext');
 });
 
+it('fails an invocation that built an answer without completing delivery', async () => {
+  const events: unknown[] = [];
+  const workflow = createSessionlessRequestWorkflow({
+    mode: 'direct',
+    resources: {
+      actor: generationActor(),
+      createOutputSink: () => outputChannel(events),
+    },
+    stepOverrides: { completeResponse: () => Promise.resolve() },
+  });
+  await expect(workflow.run({ input: { message: 'hello' } })).rejects.toMatchObject({
+    code: 'REQUEST_OUTPUT_STATE_INVALID',
+  });
+  expect(events).toEqual([
+    expect.objectContaining({ type: 'opened' }),
+    expect.objectContaining({ type: 'failed' }),
+  ]);
+});
+
 it('bounds empty-message collection overhead including the current prompt', async () => {
   let calls = 0;
   const actor = generationActor({

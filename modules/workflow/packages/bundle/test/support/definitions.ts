@@ -15,15 +15,13 @@ export interface WriteInput extends ReadInput {
 }
 export type ReadContext = WorkflowContext<
   'read' | 'validate',
-  { readonly input: ReadInput },
-  ReadPorts,
-  string
+  { readonly input: ReadInput; text: string },
+  ReadPorts
 >;
 export type WriteContext = WorkflowContext<
   'write' | 'validate',
-  { readonly input: WriteInput },
-  WritePorts,
-  number
+  { readonly input: WriteInput; charactersWritten: number },
+  WritePorts
 >;
 export type ReadDefinition = BundleWorkflowDefinition<
   'read' | 'validate',
@@ -49,8 +47,8 @@ export function readDefinition(step?: Step<ReadContext>): ReadDefinition {
   return {
     name: 'records.inspect',
     entryStep: 'read',
-    createState: ({ input }) => ({ input }),
-    createResult: () => '',
+    createState: ({ input }) => ({ input, text: '' }),
+    createResult: ({ text }) => text,
     stepDefinitions: {
       read: {
         skippable: false,
@@ -59,7 +57,10 @@ export function readDefinition(step?: Step<ReadContext>): ReadDefinition {
           await context.runStep('validate');
           if (step !== undefined) await step(context);
           else
-            context.result = await context.resources.read(context.state.input.id, context.signal);
+            context.state.text = await context.resources.read(
+              context.state.input.id,
+              context.signal
+            );
         },
       },
       validate: { step: validateId, skippable: false, cardinality: 'at-most-once' },
@@ -71,8 +72,8 @@ export function writeDefinition(step?: Step<WriteContext>): WriteDefinition {
   return {
     name: 'records.update',
     entryStep: 'write',
-    createState: ({ input }) => ({ input }),
-    createResult: () => 0,
+    createState: ({ input }) => ({ input, charactersWritten: 0 }),
+    createResult: ({ charactersWritten }) => charactersWritten,
     stepDefinitions: {
       write: {
         skippable: false,
@@ -86,7 +87,7 @@ export function writeDefinition(step?: Step<WriteContext>): WriteDefinition {
               context.state.input.value,
               context.signal
             );
-            context.result = context.state.input.value.length;
+            context.state.charactersWritten = context.state.input.value.length;
           }
         },
       },

@@ -95,10 +95,9 @@ does not own a second navigation algorithm. Standard composition does not instal
 navigation uses the out-of-band management Service and requires no Actor, provider, credential, Tool
 runtime, Agent trace, or materialized Agent.
 
-Navigation overrides return an already handled outcome through `context.result`. Default inspection
-and commit respect that result and do not replace it or start a navigation write. The shared domain
-phases return their outcomes directly; working state does not hold a second result slot. Any admitted
-execution lease still passes through the normal final cleanup.
+Navigation overrides record an already handled outcome in `context.state.outcome`. Default inspection
+and commit respect that outcome and avoid starting another navigation write. The Workflow projects
+the outcome from state and releases any admitted execution lease through its normal final cleanup.
 
 Raw completed turns remain authoritative through `loadHistory()`. Compactions are isolated per
 branch and store a revisioned projection through an exact completed ancestor. `loadContext()` then

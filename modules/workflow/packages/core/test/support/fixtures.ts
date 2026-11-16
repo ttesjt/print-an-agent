@@ -11,7 +11,7 @@ export interface TestState {
   readonly input: number;
   values: number[];
 }
-export type Context = WorkflowContext<Names, TestState, { label: string }, number[]>;
+export type Context = WorkflowContext<Names, TestState, { label: string }>;
 export const once = (step: Step<Context>, skippable = false) => ({
   step,
   skippable,
@@ -25,12 +25,12 @@ export function workflow(
     name: 'test',
     resources: { label: 'borrowed' },
     entryStep: 'main',
-    createResult: () => [],
+    createResult: (state) => state.values,
     createState: ({ input }) => ({ input, values: [] }),
     stepDefinitions: {
       main: once(main),
       a: once((context) => {
-        context.result.push(context.state.input);
+        context.state.values.push(context.state.input);
         return Promise.resolve();
       }),
       b: once(() => Promise.resolve(), true),

@@ -7,6 +7,7 @@ import type { MemoryUpdate } from '../domain/update.js';
 import type { MemoryCandidateAssessment } from '../planning/assessment.js';
 import type { ModelMemoryResources } from './model-resources.js';
 import type { ModelMemoryWorkflowInput } from './input-preparation.js';
+import type { MemoryOperationOutput } from './outcome.js';
 
 export type ModelMemoryStepName =
   | 'runModelOperation'
@@ -21,9 +22,8 @@ export type ModelMemoryStepName =
   | 'applyCompaction'
   | 'refineCompactionPlan'
   | 'commitCandidate';
-export interface ModelMemoryState<
-  I extends ModelMemoryInput = ModelMemoryInput,
-> extends ModelMemoryWorkflowInput<I> {
+export interface ModelMemoryState<I extends ModelMemoryInput = ModelMemoryInput>
+  extends ModelMemoryWorkflowInput<I>, MemoryOperationOutput<MutationResult> {
   update?: MemoryUpdate;
   operations?: readonly ModelEditOperation[];
   measured?: MemoryCandidateAssessment;
@@ -43,8 +43,7 @@ export type ModelMemoryDefinition<I extends ModelMemoryInput = ModelMemoryInput>
 export type ModelMemoryContext<I extends ModelMemoryInput = ModelMemoryInput> = WorkflowContext<
   ModelMemoryStepName,
   ModelMemoryState<I>,
-  ModelMemoryResources,
-  MutationResult
+  ModelMemoryResources
 >;
 export type ModelMemoryWorkflowOptions<I extends ModelMemoryInput> = Pick<
   ModelMemoryDefinition<I>,

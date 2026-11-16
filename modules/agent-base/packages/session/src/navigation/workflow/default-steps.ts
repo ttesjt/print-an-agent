@@ -17,15 +17,16 @@ export function createDefaultSessionNavigationStepOverrides(): StepOverrides<
       return Promise.resolve();
     },
     async inspectSessionNavigation(context) {
-      if (context.result !== undefined) return;
-      context.result = await inspectSessionNavigationState(context.state, context.signal);
+      if (context.state.outcome !== undefined) return;
+      const inspected = await inspectSessionNavigationState(context.state, context.signal);
+      if (inspected !== undefined) context.state.outcome = inspected;
     },
     async commitSessionNavigation(context) {
-      if (context.result !== undefined) return;
+      if (context.state.outcome !== undefined) return;
       const committed = await commitSessionNavigationState(context.state, context.signal);
       if (committed === undefined) return;
       const { applied, result } = committed;
-      context.result = result;
+      context.state.outcome = result;
       await context.state.traceEmitter?.record({
         type: 'session-navigation-applied',
         workflowName: context.workflowName,

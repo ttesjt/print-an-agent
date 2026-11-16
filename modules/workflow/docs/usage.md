@@ -37,33 +37,35 @@ that store. A resource-free Workflow explicitly binds `resources: undefined`.
 Call `workflow.run({input, signal?, parentRunId?, onEvent?, classifyFailure?})`. Core creates execution
 fields; the caller cannot supply a runner or replace signal/run identity. `WorkflowRunOptions<Input>`
 has no Resources parameter, and `RunnableWorkflow<Input, Result>` represents the already-assembled
-callable. Condition, result/state factories, executors, Steps and hooks receive the bound resources.
+callable. Conditions, state creation, executors, Steps and hooks receive bound resources.
 
 Use `createState({ input, resources })` to prepare all business data needed by Steps and hooks.
 Each Workflow defines its own state shape and may transform or consume input during initialization.
-`WorkflowContext<StepName, State, Resources, Result>` exposes that state through `context.state`.
-Conditions and state/result factories receive input at the invocation boundary.
+`WorkflowContext<StepName, State, Resources>` exposes that state through `context.state`.
 
 The resources/state references are read-only, but not deep-frozen. Resources keep their original
 object identity and class methods. Replacing `definition.resources` after construction does not rebind
 an assembled Workflow. Mutable adapter contents are still live; Core does not snapshot database data
-or freeze borrowed capabilities. Mutable state/result must be constructed afresh by their factories.
+or freeze borrowed capabilities. Each run should construct its own mutable state.
 Parallel runs share dependencies and keep independent execution state, cancellation and observation.
 Shared ports or closures need their own concurrency guarantees.
 
-All context views for a run share `state` and the typed `result` slot. Assigning `context.result = value`
-replaces that slot; `context.result.items.push(value)` mutates its content. The final returned value is
-read after lifecycle hooks finish. The core never applies a patch to external authority.
+All context views for a run share state. Use Step writes to record intermediate data, completed
+work and any commit evidence your domain needs. `createResult(state)` projects the final value after
+Steps and `onSuccess`. For example, the record updater projects an outcome from the updated record
+in state, without returning the loaded record or validation limits. `onFinally` runs before the
+caller receives the value. Core never applies it to external authority.
 
-If a result has no natural successful initial value, use a truthful consumer type:
+If a condition can skip, supply a separate projection. A consumer can declare a union for the
+normal and skipped outcomes:
 
 ```ts
-type Result = { status: 'not-produced' } | { status: 'produced'; revision: number; value: string };
+type Result = { status: 'skipped'; reason: string } | { status: 'saved'; revision: number };
 ```
 
-The factory returns `not-produced`; a completed commit installs `produced`. A condition-skipped run
-returns the initial result; condition/state/Step failures throw instead. Host code decides when and
-whether to apply the result. In particular, an empty patch must not overwrite already-owned state.
+`createSkippedResult({ input, reason })` can return the skipped variant. It runs before state would
+be initialized, so it uses the condition's reason and original input. Condition, state creation,
+Step, projection and cleanup errors reject the call. Host code decides when to apply a result.
 
 ## Parallel work and cancellation
 
@@ -108,8 +110,9 @@ owner's cleanup boundary, including construction/factory failures. Release share
 their Workflow runs have settled. If execution and release both fail, the owner must preserve both
 errors rather than allowing a JavaScript `finally` throw to overwrite the first.
 
-After execution admission closes and tracked work settles, core calls `onSuccess` or `onError`, then
-`onFinally`. Hook failures are retained alongside execution failures. A factory/condition failure or
+After execution admission closes and tracked work settles, Core calls `onSuccess` before projection.
+An execution, success-hook or projection failure goes to `onError`. `onFinally` follows either path.
+Hook failures are retained alongside execution failures. A state factory/condition failure or
 condition skip has no constructed context, so these hooks do not run. Hooks cannot start new Steps.
 `onFinally` does not grant resource ownership. It is also not transaction rollback: if a port committed
 before a later failure, the commit still happened. Product services own truthful committed outcomes.

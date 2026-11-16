@@ -39,6 +39,6 @@ remain observable. Core never awaits observer delivery. The trace emitter owns o
 and Agent Operation terminal recording follows earlier Workflow records.
 All Workflow terminals, including skipped Runs, retain the started event's `workflowRunId`.
 
-Conditions return the Core Workflow's initial result when skipped. Consumers decide how that value
+On a condition skip, Core returns the value of `createSkippedResult`. Consumers decide how that value
 is applied. Official Request and compaction bindings use `undefined` for no change and validate a
 normal completed execution has produced a result. Skipping cannot erase an existing Agent output.

@@ -147,7 +147,10 @@ it('does not classify unobserved failures, successful work or condition skips', 
     }).run(run)
   ).rejects.toBe(original);
   await workflow(() => Promise.resolve()).run({ ...run, onEvent: () => undefined });
-  await workflow(() => Promise.resolve(), { condition: () => skipWorkflow('not needed') }).run({
+  await workflow(() => Promise.resolve(), {
+    condition: () => skipWorkflow('not needed'),
+    createSkippedResult: () => [],
+  }).run({
     ...run,
     onEvent: () => undefined,
   });

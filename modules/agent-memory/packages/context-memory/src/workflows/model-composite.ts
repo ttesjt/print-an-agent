@@ -84,7 +84,8 @@ async function execute(context: ModelMemoryContext, operation: ModelMemoryOperat
   while (true) {
     assertMemoryNotAborted(modelMemorySignal(context));
     await context.runStep('beginUpdate');
-    if (context.result.status !== 'skipped') return;
+    const output = context.state.operationOutput?.value;
+    if (output !== undefined && output.status !== 'skipped') return;
     const update = requireUpdate(context);
     if (
       update.targetTokens !== undefined &&
@@ -139,22 +140,23 @@ export async function runModelMemory(context: ModelMemoryContext, operation: Mod
       {
         parentSignal: context.signal,
         timeoutMilliseconds: context.resources.policy.timeoutMs,
-        createTimeoutFailure: ({ cause }) =>
-          isMemoryPlannerTimeout(cause)
-            ? cause
-            : new ContextMemoryError(
-                'OPERATION_TIMEOUT',
-                'Memory operation exceeded its deadline.',
-                {
-                  cause,
-                  commit:
-                    context.result.status !== 'skipped'
-                      ? { status: 'committed', receipt: context.result.receipt }
-                      : cause instanceof ContextMemoryError && cause.commit !== undefined
-                        ? cause.commit
-                        : { status: 'not-committed' },
-                }
-              ),
+        createTimeoutFailure: ({ cause }) => {
+          if (isMemoryPlannerTimeout(cause)) return cause;
+          const output = context.state.operationOutput?.value;
+          return new ContextMemoryError(
+            'OPERATION_TIMEOUT',
+            'Memory operation exceeded its deadline.',
+            {
+              cause,
+              commit:
+                output !== undefined && output.status !== 'skipped'
+                  ? { status: 'committed', receipt: output.receipt }
+                  : cause instanceof ContextMemoryError && cause.commit !== undefined
+                    ? cause.commit
+                    : { status: 'not-committed' },
+            }
+          );
+        },
       },
       async (signal) => {
         bindModelMemorySignal(context, signal);
@@ -162,7 +164,7 @@ export async function runModelMemory(context: ModelMemoryContext, operation: Mod
       }
     );
   } catch (cause) {
-    const failure = preserveMemoryCommit(cause, context.result);
+    const failure = preserveMemoryCommit(cause, context.state.operationOutput?.value);
     if (failure !== cause) throw failure;
     if (cause instanceof ContextMemoryError && cause.commit !== undefined) throw cause;
     assertMemoryNotAborted(modelMemorySignal(context));

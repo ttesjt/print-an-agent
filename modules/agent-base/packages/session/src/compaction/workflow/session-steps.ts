@@ -41,7 +41,7 @@ export function selectCompactionSource(context: SessionCompactionWorkflowContext
     context.resources.policy
   );
   if (selection.status === 'skipped') {
-    context.result = Object.freeze({
+    context.state.outcome = Object.freeze({
       status: 'skipped',
       sessionId: snapshot.sessionId,
       branchId,
@@ -131,7 +131,7 @@ export async function persistCompaction(context: SessionCompactionWorkflowContex
     context: compactedContext,
     ...(context.state.execution === undefined ? {} : { execution: context.state.execution }),
   });
-  context.result = Object.freeze({
+  context.state.outcome = Object.freeze({
     status: 'compacted',
     sessionId: committed.sessionId,
     branchId: committed.branchId,

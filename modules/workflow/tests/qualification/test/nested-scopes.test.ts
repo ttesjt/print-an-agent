@@ -31,7 +31,7 @@ it('carries group cancellation into nested children while allowing recovery in a
         throw primary;
       },
       after: (c) => {
-        c.result.push('recovered');
+        c.state.visited.push('recovered');
         return Promise.resolve();
       },
     }
@@ -51,7 +51,7 @@ it('does not cancel an unrelated parallel branch when an inner group failure is 
       try {
         await c.parallel(['left', 'right']);
       } catch {
-        c.result.push('handled');
+        c.state.visited.push('handled');
       }
       expect(c.signal.aborted).toBe(false);
       expect(otherSignal?.aborted).toBe(false);
@@ -70,7 +70,7 @@ it('does not cancel an unrelated parallel branch when an inner group failure is 
       otherSignal = c.signal;
       await keepAlive.promise;
       c.signal.throwIfAborted();
-      c.result.push('other');
+      c.state.visited.push('other');
     },
   });
   expect(await flow.run(runOptions)).toEqual(['handled', 'other']);
@@ -159,7 +159,7 @@ it('rejects runners retained from completed child scopes, even while the parent 
         return Promise.resolve();
       },
       right: (c) => {
-        c.result.push('only-parent');
+        c.state.visited.push('only-parent');
         return Promise.resolve();
       },
     }

@@ -2,19 +2,18 @@ import type { WorkflowContext } from '../types/context.js';
 import type { WorkflowEventReference } from '../types/events.js';
 import type { ExecutionScope } from './scope.js';
 
-export interface RunData<S, R, O> {
+export interface RunData<S, R> {
   readonly resources: R;
   readonly state: S;
-  result: O;
 }
 
-export function createContext<N extends string, S, R, O>(
-  data: RunData<S, R, O>,
+export function createContext<N extends string, S, R>(
+  data: RunData<S, R>,
   reference: WorkflowEventReference,
   scope: ExecutionScope,
   runStep: (name: N) => Promise<void>,
   parallel: (names: readonly N[]) => Promise<void>
-): WorkflowContext<N, S, R, O> {
+): WorkflowContext<N, S, R> {
   return Object.freeze({
     ...reference,
     resources: data.resources,
@@ -22,11 +21,5 @@ export function createContext<N extends string, S, R, O>(
     signal: scope.signal,
     runStep,
     parallel,
-    get result(): O {
-      return data.result;
-    },
-    set result(value: O) {
-      data.result = value;
-    },
   });
 }

@@ -10,6 +10,7 @@ import {
 import { AgentRequestError } from '../../errors.js';
 import { executeSessionlessRequest } from '../execution.js';
 import { sessionlessLifecycle } from '../lifecycle.js';
+import { requireCompletedSessionlessResponse } from '../output.js';
 import { dispatchRequestDelta } from '../../delivery/dispatch.js';
 import { closedRecord } from '../validation.js';
 import { bindGenerationResources } from '../resources.js';
@@ -116,7 +117,8 @@ export function createGenerationWorkflow(options: SessionlessGenerationWorkflowO
       options.stepOverrides
     ),
     createState: ({ input }): SessionlessGenerationState => ({ input }),
-    createResult: () => undefined,
+    createSkippedResult: () => undefined,
+    createResult: (state) => requireCompletedSessionlessResponse(state),
     lifecycle: sessionlessLifecycle(options.lifecycle),
   });
 }

@@ -41,8 +41,7 @@ export interface SessionCompactionAgentRunContext extends BaseAgentRunContext<
 export type SessionCompactionWorkflowContext = WorkflowContext<
   SessionCompactionStepName,
   SessionCompactionState,
-  SessionCompactionResources,
-  SessionCompactionOutcome | undefined
+  SessionCompactionResources
 >;
 export interface SessionCompactionState {
   readonly agentRun: SessionCompactionAgentRunContext;
@@ -62,6 +61,7 @@ export interface SessionCompactionState {
   candidateTokens?: number;
   draft?: string;
   assessment?: SessionCompactionAssessment;
+  outcome?: SessionCompactionOutcome;
 }
 
 export type SessionCompactionAssessment =
@@ -83,5 +83,5 @@ export type SessionCompactionDefinition = WorkflowDefinition<
 export type SessionCompactionCondition = NonNullable<SessionCompactionDefinition['condition']>;
 export type CreateSessionCompactionWorkflowOptions = Omit<
   SessionCompactionDefinition,
-  'name' | 'entryStep' | 'stepDefinitions' | 'createState' | 'createResult'
+  'name' | 'entryStep' | 'stepDefinitions' | 'createState' | 'createResult' | 'createSkippedResult'
 >;

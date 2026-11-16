@@ -4,6 +4,17 @@ import { parseMemoryReceipt } from '../validation/receipt.js';
 import type { CommitStatus } from '../contracts/receipt.js';
 import { canonicalJson, jsonValue } from '../validation/value.js';
 
+export interface MemoryOperationOutput<O> {
+  /** An operation can complete with undefined. The wrapper records that it ran. */
+  operationOutput?: Readonly<{ value: O }>;
+}
+
+export function requireMemoryOperationOutput<O>(state: Readonly<MemoryOperationOutput<O>>): O {
+  if (state.operationOutput === undefined)
+    throw new ContextMemoryError('CONFIG_INVALID', 'Memory Workflow completed without an output.');
+  return state.operationOutput.value;
+}
+
 /** A returned mutation receipt is authoritative even if an enclosing extension fails afterwards. */
 export function preserveMemoryCommit(cause: unknown, result: unknown): unknown {
   if (typeof result !== 'object' || result === null) return cause;
@@ -68,15 +79,16 @@ export function findContextMemoryCommit(
   return result;
 }
 
-export function memoryExecutor<N extends string, C extends { result: unknown }>(
-  executor?: StepExecutor<N, C>
-): StepExecutor<N, C> {
+export function memoryExecutor<
+  N extends string,
+  C extends { state: MemoryOperationOutput<unknown> },
+>(executor?: StepExecutor<N, C>): StepExecutor<N, C> {
   return async (execution) => {
     try {
       if (executor === undefined) await execution.step(execution.context);
       else await executor(execution);
     } catch (cause) {
-      throw preserveMemoryCommit(cause, execution.context.result);
+      throw preserveMemoryCommit(cause, execution.context.state.operationOutput?.value);
     }
   };
 }

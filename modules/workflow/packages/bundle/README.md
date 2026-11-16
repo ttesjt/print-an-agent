@@ -1,7 +1,8 @@
 # @print-an-agent/workflow-bundle
 
 Assemble named Core Workflows over one borrowed Resources binding. Each member keeps its own input,
-state, result, Step registry, overrides, executor and lifecycle. Execution uses `@print-an-agent/workflow-core`.
+state, result projection, Step registry, overrides, executor and lifecycle. Execution uses
+`@print-an-agent/workflow-core`.
 
 ```ts
 import { WorkflowBundle, type BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
@@ -13,17 +14,18 @@ interface Store extends Reader {
   write(key: string, value: string, signal: AbortSignal): Promise<void>;
 }
 
-const inspect: BundleWorkflowDefinition<'read', string, string, Reader, string> = {
+type ReadState = { readonly key: string; text: string };
+const inspect: BundleWorkflowDefinition<'read', string, ReadState, Reader, string> = {
   name: 'store.read',
   entryStep: 'read',
-  createState: ({ input }) => input,
-  createResult: () => '',
+  createState: ({ input }) => ({ key: input, text: '' }),
+  createResult: ({ text }) => text,
   stepDefinitions: {
     read: {
       skippable: false,
       cardinality: 'at-most-once',
       step: async (context) => {
-        context.result = await context.resources.read(context.state, context.signal);
+        context.state.text = await context.resources.read(context.state.key, context.signal);
       },
     },
   },
@@ -77,7 +79,8 @@ not the business behavior of adapters or callbacks.
 
 Pass complete definitions, not preassembled Workflow instances or factories. A member's own
 `resources` field is rejected, even when its value is `undefined`. Optional configuration such as
-`stepOverrides`, `executeStep`, `condition`, lifecycle hooks and `createRunId` remains on each member.
+`stepOverrides`, `executeStep`, `condition`, `createSkippedResult`, lifecycle hooks and `createRunId`
+remains on each member.
 Shared Step functions only need to accept the Context fields they actually use. There is no global
 Step registry or Bundle-wide override layer.
 

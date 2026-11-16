@@ -35,24 +35,23 @@ export interface WorkflowDefinition<TStepName extends string, TInput, TState, TR
   readonly entryStep: TStepName;
   readonly stepDefinitions: StepDefinitions<
     TStepName,
-    WorkflowContext<TStepName, TState, TResources, TResult>
+    WorkflowContext<TStepName, TState, TResources>
   >;
-  readonly stepOverrides?: StepOverrides<
-    TStepName,
-    WorkflowContext<TStepName, TState, TResources, TResult>
-  >;
-  /** Pure synchronous factories; neither acquires resources. */
-  readonly createResult: (inputs: WorkflowInputs<TInput, TResources>) => TResult;
+  readonly stepOverrides?: StepOverrides<TStepName, WorkflowContext<TStepName, TState, TResources>>;
+  /** Synchronously derives the return value after Steps and onSuccess. Treat state as read-only. */
+  readonly createResult: (state: TState) => TResult;
+  /** Required when the condition skips. Synchronously derives a value without creating state. */
+  readonly createSkippedResult?: (skip: {
+    readonly input: TInput;
+    readonly reason: string;
+  }) => TResult;
   /** Converts input to run-local data with a consumer-defined shape exposed to Steps and hooks. */
   readonly createState: (inputs: WorkflowInputs<TInput, TResources>) => TState;
   readonly condition?: (
     inputs: WorkflowInputs<TInput, TResources> & { readonly signal: AbortSignal }
   ) => WorkflowDecision | Promise<WorkflowDecision>;
-  readonly lifecycle?: WorkflowLifecycle<WorkflowContext<TStepName, TState, TResources, TResult>>;
-  readonly executeStep?: StepExecutor<
-    TStepName,
-    WorkflowContext<TStepName, TState, TResources, TResult>
-  >;
+  readonly lifecycle?: WorkflowLifecycle<WorkflowContext<TStepName, TState, TResources>>;
+  readonly executeStep?: StepExecutor<TStepName, WorkflowContext<TStepName, TState, TResources>>;
   readonly createRunId?: () => string;
 }
 

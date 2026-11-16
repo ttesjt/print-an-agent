@@ -16,20 +16,13 @@ export interface TextFiles {
 }
 export type ReportContext = WorkflowContext<
   Name,
-  { source: string; destination: string; text: string },
-  TextFiles,
-  { written: string[] }
+  { source: string; destination: string; text: string; written: string[] },
+  TextFiles
 >;
 
 /** Ordinary data processing, no identity, Agent Run, database, or Memory contract. */
 export function textReport(resources: TextFiles, overrides?: StepOverrides<Name, ReportContext>) {
-  return new Workflow<
-    Name,
-    ReportInput,
-    ReportContext['state'],
-    TextFiles,
-    ReportContext['result']
-  >({
+  return new Workflow<Name, ReportInput, ReportContext['state'], TextFiles, { written: string[] }>({
     name: 'text-report',
     resources,
     entryStep: 'report',
@@ -37,8 +30,9 @@ export function textReport(resources: TextFiles, overrides?: StepOverrides<Name,
       source: input.source,
       destination: input.destination,
       text: '',
+      written: [],
     }),
-    createResult: () => ({ written: [] }),
+    createResult: ({ written }) => ({ written }),
     ...(overrides === undefined ? {} : { stepOverrides: overrides }),
     stepDefinitions: {
       report: {
@@ -66,7 +60,7 @@ export function textReport(resources: TextFiles, overrides?: StepOverrides<Name,
         cardinality: 'at-most-once',
         step: async (c) => {
           await c.resources.write(c.state.destination, c.state.text, c.signal);
-          c.result.written.push(c.state.destination);
+          c.state.written.push(c.state.destination);
         },
       },
     },

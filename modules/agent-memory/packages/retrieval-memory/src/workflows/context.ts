@@ -10,12 +10,14 @@ import type { RetrievalReadOutcome } from './query.js';
 import { runRetrievalExecution } from './execution.js';
 import { fail } from '../errors.js';
 import { jsonSnapshot } from '../validation/json.js';
+import { createSkippedRetrievalResult } from './outcomes.js';
 export type ContextStepName = 'runOperation' | 'prepareInput' | 'search' | 'select' | 'finalize';
 export interface ContextRunState {
   input: ReadContextInput;
   candidate?: ContextCandidate;
   selected: readonly RetrievalHit[];
   signal?: AbortSignal;
+  outcome?: RetrievalReadOutcome<ReadContextResult>;
 }
 export type RetrievalContextDefinition = BundleWorkflowDefinition<
   ContextStepName,
@@ -36,7 +38,12 @@ export function createRetrievalReadContextDefinition(
     name: 'retrieval-memory:readContext',
     entryStep: 'runOperation',
     createState: ({ input }) => ({ input, selected: [] }),
-    createResult: () => ({ status: 'skipped', reason: 'Workflow condition skipped execution.' }),
+    createSkippedResult: createSkippedRetrievalResult,
+    createResult(state) {
+      if (state.outcome === undefined)
+        fail('SEARCH_FAILED', 'Retrieval context completed without an output.');
+      return state.outcome;
+    },
     stepDefinitions: {
       runOperation: {
         skippable: false,
@@ -87,14 +94,12 @@ export function createRetrievalReadContextDefinition(
         step: async (context) => {
           if (context.state.candidate === undefined)
             fail('SEARCH_FAILED', 'Context candidate is missing.');
-          context.result = {
-            status: 'completed',
-            value: await context.resources.context.finalize(
-              context.state.candidate,
-              context.state.selected,
-              context.state.signal ?? context.signal
-            ),
-          };
+          const value = await context.resources.context.finalize(
+            context.state.candidate,
+            context.state.selected,
+            context.state.signal ?? context.signal
+          );
+          context.state.outcome = { status: 'completed', value };
         },
       },
     },

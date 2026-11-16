@@ -97,10 +97,11 @@ it('replaces named Steps and the entire historical graph without changing the re
             cardinality: 'at-most-once',
             skippable: false,
             step: async (context) => {
-              context.result = await context.resources.memory.inspectVersion(
+              const value = await context.resources.memory.inspectVersion(
                 context.state.input,
                 context.signal
               );
+              context.state.operationOutput = { value };
             },
           },
         },

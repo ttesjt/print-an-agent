@@ -5,7 +5,12 @@ import { parseRetrievalReceipt } from '../domain/receipts.js';
 export interface CommittedRunState {
   receipt?: RetrievalReceipt;
 }
-function preserve(cause: unknown, state: CommittedRunState): unknown {
+
+export function createSkippedRetrievalResult() {
+  return { status: 'skipped' as const, reason: 'Workflow condition skipped execution.' };
+}
+
+export function preserveRetrievalCommit(cause: unknown, state: CommittedRunState): unknown {
   if (
     cause instanceof RetrievalMemoryError &&
     cause.commit !== undefined &&
@@ -33,7 +38,7 @@ export function retrievalExecutor<N extends string, C extends { state: Committed
       if (executor === undefined) await execution.step(execution.context);
       else await executor(execution);
     } catch (cause) {
-      throw preserve(cause, execution.context.state);
+      throw preserveRetrievalCommit(cause, execution.context.state);
     }
   };
 }
@@ -44,7 +49,7 @@ export function retrievalLifecycle<C extends { state: CommittedRunState }>(
     try {
       await hook?.(context);
     } catch (cause) {
-      throw preserve(cause, context.state);
+      throw preserveRetrievalCommit(cause, context.state);
     }
   };
   return {

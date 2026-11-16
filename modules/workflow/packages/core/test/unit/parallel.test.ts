@@ -64,7 +64,7 @@ describe('managed parallel', () => {
         try {
           await c.parallel(['a', 'b']);
         } catch {
-          c.result = [8];
+          c.state.values = [8];
         }
         expect(c.signal.aborted).toBe(false);
         await c.runStep('c');
@@ -82,7 +82,7 @@ describe('managed parallel', () => {
             c.signal.throwIfAborted();
           },
           c: (c) => {
-            c.result.push(9);
+            c.state.values.push(9);
             return Promise.resolve();
           },
         },

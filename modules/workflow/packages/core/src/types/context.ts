@@ -14,7 +14,6 @@ export interface WorkflowContext<
   TStepName extends string,
   TState,
   TResources,
-  TResult,
 > extends StepRunner<TStepName> {
   readonly workflowName: string;
   readonly workflowRunId: string;
@@ -24,5 +23,4 @@ export interface WorkflowContext<
   /** Assembly-bound capabilities borrowed by this run. */
   readonly resources: TResources;
   readonly state: TState;
-  result: TResult;
 }

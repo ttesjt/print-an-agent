@@ -12,19 +12,13 @@ type Name = 'main' | 'child';
 interface Input {
   readonly amount: number;
 }
-type Context = WorkflowContext<
-  Name,
-  { count: number },
-  { save(value: number): Promise<void> },
-  number
->;
+type Context = WorkflowContext<Name, { count: number }, { save(value: number): Promise<void> }>;
 
 // Compile-only negative contracts: never invoke this function or fabricate live contexts.
 export function verifyContext(context: Context, other: UpdateContext): void {
   void context.runStep('child');
   void context.parallel(['main', 'child']);
   context.state.count++;
-  context.result = context.state.count;
   // @ts-expect-error raw input belongs to initialization, not the Step context
   void context.input;
   // @ts-expect-error names are the registered union, not arbitrary strings
@@ -39,9 +33,9 @@ export function verifyContext(context: Context, other: UpdateContext): void {
   context.state = { count: 3 };
   // @ts-expect-error a Step cannot replace the Workflow's bound resource reference
   context.resources = { save: () => Promise.resolve() };
-  // @ts-expect-error result is a number, not a string or untyped override bag
+  // @ts-expect-error final Workflow result is absent from the Step context
   context.result = 'wrong';
-  // @ts-expect-error consumers need not share compatible state/resources/result
+  // @ts-expect-error consumers need not share compatible state and resources
   const mismatched: Context = other;
   void mismatched;
 }
@@ -57,13 +51,12 @@ export const definitions: WorkflowDefinition<
   resources: { save: () => Promise.resolve() },
   entryStep: 'main',
   createState: ({ input }) => ({ count: input.amount }),
-  createResult: () => 0,
+  createResult: ({ count }) => count,
   stepDefinitions: {
     main: { step: (c) => c.runStep('child'), skippable: false, cardinality: 'at-most-once' },
     child: {
       step: async (c) => {
         await c.resources.save(c.state.count);
-        c.result = c.state.count;
       },
       skippable: false,
       cardinality: 'repeatable',
@@ -76,6 +69,11 @@ export const invalidResult: typeof definitions = {
   ...definitions,
   // @ts-expect-error no uninitialized or fake-default result for a numeric result contract
   createResult: () => undefined,
+};
+export const invalidSkippedResult: typeof definitions = {
+  ...definitions,
+  // @ts-expect-error skipped runs obey the same public result contract
+  createSkippedResult: () => 'skipped',
 };
 export const invalidState: typeof definitions = {
   ...definitions,

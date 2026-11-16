@@ -25,18 +25,18 @@ export function createSessionCompactionWorkflow(options: CreateSessionCompaction
     name: SESSION_COMPACTION_WORKFLOW_NAME,
     entryStep: 'runSessionCompaction',
     stepDefinitions: createSessionCompactionStepDefinitions(),
-    createResult: () => undefined,
+    createSkippedResult: () => undefined,
+    createResult(state) {
+      if (state.outcome === undefined)
+        throw new AgentSessionError(
+          'SESSION_COMPACTION_INVALID',
+          'Compaction completed without a result.'
+        );
+      return state.outcome;
+    },
     createState: ({ input }): SessionCompactionWorkflowContext['state'] => ({ agentRun: input }),
     lifecycle: {
       ...options.lifecycle,
-      async onSuccess(context: SessionCompactionWorkflowContext) {
-        await options.lifecycle?.onSuccess?.(context);
-        if (context.result === undefined)
-          throw new AgentSessionError(
-            'SESSION_COMPACTION_INVALID',
-            'Compaction completed without a result.'
-          );
-      },
       async onFinally(context) {
         // A failed product cleanup retains occupancy for explicit recovery.
         await options.lifecycle?.onFinally?.(context);

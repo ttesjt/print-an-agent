@@ -7,10 +7,15 @@ import {
   type DeterministicMemoryWorkflowInput,
 } from './input-preparation.js';
 import { memoryLifecycle } from './lifecycle.js';
-import { memoryExecutor } from './outcome.js';
+import {
+  memoryExecutor,
+  requireMemoryOperationOutput,
+  type MemoryOperationOutput,
+} from './outcome.js';
 
 export type MemoryStepName = 'runMemoryOperation' | 'prepareInput' | 'executeOperation';
-export type MemoryWorkflowState<I> = DeterministicMemoryWorkflowInput<I>;
+export type MemoryWorkflowState<I, O> = DeterministicMemoryWorkflowInput<I> &
+  MemoryOperationOutput<O>;
 export type MemoryDefinition<
   I,
   O,
@@ -19,7 +24,7 @@ export type MemoryDefinition<
 > = BundleWorkflowDefinition<
   MemoryStepName,
   I,
-  MemoryWorkflowState<I>,
+  MemoryWorkflowState<I, O>,
   { readonly memory: Pick<Operations, K> },
   O
 >;
@@ -41,7 +46,7 @@ export function memoryDefinition<
   Operations extends object = MemoryOperations,
 >(
   name: string,
-  initial: () => O,
+  createSkippedResult: () => O,
   execute: (
     resources: { readonly memory: Pick<Operations, K> },
     input: I,
@@ -55,7 +60,8 @@ export function memoryDefinition<
     name,
     entryStep: 'runMemoryOperation',
     createState: ({ input }) => createMemoryInputPreparation(input),
-    createResult: initial,
+    createSkippedResult,
+    createResult: requireMemoryOperationOutput,
     ...(mutation ? { executeStep: memoryExecutor(options.executeStep) } : {}),
     stepDefinitions: {
       runMemoryOperation: {
@@ -85,11 +91,12 @@ export function memoryDefinition<
         skippable: false,
         cardinality: 'at-most-once',
         step: async (context) => {
-          context.result = await execute(
+          const value = await execute(
             context.resources,
             requirePreparedMemoryInput(context.state),
             context.signal
           );
+          context.state.operationOutput = { value };
         },
       },
     },

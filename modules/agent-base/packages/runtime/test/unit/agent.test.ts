@@ -34,7 +34,7 @@ function textWorkflow(name: string, prefix: string): AgentWorkflow<TextRunContex
     workflow: new Workflow<
       StepName,
       TextRunContext,
-      { readonly input: TextRunContext },
+      { readonly input: TextRunContext; output: string },
       undefined,
       string
     >({
@@ -46,13 +46,13 @@ function textWorkflow(name: string, prefix: string): AgentWorkflow<TextRunContex
           cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
           skippable: false,
           step: (context) => {
-            context.result = `${prefix}:${context.state.input.input}`;
+            context.state.output = `${prefix}:${context.state.input.input}`;
             return Promise.resolve();
           },
         },
       },
-      createState: ({ input }) => ({ input }),
-      createResult: () => '',
+      createState: ({ input }) => ({ input, output: '' }),
+      createResult: ({ output }) => output,
     }),
     applyResult: (context, result) => {
       context.values.push(result);
@@ -69,7 +69,7 @@ function numberWorkflow(name: string): AgentWorkflow<NumberRunContext, number> {
     workflow: new Workflow<
       StepName,
       NumberRunContext,
-      { readonly input: NumberRunContext },
+      { readonly input: NumberRunContext; output: number },
       undefined,
       number
     >({
@@ -81,13 +81,13 @@ function numberWorkflow(name: string): AgentWorkflow<NumberRunContext, number> {
           cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
           skippable: false,
           step: (context) => {
-            context.result = context.state.input.input * 2;
+            context.state.output = context.state.input.input * 2;
             return Promise.resolve();
           },
         },
       },
-      createState: ({ input }) => ({ input }),
-      createResult: () => 0,
+      createState: ({ input }) => ({ input, output: 0 }),
+      createResult: ({ output }) => output,
     }),
     applyResult: (context, result) => {
       context.output = result;
@@ -784,7 +784,7 @@ describe('Agent Operations', () => {
       workflow: new Workflow<
         StepName,
         ParentContext,
-        { readonly input: ParentContext },
+        { readonly input: ParentContext; output: string },
         undefined,
         string
       >({
@@ -797,12 +797,12 @@ describe('Agent Operations', () => {
             skippable: false,
             step: async (context) => {
               const childResult = await context.state.input.operations.invoke('child', 6);
-              context.result = `child:${childResult}`;
+              context.state.output = `child:${childResult}`;
             },
           },
         },
-        createState: ({ input }) => ({ input }),
-        createResult: () => '',
+        createState: ({ input }) => ({ input, output: '' }),
+        createResult: ({ output }) => output,
       }),
       applyResult: (context, result) => {
         context.output = result;
@@ -982,7 +982,7 @@ describe('Agent Operations', () => {
       workflow: new Workflow<
         StepName,
         ParentContext,
-        { readonly input: ParentContext },
+        { readonly input: ParentContext; output: string },
         undefined,
         string
       >({
@@ -997,12 +997,12 @@ describe('Agent Operations', () => {
               await context.state.input.operations.invoke('cancellableChild', 1, {
                 signal: childLocalController.signal,
               });
-              context.result = 'unreachable';
+              context.state.output = 'unreachable';
             },
           },
         },
-        createState: ({ input }) => ({ input }),
-        createResult: () => '',
+        createState: ({ input }) => ({ input, output: '' }),
+        createResult: ({ output }) => output,
       }),
       applyResult: (context, result) => {
         context.output = result;
@@ -1176,7 +1176,7 @@ describe('Agent Operations', () => {
       workflow: new Workflow<
         StepName,
         UndeclaredContext,
-        { readonly input: UndeclaredContext },
+        { readonly input: UndeclaredContext; output: string },
         undefined,
         string
       >({
@@ -1190,12 +1190,12 @@ describe('Agent Operations', () => {
             step: async (context) => {
               const unsafeInvoker = context.state.input.operations as unknown as UnsafeInvoker;
               await unsafeInvoker.invoke('hidden', 1);
-              context.result = 'unreachable';
+              context.state.output = 'unreachable';
             },
           },
         },
-        createState: ({ input }) => ({ input }),
-        createResult: () => '',
+        createState: ({ input }) => ({ input, output: '' }),
+        createResult: ({ output }) => output,
       }),
       applyResult: (context, result) => {
         context.output = result;
@@ -1243,7 +1243,13 @@ describe('Agent Operations', () => {
       invokeTarget: (context: C) => Promise<number>
     ): AgentWorkflow<C, number> {
       return bindAgentWorkflow({
-        workflow: new Workflow<StepName, C, { readonly input: C }, undefined, number>({
+        workflow: new Workflow<
+          StepName,
+          C,
+          { readonly input: C; output: number },
+          undefined,
+          number
+        >({
           name,
           resources: undefined,
           entryStep: 'execute',
@@ -1252,12 +1258,12 @@ describe('Agent Operations', () => {
               cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
               skippable: false,
               step: async (context) => {
-                context.result = await invokeTarget(context.state.input);
+                context.state.output = await invokeTarget(context.state.input);
               },
             },
           },
-          createState: ({ input }) => ({ input }),
-          createResult: () => 0,
+          createState: ({ input }) => ({ input, output: 0 }),
+          createResult: ({ output }) => output,
         }),
         applyResult: (context, result) => {
           context.output = result;
@@ -1383,7 +1389,7 @@ describe('Agent Operations', () => {
       workflow: new Workflow<
         StepName,
         NumberRunContext,
-        { readonly input: NumberRunContext },
+        { readonly input: NumberRunContext; output: number },
         undefined,
         number
       >({
@@ -1395,13 +1401,13 @@ describe('Agent Operations', () => {
             cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
             skippable: false,
             step: (context) => {
-              context.result = context.state.input.input;
+              context.state.output = context.state.input.input;
               return Promise.resolve();
             },
           },
         },
-        createState: ({ input }) => ({ input }),
-        createResult: () => 0,
+        createState: ({ input }) => ({ input, output: 0 }),
+        createResult: ({ output }) => output,
       }),
       applyResult: () => Promise.resolve(),
     });

@@ -54,8 +54,7 @@ export type RequestAgentRunContext = BaseAgentRunContext<AgentRequestInput, Agen
 export type DefaultRequestWorkflowContext = WorkflowContext<
   RequestStepName,
   RequestWorkflowState,
-  RequestRuntimeResources & { readonly policy: RequestPolicy },
-  AgentResponse | undefined
+  RequestRuntimeResources & { readonly policy: RequestPolicy }
 >;
 
 export interface RequestWorkflowState {
@@ -80,6 +79,7 @@ export interface RequestWorkflowState {
   capturedReasoning?: CapturedReasoningPresentation;
   turnPresentation?: SessionTurnPresentation;
   response?: AgentResponse;
+  completedResponse?: AgentResponse;
   modelTurnCount?: number;
   outputCharacterCount?: number;
   replayedOutput?: boolean;

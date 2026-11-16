@@ -7,19 +7,19 @@ import {
 } from '@print-an-agent/workflow-core';
 import { gate, onAbort, causes } from './support/execution.js';
 
-type Context = WorkflowContext<'main' | 'child', void, void, number>;
+type Context = WorkflowContext<'main' | 'child', { count: number }, void>;
 function fixture(step: Step<Context>, executor: StepExecutor<'main' | 'child', Context>) {
-  return new Workflow<'main' | 'child', void, void, void, number>({
+  return new Workflow<'main' | 'child', void, { count: number }, void, number>({
     name: 'executor',
     resources: undefined,
     entryStep: 'main',
-    createState: () => undefined,
-    createResult: () => 0,
+    createState: () => ({ count: 0 }),
+    createResult: ({ count }) => count,
     stepDefinitions: {
       main: { step, cardinality: 'at-most-once', skippable: false },
       child: {
         step: (c) => {
-          c.result++;
+          c.state.count++;
           return Promise.resolve();
         },
         cardinality: 'repeatable',

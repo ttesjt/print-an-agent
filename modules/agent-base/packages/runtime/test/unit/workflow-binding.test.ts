@@ -61,7 +61,7 @@ it('records a recovered child error with safe classification and exact Agent/Run
           try {
             await ctx.runStep('child');
           } catch {
-            ctx.result = 'recovered';
+            ctx.state.output = 'recovered';
           }
         },
       },

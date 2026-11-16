@@ -3,7 +3,10 @@ import { finalizeSessionExecution } from '../../lifecycle/workflow-execution.js'
 import { AgentSessionError } from '../../errors.js';
 import { SESSION_NAVIGATION_WORKFLOW_NAME } from './names.js';
 import { createSessionNavigationStepDefinitions } from './step-definitions.js';
-import type { CreateSessionNavigationWorkflowOptions } from './types.js';
+import type {
+  CreateSessionNavigationWorkflowOptions,
+  SessionNavigationWorkflowState,
+} from './types.js';
 
 export function createSessionNavigationWorkflow(options: CreateSessionNavigationWorkflowOptions) {
   return new Workflow({
@@ -11,8 +14,16 @@ export function createSessionNavigationWorkflow(options: CreateSessionNavigation
     name: SESSION_NAVIGATION_WORKFLOW_NAME,
     entryStep: 'runSessionNavigation',
     stepDefinitions: createSessionNavigationStepDefinitions(),
-    createResult: () => undefined,
-    createState: ({ input, resources }) => ({
+    createSkippedResult: () => undefined,
+    createResult(state) {
+      if (state.outcome === undefined)
+        throw new AgentSessionError(
+          'SESSION_NAVIGATION_INVALID',
+          'Navigation completed without a result.'
+        );
+      return state.outcome;
+    },
+    createState: ({ input, resources }): SessionNavigationWorkflowState => ({
       agentId: input.agentId,
       input: input.navigation,
       resources,
@@ -20,14 +31,6 @@ export function createSessionNavigationWorkflow(options: CreateSessionNavigation
     }),
     lifecycle: {
       ...options.lifecycle,
-      async onSuccess(context) {
-        await options.lifecycle?.onSuccess?.(context);
-        if (context.result === undefined)
-          throw new AgentSessionError(
-            'SESSION_NAVIGATION_INVALID',
-            'Navigation completed without a result.'
-          );
-      },
       onFinally: (context) =>
         finalizeSessionExecution(context.state, async () => {
           await options.lifecycle?.onFinally?.(context);

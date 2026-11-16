@@ -81,7 +81,7 @@ describe('Agent composition extensions', () => {
         workflow: new Workflow<
           ProductStepName,
           ProductRunContext,
-          { readonly input: ProductRunContext },
+          { readonly input: ProductRunContext; output: string },
           undefined,
           string
         >({
@@ -93,13 +93,13 @@ describe('Agent composition extensions', () => {
               cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
               skippable: false,
               step: (context) => {
-                context.result = `${context.state.input.service.label}:${context.state.input.input}`;
+                context.state.output = `${context.state.input.service.label}:${context.state.input.input}`;
                 return Promise.resolve();
               },
             },
           },
-          createState: ({ input }) => ({ input }),
-          createResult: () => '',
+          createState: ({ input }) => ({ input, output: '' }),
+          createResult: ({ output }) => output,
         }),
         applyResult: (context, result) => {
           context.output = result;

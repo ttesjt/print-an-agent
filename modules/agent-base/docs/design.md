@@ -324,17 +324,17 @@ carry table names.
 ## Workflow and Workflow Context
 
 Workflow execution belongs to `@print-an-agent/workflow-core`, not Agent Base. A reusable `Workflow`
-contains a stable name, bound borrowed resources, an optional condition, one entry Step, Step definitions/overrides, pure
-result/state factories, lifecycle hooks, and an optional Step executor. It returns `TResult`
+contains a stable name, bound borrowed resources, an optional condition, one entry Step, Step
+definitions/overrides, state creation, result projection, lifecycle hooks, and an optional Step
+executor. It returns `TResult`
 directly; it knows nothing about Agent identity, Operations, result application or persistence.
 
 Each invocation receives a framework-owned context:
 
 ```ts
-interface WorkflowContext<N extends string, S, R, O> {
+interface WorkflowContext<N extends string, S, R> {
   readonly state: S;
   readonly resources: R;
-  result: O;
   readonly workflowName: string;
   readonly workflowRunId: string;
   readonly parentRunId: string | undefined;
@@ -354,9 +354,9 @@ Workflow Plans and Catalogs contain these bindings; one binding may be shared by
 that intentionally use the same bound capabilities. Each invocation retains its own state, result,
 signal and trace correlation. Different stores require separately assembled Workflows.
 
-Request and compaction use `undefined` as an explicit no-change initial result. Their success hooks
-reject normal execution without a result, while a condition skip bypasses those hooks and preserves
-the existing Agent output. No fake successful response or context patch is manufactured.
+Request and compaction return `undefined` from `createSkippedResult` to preserve the existing Agent
+output on a condition skip. For an executed run, `createResult(state)` requires the completed
+response or compaction outcome.
 
 Each Workflow's `createState` converts its external input into the business data exposed under
 `context.state`. Request and compaction store their Agent Run Context as `context.state.agentRun`.
@@ -569,10 +569,11 @@ One execution follows a deliberately small sequence:
 1. Caller selects one public Agent Operation and supplies typed input plus an optional AbortSignal.
 2. Agent creates one Agent Run ID, narrowed Operation invoker, trace emitter, and Run Context.
 3. Agent executes each exact Workflow reference in the Operation's fixed ordered plan.
-4. Core creates a legal initial result, then evaluates its internal condition.
+4. Core evaluates its internal condition. A skip projects its result and returns without running Steps.
 5. An active Workflow creates run-local state and invokes its entry Step.
-6. Nested Steps share state/resources/result with scope-local runners and effective signals.
-7. Core drains admitted work and runs hooks; the Agent binding applies the returned result.
+6. Nested Steps share state and resources with scope-local runners and effective signals.
+7. Core drains admitted work, runs success hooks and projects the result from state. After cleanup,
+   the Agent binding can apply the returned result.
 8. After the plan completes, Agent requires and returns the Agent Run Context output.
 ```
 

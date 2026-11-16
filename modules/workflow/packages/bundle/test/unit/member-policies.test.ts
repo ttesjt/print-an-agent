@@ -3,17 +3,16 @@ import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
 import { expect, it, vi } from 'vitest';
 import { readDefinition, type ReadContext, type ReadInput } from '../support/definitions.js';
 
-it('preserves condition skipping and the initial result without creating state or closing resources', async () => {
+it('preserves condition skipping and the skip result without creating state or closing resources', async () => {
   const resources = { read: vi.fn(() => Promise.resolve('value')), close: vi.fn() };
-  const createState = vi.fn(({ input }: { input: ReadInput }) => ({ input }));
+  const createState = vi.fn(({ input }: { input: ReadInput }) => ({ input, text: '' }));
+  const createResult = vi.fn(() => 'normal result');
   const onFinally = vi.fn();
   const seen: ReadContext['resources'][] = [];
   const inspect: ReturnType<typeof readDefinition> = {
     ...readDefinition(),
-    createResult: ({ resources: binding }) => {
-      seen.push(binding);
-      return 'not needed';
-    },
+    createResult,
+    createSkippedResult: ({ input, reason }) => `${input.id}: ${reason}`,
     createState,
     condition: ({ resources: binding }) => {
       seen.push(binding);
@@ -31,8 +30,9 @@ it('preserves condition skipping and the initial result without creating state o
         events.push(event);
       },
     })
-  ).resolves.toBe('not needed');
-  expect(seen).toEqual([resources, resources]);
+  ).resolves.toBe('one: already handled');
+  expect(seen).toEqual([resources]);
+  expect(createResult).not.toHaveBeenCalled();
   expect(events.at(-1)).toMatchObject({ type: 'workflow-skipped', reason: 'already handled' });
   expect(createState).not.toHaveBeenCalled();
   expect(resources.read).not.toHaveBeenCalled();
@@ -52,7 +52,7 @@ it('preserves member executors, hooks, Run identity and parent observation witho
     },
     lifecycle: {
       onSuccess: (context) => {
-        context.result += ' checked';
+        context.state.text += ' checked';
       },
       onFinally: (context) => {
         seen.push(context.resources);

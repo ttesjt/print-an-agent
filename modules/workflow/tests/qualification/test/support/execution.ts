@@ -7,7 +7,7 @@ import {
 } from '@print-an-agent/workflow-core';
 
 export type Names = 'entry' | 'group' | 'left' | 'right' | 'other' | 'after';
-export type Context = WorkflowContext<Names, { visited: string[] }, void, string[]>;
+export type Context = WorkflowContext<Names, { visited: string[] }, void>;
 export function execution(
   entry: Step<Context>,
   overrides: StepOverrides<Names, Context> = {},
@@ -23,7 +23,7 @@ export function execution(
     resources: undefined,
     entryStep: 'entry',
     createState: () => ({ visited: [] }),
-    createResult: () => [],
+    createResult: ({ visited }) => visited,
     stepDefinitions: {
       entry: { ...leaf, step: entry },
       group: leaf,

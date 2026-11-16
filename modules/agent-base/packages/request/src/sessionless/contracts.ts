@@ -79,6 +79,7 @@ export interface SessionlessGenerationState {
   modelRequest?: ActorDirectRequest;
   interaction?: RequestInteractionState;
   response?: ActorDirectResult;
+  completedResponse?: ActorDirectResult;
 }
 
 export const SESSIONLESS_REQUEST_STEP_NAMES = Object.freeze([
@@ -103,8 +104,7 @@ export type SessionlessRequestStepName = (typeof SESSIONLESS_REQUEST_STEP_NAMES)
 export type SessionlessGenerationContext = WorkflowContext<
   SessionlessRequestStepName,
   SessionlessGenerationState,
-  BoundSessionlessGenerationResources,
-  ActorDirectResult | undefined
+  BoundSessionlessGenerationResources
 >;
 export interface SessionlessGenerationWorkflowOptions extends Pick<
   WorkflowDefinition<

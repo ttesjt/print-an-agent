@@ -15,7 +15,11 @@ import { createInteractionEventAccounting } from '../../interaction/budgets.js';
 import { validateSessionlessRequest } from '../context.js';
 import { executeSessionlessRequest } from '../execution.js';
 import { sessionlessLifecycle } from '../lifecycle.js';
-import { openSessionlessOutput, completeSessionlessResponse } from '../output.js';
+import {
+  openSessionlessOutput,
+  completeSessionlessResponse,
+  requireCompletedSessionlessResponse,
+} from '../output.js';
 import { closedRecord } from '../validation.js';
 import { bindInteractionResources } from './resources.js';
 import {
@@ -112,7 +116,8 @@ export function createInteractionWorkflow(options: SessionlessInteractionWorkflo
       options.stepOverrides
     ),
     createState: ({ input }): SessionlessInteractionState => ({ input }),
-    createResult: () => undefined,
+    createSkippedResult: () => undefined,
+    createResult: (state) => requireCompletedSessionlessResponse(state),
     lifecycle: sessionlessLifecycle(options.lifecycle, closeSessionlessTools),
   });
 }

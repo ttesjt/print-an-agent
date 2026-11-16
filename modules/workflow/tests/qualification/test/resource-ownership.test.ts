@@ -1,8 +1,8 @@
 import { expect, it, vi } from 'vitest';
-import { Workflow } from '@print-an-agent/workflow-core';
+import { RUN_WORKFLOW, skipWorkflow, Workflow } from '@print-an-agent/workflow-core';
 import { execution, gate, onAbort, runOptions, causes, type Context } from './support/execution.js';
 
-it.each(['result', 'condition', 'state'] as const)(
+it.each(['skip result', 'condition', 'state'] as const)(
   'external ownership covers %s construction failure',
   async (phase) => {
     const close = vi.fn();
@@ -12,15 +12,16 @@ it.each(['result', 'condition', 'state'] as const)(
       name: 'construction',
       resources: { close },
       entryStep: 'main',
-      createResult: () => {
-        if (phase === 'result') throw failure;
+      createResult: () => undefined,
+      createSkippedResult: () => {
+        throw failure;
       },
       createState: () => {
         if (phase === 'state') throw failure;
       },
       condition: () => {
         if (phase === 'condition') throw failure;
-        return { status: 'run' };
+        return phase === 'skip result' ? skipWorkflow('not needed') : RUN_WORKFLOW;
       },
       stepDefinitions: {
         main: { skippable: false, cardinality: 'at-most-once', step: () => Promise.resolve() },
@@ -116,7 +117,7 @@ it('does not roll back a committed port write when later cleanup fails', async (
   const flow = execution(
     (c) => {
       committed++;
-      c.result.push('committed');
+      c.state.visited.push('committed');
       return Promise.resolve();
     },
     {},

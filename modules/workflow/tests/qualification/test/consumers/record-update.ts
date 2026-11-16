@@ -33,12 +33,13 @@ export interface UpdateState {
   readonly title: string;
   record: CatalogRecord | undefined;
   limit: number | undefined;
+  updatedRecord?: CatalogRecord;
 }
 export type UpdateResult =
   | { readonly status: 'not-updated' }
   | { readonly status: 'updated'; readonly record: CatalogRecord };
 export type UpdateName = 'update' | 'load' | 'record' | 'rules' | 'validate' | 'commit';
-export type UpdateContext = WorkflowContext<UpdateName, UpdateState, UpdatePorts, UpdateResult>;
+export type UpdateContext = WorkflowContext<UpdateName, UpdateState, UpdatePorts>;
 
 export function recordUpdate(resources: UpdatePorts) {
   return new Workflow({ ...recordUpdateDefinition(), resources });
@@ -55,7 +56,11 @@ export function recordUpdateDefinition(): BundleWorkflowDefinition<
   return {
     name: 'record-update',
     entryStep: 'update',
-    createResult: () => ({ status: 'not-updated' }),
+    createSkippedResult: () => ({ status: 'not-updated' }),
+    createResult({ updatedRecord }) {
+      if (updatedRecord === undefined) throw new Error('Record was not updated.');
+      return { status: 'updated', record: updatedRecord };
+    },
     createState: ({ input }) => ({
       id: input.id,
       title: input.title,
@@ -106,13 +111,12 @@ export function recordUpdateDefinition(): BundleWorkflowDefinition<
         cardinality: 'at-most-once',
         step: async (c) => {
           if (c.state.record === undefined) throw new Error('Record was not loaded.');
-          const record = await c.resources.records.compareAndSwap(
+          c.state.updatedRecord = await c.resources.records.compareAndSwap(
             c.state.id,
             c.state.record.revision,
             c.state.title,
             c.signal
           );
-          c.result = { status: 'updated', record };
         },
       },
     },

@@ -94,9 +94,10 @@ Omitted update metadata/source replace them with `{}`/null; this is not a patch.
 content produces an unchanged receipt without embedding. No implicit create, deduplication or upsert.
 
 Writes return `{ status: 'committed' | 'unchanged', receipt }`; explicit Workflow skipping returns
-`{ status: 'skipped', reason }`. Reads return `{ status: 'completed', value }` or skipped. The Core
-Workflow owns execution; these result unions do not introduce another runner. Each definition is
-also directly constructible with `new Workflow({ ...definition, resources })`.
+`{ status: 'skipped', reason }`. Reads return `{ status: 'completed', value }` or skipped. An active
+Run projects its return value from `context.state.outcome`; replacement Steps can record an explicit
+outcome there. A condition skip uses a separate projection. Each definition is also directly
+constructible with `new Workflow({ ...definition, resources })`.
 
 ## Correctness and recovery
 

@@ -49,10 +49,8 @@ it('consumes public contracts with independent resources, custom tools/Steps, ex
             readStep();
             const input = context.state.preparedInput;
             if (input === undefined) throw new Error('Expected a prepared version-context input.');
-            context.result = await context.resources.memory.readVersionContext(
-              input,
-              context.signal
-            );
+            const value = await context.resources.memory.readVersionContext(input, context.signal);
+            context.state.operationOutput = { value };
           },
         },
       }),

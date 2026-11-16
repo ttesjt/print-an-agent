@@ -1,15 +1,18 @@
 import type { ActorDirectResult } from '@print-an-agent/model-invocation-core';
 import type { WorkflowLifecycle } from '@print-an-agent/workflow-core';
-import { AgentRequestError } from '../errors.js';
-import { publishOutput, sessionlessOutputFailure } from './output.js';
+import {
+  publishOutput,
+  requireCompletedSessionlessResponse,
+  sessionlessOutputFailure,
+} from './output.js';
 import type { SessionlessOutputOutcome, SessionlessValidatedRequest } from './contracts.js';
 
 interface SessionlessLifecycleContext {
   readonly state: {
     readonly request?: SessionlessValidatedRequest;
+    readonly completedResponse?: ActorDirectResult;
     outputOutcome?: SessionlessOutputOutcome;
   };
-  readonly result: ActorDirectResult | undefined;
 }
 
 /** Guaranteed cleanup is lifecycle machinery, not a skippable business Step. */
@@ -20,11 +23,7 @@ export function sessionlessLifecycle<C extends SessionlessLifecycleContext>(
   const lifecycle = Object.freeze({ ...input });
   return {
     async onSuccess(context) {
-      if (context.result === undefined)
-        throw new AgentRequestError(
-          'REQUEST_OUTPUT_STATE_INVALID',
-          'Sessionless request completed without a response.'
-        );
+      requireCompletedSessionlessResponse(context.state);
       await lifecycle.onSuccess?.(context);
     },
     async onError(context, cause) {

@@ -22,7 +22,7 @@ const runSessionCompaction: Step<SessionCompactionWorkflowContext> = async (cont
   ];
   for (const stepName of steps) {
     await context.runStep(stepName);
-    if (context.result !== undefined) return;
+    if (context.state.outcome !== undefined) return;
   }
 };
 

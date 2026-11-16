@@ -5,18 +5,16 @@ it('cannot hide a late executor protocol violation inside a success hook', async
   let retained: (() => Promise<void>) | undefined;
   const errorHook = vi.fn();
   const cleanup = vi.fn();
+  const createResult = vi.fn(() => 0);
   const flow = new Workflow<'main', void, void, void, number>({
     name: 'late-protocol',
     resources: undefined,
     entryStep: 'main',
     createState: () => undefined,
-    createResult: () => 0,
+    createResult,
     stepDefinitions: {
       main: {
-        step: (c) => {
-          c.result = 2;
-          return Promise.resolve();
-        },
+        step: () => Promise.resolve(),
         skippable: false,
         cardinality: 'at-most-once',
       },
@@ -36,6 +34,7 @@ it('cannot hide a late executor protocol violation inside a success hook', async
   await expect(flow.run({ input: undefined })).rejects.toMatchObject({
     code: 'STEP_EXECUTOR_INVALID',
   });
+  expect(createResult).not.toHaveBeenCalled();
   expect(errorHook).toHaveBeenCalledTimes(1);
   expect(cleanup).toHaveBeenCalledTimes(1);
 });

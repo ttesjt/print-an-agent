@@ -6,7 +6,7 @@ export type Run = BaseAgentRunContext<string, string>;
 export type Definition = WorkflowDefinition<
   'entry' | 'child' | 'peer',
   Run,
-  Record<never, never>,
+  { output?: string },
   undefined,
   string | undefined
 >;
@@ -26,7 +26,7 @@ export function workflow(options: Partial<Definition> = {}) {
   return new Workflow<
     'entry' | 'child' | 'peer',
     Run,
-    Record<never, never>,
+    { output?: string },
     undefined,
     string | undefined
   >({
@@ -34,13 +34,14 @@ export function workflow(options: Partial<Definition> = {}) {
     resources: undefined,
     entryStep: 'entry',
     createState: () => ({}),
-    createResult: () => undefined,
+    createResult: ({ output }) => output,
+    createSkippedResult: () => undefined,
     stepDefinitions: {
       entry: {
         ...step,
         step: async (ctx) => {
           await ctx.runStep('child');
-          ctx.result = 'output';
+          ctx.state.output = 'output';
         },
       },
       child: { ...step, step: () => Promise.resolve() },

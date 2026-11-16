@@ -2,7 +2,7 @@ import { expect, it, vi } from 'vitest';
 import { WorkflowRunError, type WorkflowEvent } from '@print-an-agent/workflow-core';
 import { aborted, gate, options, workflow } from '../support/fixtures.js';
 
-it.each(['createResult', 'condition', 'createState'] as const)(
+it.each(['condition', 'createState'] as const)(
   'classifies %s failure without creating a Step or running context hooks',
   async (phase) => {
     const failure = new Error(phase);
@@ -31,18 +31,26 @@ it.each(['createResult', 'condition', 'createState'] as const)(
   }
 );
 
-it.each(['onSuccess', 'onFinally'] as const)(
+it.each(['onSuccess', 'createResult', 'onFinally'] as const)(
   'classifies %s failure without claiming a completed Step failed',
   async (phase) => {
     const failure = new Error(phase);
     const events: WorkflowEvent[] = [];
     await expect(
       workflow(() => Promise.resolve(), {
-        lifecycle: {
-          [phase]: () => {
-            throw failure;
-          },
-        },
+        ...(phase === 'createResult'
+          ? {
+              createResult: () => {
+                throw failure;
+              },
+            }
+          : {
+              lifecycle: {
+                [phase]: () => {
+                  throw failure;
+                },
+              },
+            }),
       }).run({
         ...options(),
         classifyFailure: () => 'HOOK_FAILED',

@@ -10,21 +10,24 @@ import {
 export function recordInspectionDefinition(): BundleWorkflowDefinition<
   'inspect',
   { id: string },
-  { readonly id: string },
+  { readonly id: string; record?: CatalogRecord },
   { records: Pick<RecordStore, 'read'> },
   CatalogRecord | undefined
 > {
   return {
     name: 'record-inspection',
     entryStep: 'inspect',
-    createResult: () => undefined,
+    createResult: ({ record }) => record,
     createState: ({ input }) => ({ id: input.id }),
     stepDefinitions: {
       inspect: {
         skippable: false,
         cardinality: 'at-most-once',
         step: async (context) => {
-          context.result = await context.resources.records.read(context.state.id, context.signal);
+          context.state.record = await context.resources.records.read(
+            context.state.id,
+            context.signal
+          );
         },
       },
     },

@@ -13,7 +13,7 @@ it('classifies a recovered child failure without changing the successful parent 
       try {
         await context.runStep('a');
       } catch {
-        context.result = [7];
+        context.state.values = [7];
       }
     },
     {

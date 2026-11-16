@@ -7,7 +7,7 @@ import {
   type Step,
   type StepOverrides,
 } from '@print-an-agent/workflow-core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
   createRequestStepDefinitions,
   createRequestWorkflow,
@@ -23,15 +23,10 @@ interface TestAgentContext extends BaseAgentRunContext<string, string> {
   readonly applied: string[];
 }
 
-interface TestState extends RequestWorkflowStateView {
+interface TestState extends RequestWorkflowStateView<string> {
   readonly calls: string[];
 }
-type TestRequestContext = WorkflowContext<
-  RequestStepName,
-  TestState,
-  undefined,
-  string | undefined
->;
+type TestRequestContext = WorkflowContext<RequestStepName, TestState, undefined>;
 
 const LEAF_STEP_NAMES = REQUEST_STEP_NAMES.filter(
   (stepName): stepName is RequestLeafStepName =>
@@ -70,7 +65,8 @@ function implementedLeafSteps(): StepOverrides<RequestStepName, TestRequestConte
     LEAF_STEP_NAMES.map((stepName) => {
       const step: Step<TestRequestContext> = (context) => {
         context.state.calls.push(stepName);
-        if (stepName === 'completeResponse') context.result = context.state.calls.join('|');
+        if (stepName === 'completeResponse')
+          context.state.completedResponse = context.state.calls.join('|');
         return Promise.resolve();
       };
       return [stepName, step];
@@ -79,7 +75,7 @@ function implementedLeafSteps(): StepOverrides<RequestStepName, TestRequestConte
 }
 
 function workflow(stepOverrides: StepOverrides<RequestStepName, TestRequestContext> = {}) {
-  return createRequestWorkflow<TestAgentContext, TestState, undefined, string>({
+  return createRequestWorkflow<TestAgentContext, TestState, undefined>({
     resources: undefined,
     stepOverrides,
     createState: () => ({ calls: [] }),
@@ -187,6 +183,7 @@ describe('Request Workflow skeleton', () => {
 
     const outcome = await requestWorkflow.run({ input: context });
 
+    expectTypeOf(outcome).toEqualTypeOf<string | undefined>();
     expect(outcome).toEqual(SEQUENTIAL_LEAF_STEP_NAMES.join('|'));
   });
 
@@ -211,7 +208,7 @@ describe('Request Workflow skeleton', () => {
       ...overrides,
       resolveRequestReplay: (context) => {
         context.state.calls.push('resolveRequestReplay');
-        context.result = 'replayed';
+        context.state.completedResponse = 'replayed';
         return Promise.resolve();
       },
     });

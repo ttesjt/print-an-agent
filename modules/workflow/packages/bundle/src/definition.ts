@@ -49,6 +49,7 @@ const MEMBER_FIELDS = [
   'stepOverrides',
   'createState',
   'createResult',
+  'createSkippedResult',
   'condition',
   'lifecycle',
   'executeStep',
@@ -75,7 +76,7 @@ export function readMember(
     typeof definition.createState !== 'function' ||
     typeof definition.createResult !== 'function' ||
     !Object.hasOwn(definition, 'stepDefinitions') ||
-    ['condition', 'executeStep', 'createRunId'].some(
+    ['createSkippedResult', 'condition', 'executeStep', 'createRunId'].some(
       (key) => definition[key] !== undefined && typeof definition[key] !== 'function'
     )
   ) {

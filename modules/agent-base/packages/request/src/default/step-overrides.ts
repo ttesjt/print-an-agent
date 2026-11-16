@@ -190,7 +190,7 @@ async function resolveRequestReplay(context: DefaultRequestWorkflowContext): Pro
   await traceReplayResolved(context, 'completed');
   context.state.response = claim.entry.response;
   await publishReplayedResponse(context);
-  context.result = claim.entry.response;
+  context.state.completedResponse = claim.entry.response;
 }
 
 async function resolveSession(context: DefaultRequestWorkflowContext): Promise<void> {
@@ -279,7 +279,7 @@ async function completeResponse(context: DefaultRequestWorkflowContext): Promise
   }
   context.signal.throwIfAborted();
   await traceOutputCompleted(context);
-  context.result = response;
+  context.state.completedResponse = response;
   context.state.executionSettled = true;
 }
 

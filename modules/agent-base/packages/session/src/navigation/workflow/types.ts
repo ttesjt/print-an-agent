@@ -20,12 +20,12 @@ export interface SessionNavigationWorkflowInput {
 }
 export interface SessionNavigationWorkflowState extends SessionNavigationExecutionState {
   readonly traceEmitter?: AgentTraceEmitter;
+  outcome?: SessionNavigationOutcome;
 }
 export type SessionNavigationWorkflowContext = WorkflowContext<
   SessionNavigationStepName,
   SessionNavigationWorkflowState,
-  SessionNavigationResources,
-  SessionNavigationOutcome | undefined
+  SessionNavigationResources
 >;
 export type CreateSessionNavigationWorkflowOptions = Omit<
   WorkflowDefinition<
@@ -35,5 +35,5 @@ export type CreateSessionNavigationWorkflowOptions = Omit<
     SessionNavigationResources,
     SessionNavigationOutcome | undefined
   >,
-  'name' | 'entryStep' | 'stepDefinitions' | 'createState' | 'createResult'
+  'name' | 'entryStep' | 'stepDefinitions' | 'createState' | 'createResult' | 'createSkippedResult'
 >;

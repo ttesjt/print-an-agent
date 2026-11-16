@@ -1,11 +1,14 @@
 import { AgentRequestError } from '../errors.js';
-import { ActorError, ModelInvocationError } from '@print-an-agent/model-invocation-core';
+import {
+  ActorError,
+  ModelInvocationError,
+  type ActorDirectResult,
+} from '@print-an-agent/model-invocation-core';
 import { AgentToolError } from '@print-an-agent/base-tool';
 import { AgentActorError } from '@print-an-agent/base-actor';
 import type { OutputFailure } from '../contracts.js';
 import type { SessionlessOutputOutcome, SessionlessOutputSink } from './contracts.js';
 import type { SessionlessValidatedRequest } from './contracts.js';
-import type { ActorDirectResult } from '@print-an-agent/model-invocation-core';
 import { requireValue } from '../preparation/state-value.js';
 
 export async function openSessionlessOutput(context: {
@@ -24,9 +27,9 @@ export async function completeSessionlessResponse<T extends ActorDirectResult>(c
   readonly state: {
     readonly request?: SessionlessValidatedRequest;
     readonly response?: T;
+    completedResponse?: T;
     outputOutcome?: SessionlessOutputOutcome;
   };
-  result: T | undefined;
 }): Promise<void> {
   const response = requireValue(context.state.response, 'response');
   const sink = requireValue(context.state.request, 'request').outputSink;
@@ -34,7 +37,18 @@ export async function completeSessionlessResponse<T extends ActorDirectResult>(c
   await publishOutput(sink === undefined ? undefined : () => sink.close(response), 'close');
   if (sink !== undefined) context.state.outputOutcome = 'closed';
   context.signal.throwIfAborted();
-  context.result = response;
+  context.state.completedResponse = response;
+}
+
+export function requireCompletedSessionlessResponse<T extends ActorDirectResult>(
+  state: Readonly<{ completedResponse?: T }>
+): T {
+  if (state.completedResponse === undefined)
+    throw new AgentRequestError(
+      'REQUEST_OUTPUT_STATE_INVALID',
+      'Sessionless request completed without a response.'
+    );
+  return state.completedResponse;
 }
 
 export function validateSessionlessOutputSink(value: SessionlessOutputSink): SessionlessOutputSink {

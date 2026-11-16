@@ -14,7 +14,7 @@ it.each(['runStep', 'parallel'] as const)(
         left: (context) => {
           context.signal.throwIfAborted();
           database.prepare('INSERT INTO commits (value) VALUES (?)').run('committed');
-          context.result.push('committed');
+          context.state.visited.push('committed');
           caller.abort();
           return Promise.resolve();
         },
@@ -40,8 +40,8 @@ it('preserves every successful child when cancellation arrives before the group 
   const commit = async (context: Context, name: string) => {
     context.signal.throwIfAborted();
     database.prepare('INSERT INTO commits (value) VALUES (?)').run(name);
-    context.result.push(name);
-    if (context.result.length === 2) {
+    context.state.visited.push(name);
+    if (context.state.visited.length === 2) {
       caller.abort();
       committed.resolve();
     }

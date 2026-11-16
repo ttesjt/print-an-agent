@@ -4,15 +4,23 @@ import type { RetrievalQueryOperations } from '../domain/queries.js';
 import type { SkippedRetrieval } from './mutation.js';
 import { jsonSnapshot } from '../validation/json.js';
 import { runRetrievalExecution } from './execution.js';
-import { retrievalExecutor, retrievalLifecycle, type CommittedRunState } from './outcomes.js';
+import {
+  createSkippedRetrievalResult,
+  preserveRetrievalCommit,
+  retrievalExecutor,
+  retrievalLifecycle,
+  type CommittedRunState,
+} from './outcomes.js';
 import type { RetrievalReceipt } from '../contracts/publication.js';
+import { RetrievalMemoryError } from '../errors.js';
 export type RetrievalReadOutcome<O> =
   | { readonly status: 'completed'; readonly value: O }
   | SkippedRetrieval;
 export type QueryStepName = 'runOperation' | 'prepareInput' | 'executeQuery';
-export interface QueryState<I> extends CommittedRunState {
+export interface QueryState<I, O> extends CommittedRunState {
   signal?: AbortSignal;
   input: I;
+  outcome?: RetrievalReadOutcome<O>;
 }
 export type RetrievalQueryDefinition<
   I,
@@ -21,7 +29,7 @@ export type RetrievalQueryDefinition<
 > = BundleWorkflowDefinition<
   QueryStepName,
   I,
-  QueryState<I>,
+  QueryState<I, O>,
   RetrievalQueryResources<K>,
   RetrievalReadOutcome<O>
 >;
@@ -48,7 +56,15 @@ export function createRetrievalQueryDefinition<
     name: `retrieval-memory:${name}`,
     entryStep: 'runOperation',
     createState: ({ input }) => ({ input }),
-    createResult: () => ({ status: 'skipped', reason: 'Workflow condition skipped execution.' }),
+    createSkippedResult: createSkippedRetrievalResult,
+    createResult(state) {
+      if (state.outcome === undefined)
+        throw preserveRetrievalCommit(
+          new RetrievalMemoryError('SEARCH_FAILED', 'Retrieval query completed without an output.'),
+          state
+        );
+      return state.outcome;
+    },
     ...(receipt === undefined
       ? {}
       : {
@@ -86,10 +102,7 @@ export function createRetrievalQueryDefinition<
           );
           const known = receipt?.(value);
           if (known !== undefined) context.state.receipt = structuredClone(known);
-          context.result = {
-            status: 'completed',
-            value,
-          };
+          context.state.outcome = { status: 'completed', value };
         },
       },
     },

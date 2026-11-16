@@ -47,13 +47,13 @@ function createCompositeStep<WC extends RequestWorkflowContext>(
   };
 }
 
-function createResultAwareCompositeStep<WC extends RequestWorkflowContext>(
+function createResponseAwareCompositeStep<WC extends RequestWorkflowContext>(
   stepNames: readonly RequestStepName[]
 ): Step<WC> {
   return async (context) => {
     for (const stepName of stepNames) {
       await context.runStep(stepName);
-      if (context.result !== undefined) return;
+      if (context.state.completedResponse !== undefined) return;
     }
   };
 }
@@ -70,12 +70,12 @@ export function createRequestStepDefinitions<WC extends RequestWorkflowContext>(
 > {
   return Object.freeze({
     runRequest: {
-      step: createResultAwareCompositeStep<WC>(['prepareRequest', 'executeRequest']),
+      step: createResponseAwareCompositeStep<WC>(['prepareRequest', 'executeRequest']),
       cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },
     prepareRequest: {
-      step: createResultAwareCompositeStep<WC>(PREPARE_REQUEST_STEPS),
+      step: createResponseAwareCompositeStep<WC>(PREPARE_REQUEST_STEPS),
       cardinality: STEP_CARDINALITY.AT_MOST_ONCE,
       skippable: false,
     },

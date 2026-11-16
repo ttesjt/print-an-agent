@@ -59,7 +59,7 @@ it.each(['validateSessionNavigation', 'inspectSessionNavigation'] as const)(
         ...defaults,
         [stepName]: async (context: SessionNavigationWorkflowContext) => {
           await originalStep(context);
-          context.result = result;
+          context.state.outcome = result;
         },
       },
     });

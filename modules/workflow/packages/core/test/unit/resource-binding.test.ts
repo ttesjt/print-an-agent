@@ -2,7 +2,7 @@ import { expect, it, vi } from 'vitest';
 import { Workflow, type WorkflowInputs } from '@print-an-agent/workflow-core';
 import { aborted, gate, options, workflow, type Context } from '../support/fixtures.js';
 
-it('captures the resource binding at assembly and uses it in factories, Steps, executor and hooks', async () => {
+it('captures the resource binding at assembly and uses it in admission, state creation, Steps, executor and hooks', async () => {
   class Store {
     readonly values: number[] = [];
     save(value: number): Promise<void> {
@@ -18,16 +18,13 @@ it('captures the resource binding at assembly and uses it in factories, Steps, e
     name: 'bound-store',
     resources: store,
     entryStep: 'save' as const,
-    createResult: ({ resources }: WorkflowInputs<number, Store>) => {
-      seen.push(resources);
-      return 0;
-    },
+    createResult: ({ count }: { count: number }) => count,
     createState: ({ input, resources }: WorkflowInputs<number, Store>) => {
       seen.push(resources);
-      return input;
+      return { input, count: 0 };
     },
   };
-  const flow = new Workflow<'save', number, number, Store, number>({
+  const flow = new Workflow<'save', number, { input: number; count: number }, Store, number>({
     ...definition,
     condition: ({ resources }) => {
       seen.push(resources);
@@ -39,8 +36,8 @@ it('captures the resource binding at assembly and uses it in factories, Steps, e
         cardinality: 'at-most-once',
         step: async (c) => {
           seen.push(c.resources);
-          await c.resources.save(c.state);
-          c.result = c.resources.values.length;
+          await c.resources.save(c.state.input);
+          c.state.count = c.resources.values.length;
           expect(Reflect.set(c, 'resources', replacement)).toBe(false);
         },
       },
@@ -70,7 +67,7 @@ it('captures the resource binding at assembly and uses it in factories, Steps, e
   };
   expect(await flow.run(runOptions)).toBe(1);
   expect(await flow.run({ input: 7 })).toBe(2);
-  expect(seen).toHaveLength(14);
+  expect(seen).toHaveLength(12);
   expect(seen.every((resources) => resources === store)).toBe(true);
   expect(store.values).toEqual([3, 7]);
   expect(replacement.values).toEqual([]);
@@ -84,20 +81,20 @@ it('retains the original resource instance when the caller later replaces the de
     name: 'captured-binding',
     resources: original,
     entryStep: 'main' as const,
-    createResult: () => '',
-    createState: () => undefined,
+    createResult: ({ label }: { label: string }) => label,
+    createState: () => ({ label: '' }),
     stepDefinitions: {
       main: {
         skippable: false,
         cardinality: 'at-most-once' as const,
-        step: (c: { readonly resources: typeof original; result: string }) => {
-          c.result = c.resources.label;
+        step: (c: { readonly resources: typeof original; state: { label: string } }) => {
+          c.state.label = c.resources.label;
           return Promise.resolve();
         },
       },
     },
   };
-  const flow = new Workflow<'main', void, void, typeof original, string>(definition);
+  const flow = new Workflow<'main', void, { label: string }, typeof original, string>(definition);
   definition.resources = { label: 'replacement' };
   original.label = 'original-updated';
   expect(await flow.run({ input: undefined })).toBe('original-updated');
@@ -113,7 +110,6 @@ it('shares bound capabilities across parallel runs while isolating cancellation 
   const flow = workflow(
     async (c) => {
       contexts.push(c);
-      c.state.values.push(c.state.input);
       if (contexts.length === 2) started.resolve();
       if (c.state.input === 4) {
         await aborted(c.signal);
@@ -143,9 +139,8 @@ it('shares bound capabilities across parallel runs while isolating cancellation 
     release.resolve();
   }
   expect(await completed).toEqual([9]);
-  expect(contexts.map((c) => c.state.values)).toEqual([[4], [9]]);
+  expect(contexts.map((c) => c.state.values)).toEqual([[], [9]]);
   expect(contexts[0]?.state).not.toBe(contexts[1]?.state);
-  expect(contexts[0]?.result).not.toBe(contexts[1]?.result);
   expect(contexts[0]?.workflowRunId).not.toBe(contexts[1]?.workflowRunId);
   expect(hook).toHaveBeenCalledTimes(2);
   await expect(flow.run({ input: 9 })).resolves.toEqual([9]);

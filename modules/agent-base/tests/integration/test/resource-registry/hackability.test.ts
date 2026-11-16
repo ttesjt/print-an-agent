@@ -76,7 +76,9 @@ it('replaces a Provider and complete Bundle graph through composition, leaving C
         ...base.stepDefinitions.runModelOperation,
         step: async (context) => {
           await context.runStep('prepareInput');
-          context.result = { status: 'skipped', reason: 'consumer-defined graph' };
+          context.state.operationOutput = {
+            value: { status: 'skipped', reason: 'consumer-defined graph' },
+          };
         },
       },
     },

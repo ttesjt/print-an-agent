@@ -119,3 +119,28 @@ it('supports explicit Workflow skip without acquiring or closing resources', asy
   ).toBe('skipped');
   expect(f.calls).toEqual({ embeddings: 0, publication: 0 });
 });
+
+it('distinguishes an explicit Step outcome from an override that produces nothing', async () => {
+  const f = fixture();
+  const resources = createRetrievalWorkflowResources(f.resources);
+  const input = { memoryId: 'missing', requestId: 'a', content: 'x' };
+  const missingOutput = createRetrievalIngestDefinition({
+    stepOverrides: { runOperation: () => Promise.resolve() },
+  });
+  await expect(new Workflow({ ...missingOutput, resources }).run({ input })).rejects.toMatchObject({
+    code: 'REPRESENTATION_INVALID',
+  });
+  const skipped = createRetrievalIngestDefinition({
+    stepOverrides: {
+      runOperation({ state }) {
+        state.outcome = { status: 'skipped', reason: 'consumer policy' };
+        return Promise.resolve();
+      },
+    },
+  });
+  await expect(new Workflow({ ...skipped, resources }).run({ input })).resolves.toEqual({
+    status: 'skipped',
+    reason: 'consumer policy',
+  });
+  expect(f.calls).toEqual({ embeddings: 0, publication: 0 });
+});

@@ -235,7 +235,8 @@ function runCli(arguments_: readonly string[]): {
   };
 }
 
-describe('standalone Agent Base CLI process', () => {
+// Lifecycle scenarios start multiple Node processes sequentially.
+describe('standalone Agent Base CLI process', { timeout: 15_000 }, () => {
   it('manages a directory-backed Agent lifecycle and opens it for provider execution', async () => {
     const server = await startLoopbackServer();
     const managed = await createManagedManifest(server);

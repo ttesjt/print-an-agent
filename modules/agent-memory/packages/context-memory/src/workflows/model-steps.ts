@@ -1,6 +1,6 @@
 import type { ModelMemoryOperation } from '../contracts/model.js';
 import { ContextMemoryError, assertMemoryNotAborted } from '../errors.js';
-import { jsonValue } from '../validation/value.js';
+import { requirePreparedMemoryInput } from './input-preparation.js';
 import { modelMemorySignal, type ModelMemoryContext } from './model-types.js';
 import { checkMemoryInputBudget } from '../model/input-budget.js';
 import { throwMemoryPlannerFailure } from '../model/failures.js';
@@ -13,17 +13,13 @@ export function requireUpdate(context: ModelMemoryContext) {
 export function modelMemorySteps(operation: ModelMemoryOperation) {
   return {
     prepareInput(this: void, context: ModelMemoryContext) {
-      jsonValue(context.input);
-      context.state.input = structuredClone(context.input);
+      context.state.prepareInput();
       return Promise.resolve();
     },
     async beginUpdate(this: void, context: ModelMemoryContext) {
-      const input = context.state.input;
-      if (input === undefined)
-        throw new ContextMemoryError('INPUT_INVALID', 'Prepared input is missing.');
       const result = await context.resources.updates.begin(
         operation,
-        input,
+        requirePreparedMemoryInput(context.state),
         modelMemorySignal(context)
       );
       if (result.status === 'replayed') context.result = result.result;

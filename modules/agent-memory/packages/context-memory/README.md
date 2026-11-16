@@ -77,8 +77,13 @@ accept normal Step overrides, condition, executor and lifecycle hooks. Bundle `w
 complete definitions. Resources contain narrow domain operations, not a raw store writer. Assembly
 does no I/O; the host still owns resource cleanup after all runs settle.
 
-Default definitions register `prepareInput`, `executeOperation` and `runMemoryOperation`. Inputs are
-validated as JSON and detached before the domain call. A condition-skipped mutation returns
+Default definitions register `prepareInput`, `executeOperation` and `runMemoryOperation`. The
+original input is available read-only as `context.state.input`. The default `prepareInput` Step
+calls `context.state.prepareInput()` to validate it as JSON and detach it into the read-only
+`context.state.preparedInput` slot. An override that keeps downstream Steps can wrap the default
+Step or explicitly prepare the input. Deterministic overrides may pass a same-type replacement to
+`state.prepareInput(replacement)`; it is also validated and detached before the domain call.
+Returning without preparation does not admit a domain call. A condition-skipped mutation returns
 `{ status: 'skipped', reason: 'condition-not-met' }` without a receipt. Skipped queries return undefined;
 missing receipt queries also return undefined, whereas a missing document read is an error.
 Default Executor/lifecycle wrappers retain an acknowledged mutation receipt if Step post-processing
@@ -190,3 +195,8 @@ automatic model retry is added. Named model Steps are `prepareInput`, `beginUpda
 `refineCompactionPlan` and `commitCandidate`, coordinated by `runModelOperation`. Custom Steps should
 pass `modelMemorySignal(context)` to borrowed work so both Core child-scope cancellation and the
 Memory-owned deadline are respected. Resources are shared; mutable state remains per run.
+`ModelMemoryState<Input>` and `ModelMemoryContext<Input>` preserve each operation's input type.
+Custom Edit Steps can read `context.state.input.instruction`, Observe Steps can read
+`context.state.input.context`, and Compact Steps can read `context.state.input.target`.
+`beginUpdate` only uses the detached input. Model-driven `state.prepareInput()` takes no replacement;
+shared Steps cannot substitute another operation's input. Both input slots are read-only.

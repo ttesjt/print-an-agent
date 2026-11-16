@@ -47,8 +47,10 @@ it('consumes public contracts with independent resources, custom tools/Steps, ex
         stepOverrides: {
           executeOperation: async (context) => {
             readStep();
+            const input = context.state.preparedInput;
+            if (input === undefined) throw new Error('Expected a prepared version-context input.');
             context.result = await context.resources.memory.readVersionContext(
-              context.input,
+              input,
               context.signal
             );
           },

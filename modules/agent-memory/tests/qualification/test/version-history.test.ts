@@ -98,7 +98,7 @@ it('replaces named Steps and the entire historical graph without changing the re
             skippable: false,
             step: async (context) => {
               context.result = await context.resources.memory.inspectVersion(
-                context.input,
+                context.state.input,
                 context.signal
               );
             },

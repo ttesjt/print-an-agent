@@ -10,6 +10,7 @@ import { modelMemorySteps } from './model-steps.js';
 import { runModelMemory } from './model-composite.js';
 import { memoryLifecycle } from './lifecycle.js';
 import { memoryExecutor } from './outcome.js';
+import { createModelMemoryInputState } from './input-preparation.js';
 
 function definition<I extends ModelMemoryInput>(
   operation: ModelMemoryOperation,
@@ -21,7 +22,8 @@ function definition<I extends ModelMemoryInput>(
     name: `context-memory.${operation}`,
     entryStep: 'runModelOperation',
     createResult: () => ({ status: 'skipped', reason: 'condition-not-met' }),
-    createState: () => ({ compactionPasses: 0, conflictRetries: 0 }),
+    createState: ({ input }) =>
+      createModelMemoryInputState(input, { compactionPasses: 0, conflictRetries: 0 }),
     executeStep: memoryExecutor(options.executeStep),
     lifecycle: memoryLifecycle(options.lifecycle),
     stepDefinitions: {

@@ -102,10 +102,10 @@ it('a replaced preparation Step cannot bypass the real domain budget', async () 
       apply: createMemoryApplyDefinition({
         stepOverrides: {
           prepareInput: (context) => {
-            context.state.input = {
-              ...context.input,
+            context.state.prepareInput({
+              ...context.state.input,
               commands: [{ op: 'add', content: 'too long' }],
-            };
+            });
             return Promise.resolve();
           },
         },

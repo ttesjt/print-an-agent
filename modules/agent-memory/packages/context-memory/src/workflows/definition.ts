@@ -1,14 +1,16 @@
 import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
 import type { MemoryOperations } from './resources.js';
 import { ContextMemoryError } from '../errors.js';
-import { jsonValue } from '../validation/value.js';
+import {
+  createMemoryInputPreparation,
+  requirePreparedMemoryInput,
+  type DeterministicMemoryWorkflowInput,
+} from './input-preparation.js';
 import { memoryLifecycle } from './lifecycle.js';
 import { memoryExecutor } from './outcome.js';
 
 export type MemoryStepName = 'runMemoryOperation' | 'prepareInput' | 'executeOperation';
-export interface MemoryWorkflowState<I> {
-  input?: I;
-}
+export type MemoryWorkflowState<I> = DeterministicMemoryWorkflowInput<I>;
 export type MemoryDefinition<
   I,
   O,
@@ -52,7 +54,7 @@ export function memoryDefinition<
     ...options,
     name,
     entryStep: 'runMemoryOperation',
-    createState: () => ({}),
+    createState: ({ input }) => createMemoryInputPreparation(input),
     createResult: initial,
     ...(mutation ? { executeStep: memoryExecutor(options.executeStep) } : {}),
     stepDefinitions: {
@@ -69,8 +71,7 @@ export function memoryDefinition<
         cardinality: 'at-most-once',
         step: (context) => {
           try {
-            jsonValue(context.input);
-            context.state.input = structuredClone(context.input);
+            context.state.prepareInput();
           } catch (cause) {
             throw new ContextMemoryError('INPUT_INVALID', 'Workflow input must be JSON data.', {
               cause,
@@ -84,9 +85,11 @@ export function memoryDefinition<
         skippable: false,
         cardinality: 'at-most-once',
         step: async (context) => {
-          if (context.state.input === undefined)
-            throw new ContextMemoryError('INPUT_INVALID', 'Prepared input is missing.');
-          context.result = await execute(context.resources, context.state.input, context.signal);
+          context.result = await execute(
+            context.resources,
+            requirePreparedMemoryInput(context.state),
+            context.signal
+          );
         },
       },
     },

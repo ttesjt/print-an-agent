@@ -1,5 +1,15 @@
 import { expectTypeOf, it } from 'vitest';
+import {
+  createMemoryCompactDefinition,
+  createMemoryEditDefinition,
+  createMemoryObserveDefinition,
+} from '@print-an-agent/context-memory';
 import type {
+  CompactMemoryInput,
+  EditMemoryInput,
+  ModelMemoryContext,
+  ModelMemoryState,
+  ObserveMemoryInput,
   CompactionTarget,
   ItemCommand,
   MemoryStore,
@@ -16,4 +26,78 @@ it('keeps add identities, per-read render overrides and target modes out of the 
   // @ts-expect-error Direct and calculated targets are mutually exclusive.
   const badTarget: CompactionTarget = { maxTokens: 1, ratio: 0.8 };
   void [add, badAdd, badRead, badTarget];
+});
+
+it('preserves operation-specific inputs in model Workflow state and custom Steps', () => {
+  expectTypeOf<ModelMemoryState<EditMemoryInput>['input']>().toEqualTypeOf<EditMemoryInput>();
+  expectTypeOf<
+    ModelMemoryContext<ObserveMemoryInput>['state']['input']
+  >().toEqualTypeOf<ObserveMemoryInput>();
+  expectTypeOf<ModelMemoryState<ObserveMemoryInput>['preparedInput']>().toEqualTypeOf<
+    ObserveMemoryInput | undefined
+  >();
+
+  const edit = createMemoryEditDefinition({
+    stepOverrides: {
+      planUpdate(context) {
+        expectTypeOf(context.state.input.instruction).toBeString();
+        // @ts-expect-error Compaction targets belong to Compact inputs.
+        void context.state.input.target;
+        return Promise.resolve();
+      },
+    },
+    executeStep({ context, step }) {
+      expectTypeOf(context.state.input).toEqualTypeOf<EditMemoryInput>();
+      return step(context);
+    },
+  });
+  expectTypeOf(edit.createState).returns.toEqualTypeOf<ModelMemoryState<EditMemoryInput>>();
+
+  const observe = createMemoryObserveDefinition({
+    stepOverrides: {
+      planUpdate(context) {
+        expectTypeOf(context.state.input.context).toEqualTypeOf<ObserveMemoryInput['context']>();
+        // @ts-expect-error Editing instructions belong to Edit inputs.
+        void context.state.input.instruction;
+        return Promise.resolve();
+      },
+    },
+    lifecycle: {
+      onSuccess(context) {
+        expectTypeOf(context.state.input).toEqualTypeOf<ObserveMemoryInput>();
+      },
+    },
+  });
+  expectTypeOf(observe.createState).returns.toEqualTypeOf<ModelMemoryState<ObserveMemoryInput>>();
+
+  const compact = createMemoryCompactDefinition({
+    stepOverrides: {
+      planCompaction(context) {
+        expectTypeOf(context.state.input.target).toEqualTypeOf<CompactMemoryInput['target']>();
+        // @ts-expect-error Experience context belongs to Observe and Edit inputs.
+        void context.state.input.context;
+        return Promise.resolve();
+      },
+    },
+  });
+  expectTypeOf(compact.createState).returns.toEqualTypeOf<ModelMemoryState<CompactMemoryInput>>();
+});
+
+it('keeps even a broadly typed override from replacing operation-specific input', () => {
+  const editInput: EditMemoryInput = {
+    memoryId: 'notes',
+    requestId: 'review',
+    instruction: 'Edit, not observe',
+  };
+  const prepareInput = ({ state }: ModelMemoryContext) => {
+    // @ts-expect-error An override cannot overwrite the operation's original input.
+    state.input = editInput;
+    // @ts-expect-error A broad override cannot inject an Edit input into a narrower Observe.
+    state.preparedInput = editInput;
+    // @ts-expect-error Preparation validates and detaches the original input only.
+    state.prepareInput(editInput);
+    return Promise.resolve();
+  };
+  // Sharing an override is still allowed; widening its context does not grant input write access.
+  createMemoryObserveDefinition({ stepOverrides: { prepareInput } });
 });

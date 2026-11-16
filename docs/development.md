@@ -24,6 +24,8 @@ pnpm validate
 ```
 
 `validate` runs format and lint checks, typechecks, architecture and package tests, and builds.
+The [Validate workflow](../.github/workflows/validate.yml) runs this gate for pushes and pull
+requests to `main`.
 Local HTTP fixtures need permission to listen on loopback. The default gate does not require
 live model credentials. The optional real Transformer backend qualification is a separate
 `pnpm validate:model-backend` command.

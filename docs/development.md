@@ -15,20 +15,38 @@ pnpm exec tsc --noEmit
 `test:architecture` builds the TypeScript workspace before checking module boundaries. This
 Node.js-only path does not run all package tests or the Python suite.
 
-For full workspace validation, also install Python `3.11` and uv `0.11.x`. Sync all Python
+For the validation profiles, also install Python `3.11` and uv `0.11.x`. Sync all Python
 workspace members so the Workbench scaffold and reference backend are both available:
 
 ```sh
-uv sync --locked --all-packages --project modules/model-workbench/templates/python-model-backend/python
-pnpm validate
+pnpm python:sync --locked
 ```
 
-`validate` runs format and lint checks, typechecks, architecture and package tests, and builds.
-The [Validate workflow](../.github/workflows/validate.yml) runs this gate for pushes and pull
-requests to `main`.
+| Profile  | Local command            | Coverage                                                                                                                                     |
+| -------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Quick    | `pnpm validate:quick`    | Formatting, workspace build and architecture tests, root TypeScript types, public Agent integration tests, and Python lint, types, and tests |
+| Standard | `pnpm validate:standard` | Quick plus typecheck, lint, and tests for directly changed workspace packages                                                                |
+| Full     | `pnpm validate`          | Workspace formatting, lint, typechecks, architecture and package tests, and builds                                                           |
+
+Local Standard compares the working tree, including new untracked files, against the merge base
+with `origin/main`. To use a different base, pass a Git revision such as
+`pnpm validate:standard main`. Markdown changes alone do not select packages.
+
+Changes to Workflow Core or Bundle also run the Workflow qualification typecheck to verify
+the public types from an independent consumer.
+
 Local HTTP fixtures need permission to listen on loopback. The default gate does not require
 live model credentials. The optional real Transformer backend qualification is a separate
 `pnpm validate:model-backend` command.
+
+The [Validate workflow](../.github/workflows/validate.yml) runs Standard on pull requests to
+`main`, using the PR merge commit's `main` parent as the base. New commits cancel older runs
+for the same pull request.
+
+For shared configuration, lockfile, or public API changes that affect other packages,
+run the full gate. Select a branch in the
+[Validate Full workflow](../.github/workflows/validate-full.yml) in GitHub Actions to run
+`pnpm validate` manually. Merging a pull request does not trigger a second run.
 
 For offline validation, use `pnpm install --offline --frozen-lockfile --ignore-scripts`,
 add `--offline` to the uv sync command, and run `UV_OFFLINE=1 pnpm validate`. These commands

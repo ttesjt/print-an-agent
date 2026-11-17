@@ -36,6 +36,8 @@
     "test:model-backend:smoke": "pnpm --filter @print-an-agent/workbench-integration-tests... --if-present build && TA_AGENT_MODEL_BACKEND_REQUIRE_SMOKE=1 pnpm --filter @print-an-agent/workbench-integration-tests exec vitest run test/python-model-backend.test.ts",
     "scaffold:model-backend": "uv run --project modules/model-workbench/templates/python-model-backend/python --package ta-agent-model-backend-scaffold model-backend-scaffold",
     "validate:model-backend": "pnpm python:sync:model-backend && pnpm python:validate && pnpm python:test:model-backend && pnpm --filter @print-an-agent/workbench-python-model-backend-template-adapter test && pnpm test:model-backend:smoke",
+    "validate:quick": "pnpm format:check && pnpm test:architecture && pnpm exec tsc --noEmit && pnpm --filter @print-an-agent/base-integration-tests exec vitest run test/public-agent-consumer.test.ts test/standalone-provider.test.ts && pnpm python:lint && pnpm python:typecheck && pnpm python:test",
+    "validate:standard": "node tooling/validation/standard.ts",
     "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "engines": {

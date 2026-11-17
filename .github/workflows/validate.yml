@@ -1,10 +1,12 @@
 name: Validate
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+
+concurrency:
+  group: validate-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -15,6 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          # The PR merge commit's first parent is the tested main revision.
+          fetch-depth: 2
           persist-credentials: false
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
@@ -27,6 +31,5 @@ jobs:
           python-version: '3.11'
       - run: pnpm install --frozen-lockfile
       - run: pnpm python:sync --locked
-      - run: pnpm validate
-        env:
-          NODE_OPTIONS: --max-old-space-size=4096
+      - name: Run Standard validation
+        run: pnpm validate:standard HEAD^1

@@ -200,6 +200,7 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
   const compactionWorkflow =
     options.sessionCompactionWorkflow ??
     bindAgentWorkflow({
+      projectInput: (context: SessionCompactionAgentRunContext) => context,
       workflow: createSessionCompactionWorkflow({
         resources: compactionResources,
         stepOverrides: mergeStepOverrides(

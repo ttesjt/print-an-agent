@@ -77,6 +77,7 @@ it('drains the real Pi tool loop after Step executor failure before closing Requ
       },
     });
     return bindAgentWorkflow({
+      projectInput: (context: RequestAgentRunContext) => context,
       workflow,
       applyResult(context, result) {
         if (result !== undefined) context.output = result;

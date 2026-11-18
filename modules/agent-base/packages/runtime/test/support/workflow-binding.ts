@@ -3,9 +3,9 @@ import { Workflow, STEP_CARDINALITY, type WorkflowDefinition } from '@print-an-a
 import type { BaseAgentRunContext } from '../../src/index.js';
 
 export type Run = BaseAgentRunContext<string, string>;
-export type Definition = WorkflowDefinition<
+export type Definition<TInput = Run> = WorkflowDefinition<
   'entry' | 'child' | 'peer',
-  Run,
+  TInput,
   { output?: string },
   undefined,
   string | undefined
@@ -21,11 +21,11 @@ export function context(signal: AbortSignal = new AbortController().signal): Run
     operations: { invoke: () => Promise.reject(new Error('No child Operations.')) },
   };
 }
-export function workflow(options: Partial<Definition> = {}) {
+export function workflow<TInput = Run>(options: Partial<Definition<TInput>> = {}) {
   const step = { cardinality: STEP_CARDINALITY.AT_MOST_ONCE, skippable: false };
   return new Workflow<
     'entry' | 'child' | 'peer',
-    Run,
+    TInput,
     { output?: string },
     undefined,
     string | undefined

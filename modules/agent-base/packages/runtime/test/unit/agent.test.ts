@@ -31,6 +31,7 @@ class RecordingTraceSink implements AgentTraceEventSink {
 
 function textWorkflow(name: string, prefix: string): AgentWorkflow<TextRunContext, string> {
   return bindAgentWorkflow({
+    projectInput: (context: TextRunContext) => context,
     workflow: new Workflow<
       StepName,
       TextRunContext,
@@ -66,6 +67,7 @@ type NumberRunContext = BaseAgentRunContext<number, number>;
 
 function numberWorkflow(name: string): AgentWorkflow<NumberRunContext, number> {
   return bindAgentWorkflow({
+    projectInput: (context: NumberRunContext) => context,
     workflow: new Workflow<
       StepName,
       NumberRunContext,
@@ -167,6 +169,7 @@ describe('Agent Operations', () => {
     let observedSignal: AbortSignal | undefined;
     let mappedSignal: AbortSignal | undefined;
     const workflow = bindAgentWorkflow({
+      projectInput: (context: TextRunContext) => context,
       workflow: new Workflow<
         StepName,
         TextRunContext,
@@ -237,6 +240,7 @@ describe('Agent Operations', () => {
     let workflowStarted = false;
     const replacementSignal = new AbortController().signal;
     const workflow = bindAgentWorkflow({
+      projectInput: (context: NumberRunContext) => context,
       workflow: new Workflow<StepName, NumberRunContext, Record<never, never>, undefined, number>({
         name: 'invalid-preparation',
         resources: undefined,
@@ -388,6 +392,7 @@ describe('Agent Operations', () => {
   it('does not let an Operation executor swallow a Run failure', async () => {
     const failure = new Error('Run failed');
     const workflow = bindAgentWorkflow({
+      projectInput: (context: NumberRunContext) => context,
       workflow: new Workflow<StepName, NumberRunContext, Record<never, never>, undefined, number>({
         name: 'failing-run',
         resources: undefined,
@@ -443,6 +448,7 @@ describe('Agent Operations', () => {
     const executorController = new AbortController();
     const parentFailure = new Error('caller cancelled');
     const workflow = bindAgentWorkflow({
+      projectInput: (context: NumberRunContext) => context,
       workflow: new Workflow<StepName, NumberRunContext, Record<never, never>, undefined, number>({
         name: 'unawaited-run',
         resources: undefined,
@@ -520,6 +526,7 @@ describe('Agent Operations', () => {
       startWork = resolve;
     });
     const workflow = bindAgentWorkflow({
+      projectInput: (context: NumberRunContext) => context,
       workflow: new Workflow<StepName, NumberRunContext, Record<never, never>, undefined, number>({
         name: 'parent-cancellation',
         resources: undefined,
@@ -582,6 +589,7 @@ describe('Agent Operations', () => {
     const localFailure = new Error('executor cancelled');
     let observedSignal: AbortSignal | undefined;
     const workflow = bindAgentWorkflow({
+      projectInput: (context: NumberRunContext) => context,
       workflow: new Workflow<StepName, NumberRunContext, Record<never, never>, undefined, number>({
         name: 'executor-cancellation',
         resources: undefined,
@@ -644,6 +652,7 @@ describe('Agent Operations', () => {
     const started = Promise.withResolvers<void>();
     let activeRunCancelled = false;
     const workflow = bindAgentWorkflow({
+      projectInput: (context: NumberRunContext) => context,
       workflow: new Workflow<StepName, NumberRunContext, Record<never, never>, undefined, number>({
         name: 'concurrent-reentry',
         resources: undefined,
@@ -781,6 +790,7 @@ describe('Agent Operations', () => {
       Readonly<{ values: string[] }>;
 
     const parentWorkflow = bindAgentWorkflow({
+      projectInput: (context: ParentContext) => context,
       workflow: new Workflow<
         StepName,
         ParentContext,
@@ -875,6 +885,7 @@ describe('Agent Operations', () => {
       exposure: 'public',
       workflowPlan: [
         bindAgentWorkflow({
+          projectInput: (context: ParentContext) => context,
           workflow: new Workflow<
             StepName,
             ParentContext,
@@ -936,6 +947,7 @@ describe('Agent Operations', () => {
       startChild = resolve;
     });
     const childWorkflow = bindAgentWorkflow({
+      projectInput: (context: NumberRunContext) => context,
       workflow: new Workflow<StepName, NumberRunContext, Record<never, never>, undefined, number>({
         name: 'cancellable-child',
         resources: undefined,
@@ -979,6 +991,7 @@ describe('Agent Operations', () => {
     type ParentContext = BaseAgentRunContext<string, string, typeof callableOperations>;
 
     const parentWorkflow = bindAgentWorkflow({
+      projectInput: (context: ParentContext) => context,
       workflow: new Workflow<
         StepName,
         ParentContext,
@@ -1173,6 +1186,7 @@ describe('Agent Operations', () => {
     }>;
 
     const workflow = bindAgentWorkflow({
+      projectInput: (context: UndeclaredContext) => context,
       workflow: new Workflow<
         StepName,
         UndeclaredContext,
@@ -1243,6 +1257,7 @@ describe('Agent Operations', () => {
       invokeTarget: (context: C) => Promise<number>
     ): AgentWorkflow<C, number> {
       return bindAgentWorkflow({
+        projectInput: (context: C) => context,
         workflow: new Workflow<
           StepName,
           C,
@@ -1386,6 +1401,7 @@ describe('Agent Operations', () => {
     });
 
     const noOutputWorkflow = bindAgentWorkflow({
+      projectInput: (context: NumberRunContext) => context,
       workflow: new Workflow<
         StepName,
         NumberRunContext,

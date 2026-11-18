@@ -78,6 +78,7 @@ describe('Agent composition extensions', () => {
     const agent = composeAgentWithExtensions(createOptions(), (standard) => {
       observedStandardDefinition = standard;
       const workflow = bindAgentWorkflow({
+        projectInput: (context: ProductRunContext) => context,
         workflow: new Workflow<
           ProductStepName,
           ProductRunContext,

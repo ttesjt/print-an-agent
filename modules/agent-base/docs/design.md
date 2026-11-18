@@ -344,22 +344,30 @@ interface WorkflowContext<N extends string, S, R> {
 }
 ```
 
-`@print-an-agent/base-runtime` supplies `bindAgentWorkflow({ workflow, applyResult })`.
+`@print-an-agent/base-runtime` supplies
+`bindAgentWorkflow({ workflow, projectInput, applyResult })`.
 The Core Workflow's factory binds prepared resources at construction, alongside Step configuration.
-This binding passes the Agent Run Context as Core input, supplies
-cancellation and correlation, and projects metadata to Agent tracing. It does not run Steps,
+The required synchronous `projectInput` selects the Core input from each Agent Run; the Workflow's
+input type is independent of the Agent Run type. The binding separately supplies cancellation and
+correlation, and projects metadata to Agent tracing. It does not run Steps,
 assemble business state, or acquire/close resources. Its result exposes `applyTo`, which refuses
 a different Agent Run Context. Agent Operation orchestration applies that result explicitly.
 Workflow Plans and Catalogs contain these bindings; one binding may be shared by compatible Operations
 that intentionally use the same bound capabilities. Each invocation retains its own state, result,
 signal and trace correlation. Different stores require separately assembled Workflows.
 
+The binding rejects top-level Promise/thenable projection results before Core admission with
+`WORKFLOW_INPUT_PROJECTION_ASYNC`, even for broad input types. It observes native Promise rejection
+without awaiting invalid work or invoking custom thenable methods. Synchronous projection exceptions
+retain their original identity.
+
 Request and compaction return `undefined` from `createSkippedResult` to preserve the existing Agent
 output on a condition skip. For an executed run, `createResult(state)` requires the completed
 response or compaction outcome.
 
-Each Workflow's `createState` converts its external input into the business data exposed under
-`context.state`. Request and compaction store their Agent Run Context as `context.state.agentRun`.
+Each Workflow's `createState` converts its projected input into the business data exposed under
+`context.state`. Request and compaction explicitly choose an identity projection and store their
+Agent Run Context as `context.state.agentRun`.
 Other Workflows may select or transform the input into an independently defined state shape.
 Ports and policies are in `context.resources`. The effective `context.signal`
 may additionally include a parallel group's cancellation; pass it explicitly to adapters and child

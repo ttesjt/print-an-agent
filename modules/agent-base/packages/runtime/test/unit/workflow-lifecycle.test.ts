@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import { bindAgentWorkflow } from '../../src/index.js';
-import { context, workflow } from '../support/workflow-binding.js';
+import { context, workflow, type Run } from '../support/workflow-binding.js';
 
 it('drains a cancelled parallel child before parent resources and Agent result application', async () => {
   const started = Promise.withResolvers<void>();
@@ -11,6 +11,7 @@ it('drains a cancelled parallel child before parent resources and Agent result a
   const failure = new Error('child failed');
   const parent = new AbortController();
   const binding = bindAgentWorkflow({
+    projectInput: (context: Run) => context,
     applyResult,
     workflow: workflow({
       stepOverrides: {
@@ -59,6 +60,7 @@ it('uses Core admission cancellation without starting new Step side effects', as
   source.abort(reason);
   const child = vi.fn(() => Promise.resolve());
   const binding = bindAgentWorkflow({
+    projectInput: (context: Run) => context,
     applyResult: () => undefined,
     workflow: workflow({ stepOverrides: { child } }),
   });

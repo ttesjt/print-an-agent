@@ -14,8 +14,10 @@ export interface AgentWorkflow<C extends AnyAgentRunContext, TResult = unknown> 
   run(context: C): Promise<AgentWorkflowRun<C, TResult>>;
 }
 
-export interface AgentWorkflowBinding<C extends AnyAgentRunContext, TResult> {
+export interface AgentWorkflowBinding<C extends AnyAgentRunContext, TInput, TResult> {
   /** An assembled Workflow whose borrowed resources are already bound. */
-  readonly workflow: RunnableWorkflow<C, TResult>;
+  readonly workflow: RunnableWorkflow<TInput, TResult>;
+  /** Selects synchronous input; top-level Promises/thenables are rejected before Workflow admission. */
+  readonly projectInput: (context: C) => NoInfer<TInput>;
   readonly applyResult: (context: C, result: TResult) => void | Promise<void>;
 }

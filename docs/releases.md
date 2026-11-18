@@ -12,7 +12,9 @@ Website consumers install the three entry packages:
 pnpm add @print-an-agent/base-request @print-an-agent/model-invocation-core @print-an-agent/model-invocation-pi
 ```
 
-Their production dependency closure contains exactly these ten packages:
+The reviewed release also includes the independent `@print-an-agent/base-runtime` entry. Request and
+Session do not depend on it; consumers that bind Workflows to Agent Operations install it explicitly.
+The four release entries and their production closure contain exactly these ten packages:
 
 - `@print-an-agent/base-request`
 - `@print-an-agent/base-actor`
@@ -45,7 +47,7 @@ directory. Preparation refuses an existing directory; use a new directory for a 
 The default destination, `temp/npm-release`, is ignored by Git. The manual **Prepare npm packages**
 GitHub workflow runs the same commands and uploads the reviewable artifacts without publishing.
 
-Preparation computes the reviewed production closure from the three entries, cleans and builds it,
+Preparation computes the reviewed production closure from the four release entries, cleans and builds it,
 then stages a minimal package manifest. Internal `workspace:*` references become exact release
 versions; external production dependencies retain their exact pinned versions. There is no package
 renaming. Tarballs contain ESM JavaScript, declarations, a package README, and the canonical root MIT
@@ -55,7 +57,7 @@ The Pi adapter additionally carries third-party notices and upstream MIT license
 
 Verification inspects the actual tarballs, checks public entries and integrity, then starts a
 read-only loopback npm registry serving only these artifacts. An isolated temporary project outside
-the workspace declares only the three entry dependencies. The other seven must resolve transitively.
+the workspace declares only the four release entry dependencies. The other six must resolve transitively.
 External packages come from the public npm registry. The verifier uses empty user/global npm config
 files and removes inherited npm authentication from child processes.
 

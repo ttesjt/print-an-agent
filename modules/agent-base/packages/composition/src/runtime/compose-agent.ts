@@ -23,11 +23,9 @@ import {
   parseSessionBranchId,
   parseSessionId,
   validateSessionCompactionPolicy,
-  defineSessionCompactionTarget,
+  defineCompactSessionInput,
   resolveSessionCompactionTarget,
   bindSessionCompactionTokenCounter,
-  type CompactSessionInput,
-  type SessionCompactionAgentRunContext,
 } from '@print-an-agent/base-session';
 import {
   DEFAULT_TOOL_EXECUTION_POLICY,
@@ -45,12 +43,12 @@ import {
 import { mergeStepOverrides, runWithExecutionTimeout } from '@print-an-agent/workflow-core';
 import { composeRequestWorkflow } from './request-workflow.js';
 import { AgentCompositionError } from './composition-error.js';
-import {
-  compactionRecord,
-  executeCompactionRun,
-  resolveConsumerTokenCounter,
-} from './compaction-operation.js';
-import type { ComposeAgentOptions, RequestAgentRunContext } from './types.js';
+import { executeCompactionRun, resolveConsumerTokenCounter } from './compaction-operation.js';
+import type {
+  ComposeAgentOptions,
+  RequestAgentRunContext,
+  SessionCompactionAgentRunContext,
+} from './types.js';
 
 const DEFAULT_INSTRUCTIONS = 'Respond helpfully and concisely.';
 const DEFAULT_COMPACTION_INSTRUCTIONS =
@@ -74,22 +72,6 @@ function validateCompactionInstructions(value: unknown): string {
     );
   }
   return value;
-}
-
-function validateCompactionInput(input: CompactSessionInput): void {
-  compactionRecord(input);
-  if (
-    typeof input !== 'object' ||
-    input === null ||
-    typeof (input as Partial<CompactSessionInput>).sessionId !== 'string' ||
-    ((input as Partial<CompactSessionInput>).branchId !== undefined &&
-      typeof (input as Partial<CompactSessionInput>).branchId !== 'string')
-  ) {
-    throw new AgentSessionError(
-      'SESSION_COMPACTION_INVALID',
-      'Session compaction input must contain a sessionId string.'
-    );
-  }
 }
 
 function parseToolAllowList(values: readonly string[] | undefined): readonly ToolName[] {
@@ -199,7 +181,11 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
   const compactionWorkflow =
     options.sessionCompactionWorkflow ??
     bindAgentWorkflow({
-      projectInput: (context: SessionCompactionAgentRunContext) => context,
+      projectInput: (context: SessionCompactionAgentRunContext) => ({
+        agentId: context.identity.id,
+        compactionInput: context.input,
+        ...(context.traceEmitter === undefined ? {} : { traceEmitter: context.traceEmitter }),
+      }),
       workflow: createSessionCompactionWorkflow({
         resources: compactionResources,
         stepOverrides: mergeStepOverrides(
@@ -231,11 +217,11 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
     executeRun: ({ config, signal, execute }) =>
       executeCompactionRun({ policy: config, signal, execute }),
     prepareRun: async ({ identity: operationIdentity, input }) => {
-      validateCompactionInput(input);
+      const normalized = defineCompactSessionInput(input);
       const target = resolveSessionCompactionTarget(
         compactionPolicy.maxContextTokens,
         compactionPolicy.target,
-        input.target
+        normalized.target
       );
       if (target < compactionPolicy.minimumTargetTokens) {
         throw new AgentSessionError(
@@ -243,7 +229,7 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
           'Target is below the minimum planner target.'
         );
       }
-      const sessionId = parseSessionId(input.sessionId);
+      const sessionId = parseSessionId(normalized.sessionId);
       const snapshot = await session.inspect({ agentId: operationIdentity.id, sessionId });
       if (snapshot === undefined) {
         throw new AgentSessionError(
@@ -252,16 +238,14 @@ export function createStandardAgentDefinition(options: ComposeAgentOptions) {
         );
       }
       const branchId =
-        input.branchId === undefined
+        normalized.branchId === undefined
           ? snapshot.navigation.selectedBranchId
-          : parseSessionBranchId(input.branchId);
+          : parseSessionBranchId(normalized.branchId);
       return Object.freeze({
         input: Object.freeze({
           sessionId,
           branchId,
-          ...(input.target === undefined
-            ? {}
-            : { target: defineSessionCompactionTarget(input.target) }),
+          ...(normalized.target === undefined ? {} : { target: normalized.target }),
         }),
       });
     },

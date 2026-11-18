@@ -63,35 +63,3 @@ export async function executeCompactionRun(options: {
     throw cause;
   }
 }
-
-/** Validate before property reads: public operation inputs may come from JavaScript. */
-export function compactionRecord(input: unknown): void {
-  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
-    throw new AgentSessionError(
-      'SESSION_COMPACTION_INVALID',
-      'Compaction input must be a plain object.'
-    );
-  }
-  const prototype: unknown = Object.getPrototypeOf(input);
-  if (prototype !== Object.prototype && prototype !== null) {
-    throw new AgentSessionError(
-      'SESSION_COMPACTION_INVALID',
-      'Compaction input must be a plain object.'
-    );
-  }
-  for (const key of Reflect.ownKeys(input)) {
-    const property = Object.getOwnPropertyDescriptor(input, key);
-    if (
-      typeof key !== 'string' ||
-      !['sessionId', 'branchId', 'target'].includes(key) ||
-      property === undefined ||
-      !property.enumerable ||
-      !('value' in property)
-    ) {
-      throw new AgentSessionError(
-        'SESSION_COMPACTION_INVALID',
-        'Compaction input contains an unsupported field or accessor.'
-      );
-    }
-  }
-}

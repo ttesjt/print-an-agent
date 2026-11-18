@@ -50,9 +50,9 @@ execution parameters. Consumers may deliberately use `projectInput: (run: MyAgen
 when their Workflow needs that full input.
 
 Each Workflow's `createState` prepares the business data exposed to Steps through `context.state`.
-The official Request binding selects business input and invocation metadata without retaining the
-Agent Run. The compaction binding currently uses the identity projection and retains the Agent Run as
-`context.state.agentRun`.
+Official Request and compaction bindings select business input and invocation-local metadata;
+neither Workflow retains an Agent Run. Their Agent Run types and result application belong to
+composition.
 `resources` contains capabilities bound when constructing the Workflow and `result` is a
 consumer-defined value. Those dependencies are shared across runs; mutable state, output, trace
 emitters and execution leases remain per-run. Core assembles the execution fields.

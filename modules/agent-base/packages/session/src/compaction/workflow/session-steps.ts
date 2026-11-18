@@ -12,8 +12,8 @@ import type { SessionCompactionWorkflowContext } from './types.js';
 
 export async function inspectSession(context: SessionCompactionWorkflowContext): Promise<void> {
   const reference = {
-    agentId: context.state.agentRun.identity.id,
-    sessionId: parseSessionId(context.state.agentRun.input.sessionId),
+    agentId: context.state.agentId,
+    sessionId: parseSessionId(context.state.compactionInput.sessionId),
   };
   if (supportsSessionExecution(context.resources.session)) {
     context.state.execution = await context.resources.session.acquireSessionExecution(reference);
@@ -22,9 +22,9 @@ export async function inspectSession(context: SessionCompactionWorkflowContext):
   if (snapshot === undefined)
     throw new AgentSessionError('SESSION_NOT_FOUND', 'Compaction Session does not exist.');
   const branchId =
-    context.state.agentRun.input.branchId === undefined
+    context.state.compactionInput.branchId === undefined
       ? snapshot.navigation.selectedBranchId
-      : parseSessionBranchId(context.state.agentRun.input.branchId);
+      : parseSessionBranchId(context.state.compactionInput.branchId);
   const compaction = await context.resources.session.readCompaction({ ...reference, branchId });
   context.state.snapshot = snapshot;
   context.state.branchId = branchId;
@@ -56,7 +56,7 @@ export function resolveCompactionTarget(context: SessionCompactionWorkflowContex
   const target = resolveSessionCompactionTarget(
     policy.maxContextTokens,
     policy.target,
-    context.state.agentRun.input.target
+    context.state.compactionInput.target
   );
   if (target < policy.minimumTargetTokens)
     throw new AgentSessionError(
@@ -100,7 +100,7 @@ export async function persistCompaction(context: SessionCompactionWorkflowContex
   const target = resolveSessionCompactionTarget(
     policy.maxContextTokens,
     policy.target,
-    context.state.agentRun.input.target
+    context.state.compactionInput.target
   );
   if (
     compactedContext.text.trim().length === 0 ||

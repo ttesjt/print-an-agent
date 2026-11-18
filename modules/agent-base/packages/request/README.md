@@ -16,15 +16,43 @@ composition uses `bindAgentWorkflow()` from `@print-an-agent/base-runtime` to ap
 originating Agent Run. A condition skip returns `undefined` (no change); an active execution must
 produce a response or it fails with `REQUEST_OUTPUT_STATE_INVALID`.
 
-The standard Workflow's `createState` stores the Agent Run as `context.state.agentRun` alongside
-per-request working data. Steps access borrowed capabilities and policy through `context.resources`.
-`state.response` holds the constructed answer, and `state.completedResponse` records the response
-after delivery, including replay. A replacement Step that handles the full response can supply
-`state.completedResponse` for the final projection. Override Steps use the effective `context.signal`.
-`createState` constructs run-local data, and ports remain owned by their supplying host.
-The bound `createOutputSink` is a factory: each request creates or supplies its own sink. Tools,
-execution leases and reasoning data remain in per-request state, and trace emitters remain on the
-Agent Run. Concurrent requests share prepared ports without sharing mutable request state.
+The official profile accepts `RequestWorkflowInput`: `agentId`, `requestId`, `requestInput`, and an
+optional invocation-local `traceEmitter`. `createDefaultRequestState(input)` selects those fields and
+creates fresh working state; it never retains an Agent Run, its operation invoker, or its output.
+The composition binding projects the input and applies the completed result back to its originating
+Agent Run. `RequestAgentRunContext` belongs to `@print-an-agent/base-composition`.
+
+Steps access borrowed capabilities and policy through `context.resources`. `state.response` holds the
+constructed answer, and `state.completedResponse` records the response after delivery, including
+replay. A replacement Step that handles the full response can supply `state.completedResponse` for
+the final projection. Override Steps use the effective `context.signal`. The bound `createOutputSink`
+is a factory: each request creates or supplies its own sink. Tools, execution leases, reasoning data,
+and trace emitters remain invocation-local; concurrent requests share prepared ports without sharing
+mutable state. Ports remain owned by their supplying host.
+
+```ts
+const workflow = createRequestWorkflow<
+  RequestWorkflowInput,
+  RequestWorkflowState,
+  DefaultRequestWorkflowContext['resources'],
+  AgentResponse
+>({
+  resources, // Explicit Session, Journal, Responsibility, Tool and output ports plus policy.
+  createState: ({ input }) => createDefaultRequestState(input),
+  stepOverrides: createDefaultRequestStepOverrides(),
+  lifecycle: { onError: failRequest, onFinally: releaseRequestExecution },
+});
+const response = await workflow.run({
+  input: { agentId, requestId, requestInput: { message: 'Hello' } },
+  signal,
+});
+```
+
+A direct caller supplies its own request identity and execution boundary. Standard Agent composition
+uses the Agent Run ID as `requestId` and installs the Request deadline through its Operation executor.
+The generic Workflow factory does not install that Operation timeout; a direct caller passes the
+effective signal from its own cancellation/deadline boundary. This does not change port ownership or
+make the Workflow responsible for closing host-owned adapters.
 
 ```text
 request Workflow

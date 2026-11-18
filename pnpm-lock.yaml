@@ -264,9 +264,6 @@ importers:
       '@print-an-agent/base-observability':
         specifier: workspace:*
         version: link:../observability
-      '@print-an-agent/base-runtime':
-        specifier: workspace:*
-        version: link:../runtime
       '@print-an-agent/base-session':
         specifier: workspace:*
         version: link:../session

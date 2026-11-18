@@ -12,7 +12,6 @@ import {
   AgentRequestError,
   DEFAULT_REQUEST_POLICY,
   validateRequestPolicy,
-  type RequestAgentRunContext,
   type RequestPolicy,
 } from '@print-an-agent/base-request';
 import {
@@ -51,7 +50,7 @@ import {
   executeCompactionRun,
   resolveConsumerTokenCounter,
 } from './compaction-operation.js';
-import type { ComposeAgentOptions } from './types.js';
+import type { ComposeAgentOptions, RequestAgentRunContext } from './types.js';
 
 const DEFAULT_INSTRUCTIONS = 'Respond helpfully and concisely.';
 const DEFAULT_COMPACTION_INSTRUCTIONS =

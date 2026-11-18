@@ -127,7 +127,7 @@ async function openResponseStream(context: DefaultRequestWorkflowContext): Promi
   }
   try {
     await request.outputSink.open({
-      requestId: context.state.agentRun.runId,
+      requestId: context.state.requestId,
       sessionId: session.sessionId,
       branchId: requireValue(context.state.turn, 'turn').branchId,
     });
@@ -202,7 +202,7 @@ async function completeAssistantMessage(context: DefaultRequestWorkflowContext):
 function buildAgentResponse(context: DefaultRequestWorkflowContext): Promise<void> {
   const result = requireValue(requireInteraction(context).result, 'interaction.result');
   context.state.response = Object.freeze({
-    requestId: context.state.agentRun.runId,
+    requestId: context.state.requestId,
     sessionId: requireValue(context.state.session, 'session').sessionId,
     branchId: requireValue(context.state.turn, 'turn').branchId,
     message: result.message,

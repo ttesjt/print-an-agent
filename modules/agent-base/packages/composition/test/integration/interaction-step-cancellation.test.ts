@@ -1,4 +1,5 @@
 import {
+  createDefaultRequestState,
   createDefaultRequestStepOverrides,
   createRequestWorkflow,
   failRequest,
@@ -6,9 +7,10 @@ import {
   releaseRequestExecution,
   type AgentResponse,
   type DefaultRequestWorkflowContext,
-  type RequestAgentRunContext,
+  type RequestWorkflowInput,
 } from '@print-an-agent/base-request';
 import { bindAgentWorkflow } from '@print-an-agent/base-runtime';
+import type { RequestAgentRunContext } from '../../src/index.js';
 import { parseSessionId } from '@print-an-agent/base-session';
 import { expect, it, vi } from 'vitest';
 import { defaultRequestStep, interactionAgent } from '../support/interaction-agent.js';
@@ -26,13 +28,13 @@ it.each(['executor', 'delivery'] as const)(
     let actorSignal: AbortSignal | undefined;
     const createWorkflow = (resources: DefaultRequestWorkflowContext['resources']) => {
       const workflow = createRequestWorkflow<
-        RequestAgentRunContext,
+        RequestWorkflowInput,
         DefaultRequestWorkflowContext['state'],
         DefaultRequestWorkflowContext['resources'],
         AgentResponse
       >({
         resources,
-        createState: ({ input }) => ({ agentRun: input }),
+        createState: ({ input }) => createDefaultRequestState(input),
         stepOverrides: {
           ...createDefaultRequestStepOverrides(),
           buildTools: async (context) => {
@@ -62,7 +64,12 @@ it.each(['executor', 'delivery'] as const)(
         },
       });
       return bindAgentWorkflow({
-        projectInput: (context: RequestAgentRunContext) => context,
+        projectInput: (context: RequestAgentRunContext) => ({
+          agentId: context.identity.id,
+          requestId: context.runId,
+          requestInput: context.input,
+          ...(context.traceEmitter === undefined ? {} : { traceEmitter: context.traceEmitter }),
+        }),
         workflow,
         applyResult(context, result) {
           if (result !== undefined) context.output = result;

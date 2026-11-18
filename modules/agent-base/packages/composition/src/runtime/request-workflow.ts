@@ -1,4 +1,5 @@
 import {
+  createDefaultRequestState,
   createDefaultRequestStepOverrides,
   createRequestStepDefinitions,
   createRequestWorkflow,
@@ -6,14 +7,14 @@ import {
   releaseRequestExecution,
   type AgentResponse,
   type DefaultRequestWorkflowContext,
-  type RequestAgentRunContext,
+  type RequestWorkflowInput,
   type RequestPolicy,
   type RequestRuntimeResources,
 } from '@print-an-agent/base-request';
 import { AgentSessionError, supportsSessionPresentation } from '@print-an-agent/base-session';
 import { bindAgentWorkflow } from '@print-an-agent/base-runtime';
 import { mergeStepOverrides, resolveStepRegistry } from '@print-an-agent/workflow-core';
-import type { ComposeAgentOptions } from './types.js';
+import type { ComposeAgentOptions, RequestAgentRunContext } from './types.js';
 
 export function composeRequestWorkflow(
   options: ComposeAgentOptions,
@@ -38,21 +39,26 @@ export function composeRequestWorkflow(
     }
   }
   const workflow = createRequestWorkflow<
-    RequestAgentRunContext,
+    RequestWorkflowInput,
     DefaultRequestWorkflowContext['state'],
     DefaultRequestWorkflowContext['resources'],
     AgentResponse
   >({
     resources: Object.freeze({ ...resources, policy }),
     stepOverrides,
-    createState: ({ input }) => ({ agentRun: input }),
+    createState: ({ input }) => createDefaultRequestState(input),
     lifecycle: { onError: failRequest, onFinally: releaseRequestExecution },
     ...(options.createWorkflowRunId === undefined
       ? {}
       : { createRunId: options.createWorkflowRunId }),
   });
   return bindAgentWorkflow({
-    projectInput: (context: RequestAgentRunContext) => context,
+    projectInput: (context: RequestAgentRunContext) => ({
+      agentId: context.identity.id,
+      requestId: context.runId,
+      requestInput: context.input,
+      ...(context.traceEmitter === undefined ? {} : { traceEmitter: context.traceEmitter }),
+    }),
     workflow,
     applyResult(context, result) {
       // Undefined is the explicit no-change result of a condition skip.

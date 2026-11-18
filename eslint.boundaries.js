@@ -75,6 +75,13 @@ const registryQualificationRestrictions = [
   },
 ];
 
+const agentBaseProductRestrictions = [
+  {
+    group: ['@print-an-agent/workbench-*', '@print-an-agent/self-learn-*'],
+    message: 'Agent Base must remain independent of Model Workbench and Self-Learn Agent.',
+  },
+];
+
 export const boundaryConfigs = Object.freeze([
   { files: productionSource, rules: moduleRestrictions([]) },
   {
@@ -203,12 +210,7 @@ export const boundaryConfigs = Object.freeze([
       'modules/agent-base/{apps,packages}/*/src/**/*.{ts,tsx}',
       'modules/agent-base/templates/*/*/src/**/*.{ts,tsx}',
     ],
-    rules: moduleRestrictions([
-      {
-        group: ['@print-an-agent/workbench-*', '@print-an-agent/self-learn-*'],
-        message: 'Agent Base must remain independent of Model Workbench and Self-Learn Agent.',
-      },
-    ]),
+    rules: moduleRestrictions([...agentBaseProductRestrictions]),
   },
   {
     files: ['modules/agent-ui/packages/*/src/**/*.{ts,tsx}'],
@@ -245,10 +247,7 @@ export const boundaryConfigs = Object.freeze([
         ],
         message: 'Execution and authority domains must remain independent of composition Registry.',
       },
-      {
-        group: ['@print-an-agent/workbench-*', '@print-an-agent/self-learn-*'],
-        message: 'Agent Base must remain independent of product domains.',
-      },
+      ...agentBaseProductRestrictions,
     ]),
   },
   {
@@ -263,10 +262,7 @@ export const boundaryConfigs = Object.freeze([
         message:
           'Generic application Services use Definition factories/resolvers; concrete Profile resource-resolution Services may use Registry.',
       },
-      {
-        group: ['@print-an-agent/workbench-*', '@print-an-agent/self-learn-*'],
-        message: 'Agent Base must remain independent of product domains.',
-      },
+      ...agentBaseProductRestrictions,
     ]),
   },
   {
@@ -276,6 +272,22 @@ export const boundaryConfigs = Object.freeze([
       {
         group: ['@print-an-agent/*'],
         message: 'Composition Registry internals remain domain independent.',
+      },
+    ]),
+  },
+  {
+    files: ['modules/agent-base/packages/{request,session}/src/**/*.{ts,tsx}'],
+    rules: moduleRestrictions([
+      ...agentBaseProductRestrictions,
+      {
+        group: [
+          '@print-an-agent/base-runtime',
+          '@print-an-agent/base-runtime/**',
+          '@print-an-agent/base-composition',
+          '@print-an-agent/base-composition/**',
+        ],
+        message:
+          'Request and Session workflows consume explicit inputs and resources; Agent binding belongs to composition.',
       },
     ]),
   },

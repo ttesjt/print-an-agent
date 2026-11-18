@@ -22,6 +22,12 @@ Profiles select adapters and may use the optional Resource Registry to share res
 Workflow and Step implementations receive explicit resources and do not depend on this assembly.
 Standalone Agent and Agent Web are reference compositions, not requirements for using the libraries.
 
+Request and Session packages own independent Workflow input/state contracts. They do not import
+Agent Runtime or Composition. Standard composition owns their Agent Run types, projects only needed
+business input and per-invocation tracing, and applies results to the originating Run. Core supplies
+the effective execution signal separately; domain state does not retain an inherited Agent Run signal.
+Source lint restrictions and architecture tests check these package boundaries and emitted declarations.
+
 ## Agent Base execution
 
 [![Agent Base composition, Agent operation execution, and the foreground request workflow](./assets/agent-base-execution.svg)](./assets/agent-base-execution.svg)

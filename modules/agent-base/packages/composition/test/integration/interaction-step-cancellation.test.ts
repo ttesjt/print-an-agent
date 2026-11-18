@@ -62,6 +62,7 @@ it.each(['executor', 'delivery'] as const)(
         },
       });
       return bindAgentWorkflow({
+        projectInput: (context: RequestAgentRunContext) => context,
         workflow,
         applyResult(context, result) {
           if (result !== undefined) context.output = result;

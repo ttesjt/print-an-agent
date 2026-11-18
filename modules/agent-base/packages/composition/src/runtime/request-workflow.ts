@@ -52,6 +52,7 @@ export function composeRequestWorkflow(
       : { createRunId: options.createWorkflowRunId }),
   });
   return bindAgentWorkflow({
+    projectInput: (context: RequestAgentRunContext) => context,
     workflow,
     applyResult(context, result) {
       // Undefined is the explicit no-change result of a condition skip.

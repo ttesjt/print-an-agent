@@ -2,11 +2,12 @@ import { expect, it, vi } from 'vitest';
 import { createAgentTraceEmitter, type AgentTraceEvent } from '@print-an-agent/base-observability';
 import { skipWorkflow } from '@print-an-agent/workflow-core';
 import { bindAgentWorkflow } from '../../src/index.js';
-import { context, workflow } from '../support/workflow-binding.js';
+import { context, workflow, type Run } from '../support/workflow-binding.js';
 
 it('returns Core results, applies only to their owning Agent Run and does not mutate before application', async () => {
   const run = context();
   const binding = bindAgentWorkflow({
+    projectInput: (context: Run) => context,
     workflow: workflow(),
     applyResult(target, result) {
       if (result !== undefined) target.output = result;
@@ -27,6 +28,7 @@ it('applies a skipped no-change result without overwriting an existing Agent Run
   run.output = 'existing';
   const child = vi.fn();
   const binding = bindAgentWorkflow({
+    projectInput: (context: Run) => context,
     workflow: workflow({ condition: () => skipWorkflow('not-needed'), stepOverrides: { child } }),
     applyResult(target, result) {
       if (result !== undefined) target.output = result;
@@ -52,6 +54,7 @@ it('records a recovered child error with safe classification and exact Agent/Run
   const run = { ...context(), traceEmitter };
   const error = Object.assign(new Error('private payload'), { code: 'RECORD_CONFLICT' });
   const binding = bindAgentWorkflow({
+    projectInput: (context: Run) => context,
     applyResult: () => undefined,
     workflow: workflow({
       createRunId: () => 'workflow-run',
@@ -94,6 +97,7 @@ it('does not wait on a stalled trace observer or change a failure', async () => 
     },
   };
   const binding = bindAgentWorkflow({
+    projectInput: (context: Run) => context,
     applyResult: () => undefined,
     workflow: workflow({
       stepOverrides: { child: () => Promise.reject(failure) },
@@ -118,6 +122,7 @@ it('correlates each skipped Workflow terminal with its own started Run', async (
   });
   let nextId = 0;
   const binding = bindAgentWorkflow({
+    projectInput: (context: Run) => context,
     workflow: workflow({
       createRunId: () => `skipped-${++nextId}`,
       condition: () => skipWorkflow('not-needed'),

@@ -157,3 +157,59 @@ it('allows domain-independent imports using the effective production ESLint conf
   });
   expect(results.flatMap((result) => result.messages)).toEqual([]);
 });
+
+it.each(['request', 'session'])(
+  'keeps %s contracts and emitted declarations independent of Agent runtime ownership',
+  (feature) => {
+    const directory = join(runtime, '..', feature);
+    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      peerDependencies?: Record<string, string>;
+    };
+    for (const dependencies of [
+      manifest.dependencies,
+      manifest.devDependencies,
+      manifest.peerDependencies,
+    ]) {
+      expect(dependencies ?? {}).not.toHaveProperty('@print-an-agent/base-runtime');
+      expect(dependencies ?? {}).not.toHaveProperty('@print-an-agent/base-composition');
+    }
+    for (const file of [...sources(join(directory, 'src')), ...sources(join(directory, 'dist'))]) {
+      expect(readFileSync(file, 'utf8'), file).not.toMatch(
+        /@print-an-agent\/base-(?:runtime|composition)|BaseAgentRunContext|state\.agentRun/
+      );
+    }
+  }
+);
+
+it.each(['request', 'session'])(
+  'enforces %s Workflow ownership using the effective production lint rules',
+  async (feature) => {
+    const filePath = join(runtime, '..', feature, 'src/index.ts');
+    for (const specifier of [
+      '@print-an-agent/base-runtime',
+      '@print-an-agent/base-composition',
+      '@print-an-agent/base-composition/resource-registry',
+    ]) {
+      const result = await eslint.lintText(`export type * from '${specifier}';\n`, { filePath });
+      expect(result.flatMap((entry) => entry.messages)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ ruleId: 'no-restricted-imports', severity: 2 }),
+        ])
+      );
+    }
+    for (const specifier of [
+      '@print-an-agent/workflow-core',
+      '@print-an-agent/model-invocation-core',
+      '@print-an-agent/base-actor',
+    ]) {
+      const result = await eslint.lintText(`import '${specifier}';\n`, { filePath });
+      expect(
+        result
+          .flatMap((entry) => entry.messages)
+          .filter((message) => message.ruleId === 'no-restricted-imports')
+      ).toEqual([]);
+    }
+  }
+);

@@ -56,21 +56,27 @@ dependencies, scripts, tests, credentials and local paths are not included in th
 The Pi adapter additionally carries third-party notices and upstream MIT license texts.
 
 Verification inspects the actual tarballs, checks public entries and integrity, then starts a
-read-only loopback npm registry serving only these artifacts. An isolated temporary project outside
-the workspace declares only the four release entry dependencies. The other six must resolve transitively.
+read-only loopback npm registry serving only these artifacts. Two independent temporary projects
+outside the workspace cover separate consumers. The entry-only profile declares exactly the release
+entries and runs website smoke tests; its other public packages must resolve transitively. The full
+API profile explicitly declares all ten public packages and also exercises Session-aware Workflows
+and Agent bindings. Each profile gets fresh configs, caches, lockfiles and stores, then runs both
+npm and pnpm installation and type/runtime checks. Neither uses workspace links or hoisting.
 External packages come from the public npm registry. The verifier uses empty user/global npm config
 files and removes inherited npm authentication from child processes.
 
 Both `npm ci` and `pnpm install --frozen-lockfile` are exercised, with TypeScript NodeNext compilation
 and runtime tests for direct completion, streaming, history, reasoning, backpressure, concurrent
-isolation, cancellation and failures. No source aliases, workspace links, API key, or real model are
-used. The real Pi parser consumes deterministic localhost SSE responses.
+isolation, cancellation and failures. It also exercises direct Session-aware Request and Compaction
+Workflows and typed Agent bindings. The independent fixture uses narrow test Session ports; official
+Memory/SQLite adapters are qualified by the workspace integration tests and remain outside this
+release. No source aliases, workspace links, API key, or real model are used. The real Pi parser consumes deterministic localhost SSE responses.
 
 Review these files together:
 
 - `*.tgz`: the packages to publish, in dependency order from `release.json`.
 - `release.json`: exact package manifests, integrity hashes, source commit and dirty-tree indicator.
-- `verification.json`: successful consumer verification tied to those hashes.
+- `verification.json`: successful consumer verification and direct dependencies per profile, tied to those hashes.
 - `dependency-licenses.json`: resolved production dependencies and their declared licenses.
 
 The independent consumer fixture has its own strict TypeScript check against installed artifacts;

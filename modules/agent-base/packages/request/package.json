@@ -36,7 +36,6 @@
     "@print-an-agent/base-observability": "workspace:*",
     "@print-an-agent/base-session": "workspace:*",
     "@print-an-agent/base-tool": "workspace:*",
-    "@print-an-agent/base-runtime": "workspace:*",
     "@print-an-agent/workflow-core": "workspace:*"
   },
   "devDependencies": {

@@ -1,6 +1,4 @@
 import type { WorkflowContext } from '@print-an-agent/workflow-core';
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
-import { type BaseAgentRunContext } from '@print-an-agent/base-runtime';
 import {
   SKIP_STEP,
   STEP_CARDINALITY,
@@ -19,8 +17,8 @@ import {
   type RequestWorkflowStateView,
 } from '../../src/index.js';
 
-interface TestAgentContext extends BaseAgentRunContext<string, string> {
-  readonly applied: string[];
+interface TestInput {
+  readonly message: string;
 }
 
 interface TestState extends RequestWorkflowStateView<string> {
@@ -46,18 +44,8 @@ const SEQUENTIAL_LEAF_STEP_NAMES = LEAF_STEP_NAMES.filter(
     name !== 'completeAssistantMessage'
 );
 
-function agentRunContext(): TestAgentContext {
-  return {
-    identity: defineAgentIdentity({ id: 'request-test' }),
-    operationName: 'request-test',
-    runId: 'agent-run',
-    input: 'hello',
-    signal: new AbortController().signal,
-    operations: Object.freeze({
-      invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
-    }),
-    applied: [],
-  };
+function requestInput(): TestInput {
+  return { message: 'hello' };
 }
 
 function implementedLeafSteps(): StepOverrides<RequestStepName, TestRequestContext> {
@@ -75,7 +63,7 @@ function implementedLeafSteps(): StepOverrides<RequestStepName, TestRequestConte
 }
 
 function workflow(stepOverrides: StepOverrides<RequestStepName, TestRequestContext> = {}) {
-  return createRequestWorkflow<TestAgentContext, TestState, undefined>({
+  return createRequestWorkflow<TestInput, TestState, undefined>({
     resources: undefined,
     stepOverrides,
     createState: () => ({ calls: [] }),
@@ -116,7 +104,7 @@ describe('Request Workflow skeleton', () => {
 
   it('fails explicitly at the first unresolved leaf Step', async () => {
     const calls: string[] = [];
-    const requestWorkflow = createRequestWorkflow<TestAgentContext, TestState, undefined, string>({
+    const requestWorkflow = createRequestWorkflow<TestInput, TestState, undefined, string>({
       resources: undefined,
       createState: () => ({ calls: [] }),
       lifecycle: {
@@ -132,7 +120,7 @@ describe('Request Workflow skeleton', () => {
     });
 
     const error = await requestWorkflow
-      .run({ input: agentRunContext() })
+      .run({ input: requestInput() })
       .catch((failure: unknown) => failure);
 
     expect(error).toBeInstanceOf(RequestStepNotImplementedError);
@@ -172,14 +160,14 @@ describe('Request Workflow skeleton', () => {
         return Promise.resolve();
       },
     });
-    await expect(requestWorkflow.run({ input: agentRunContext() })).resolves.toEqual(
+    await expect(requestWorkflow.run({ input: requestInput() })).resolves.toEqual(
       'customInteraction|completeResponse'
     );
   });
 
   it('executes fully implemented leaf Steps in canonical order', async () => {
     const requestWorkflow = workflow(implementedLeafSteps());
-    const context = agentRunContext();
+    const context = requestInput();
 
     const outcome = await requestWorkflow.run({ input: context });
 
@@ -197,7 +185,7 @@ describe('Request Workflow skeleton', () => {
       },
     });
 
-    await expect(requestWorkflow.run({ input: agentRunContext() })).resolves.toEqual(
+    await expect(requestWorkflow.run({ input: requestInput() })).resolves.toEqual(
       'customPrepare|openResponseStream|invokeActorInteraction|buildAgentResponse|completeResponse'
     );
   });
@@ -213,7 +201,7 @@ describe('Request Workflow skeleton', () => {
       },
     });
 
-    await expect(requestWorkflow.run({ input: agentRunContext() })).resolves.toEqual('replayed');
+    await expect(requestWorkflow.run({ input: requestInput() })).resolves.toEqual('replayed');
   });
 
   it('allows only explicitly optional leaf Steps to be skipped', async () => {
@@ -242,7 +230,7 @@ describe('Request Workflow skeleton', () => {
       resolveRequestReplay: SKIP_STEP,
       gatherExternalContext: SKIP_STEP,
     });
-    await expect(requestWorkflow.run({ input: agentRunContext() })).resolves.toEqual(
+    await expect(requestWorkflow.run({ input: requestInput() })).resolves.toEqual(
       expect.any(String)
     );
   });

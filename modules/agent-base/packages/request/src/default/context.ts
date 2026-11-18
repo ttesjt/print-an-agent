@@ -15,7 +15,8 @@ import type {
   ToolRuntime,
   ToolPermissionPolicy,
 } from '@print-an-agent/base-tool';
-import type { BaseAgentRunContext } from '@print-an-agent/base-runtime';
+import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentTraceEmitter } from '@print-an-agent/base-observability';
 import type { WorkflowContext } from '@print-an-agent/workflow-core';
 import type { RequestStepName } from '../workflow/names.js';
 import type { RequestInteractionState } from '../interaction/state.js';
@@ -49,7 +50,13 @@ export interface RequestRuntimeResources {
   readonly clock: () => number;
 }
 
-export type RequestAgentRunContext = BaseAgentRunContext<AgentRequestInput, AgentResponse>;
+/** Business input and optional invocation-local tracing; execution is supplied by Core. */
+export interface RequestWorkflowInput {
+  readonly agentId: AgentId;
+  readonly requestId: string;
+  readonly requestInput: AgentRequestInput;
+  readonly traceEmitter?: AgentTraceEmitter;
+}
 
 export type DefaultRequestWorkflowContext = WorkflowContext<
   RequestStepName,
@@ -57,8 +64,7 @@ export type DefaultRequestWorkflowContext = WorkflowContext<
   RequestRuntimeResources & { readonly policy: RequestPolicy }
 >;
 
-export interface RequestWorkflowState {
-  readonly agentRun: RequestAgentRunContext;
+export interface RequestWorkflowState extends RequestWorkflowInput {
   contextMemory?: RequestMemoryRun;
   request?: ValidatedAgentRequest;
   session?: ResolvedSessionReference & SessionWriteAuthority;

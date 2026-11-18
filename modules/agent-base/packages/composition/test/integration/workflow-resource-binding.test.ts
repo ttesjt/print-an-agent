@@ -55,7 +55,7 @@ it('shares prepared Request capabilities while isolating concurrent cancellation
           if (tools === undefined) throw new Error('Tools were not created.');
           const close = tools.close.bind(tools);
           vi.spyOn(tools, 'close').mockImplementation(() => {
-            closedTools.add(context.state.agentRun.runId);
+            closedTools.add(context.state.requestId);
             close();
           });
         },
@@ -68,8 +68,8 @@ it('shares prepared Request capabilities while isolating concurrent cancellation
   try {
     await Promise.all([firstStarted.promise, secondStarted.promise]);
     expect(contexts).toHaveLength(2);
-    const first = contexts.find((context) => context.state.agentRun.runId === 'request-1');
-    const second = contexts.find((context) => context.state.agentRun.runId === 'request-2');
+    const first = contexts.find((context) => context.state.requestId === 'request-1');
+    const second = contexts.find((context) => context.state.requestId === 'request-2');
     if (first === undefined || second === undefined) throw new Error('Missing Request contexts.');
     expect(first.resources).toBe(second.resources);
     expect(first.resources.session).toBe(session);
@@ -78,7 +78,7 @@ it('shares prepared Request capabilities while isolating concurrent cancellation
     expect(first.state.tools).not.toBe(second.state.tools);
     expect(first.state.session?.execution).toBeDefined();
     expect(first.state.session?.execution).not.toBe(second.state.session?.execution);
-    expect(first.state.agentRun.traceEmitter).not.toBe(second.state.agentRun.traceEmitter);
+    expect(first.state.traceEmitter).not.toBe(second.state.traceEmitter);
     expect(first.state.request?.outputSink).toBe(fixture.output);
     expect(second.state.request?.outputSink).toBe(generatedSinks[0]);
 
@@ -115,11 +115,11 @@ it('shares prepared Request capabilities while isolating concurrent cancellation
     expect(snapshot?.turns.every((turn) => turn.status === 'completed')).toBe(true);
     for (const context of contexts) {
       const starts = fixture.trace
-        .inspect({ agentRunId: context.state.agentRun.runId })
+        .inspect({ agentRunId: context.state.requestId })
         .events.filter((event) => event.type === 'workflow-run-started');
       expect(starts).toHaveLength(1);
       expect(starts[0]).toMatchObject({
-        agentRunId: context.state.agentRun.runId,
+        agentRunId: context.state.requestId,
         workflowName: REQUEST_WORKFLOW_NAME,
       });
     }

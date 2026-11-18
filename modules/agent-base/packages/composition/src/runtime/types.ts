@@ -16,15 +16,16 @@ import type {
   SessionCompactionWorkflowContext,
 } from '@print-an-agent/base-session';
 import type {
+  AgentRequestInput,
+  AgentResponse,
   DefaultRequestWorkflowContext,
   InstructionContributor,
   OutputSink,
-  RequestAgentRunContext,
   RequestPolicy,
   RequestJournalPort,
 } from '@print-an-agent/base-request';
 import type { ToolExecutionPolicy, ToolRegistry } from '@print-an-agent/base-tool';
-import type { AgentWorkflow } from '@print-an-agent/base-runtime';
+import type { AgentWorkflow, BaseAgentRunContext } from '@print-an-agent/base-runtime';
 import type { StepOverrides } from '@print-an-agent/workflow-core';
 import type { RequestStepName } from '@print-an-agent/base-request';
 import type { AgentAPI } from './agent-api.js';
@@ -37,6 +38,8 @@ import type {
   ProviderRuntimeInspection,
   ProviderRuntimeOptions,
 } from './provider-contracts.js';
+
+export type RequestAgentRunContext = BaseAgentRunContext<AgentRequestInput, AgentResponse>;
 
 export interface ComposeAgentOptions {
   readonly contextMemory?: import('@print-an-agent/base-request').RequestContextMemory;

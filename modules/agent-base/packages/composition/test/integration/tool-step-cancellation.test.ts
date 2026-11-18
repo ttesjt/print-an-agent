@@ -6,15 +6,17 @@ import {
 } from '@print-an-agent/base-actor';
 import { createPiFauxRuntime } from '@print-an-agent/model-invocation-pi';
 import {
+  createDefaultRequestState,
   createDefaultRequestStepOverrides,
   createRequestWorkflow,
   failRequest,
   releaseRequestExecution,
   type AgentResponse,
   type DefaultRequestWorkflowContext,
-  type RequestAgentRunContext,
+  type RequestWorkflowInput,
 } from '@print-an-agent/base-request';
 import { bindAgentWorkflow } from '@print-an-agent/base-runtime';
+import type { RequestAgentRunContext } from '../../src/index.js';
 import { createToolRegistry, defineTool } from '@print-an-agent/base-tool';
 import { expect, it, vi } from 'vitest';
 import { defaultRequestStep, interactionAgent } from '../support/interaction-agent.js';
@@ -45,13 +47,13 @@ it('drains the real Pi tool loop after Step executor failure before closing Requ
   });
   const createWorkflow = (resources: DefaultRequestWorkflowContext['resources']) => {
     const workflow = createRequestWorkflow<
-      RequestAgentRunContext,
+      RequestWorkflowInput,
       DefaultRequestWorkflowContext['state'],
       DefaultRequestWorkflowContext['resources'],
       AgentResponse
     >({
       resources,
-      createState: ({ input }) => ({ agentRun: input }),
+      createState: ({ input }) => createDefaultRequestState(input),
       stepOverrides: {
         ...createDefaultRequestStepOverrides(),
         buildTools: async (context) => {
@@ -77,7 +79,12 @@ it('drains the real Pi tool loop after Step executor failure before closing Requ
       },
     });
     return bindAgentWorkflow({
-      projectInput: (context: RequestAgentRunContext) => context,
+      projectInput: (context: RequestAgentRunContext) => ({
+        agentId: context.identity.id,
+        requestId: context.runId,
+        requestInput: context.input,
+        ...(context.traceEmitter === undefined ? {} : { traceEmitter: context.traceEmitter }),
+      }),
       workflow,
       applyResult(context, result) {
         if (result !== undefined) context.output = result;

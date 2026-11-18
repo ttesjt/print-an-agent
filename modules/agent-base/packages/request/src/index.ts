@@ -32,6 +32,7 @@ export {
   type DeltaDeliveryContext,
 } from './delivery/steps.js';
 export type * from './default/context.js';
+export { createDefaultRequestState } from './default/state.js';
 export { failRequest, releaseRequestExecution } from './default/failure-lifecycle.js';
 export { REQUEST_EXECUTION_INTERRUPTED } from './replay/maintenance.js';
 export type {

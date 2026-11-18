@@ -34,5 +34,10 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
-  ...boundaryConfigs
+  ...boundaryConfigs,
+  {
+    // This fixture is typechecked against installed tarballs in its independent project.
+    ...tseslint.configs.disableTypeChecked,
+    files: ['tooling/release/consumer/**/*.ts'],
+  }
 );

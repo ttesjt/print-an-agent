@@ -2,7 +2,7 @@
   "name": "@print-an-agent/base-request",
   "version": "0.1.0",
   "description": "Session-aware and Sessionless request Workflows, reusable Steps, and output contracts.",
-  "private": true,
+  "private": false,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,7 +13,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
@@ -47,5 +48,14 @@
   "license": "MIT",
   "engines": {
     "node": ">=24.15.0 <25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ttesjt/print-an-agent.git",
+    "directory": "modules/agent-base/packages/request"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

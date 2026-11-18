@@ -2,7 +2,7 @@
   "name": "@print-an-agent/model-invocation-pi",
   "version": "0.1.0",
   "description": "Independent Pi-backed Actor Engines and explicit provider configuration.",
-  "private": true,
+  "private": false,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,7 +13,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
@@ -43,5 +45,14 @@
   "license": "MIT",
   "engines": {
     "node": ">=24.15.0 <25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ttesjt/print-an-agent.git",
+    "directory": "modules/model-invocation/packages/pi"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

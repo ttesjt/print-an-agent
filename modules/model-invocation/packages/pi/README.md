@@ -2,6 +2,9 @@
 
 Pi infrastructure adapter for independent Actor and model interaction contracts.
 
+Licensed under MIT. Pi and TypeBox attribution and license texts are in
+[Third-party notices](THIRD_PARTY_NOTICES.md).
+
 This is the isolated adapter package that imports Pi and TypeBox. It uses Pi's low-level loop,
 translates Core-owned schemas at the adapter boundary, forces sequential tool execution, and
 delegates every tool proposal to the consumer's borrowed execution port. Agent Base may supply its

@@ -1,5 +1,11 @@
 {
   "extends": "./tsconfig.base.json",
+  "compilerOptions": { "allowImportingTsExtensions": true },
   "include": ["eslint.boundaries.js", "test/**/*.ts", "tooling/**/*.ts"],
-  "exclude": ["**/dist/**", "**/node_modules/**", "modules/**/python/**"]
+  "exclude": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "modules/**/python/**",
+    "tooling/release/consumer/**"
+  ]
 }

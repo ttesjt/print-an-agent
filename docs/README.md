@@ -24,6 +24,9 @@ the contract you are changing.
 
 ## Engineering standards
 
+The [npm package guide](releases.md) owns public package scope, artifact preparation, independent
+consumer verification, licensing, and the separate publication review.
+
 - [TypeScript code standards](standards/code-standards.md) cover code organization, contracts, effects,
   and review.
 - [Monorepo standards](standards/monorepo-standards.md) cover package ownership, dependencies, builds,

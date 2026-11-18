@@ -1,7 +1,7 @@
 {
   "name": "@print-an-agent/workflow-core",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "description": "Domain-independent, run-scoped Workflow and replaceable Step execution.",
   "main": "./dist/index.js",
@@ -13,7 +13,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
@@ -31,5 +32,14 @@
   "license": "MIT",
   "engines": {
     "node": ">=24.15.0 <25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ttesjt/print-an-agent.git",
+    "directory": "modules/workflow/packages/core"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

@@ -13,7 +13,7 @@ import {
   defineProviderModelReference,
 } from '@print-an-agent/model-invocation-core';
 import { RUN_WORKFLOW } from '@print-an-agent/workflow-core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import {
   createDefaultSessionCompactionStepOverrides,
   createSessionCompactionWorkflow,
@@ -21,8 +21,9 @@ import {
   DEFAULT_SESSION_BRANCH_ID,
   parseSessionId,
   parseTurnId,
-  type SessionCompactionAgentRunContext,
+  type SessionCompactionWorkflowInput,
   type SessionCompactionResources,
+  type SessionCompactionState,
   type SessionSnapshot,
 } from '../../src/index.js';
 import { createSessionPortStub } from '../support/session-port-stub.js';
@@ -187,26 +188,56 @@ function createRunnableCompaction(options: {
     condition: () => Promise.resolve(RUN_WORKFLOW),
     createRunId: () => 'workflow-run',
   });
-  const context: SessionCompactionAgentRunContext = {
-    identity,
-    operationName: 'compactSession',
-    runId: 'agent-run',
-    input: Object.freeze({ sessionId: 'session', branchId: DEFAULT_SESSION_BRANCH_ID }),
-    output: Object.freeze({
-      status: 'skipped',
-      sessionId: 'session',
-      branchId: DEFAULT_SESSION_BRANCH_ID,
-      reason: 'not-needed',
-    }),
-    signal: options.signal,
-    operations: Object.freeze({
-      invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
-    }),
+  const input: SessionCompactionWorkflowInput = {
+    agentId: identity.id,
+    compactionInput: Object.freeze({ sessionId: 'session', branchId: DEFAULT_SESSION_BRANCH_ID }),
   };
-  return Object.freeze({ context, workflow });
+  return Object.freeze({ input, signal: options.signal, workflow });
 }
 
 describe('Session compaction Workflow contracts', () => {
+  it('selects only declared business input and never retains execution context extras', async () => {
+    const identity = defineAgentIdentity({ id: 'narrow-compaction' });
+    let state: SessionCompactionState | undefined;
+    const workflow = createSessionCompactionWorkflow({
+      resources: {
+        session: createSessionPortStub(),
+        responsibilities: createTestResponsibilities(),
+        instructions: 'Compact.',
+        policy: DEFAULT_SESSION_COMPACTION_POLICY,
+        clock: () => 1,
+      },
+      stepOverrides: {
+        runSessionCompaction: (context) => {
+          state = context.state;
+          context.state.outcome = {
+            status: 'skipped',
+            sessionId: 'session',
+            branchId: DEFAULT_SESSION_BRANCH_ID,
+            reason: 'not-needed',
+          };
+          return Promise.resolve();
+        },
+      },
+    });
+    const input = {
+      agentId: identity.id,
+      compactionInput: Object.freeze({ sessionId: 'session' }),
+      signal: new AbortController().signal,
+      operations: { invoke: () => Promise.reject(new Error('Not a Workflow capability.')) },
+      output: 'not a Workflow result',
+    };
+    await expect(workflow.run({ input })).resolves.toMatchObject({ status: 'skipped' });
+    expect(state).not.toBe(input);
+    expect(state).toMatchObject({ agentId: input.agentId, compactionInput: input.compactionInput });
+    for (const key of ['agentRun', 'signal', 'operations', 'output', 'traceEmitter']) {
+      expect(state).not.toHaveProperty(key);
+    }
+    expectTypeOf<SessionCompactionState>().not.toHaveProperty('agentRun');
+    expectTypeOf<SessionCompactionState>().not.toHaveProperty('signal');
+    expect(input).not.toHaveProperty('outcome');
+  });
+
   it('keeps unresolved raw leaf Steps as stable fail-fast placeholders', async () => {
     const identity = defineAgentIdentity({ id: 'workflow-agent' });
     const resources: SessionCompactionResources = Object.freeze({
@@ -221,24 +252,12 @@ describe('Session compaction Workflow contracts', () => {
       condition: () => Promise.resolve(RUN_WORKFLOW),
       createRunId: () => 'workflow-run',
     });
-    const context: SessionCompactionAgentRunContext = {
-      identity,
-      operationName: 'compactSession',
-      runId: 'agent-run',
-      input: Object.freeze({ sessionId: 'session', branchId: DEFAULT_SESSION_BRANCH_ID }),
-      output: Object.freeze({
-        status: 'skipped',
-        sessionId: 'session',
-        branchId: DEFAULT_SESSION_BRANCH_ID,
-        reason: 'not-needed',
-      }),
-      signal: new AbortController().signal,
-      operations: Object.freeze({
-        invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
-      }),
+    const input: SessionCompactionWorkflowInput = {
+      agentId: identity.id,
+      compactionInput: Object.freeze({ sessionId: 'session', branchId: DEFAULT_SESSION_BRANCH_ID }),
     };
 
-    await expect(workflow.run({ input: context, signal: context.signal })).rejects.toMatchObject({
+    await expect(workflow.run({ input })).rejects.toMatchObject({
       code: 'SESSION_COMPACTION_NOT_CONFIGURED',
       stepName: 'inspectSession',
     });
@@ -266,24 +285,12 @@ describe('Session compaction Workflow contracts', () => {
       condition: () => Promise.resolve(RUN_WORKFLOW),
       createRunId: () => 'workflow-run',
     });
-    const context: SessionCompactionAgentRunContext = {
-      identity,
-      operationName: 'compactSession',
-      runId: 'agent-run',
-      input: Object.freeze({ sessionId: 'session', branchId: DEFAULT_SESSION_BRANCH_ID }),
-      output: Object.freeze({
-        status: 'skipped',
-        sessionId: 'session',
-        branchId: DEFAULT_SESSION_BRANCH_ID,
-        reason: 'not-needed',
-      }),
-      signal: new AbortController().signal,
-      operations: Object.freeze({
-        invoke: () => Promise.reject(new Error('No callable Agent Operations.')),
-      }),
+    const input: SessionCompactionWorkflowInput = {
+      agentId: identity.id,
+      compactionInput: Object.freeze({ sessionId: 'session', branchId: DEFAULT_SESSION_BRANCH_ID }),
     };
 
-    await expect(workflow.run({ input: context, signal: context.signal })).resolves.toMatchObject({
+    await expect(workflow.run({ input })).resolves.toMatchObject({
       status: 'skipped',
       reason: 'not-needed',
     });
@@ -300,8 +307,8 @@ describe('Session compaction Workflow contracts', () => {
     });
 
     const run = fixture.workflow.run({
-      input: fixture.context,
-      signal: fixture.context.signal,
+      input: fixture.input,
+      signal: fixture.signal,
     });
     const expectation = expect(run).rejects.toMatchObject({
       code: 'ACTOR_INVOCATION_TIMEOUT',

@@ -111,6 +111,34 @@ and Actor resolution, candidate construction, generation, token measurement, val
 and publication. Raw leaf definitions fail fast. Each generation uses the `session-compaction`
 Responsibility's Completion capability; Session owns no provider-specific compaction algorithm.
 
+`createSessionCompactionWorkflow()` accepts `SessionCompactionWorkflowInput`: `agentId`,
+`compactionInput` (`sessionId`, optional `branchId` and `target`), and optional invocation-local
+`traceEmitter`. Its state retains only these explicit inputs and compaction working data. Run it with
+bound Session/Actor/counter resources and `run({ input, signal })`, without constructing an Agent.
+`defineCompactSessionInput()` owns closed business-input validation for both the Workflow and
+standard Operation: unsupported fields, arrays, non-plain objects and accessors fail with
+`SESSION_COMPACTION_INVALID` without invoking getters. Identifier failures retain their Session
+identifier error codes. The Workflow validates before any condition (including custom skips) and
+revalidates before constructing state, supplying detached, frozen business input and target objects.
+Steps use the current Core `context.signal`. Standard composition owns
+`SessionCompactionAgentRunContext`, projects this input and applies the outcome to its Agent Run.
+
+```ts
+const workflow = createSessionCompactionWorkflow({
+  resources, // Explicit Session, Responsibility, token counter, instructions, policy and clock.
+  condition: createShouldCompactSessionCondition(),
+  stepOverrides: createDefaultSessionCompactionStepOverrides(),
+});
+const outcome = await workflow.run({
+  input: { agentId, compactionInput: { sessionId, target: { maxTokens: 1024 } } },
+  signal,
+});
+```
+
+Standard composition installs the Compaction deadline through its Agent Operation executor. Direct
+Workflow callers own that surrounding boundary and pass its effective signal; the Core Workflow
+factory does not automatically install an Agent Operation policy or map its timeout errors.
+
 Compaction borrows a `TokenCounter<TextTokenInput>` from Model Invocation Core. Resources supply
 either `tokenCounter` or `resolveTokenCounter(signal)`, never both. The replaceable
 `resolveCompactionTokenCounter` Step freezes the binding for candidate planning. Official Agent

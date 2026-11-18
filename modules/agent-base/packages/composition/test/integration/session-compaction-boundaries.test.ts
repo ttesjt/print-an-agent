@@ -266,3 +266,28 @@ it('does not automatically retry a protocol failure', async () => {
   ).rejects.toMatchObject({ code: 'SESSION_COMPACTION_RUNTIME_FAILED', cause });
   expect(fixture.requests).toHaveLength(1);
 });
+
+it.each(['null', 'unknown field', 'getter'])(
+  'rejects %s compaction input before Session inspection through the shared domain parser',
+  async (kind) => {
+    const fixture = await compactionFixture();
+    const inspect = vi.spyOn(fixture.session, 'inspect');
+    const getter = vi.fn(() => fixture.sessionId);
+    const input: unknown =
+      kind === 'null'
+        ? null
+        : kind === 'unknown field'
+          ? { sessionId: fixture.sessionId, extra: true }
+          : Object.defineProperty({}, 'sessionId', { enumerable: true, get: getter });
+    await expect(
+      fixture.agent.invoke(
+        'compactSession',
+        // @ts-expect-error Exercise a JavaScript caller's unknown business input.
+        input
+      )
+    ).rejects.toMatchObject({ code: 'SESSION_COMPACTION_INVALID' });
+    expect(getter).not.toHaveBeenCalled();
+    expect(inspect).not.toHaveBeenCalled();
+    expect(fixture.requests).toHaveLength(0);
+  }
+);

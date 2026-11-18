@@ -109,6 +109,7 @@ export {
   type SessionCompactionSelection,
 } from './compaction/source-selection.js';
 export { createShouldCompactSessionCondition } from './compaction/workflow/condition.js';
+export { defineCompactSessionInput } from './compaction/input.js';
 export { createSessionCompactionWorkflow } from './compaction/workflow/create-workflow.js';
 export { createDefaultSessionCompactionStepOverrides } from './compaction/workflow/default-steps.js';
 export { SessionCompactionAttemptsExhaustedError } from './compaction/errors.js';

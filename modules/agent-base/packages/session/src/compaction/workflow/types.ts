@@ -1,5 +1,6 @@
 import type { ResolvedResponsibility, ResponsibilityRouter } from '@print-an-agent/base-actor';
-import type { AgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentTraceEmitter } from '@print-an-agent/base-observability';
 import type {
   AssistantModelMessage,
   ContextModelMessage,
@@ -9,7 +10,6 @@ import type {
 } from '@print-an-agent/model-invocation-core';
 import type { SessionCompactionRejectionReason } from '../planning/contracts.js';
 import type { CompactionMeasurementResources } from '../planning/measurement.js';
-import type { BaseAgentRunContext } from '@print-an-agent/base-runtime';
 import type { WorkflowContext, WorkflowDefinition } from '@print-an-agent/workflow-core';
 import type { SessionBranchId, SessionSnapshot } from '../../types.js';
 import type { SessionExecutionLease } from '../../lifecycle/execution.js';
@@ -31,11 +31,11 @@ export interface SessionCompactionResources extends CompactionMeasurementResourc
   readonly clock: () => number;
 }
 
-export interface SessionCompactionAgentRunContext extends BaseAgentRunContext<
-  CompactSessionInput,
-  SessionCompactionOutcome
-> {
-  readonly identity: AgentIdentity;
+/** Compaction business input; Core supplies execution and cancellation separately. */
+export interface SessionCompactionWorkflowInput {
+  readonly agentId: AgentId;
+  readonly compactionInput: CompactSessionInput;
+  readonly traceEmitter?: AgentTraceEmitter;
 }
 
 export type SessionCompactionWorkflowContext = WorkflowContext<
@@ -43,8 +43,7 @@ export type SessionCompactionWorkflowContext = WorkflowContext<
   SessionCompactionState,
   SessionCompactionResources
 >;
-export interface SessionCompactionState {
-  readonly agentRun: SessionCompactionAgentRunContext;
+export interface SessionCompactionState extends SessionCompactionWorkflowInput {
   snapshot?: SessionSnapshot;
   execution?: SessionExecutionLease;
   branchId?: SessionBranchId;
@@ -75,7 +74,7 @@ export type SessionCompactionAssessment =
 
 export type SessionCompactionDefinition = WorkflowDefinition<
   SessionCompactionStepName,
-  SessionCompactionAgentRunContext,
+  SessionCompactionWorkflowInput,
   SessionCompactionState,
   SessionCompactionResources,
   SessionCompactionOutcome | undefined

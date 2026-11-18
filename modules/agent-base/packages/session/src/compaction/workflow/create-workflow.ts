@@ -1,17 +1,31 @@
-import { Workflow } from '@print-an-agent/workflow-core';
+import { Workflow, RUN_WORKFLOW } from '@print-an-agent/workflow-core';
 import { finalizeSessionExecution } from '../../lifecycle/workflow-execution.js';
 import { AgentSessionError } from '../../errors.js';
 import { SESSION_COMPACTION_WORKFLOW_NAME } from './names.js';
 import { createSessionCompactionStepDefinitions } from './step-definitions.js';
+import { defineCompactSessionInput } from '../input.js';
 import { validateSessionCompactionPolicy } from '../policy.js';
 import { bindSessionCompactionTokenCounter } from '../planning/measurement.js';
 import type {
   CreateSessionCompactionWorkflowOptions,
   SessionCompactionWorkflowContext,
+  SessionCompactionDefinition,
+  SessionCompactionWorkflowInput,
 } from './types.js';
 
+function normalizeWorkflowInput(
+  input: SessionCompactionWorkflowInput
+): SessionCompactionWorkflowInput {
+  return {
+    agentId: input.agentId,
+    compactionInput: defineCompactSessionInput(input.compactionInput),
+    ...(input.traceEmitter === undefined ? {} : { traceEmitter: input.traceEmitter }),
+  };
+}
+
 export function createSessionCompactionWorkflow(options: CreateSessionCompactionWorkflowOptions) {
-  return new Workflow({
+  const condition = options.condition;
+  const definition: SessionCompactionDefinition = {
     ...options,
     resources: Object.freeze({
       ...options.resources,
@@ -34,7 +48,14 @@ export function createSessionCompactionWorkflow(options: CreateSessionCompaction
         );
       return state.outcome;
     },
-    createState: ({ input }): SessionCompactionWorkflowContext['state'] => ({ agentRun: input }),
+    // Admission validation must precede even a custom condition or a condition skip.
+    condition: (inputs) => {
+      const input = normalizeWorkflowInput(inputs.input);
+      return condition?.({ ...inputs, input }) ?? RUN_WORKFLOW;
+    },
+    // Revalidate before state creation: caller data may change while an async condition settles.
+    createState: ({ input }): SessionCompactionWorkflowContext['state'] =>
+      normalizeWorkflowInput(input),
     lifecycle: {
       ...options.lifecycle,
       async onFinally(context) {
@@ -46,5 +67,6 @@ export function createSessionCompactionWorkflow(options: CreateSessionCompaction
         });
       },
     },
-  });
+  };
+  return new Workflow(definition);
 }

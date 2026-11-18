@@ -6,6 +6,7 @@ export const REGISTRY = 'https://registry.npmjs.org/';
 export const REPOSITORY = 'https://github.com/ttesjt/print-an-agent';
 export const ENTRIES = [
   '@print-an-agent/base-request',
+  '@print-an-agent/base-runtime',
   '@print-an-agent/model-invocation-core',
   '@print-an-agent/model-invocation-pi',
 ] as const;

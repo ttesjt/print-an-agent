@@ -367,8 +367,10 @@ response or compaction outcome.
 
 Each Workflow's `createState` converts its projected input into the business data exposed under
 `context.state`. Request uses a narrow `RequestWorkflowInput` with its business input, agent/request identity and an
-optional invocation-local trace emitter. Its state does not retain the Agent Run. Compaction currently
-chooses an identity projection and stores its Agent Run Context as `context.state.agentRun`.
+optional invocation-local trace emitter. Compaction similarly accepts `SessionCompactionWorkflowInput`
+with its agent namespace, compaction input and optional trace emitter. Neither state retains an Agent
+Run, its output, operation invoker or inherited signal. Composition owns their Agent Run types and
+input projections.
 Other Workflows may select or transform the input into an independently defined state shape.
 Ports and policies are in `context.resources`. The effective `context.signal`
 may additionally include a parallel group's cancellation; pass it explicitly to adapters and child

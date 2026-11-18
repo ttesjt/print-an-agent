@@ -9,7 +9,8 @@ import type { AgentIdentityInput } from '@print-an-agent/base-identity';
 import type { AgentTraceRuntimeOptions } from '@print-an-agent/base-observability';
 import type {
   CompactableSessionPort,
-  SessionCompactionAgentRunContext,
+  CompactSessionInput,
+  SessionCompactionOutcome,
   SessionCompactionCondition,
   SessionCompactionPolicy,
   SessionCompactionStepName,
@@ -40,6 +41,11 @@ import type {
 } from './provider-contracts.js';
 
 export type RequestAgentRunContext = BaseAgentRunContext<AgentRequestInput, AgentResponse>;
+
+export type SessionCompactionAgentRunContext = BaseAgentRunContext<
+  CompactSessionInput,
+  SessionCompactionOutcome
+>;
 
 export interface ComposeAgentOptions {
   readonly contextMemory?: import('@print-an-agent/base-request').RequestContextMemory;

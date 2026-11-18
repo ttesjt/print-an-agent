@@ -18,6 +18,20 @@ injected ports. Neither feature imports the other, management does not import lo
 concrete storage, and the package as a whole does not depend on the Standalone profile. Repository
 architecture tests enforce these rules for static, exported, type-only, and dynamic imports.
 
+## Agent Workflow binding
+
+Standard composition owns `RequestAgentRunContext` and `SessionCompactionAgentRunContext`.
+It uses `bindAgentWorkflow()` to project only the business input and optional invocation-local trace
+emitter required by each Workflow, then applies its result to the originating Agent Run. Request and
+Compaction Workflows do not import Agent Runtime. Their Steps read working data from `context.state`,
+bound capabilities from `context.resources`, and cancellation from the current `context.signal`.
+A condition skip returns `undefined`; the standard bindings leave existing Agent output unchanged.
+
+Custom `requestWorkflow` and `sessionCompactionWorkflow` options still accept Agent bindings. Custom
+Steps and conditions use the narrower domain Workflow contracts documented by
+[Request](../request/README.md) and [Session](../session/README.md). Trace emitters are per-invocation
+input, not bound resources; concurrent calls share capabilities without sharing execution state.
+
 ## Sessionless requests
 
 `createSessionlessRequestService()` resolves caller-owned resources and returns an actual Request

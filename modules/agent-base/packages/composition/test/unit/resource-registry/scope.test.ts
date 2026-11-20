@@ -6,7 +6,7 @@ import {
   ResourceToken,
 } from '@print-an-agent/base-composition/resource-registry';
 import { describe, expect, it, vi } from 'vitest';
-import { description, Handle, handleToken, expectResourceError } from './fixtures.js';
+import { description, expectResourceError, Handle, handleToken } from './fixtures.js';
 
 describe('Scoped resolution', () => {
   it('is lazy, reuses opaque identity, isolates scopes and does not fall back', async () => {

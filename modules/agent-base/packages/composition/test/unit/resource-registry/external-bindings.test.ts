@@ -4,13 +4,13 @@ import {
   compileResourceBlueprint,
   createResourceScope,
   defineResourceProvider,
-  resourceDependency,
   ResourceCleanupError,
+  resourceDependency,
   ResourceToken,
   type ResourceScope,
 } from '@print-an-agent/base-composition/resource-registry';
 import { describe, expect, it, vi } from 'vitest';
-import { description, Handle, handleToken, expectResourceError } from './fixtures.js';
+import { description, expectResourceError, Handle, handleToken } from './fixtures.js';
 
 function root() {
   const token = handleToken('root');

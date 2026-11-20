@@ -1,8 +1,8 @@
 import {
+  borrowResource,
   defineResourceProvider,
   resourceDependency,
   ResourceToken,
-  borrowResource,
   type ResourceRegistry,
 } from '@print-an-agent/base-composition/resource-registry';
 

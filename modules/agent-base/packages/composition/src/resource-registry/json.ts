@@ -1,14 +1,5 @@
 import { ResourceError } from './errors.js';
-
-export type ResourceJson =
-  | null
-  | boolean
-  | number
-  | string
-  | readonly ResourceJson[]
-  | {
-      readonly [key: string]: ResourceJson;
-    };
+import type { ResourceJson } from './types/json.js';
 
 function invalid(): never {
   throw new ResourceError('RESOURCE_BINDING_CONFLICT', 'Resource identity must be JSON-safe.');

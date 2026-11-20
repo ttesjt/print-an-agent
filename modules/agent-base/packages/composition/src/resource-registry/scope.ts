@@ -1,24 +1,24 @@
-import { blueprintProviders, type ResourceBlueprint } from './blueprint.js';
 import { prepareExternalBindings, type PreparedExternalBinding } from './bindings.js';
-import type {
-  ResourceCallOptions,
-  ResourceCloseOptions,
-  ResourceRegistry,
-  ResourceScope,
-  ResourceScopeState,
-  ResourceScopeOptions,
-} from './contracts.js';
-import type { ResourceEntry } from './entry.js';
+import { blueprintProviders, type ResourceBlueprint } from './blueprint.js';
 import { ResourceCleanupError, ResourceError } from './errors.js';
 import { assertWiringRecord } from './json.js';
 import { AcquisitionLedger } from './ledger.js';
-import type { ProviderDriver, PreparedProvider } from './provider.js';
 import {
   ResourceToken,
   isThenable,
   type ResourceRequest,
   type ResourceTokenIdentity,
 } from './token.js';
+import type { ResourceEntry } from './types/entry.js';
+import type { PreparedProvider, ProviderDriver } from './types/provider.js';
+import type {
+  ResourceCallOptions,
+  ResourceCloseOptions,
+  ResourceRegistry,
+  ResourceScope,
+  ResourceScopeOptions,
+  ResourceScopeState,
+} from './types/scope.js';
 import { aborted, waitForResource } from './waiter.js';
 
 class Scope implements ResourceScope {

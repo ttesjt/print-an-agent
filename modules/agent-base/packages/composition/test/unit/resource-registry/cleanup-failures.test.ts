@@ -2,8 +2,8 @@ import {
   compileResourceBlueprint,
   createResourceScope,
   defineResourceProvider,
-  resourceDependency,
   ResourceCleanupError,
+  resourceDependency,
   ResourceError,
   type ResourceAcquisition,
 } from '@print-an-agent/base-composition/resource-registry';

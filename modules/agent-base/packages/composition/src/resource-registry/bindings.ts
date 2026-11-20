@@ -1,7 +1,7 @@
 import { ResourceError } from './errors.js';
 import { assertWiringRecord } from './json.js';
-import type { PreparedProvider, ProviderDriver } from './provider.js';
 import { ResourceToken, type ResourceRequest, type ResourceTokenIdentity } from './token.js';
+import type { PreparedProvider, ProviderDriver } from './types/provider.js';
 
 const bindingBrand: unique symbol = Symbol('ResourceExternalBinding');
 /** An explicit borrowed value, not an acquisition or an imported Registry. */

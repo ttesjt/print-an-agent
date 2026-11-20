@@ -1,10 +1,13 @@
+export { createAgentAPI } from './agent-api.js';
+export type { AgentAPI } from './agent-api.js';
 export {
+  FOREGROUND_AGENT_OPERATION_NAME,
+  SESSION_COMPACTION_AGENT_OPERATION_NAME,
   composeAgent,
   composeAgentWithExtensions,
   createStandardAgentDefinition,
-  FOREGROUND_AGENT_OPERATION_NAME,
-  SESSION_COMPACTION_AGENT_OPERATION_NAME,
-} from './compose-agent.js';
+} from './standard-agent/index.js';
+
 export type {
   AgentCompositionExtension,
   AgentCompositionExtensionFactory,
@@ -12,16 +15,48 @@ export type {
   StandardAgentDefinition,
   StandardAgentOperations,
   StandardAgentResources,
-} from './compose-agent.js';
-export { AgentCompositionError } from './composition-error.js';
-export type { AgentCompositionErrorCode } from './composition-error.js';
-export { createAgentAPI } from './agent-api.js';
-export type { AgentAPI } from './agent-api.js';
-export { createDeterministicAgentAPI } from './create-deterministic-agent-api.js';
-export { createProviderAgentAPI } from './create-provider-agent-api.js';
-export { createProviderRuntime } from './provider-runtime.js';
-export type { ProviderRuntime } from './provider-runtime.js';
-export { defineProviderConfig } from './provider-config.js';
-export type * from './deterministic-provider-contracts.js';
-export type * from './provider-contracts.js';
-export type * from './types.js';
+} from './standard-agent/index.js';
+
+export {
+  createDeterministicAgentAPI,
+  type DeterministicProviderInspection,
+  type DeterministicProviderRequestSnapshot,
+  type DeterministicProviderResponse,
+  type DeterministicProviderResponseFactory,
+  type DeterministicProviderRuntimeOptions,
+  type DeterministicProviderToolEventSnapshot,
+  type DeterministicProviderToolResultSnapshot,
+} from './deterministic-provider/index.js';
+export type {
+  CreateDeterministicAgentAPIOptions,
+  DeterministicAgentAPI,
+} from './deterministic-provider/index.js';
+export { createProviderAgentAPI, defineProviderConfig } from './provider/index.js';
+export type {
+  BuiltinProviderConfigInput,
+  BuiltinProviderRuntimeInspection,
+  DefinedBuiltinProviderConfig,
+  DefinedOpenAICompatibleProviderConfig,
+  DefinedProviderConfig,
+  OpenAICompatibleProviderCompatibility,
+  OpenAICompatibleProviderConfigInput,
+  OpenAICompatibleProviderRuntimeInspection,
+  ProviderConfigInput,
+  ProviderReadiness,
+  ProviderRuntimeInspection,
+  ProviderRuntimeInspectionBase,
+  ProviderRuntimeOptions,
+} from './provider/index.js';
+
+export { createProviderRuntime } from './provider/index.js';
+
+export type { ProviderRuntime } from './provider/index.js';
+
+export type { CreateProviderAgentAPIOptions, ProviderAgentAPI } from './provider/index.js';
+export { AgentCompositionError } from './standard-agent/index.js';
+export type {
+  AgentCompositionErrorCode,
+  ComposeAgentOptions,
+  RequestAgentRunContext,
+  SessionCompactionAgentRunContext,
+} from './standard-agent/index.js';

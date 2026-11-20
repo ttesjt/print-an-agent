@@ -18,7 +18,7 @@ injected ports. Neither feature imports the other, management does not import lo
 concrete storage, and the package as a whole does not depend on the Standalone profile. Repository
 architecture tests enforce these rules for static, exported, type-only, and dynamic imports.
 
-## Management source ownership
+## Source ownership
 
 ```text
 src/
@@ -35,13 +35,37 @@ src/
     memory/context/          Context Memory management and receipt recovery
     memory/retrieval/        Retrieval Memory management and result/receipt validation
     session-context-memory/  Branch binding, Turn checkpoints, writes, navigation and recovery
+  runtime/
+    standard-agent/          Readable standard assembly, Operations, bindings and extensions
+    provider/                Ordinary Provider configuration, runtime and API assembly
+    deterministic-provider/  Deterministic Provider API and fixture contracts
+    agent-api.ts             Thin projection over the raw Agent
+  sessionless/               Caller-owned Request Workflow provisioning
+  resource-registry/         Domain-neutral optional public subsystem
 ```
 
-Management capabilities expose deliberate named exports through their `index.ts` entries.
-Definition and Service factories compose narrow capability contracts without lower features depending
-back on the complete blueprint. Management tests mirror those capabilities under `test/integration`,
-`test/unit`, `test/types`, and `test/support`. The root `test/composition-architecture.test.ts`
-checks Management entries, dependency direction including types, and erased type modules.
+Each capability exposes deliberate named exports through its `index.ts`. The package root exposes
+only its existing supported API; Registry retains its separate subpath. Internal descendants use
+explicitly shared ancestor contracts instead of importing their parent's aggregate. Definition
+and Service factories are upper composition layers; lower capability implementations consume
+narrow contracts and do not depend back on those layers. Service failure translation may consume
+specialized public error facts without making common operation helpers depend on Memory.
+
+Independent compile-time declarations in Management, Runtime and Sessionless live in their owner's
+`types.ts` or `types/` modules. Types derived from an implementation remain with that implementation.
+
+Tests mirror capability ownership under `test/integration`, `test/unit`, and `test/types`.
+Request replay, output failure, compaction, Provider routing and Session navigation are separate
+behavior scenarios. Storage fixtures and other helpers live under their consumer's `test/support`
+scope. The Definition type qualification keeps its generic forwarding and capability-presence
+cases together so the complete inference contract can be reviewed in one place. Module-level
+public consumers remain in `../../tests/integration/`.
+
+`test/composition-architecture.test.ts` at the repository root checks nested entries, explicit
+ancestor sharing, dependency direction including types, and erased type modules. Root architecture
+and Registry checks continue enforcing isolated peers, neutral Registry consumption and public
+declaration isolation. These checks do not prove runtime authority or resource ownership; those
+remain covered by behavior tests and review.
 
 ## Agent Workflow binding
 

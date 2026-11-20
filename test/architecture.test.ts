@@ -1141,9 +1141,9 @@ describe('module architecture', () => {
     for (const publicContractFile of [
       join(compositionSource, 'index.ts'),
       join(compositionSource, 'runtime', 'index.ts'),
-      join(compositionSource, 'runtime', 'types.ts'),
-      join(compositionSource, 'runtime', 'provider-contracts.ts'),
-      join(compositionSource, 'runtime', 'deterministic-provider-contracts.ts'),
+      ...typeScriptFiles(join(compositionSource, 'runtime')).filter((file) =>
+        /[\\/]types[\\/]|[\\/]types\.ts$|-contracts\.ts$/.test(file)
+      ),
       ...typeScriptFiles(join(compositionSource, 'management')),
     ]) {
       const source = readFileSync(publicContractFile, 'utf8');

@@ -34,9 +34,16 @@ const features = [
   'management/memory/retrieval',
   'management/session-context-memory/mutations',
   'management/session-context-memory/navigation',
+  'runtime/standard-agent',
+  'runtime/provider',
+  'runtime/deterministic-provider',
 ];
 const boundaries: readonly SourceBoundary[] = [
+  { directory: '', entries: ['index.ts', 'resource-registry/index.ts'] },
   { directory: 'management', entries: ['index.ts'] },
+  { directory: 'runtime', entries: ['index.ts'], sharedEntries: ['agent-api.ts'] },
+  { directory: 'sessionless', entries: ['index.ts'] },
+  { directory: 'resource-registry', entries: ['index.ts'] },
   { directory: 'management/memory', entries: ['index.ts'], sharedEntries: memoryShared },
   {
     directory: 'management/session-context-memory',
@@ -97,6 +104,14 @@ const dependencies: readonly SourceDependencyRule[] = [
     scope: scope('session-context-memory/types'),
     dependencies: [scope('session-context-memory/tools.ts')],
   },
+  { scope: 'runtime/agent-api.ts', dependencies: ['runtime/standard-agent'] },
+  { scope: 'runtime/standard-agent', dependencies: [] },
+  ...['provider', 'deterministic-provider'].map((name) => ({
+    scope: `runtime/${name}`,
+    dependencies: ['runtime/standard-agent', 'runtime/agent-api.ts'],
+  })),
+  { scope: 'resource-registry', dependencies: [] },
+  { scope: 'sessionless', dependencies: [] },
 ];
 function modules(directory: string): SourceModule[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -108,8 +123,8 @@ function modules(directory: string): SourceModule[] {
         : [];
   });
 }
-const sources = modules(root).filter((module) => module.path.startsWith('management/'));
-it('declares every Composition management feature entry and shared ancestor module', () => {
+const sources = modules(root);
+it('declares every Composition feature entry and shared ancestor module', () => {
   const paths = sources.map((module) => module.path);
   const entries = [
     ...new Set(
@@ -123,7 +138,7 @@ it('declares every Composition management feature entry and shared ancestor modu
       expect(paths).toContain(posix.join(boundary.directory, entry));
   expect(paths.filter((file) => file.endsWith('index.ts')).sort()).toEqual(entries.sort());
 });
-it('keeps Composition management on explicit APIs and one-way dependency rules, including type references', () => {
+it('keeps Composition on explicit APIs and one-way dependency rules, including type references', () => {
   expect(inspectSourceBoundaries(sources, boundaries, dependencies)).toEqual([]);
 });
 it('accepts Definition composition through capability APIs', () => {
@@ -161,6 +176,7 @@ it.each([
     "import { createSessionContextMemory } from '../index.js';",
     'ancestor-entry',
   ],
+  ['runtime/provider/example.ts', "export type * from './types/api.js';", 'wildcard'],
 ] as const)('rejects invalid dependency at %s', (path, source, rule) => {
   expect(inspectSourceBoundaries([{ path, source }], boundaries, dependencies)).toEqual(
     expect.arrayContaining([expect.objectContaining({ rule })])

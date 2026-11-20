@@ -186,7 +186,7 @@ The local adapter and composition suites apply shared observable cases to Memory
 Domain unit tests qualify pure decisions, not storage behavior. Storage evidence lives in
 `base-local-adapters/test/integration/session-lifecycle.test.ts`; runtime lease/output/replay,
 cancellation and suspended maintenance writes are covered in
-`base-composition/test/integration/session-lifecycle.test.ts`. Persistent recovery tests reopen
+[Composition runtime lifecycle tests](../../composition/test/integration/runtime/request/session-lifecycle.test.ts). Persistent recovery tests reopen
 SQLite adapters/connections and inject storage failures; they do not certify remote stores or
 exactly-once external side effects. Standalone namespace-based management services remain separate.
 

@@ -14,7 +14,7 @@ import {
 } from '@print-an-agent/context-memory';
 import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 import { CONTEXT_MEMORY_TOOL_NAMES, createSessionContextMemory } from '../../../src/index.js';
-import { TEST_COMPACTION_TOKEN_COUNTER } from '../compaction-token-counter.js';
+import { TEST_COMPACTION_TOKEN_COUNTER } from '../runtime/compaction-token-counter.js';
 
 export function runtimeMemoryFixture(
   writable = false,

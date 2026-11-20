@@ -1,12 +1,12 @@
 import type { AgentIdentity } from '@print-an-agent/base-identity-config/identity';
-import type { CompactSessionInput, SessionCompactionOutcome } from '@print-an-agent/base-session';
 import type { AgentRequestInput, AgentResponse } from '@print-an-agent/base-request';
 import type { AgentRunOptions } from '@print-an-agent/base-runtime';
+import type { CompactSessionInput, SessionCompactionOutcome } from '@print-an-agent/base-session';
 import {
+  type ComposedAgent,
   FOREGROUND_AGENT_OPERATION_NAME,
   SESSION_COMPACTION_AGENT_OPERATION_NAME,
-  type ComposedAgent,
-} from './compose-agent.js';
+} from './standard-agent/index.js';
 
 export interface AgentAPI {
   readonly agent: ComposedAgent;

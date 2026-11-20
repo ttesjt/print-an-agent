@@ -80,7 +80,6 @@ it('keeps domain/adapter runtime dependencies narrow and does not duplicate a Wo
   const adapter = join(memoryRoot, 'packages/context-memory-sqlite');
   expect(Object.keys(manifest(domain).dependencies ?? {}).sort()).toEqual([
     '@print-an-agent/model-invocation-core',
-    '@print-an-agent/workflow-bundle',
     '@print-an-agent/workflow-core',
   ]);
   expect(manifest(adapter).dependencies).toEqual({
@@ -91,11 +90,16 @@ it('keeps domain/adapter runtime dependencies narrow and does not duplicate a Wo
       /class (?:Workflow|ExecutionScope|StepRuntime)\b|as unknown as/
     );
     for (const specifier of imports(path)) {
-      if (!specifier.startsWith('.') && !specifier.startsWith('node:'))
+      if (!specifier.startsWith('.') && !specifier.startsWith('node:')) {
+        const packageName = specifier.split('/').slice(0, 2).join('/');
         expect(
           manifest(path.startsWith(`${domain}${sep}`) ? domain : adapter).dependencies,
           path
-        ).toHaveProperty(specifier);
+        ).toHaveProperty(packageName);
+        expect(specifier, path).toBe(
+          specifier === '@print-an-agent/workflow-core/bundle' ? specifier : packageName
+        );
+      }
     }
   }
 });
@@ -158,7 +162,7 @@ it.each([
 
 it.each([
   ['modules/workflow/packages/core/src/index.ts', '@print-an-agent/context-memory'],
-  ['modules/workflow/packages/bundle/src/index.ts', '@print-an-agent/context-memory-sqlite'],
+  ['modules/workflow/packages/core/src/bundle/index.ts', '@print-an-agent/context-memory-sqlite'],
   ['modules/model-invocation/packages/core/src/index.ts', '@print-an-agent/context-memory'],
   ['modules/model-invocation/packages/pi/src/index.ts', '@print-an-agent/context-memory-sqlite'],
 ])('forbids reverse dependency from %s to %s', async (path, dependency) => {

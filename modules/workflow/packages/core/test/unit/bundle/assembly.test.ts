@@ -1,12 +1,12 @@
 import { Workflow, type WorkflowEvent } from '@print-an-agent/workflow-core';
-import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-core/bundle';
 import { expect, it, vi } from 'vitest';
 import {
   readDefinition,
   writeDefinition,
   type ReadPorts,
   type WritePorts,
-} from '../support/definitions.js';
+} from '../../support/bundle/definitions.js';
 
 class Store implements WritePorts {
   readonly values = new Map<string, string>();

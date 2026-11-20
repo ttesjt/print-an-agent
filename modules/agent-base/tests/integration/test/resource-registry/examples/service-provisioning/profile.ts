@@ -9,7 +9,7 @@ import {
   type ResourceCloseOptions,
   type ResourceRegistry,
 } from '@print-an-agent/base-composition/resource-registry';
-import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-core/bundle';
 import { createDocumentBundle, type DocumentBundle, type DocumentReader } from './workflow.js';
 import type { DocumentCallOptions, DocumentManagementDefinition } from './service.js';
 

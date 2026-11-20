@@ -18,7 +18,7 @@ import {
   RetrievalMemoryError,
   type SpaceInput,
 } from '@print-an-agent/retrieval-memory';
-import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-core/bundle';
 import { DEFAULT_MEMORY_MEASUREMENT_REF } from './recipe.js';
 import type { StandaloneMemoryManagementOptions } from './contracts.js';
 import type { MemoryAllocationResolver } from './context.js';

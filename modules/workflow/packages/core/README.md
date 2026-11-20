@@ -4,6 +4,21 @@ A domain-independent execution core: reusable Workflow definitions, replaceable 
 run-local state, typed results, cooperative cancellation, and joined parallel execution. No runtime package
 dependencies.
 
+The package has two public entries:
+
+- `@print-an-agent/workflow-core`: Workflow execution, Step composition, execution signals and timeouts,
+  and their public contracts.
+- `@print-an-agent/workflow-core/bundle`: `WorkflowBundle`, `WorkflowBundleDefinitionError`, and the
+  `BundleWorkflowDefinition`, `BundleWorkflows`, `WorkflowBundleOptions` and
+  `WorkflowBundleDefinitionErrorCode` types. See the [Bundle guide](./docs/bundle.md).
+
+Bundle members are ordinary Core Workflows. Bundle-specific exports belong to the `/bundle` subentry;
+the root entry retains its existing API. No other package subpaths are public.
+
+Internally, Bundle reuses the existing shared Core `src/workflow.ts` capability and
+`src/types/workflow.ts` contracts directly. It does not import through the root aggregate entry;
+execution code remains independent of Bundle assembly.
+
 ```ts
 import { Workflow } from '@print-an-agent/workflow-core';
 

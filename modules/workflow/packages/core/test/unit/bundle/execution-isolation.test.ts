@@ -1,7 +1,14 @@
 import type { WorkflowContext, WorkflowEvent } from '@print-an-agent/workflow-core';
-import { WorkflowBundle, type BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
+import {
+  WorkflowBundle,
+  type BundleWorkflowDefinition,
+} from '@print-an-agent/workflow-core/bundle';
 import { expect, it, vi } from 'vitest';
-import { readDefinition, writeDefinition, type ReadContext } from '../support/definitions.js';
+import {
+  readDefinition,
+  writeDefinition,
+  type ReadContext,
+} from '../../support/bundle/definitions.js';
 
 it('isolates state, result, counts, Run identities and observers across repeated and distinct members', async () => {
   type Context = WorkflowContext<'main', { input: number; values: number[] }, { label: string }>;

@@ -3,7 +3,8 @@
 Use `@print-an-agent/workflow-core`, never a source deep import. There is one execution package, no generic
 application/resource framework. Each consuming domain supplies its own ports and types.
 For a group of Workflows sharing Resources, use
-[`@print-an-agent/workflow-bundle`](../packages/bundle/README.md). It constructs ordinary Core Workflows
+[`@print-an-agent/workflow-core/bundle`](../packages/core/docs/bundle.md), a public subentry of the same
+package. It constructs ordinary Core Workflows
 from unbound definitions and adds no execution layer.
 
 ## Defining a flow
@@ -161,6 +162,6 @@ enabled timeout, a successfully returned committed operation is not reclassified
 
 ## Testing
 
-Run `pnpm test:workflow-qualification`; it builds Core and Bundle, compiles their consumers (including
+Run `pnpm test:workflow-qualification`; it builds Core with its Bundle subentry, compiles consumers (including
 negative type fixtures), lints/formats, executes standalone and Bundle lifecycle regressions, and checks public
 dependency/declaration boundaries. For a clean rebuild first run `pnpm --filter @print-an-agent/workflow-core clean`.

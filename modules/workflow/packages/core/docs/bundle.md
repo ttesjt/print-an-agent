@@ -1,11 +1,14 @@
-# @print-an-agent/workflow-bundle
+# @print-an-agent/workflow-core/bundle
 
 Assemble named Core Workflows over one borrowed Resources binding. Each member keeps its own input,
 state, result projection, Step registry, overrides, executor and lifecycle. Execution uses
 `@print-an-agent/workflow-core`.
 
 ```ts
-import { WorkflowBundle, type BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
+import {
+  WorkflowBundle,
+  type BundleWorkflowDefinition,
+} from '@print-an-agent/workflow-core/bundle';
 
 interface Reader {
   read(key: string, signal: AbortSignal): Promise<string>;
@@ -122,6 +125,6 @@ release scope; injected shared adapters stay open across successful, skipped, fa
 calls. Await every active invocation before closing shared resources. A durable commit is not rolled
 back by a later hook failure; read the authoritative store to learn the persisted result.
 
-The [SQLite consumer](../../tests/qualification/test/consumers/record-bundle.ts) reuses the same update
+The [SQLite consumer](../../../tests/qualification/test/consumers/record-bundle.ts) reuses the same update
 definition independently and in a Bundle, then qualifies persistence, CAS and cancellation through
 public package exports. Run `pnpm test:workflow-qualification` from the repository root.

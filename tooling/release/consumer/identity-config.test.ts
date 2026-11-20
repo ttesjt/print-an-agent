@@ -149,6 +149,10 @@ test('packed package rejects private implementation paths', async () => {
     '@print-an-agent/base-identity-config/src/index.js',
     '@print-an-agent/base-identity-config/identity/types/identity',
     '@print-an-agent/base-identity-config/config/lib/config-value.js',
+    '@print-an-agent/base-identity-config/identity/catalog/index.js',
+    '@print-an-agent/base-identity-config/identity/values.js',
+    '@print-an-agent/base-identity-config/config/value.js',
+    '@print-an-agent/base-identity-config/config/types/codec.js',
     '@print-an-agent/base-identity-config/dist/identity/index.js',
   ])
     await assert.rejects(import(specifier), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });

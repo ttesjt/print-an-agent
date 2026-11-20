@@ -12,13 +12,3 @@ export type AgentIdentityErrorCode =
   | 'AGENT_IDENTITY_SCHEMA_INVALID'
   | 'AGENT_IDENTITY_SCHEMA_UNSUPPORTED'
   | 'AGENT_IDENTITY_STORAGE_FAILED';
-
-export class AgentIdentityError extends Error {
-  readonly code: AgentIdentityErrorCode;
-
-  constructor(code: AgentIdentityErrorCode, message: string, options?: ErrorOptions) {
-    super(message, options);
-    this.name = 'AgentIdentityError';
-    this.code = code;
-  }
-}

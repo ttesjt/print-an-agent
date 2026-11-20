@@ -18,3 +18,31 @@ it('keeps error-class identity across every public entry', () => {
     identity.AgentIdentityError
   );
 });
+
+it('preserves Identity error diagnostics through the aggregate and feature entries', () => {
+  const cause = new Error('catalog failed');
+  const error = new root.AgentIdentityError('AGENT_IDENTITY_STORAGE_FAILED', 'cannot read', {
+    cause,
+  });
+  expect(error).toBeInstanceOf(identity.AgentIdentityError);
+  expect(error).toMatchObject({
+    name: 'AgentIdentityError',
+    code: 'AGENT_IDENTITY_STORAGE_FAILED',
+    message: 'cannot read',
+    cause,
+  });
+  expect(error.cause).toBe(cause);
+});
+
+it('preserves Config error diagnostics through the aggregate and feature entries', () => {
+  const cause = new Error('storage failed');
+  const error = new root.AgentConfigError('CONFIG_STORAGE_FAILED', 'cannot read', { cause });
+  expect(error).toBeInstanceOf(config.AgentConfigError);
+  expect(error).toMatchObject({
+    name: 'AgentConfigError',
+    code: 'CONFIG_STORAGE_FAILED',
+    message: 'cannot read',
+    cause,
+  });
+  expect(error.cause).toBe(cause);
+});

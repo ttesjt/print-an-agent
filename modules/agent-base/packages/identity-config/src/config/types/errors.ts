@@ -12,13 +12,3 @@ export type AgentConfigErrorCode =
   | 'CONFIG_STORAGE_FAILED'
   | 'CONFIG_STORAGE_SCHEMA_INVALID'
   | 'CONFIG_STORAGE_SCHEMA_UNSUPPORTED';
-
-export class AgentConfigError extends Error {
-  readonly code: AgentConfigErrorCode;
-
-  constructor(code: AgentConfigErrorCode, message: string, options?: ErrorOptions) {
-    super(message, options);
-    this.name = 'AgentConfigError';
-    this.code = code;
-  }
-}

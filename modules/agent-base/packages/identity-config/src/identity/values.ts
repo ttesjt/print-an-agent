@@ -1,5 +1,5 @@
-import { AgentIdentityError } from '../types/errors.js';
-import type { AgentId, AgentIdentity, AgentIdentityInput } from '../types/identity.js';
+import { AgentIdentityError } from './errors.js';
+import type { AgentId, AgentIdentity, AgentIdentityInput } from './types/identity.js';
 
 const AGENT_ID_MAX_LENGTH = 64;
 const DISPLAY_NAME_MAX_LENGTH = 128;

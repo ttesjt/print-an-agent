@@ -1,5 +1,6 @@
 import type { AgentId } from '../../identity/index.js';
-import type { AgentConfigSnapshot, ConfigValue } from './config.js';
+import type { AgentConfigSnapshot } from './snapshot.js';
+import type { ConfigValue } from './codec.js';
 
 export interface AgentConfigWriteRequest {
   readonly agentId: AgentId;

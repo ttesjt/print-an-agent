@@ -28,18 +28,30 @@ ports. This package selects no storage, provider, Workflow, application host or 
 
 ```text
 src/
-  index.ts             # Explicit aggregate API
-  identity/            # Identity implementation and its public entry
-    catalog/           # Catalog lifecycle, metadata and snapshot validation
-    lib/               # Identity primitive validation
-    types/             # Existing Identity declarations and error definitions
-  config/              # Config implementation and its public entry
-    lib/               # Resolution, writes and JSON normalization
-    types/             # Existing Config declarations and error definitions
+  index.ts                 # Explicit package aggregate
+  identity/
+    index.ts               # Identity API, including Catalog re-exports
+    values.ts              # ID validation and immutable Identity construction
+    errors.ts              # Runtime Identity error class
+    types/                 # Primitive Identity types and error codes
+    catalog/
+      index.ts             # Catalog child-feature API
+      queries.ts           # Read and list
+      lifecycle.ts         # Create, disable and reactivate
+      metadata.ts          # Rename with independent Identity CAS
+      snapshot.ts          # Snapshot construction and adapter-result checks
+      types/               # Snapshots/status, ports/requests and operation options
+  config/
+    index.ts               # Config API
+    agent-config.ts        # Resolve and CAS write flows
+    codec.ts               # Codec validation, round trips and error translation
+    snapshot.ts            # Adapter snapshot checks and decoding
+    value.ts               # Bounded JSON normalization and local traversal state
+    errors.ts              # Runtime Config error class
+    types/                 # Serialization, snapshots, adapters, options and error codes
 ```
 
-These feature boundaries preserve the existing implementations. Config's dependency on Identity is
-type-only. Identity and Config revisions remain independent: renaming/disabling an Identity does not
+Config's dependency on Identity is type-only. Identity and Config revisions remain independent: renaming/disabling an Identity does not
 write Config, and resolving a Config default does not persist it. Persistence schemas, IDs, codec
 behavior and error classes retain their existing contracts.
 
@@ -63,3 +75,15 @@ consumers are covered by `pnpm release:prepare` and `pnpm release:verify`.
 Tests consume compiled public entries. Test, coverage and watch commands prepare their initial
 build. During watch development, run `pnpm dev` alongside `pnpm test:watch` so source changes rebuild
 the public output consumed by tests.
+
+## Verification and boundary coverage
+
+`test/identity-config-architecture.test.ts` declares the Catalog child boundary and its shared
+Identity foundation, rejects private/aggregate imports, and checks the one-way dependency layers
+including type-only edges. It also scans built Config JavaScript to verify that no runtime
+Identity dependency remains. These checks reuse the repository's source-boundary tooling; they
+cover literal module paths rather than computed imports or runtime ownership.
+
+Tests are grouped by the same owners: Identity values and Catalog queries/lifecycle/metadata,
+Config operations/codecs/snapshots/JSON values, plus public-entry compatibility and compile-time
+fixtures. Type placement, responsibility names and semantic ownership still require code review.

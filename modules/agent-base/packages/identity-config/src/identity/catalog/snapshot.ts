@@ -1,6 +1,7 @@
-import { defineAgentIdentity } from '../lib/identity.js';
-import { AgentIdentityError } from '../types/errors.js';
-import type { AgentId, AgentIdentitySnapshot, AgentIdentityStatus } from '../types/identity.js';
+import { defineAgentIdentity } from '../values.js';
+import { AgentIdentityError } from '../errors.js';
+import type { AgentId } from '../types/identity.js';
+import type { AgentIdentitySnapshot, AgentIdentityStatus } from './types/snapshot.js';
 
 export function isAgentIdentityStatus(value: unknown): value is AgentIdentityStatus {
   return value === 'active' || value === 'disabled';
@@ -68,4 +69,14 @@ export function assertSnapshotAgentId(snapshot: AgentIdentitySnapshot, agentId: 
       `Agent Identity catalog returned "${snapshot.identity.id}" while resolving "${agentId}".`
     );
   }
+}
+
+export function normalizeCatalogSnapshot(snapshot: AgentIdentitySnapshot): AgentIdentitySnapshot {
+  return defineAgentIdentitySnapshot({
+    identity: snapshot.identity,
+    status: snapshot.status,
+    revision: snapshot.revision,
+    createdAt: snapshot.createdAt,
+    updatedAt: snapshot.updatedAt,
+  });
 }

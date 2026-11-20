@@ -1,5 +1,5 @@
+import type { ResourceTokenIdentity } from '../token.js';
 import type { PreparedProvider } from './provider.js';
-import type { ResourceTokenIdentity } from './token.js';
 
 /** Attempts exist before factories run. The ready cache is not the ownership ledger. */
 export interface ResourceEntry {

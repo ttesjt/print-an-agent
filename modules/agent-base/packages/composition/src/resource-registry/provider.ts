@@ -1,13 +1,9 @@
 import { ResourceError } from './errors.js';
-import {
-  assertName,
-  assertWiringRecord,
-  canonicalJson,
-  snapshotJson,
-  type ResourceJson,
-} from './json.js';
+import { assertName, assertWiringRecord, canonicalJson, snapshotJson } from './json.js';
 import { ResourceToken, isThenable, type ResourceTokenIdentity } from './token.js';
-import type { ResourceAcquisition } from './contracts.js';
+import type { ResourceJson } from './types/json.js';
+import type { PreparedProvider, ProviderDriver } from './types/provider.js';
+import type { ResourceAcquisition } from './types/scope.js';
 
 export interface ResourceDescription {
   readonly key: string;
@@ -45,28 +41,6 @@ export type ResolvedResourceDependencies<D> = {
 const providerBrand: unique symbol = Symbol('ResourceProvider');
 export interface ResourceProvider {
   readonly [providerBrand]: true;
-}
-
-export interface PreparedDependency {
-  readonly name: string;
-  readonly token: ResourceTokenIdentity;
-  readonly binding: unknown;
-}
-export interface PreparedProvider {
-  readonly key: string;
-  readonly descriptor: string;
-  readonly dependencies: readonly PreparedDependency[];
-  create(
-    dependencies: Readonly<Record<string, unknown>>,
-    signal: AbortSignal
-  ): Promise<{ readonly acquisition: unknown }>;
-  validate(value: unknown): Promise<void>;
-}
-export interface ProviderDriver {
-  readonly token: ResourceTokenIdentity;
-  readonly dependencyTokens: readonly ResourceTokenIdentity[];
-  readonly externalBinding: 'forbidden' | 'borrowed';
-  prepare(binding: unknown): PreparedProvider;
 }
 const drivers = new WeakMap<ResourceProvider, ProviderDriver>();
 

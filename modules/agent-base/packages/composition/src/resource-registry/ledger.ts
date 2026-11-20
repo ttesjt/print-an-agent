@@ -1,5 +1,5 @@
 import { ResourceCleanupError, ResourceError } from './errors.js';
-import type { ResourceEntry } from './entry.js';
+import type { ResourceEntry } from './types/entry.js';
 
 /** Owns acquisitions and failed attempts, including attempts that never produced a value. */
 export class AcquisitionLedger {

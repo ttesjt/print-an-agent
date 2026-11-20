@@ -1,6 +1,7 @@
 import { ResourceError } from './errors.js';
-import { providerDriver, type ProviderDriver, type ResourceProvider } from './provider.js';
+import { providerDriver, type ResourceProvider } from './provider.js';
 import type { ResourceTokenIdentity } from './token.js';
+import type { ProviderDriver } from './types/provider.js';
 
 const blueprintBrand: unique symbol = Symbol('ResourceBlueprint');
 export interface ResourceBlueprint {

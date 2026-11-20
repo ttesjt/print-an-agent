@@ -51,8 +51,12 @@ and Service factories are upper composition layers; lower capability implementat
 narrow contracts and do not depend back on those layers. Service failure translation may consume
 specialized public error facts without making common operation helpers depend on Memory.
 
-Independent compile-time declarations in Management, Runtime and Sessionless live in their owner's
-`types.ts` or `types/` modules. Types derived from an implementation remain with that implementation.
+Independent compile-time declarations live in their owner's `types.ts` or `types/` modules.
+Types derived from an implementation remain with that implementation; Registry's runtime brands,
+Token request types and dependency types remain next to their authoritative runtime definitions.
+Scope keeps its admission/initialization/close state machine together, with acquisition ownership
+and dependency-aware release delegated to Ledger. Its size alone does not justify splitting that
+state machine.
 
 Tests mirror capability ownership under `test/integration`, `test/unit`, and `test/types`.
 Request replay, output failure, compaction, Provider routing and Session navigation are separate

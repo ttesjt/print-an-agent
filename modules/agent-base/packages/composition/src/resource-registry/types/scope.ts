@@ -1,5 +1,5 @@
-import type { ResourceRequest } from './token.js';
-import type { ResourceExternalBinding } from './bindings.js';
+import type { ResourceExternalBinding } from '../bindings.js';
+import type { ResourceRequest } from '../token.js';
 
 export type ResourceScopeState = 'open' | 'fenced' | 'closing' | 'closed' | 'close-failed';
 export interface ResourceCallOptions {

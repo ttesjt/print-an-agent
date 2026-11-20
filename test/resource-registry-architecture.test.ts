@@ -182,7 +182,7 @@ it.each([
 });
 
 it.each([
-  'modules/agent-base/packages/composition/src/management/agent-management-service.ts',
+  'modules/agent-base/packages/composition/src/management/services/agent-management.ts',
   'modules/agent-base/packages/composition/src/runtime/index.ts',
   'modules/agent-base/packages/standalone-agent/src/services/management-service.ts',
   'modules/agent-base/packages/standalone-agent/src/runtime/materialize-standalone-agent.ts',
@@ -215,11 +215,11 @@ it.each([
   expect(results.flatMap((result) => result.messages)).toEqual([]);
 });
 
-it.each(['../resource-registry/index.js', '../resource-registry/scope.js'])(
+it.each(['../../resource-registry/index.js', '../../resource-registry/scope.js'])(
   'rejects relative Registry access from generic management: %s',
   async (specifier) => {
     const results = await eslint.lintText(`import '${specifier}';\n`, {
-      filePath: join(core, 'src/management/agent-management-service.ts'),
+      filePath: join(core, 'src/management/services/agent-management.ts'),
     });
     expect(results.flatMap((result) => result.messages)).toEqual(
       expect.arrayContaining([
@@ -239,7 +239,7 @@ it.each([
     '@print-an-agent/model-invocation-pi',
   ],
   [
-    'modules/agent-base/packages/composition/src/management/agent-management-service.ts',
+    'modules/agent-base/packages/composition/src/management/services/agent-management.ts',
     '@print-an-agent/self-learn-application',
   ],
   [

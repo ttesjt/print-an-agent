@@ -119,19 +119,20 @@ who releases an acquired resource still require review, even when the checks pas
 
 ### Declared source-feature boundaries
 
-`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session declares its
-entries, shared ancestor contracts/capabilities and dependency directions in
-`test/session-architecture.test.ts`; Workflow Core does so in
-`test/workflow-source-boundaries.test.ts`. `test/source-boundaries.test.ts` qualifies the shared
-checker with accepted and rejected imports. All run in `pnpm test:architecture`, and Workflow's
-checks also run in `pnpm test:workflow-qualification`. Identity/Config declares its package entries,
-Catalog child entry, shared Identity foundation, and Catalog/Config dependency layers in
+`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session and Composition management
+declare their entries, shared ancestor contracts/capabilities and dependency directions in
+`test/session-architecture.test.ts` and `test/composition-architecture.test.ts`. Composition management also checks
+its own dependency declarations and runtime erasure of type modules. Workflow Core declares its
+boundaries in `test/workflow-source-boundaries.test.ts`. `test/source-boundaries.test.ts` qualifies
+the shared checker with accepted and rejected imports. All run in `pnpm test:architecture`, and
+Workflow's checks also run in `pnpm test:workflow-qualification`. Identity/Config declares its package
+entries, Catalog child entry, shared Identity foundation, and Catalog/Config dependency layers in
 `test/identity-config-architecture.test.ts`, which also runs in the aggregate architecture gate and
 `pnpm test:identity-config-qualification`. It additionally scans compiled Config JavaScript to verify
 that its dependency on Identity is erased. Other packages do not acquire feature-boundary coverage
 simply by containing an `index.ts`.
 
-The check scans all Session, Workflow Core and Identity/Config production `.ts` sources, including type-only imports, re-exports,
+The check scans all opted-in production `.ts` sources, including type-only imports, re-exports,
 import types and literal dynamic imports. It checks every enclosing boundary, explicitly shared
 ancestor entries, imports back through an owning aggregate, dependency direction and wildcard
 exports. File entries are allowed for shared responsibility modules. Dependency rules cover the

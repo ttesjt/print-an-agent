@@ -18,6 +18,31 @@ injected ports. Neither feature imports the other, management does not import lo
 concrete storage, and the package as a whole does not depend on the Standalone profile. Repository
 architecture tests enforce these rules for static, exported, type-only, and dynamic imports.
 
+## Management source ownership
+
+```text
+src/
+  management/
+    definition/              Complete typed blueprint, inference, validation and builder
+    services/                Public Service factories and application error boundaries
+    namespace/               Namespace contracts, resolution and validation
+    authority/               Shared Identity/Config authority and initialization
+    operation/               Common operation options, cancellation and errors
+    agents/                  Agent creation, query, mutations and Projection coordination
+    runtime-materialization/ Authority admission, runtime provisioning and raw-Agent creation
+    sessions/management/     Out-of-band Session lifecycle and coordinated maintenance
+    sessions/navigation/     Input parsing, scoped provisioning and domain delegation
+    memory/context/          Context Memory management and receipt recovery
+    memory/retrieval/        Retrieval Memory management and result/receipt validation
+    session-context-memory/  Branch binding, Turn checkpoints, writes, navigation and recovery
+```
+
+Management capabilities expose deliberate named exports through their `index.ts` entries.
+Definition and Service factories compose narrow capability contracts without lower features depending
+back on the complete blueprint. Management tests mirror those capabilities under `test/integration`,
+`test/unit`, `test/types`, and `test/support`. The root `test/composition-architecture.test.ts`
+checks Management entries, dependency direction including types, and erased type modules.
+
 ## Agent Workflow binding
 
 Standard composition owns `RequestAgentRunContext` and `SessionCompactionAgentRunContext`.
@@ -91,6 +116,14 @@ codec, namespace allocation, Identity/Config authority, runtime-port creation, a
 materialization by responsibility. Definition creation is synchronous and zero-I/O: it validates
 and shallow-freezes framework-owned wiring records without invoking or recursively freezing
 caller-owned codecs, Ports, factories, or materializers.
+
+A Profile/Setup supplies one blueprint for its selected adapters, authority scope and provisioning
+policy. Callers pass that same Definition to whichever Service factories they need; they do not
+reassemble per-API resource recipes. `management/definition/` owns the complete blueprint contract,
+inference, wiring validation and its single builder. Specialized capability contracts remain with
+their owners. `management/services/` consumes the blueprint and establishes application boundaries;
+the underlying capabilities depend on their narrow contracts rather than the complete Definition.
+Resource acquisition stays on demand, and Profile/Host retains resource lifetime ownership.
 
 This application-level Definition is distinct from both the single-Agent `AgentDefinition` consumed
 by `createAgent()` and the durable, JSON-like `AgentConfig` decoded by its Config codec. `Definition`

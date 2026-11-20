@@ -1,125 +1,230 @@
 export {
-  AgentSessionError,
+  DEFAULT_SESSION_COMPACTION_POLICY,
+  MAX_SESSION_COMPACTION_CHARACTERS,
+  NO_SESSION_COMPACTION_TIMEOUT,
+  SESSION_COMPACTION_REJECTION_REASON,
+  SESSION_COMPACTION_STEP_NAMES,
+  SESSION_COMPACTION_WORKFLOW_NAME,
+  SessionCompactionAttemptsExhaustedError,
   SessionCompactionStepNotImplementedError,
-  SessionNavigationStepNotImplementedError,
-} from './errors.js';
-export type { AgentSessionErrorCode } from './errors.js';
+  bindSessionCompactionTokenCounter,
+  defineCompactSessionInput,
+  defineSessionCompactionTarget,
+  measureSessionCompactionText,
+  refineSessionCompactionPromptTarget,
+  resolveSessionCompactionTarget,
+  selectSessionCompactionSource,
+  validateSessionCompactionPolicy,
+} from './compaction/index.js';
+export type {
+  CommitSessionCompactionRequest,
+  CompactSessionInput,
+  ReadSessionCompactionRequest,
+  SessionCompaction,
+  SessionCompactionAssessment,
+  SessionCompactionExhaustion,
+  SessionCompactionFeedback,
+  SessionCompactionLeafStepName,
+  SessionCompactionOutcome,
+  SessionCompactionPolicy,
+  SessionCompactionPort,
+  SessionCompactionRejectionReason,
+  SessionCompactionSelection,
+  SessionCompactionSkipReason,
+  SessionCompactionSource,
+  SessionCompactionState,
+  SessionCompactionStepName,
+  SessionCompactionTarget,
+  SessionCompactionWorkflowInput,
+  SessionCompactionWorkflowName,
+  SessionContextSnapshot,
+} from './compaction/index.js';
+export {
+  decideMemoryRecord,
+  memoryRecordKey,
+  supportsSessionMemory,
+  supportsSessionMemoryNavigation,
+} from './context-memory/index.js';
+export type {
+  PublishSessionMemoryNavigation,
+  SessionMemoryNavigationPort,
+  SessionMemoryPort,
+  SessionMemoryRecord,
+  SessionMemoryRecordKey,
+  SessionMemoryRecordKind,
+  SessionMemoryVersion,
+  WriteSessionMemoryRecord,
+} from './context-memory/index.js';
 export {
   DEFAULT_SESSION_BRANCH_ID,
+  normalizeSessionReference,
   parseSessionBranchId,
   parseSessionFailureCode,
   parseSessionId,
   parseTurnId,
-} from './identifiers.js';
-export type * from './types.js';
-export type * from './context-memory/contracts.js';
+} from './contracts/index.js';
+export type {
+  ActiveSessionTurn,
+  CompletedSessionTurn,
+  FailedSessionTurn,
+  LoadSessionHistoryRequest,
+  ResolveSessionRequest,
+  ResolvedSessionReference,
+  SessionBranchId,
+  SessionBranchReference,
+  SessionBranchSnapshot,
+  SessionId,
+  SessionNavigationSnapshot,
+  SessionReference,
+  SessionSnapshot,
+  SessionTurn,
+  TurnId,
+} from './contracts/index.js';
+export { AgentSessionError } from './errors.js';
 export {
-  supportsSessionMemory,
-  supportsSessionMemoryNavigation,
-} from './context-memory/contracts.js';
-export { memoryRecordKey, decideMemoryRecord } from './context-memory/validation.js';
-export type * from './lifecycle/contracts.js';
-export type * from './lifecycle/execution.js';
-export { supportsSessionExecution } from './lifecycle/execution.js';
-export { parseSessionExecutionId } from './lifecycle/identifiers.js';
-export {
-  defineSessionLifecycleSnapshot,
-  defineSessionExecutionFence,
-  normalizeSessionReference,
-  normalizeSessionLifecycleMutationInput,
-  normalizePurgeSessionInput,
-  normalizeSessionExecutionLease,
-  normalizeRecoverSessionExecutionsInput,
-  normalizeListRetiredSessionsInput,
-  type NormalizedListRetiredSessionsInput,
-} from './lifecycle/validation.js';
-export {
-  requireSessionReference,
-  requireSessionMetadataRevision,
-  assertSessionIdle,
   assertSessionExecutionAllowed,
   assertSessionExecutionLease,
-  assertSessionRecoveryRevision,
-} from './lifecycle/guards.js';
-export {
-  retireSessionState,
-  restoreSessionState,
+  assertSessionIdle,
   assertSessionPurgeAllowed,
-} from './lifecycle/transitions.js';
-export type * from './presentation/contracts.js';
-export { supportsSessionPresentation } from './presentation/contracts.js';
-export {
-  defineSessionTurnPresentation,
-  MAX_SESSION_PRESENTATION_CHARACTERS,
-  MAX_SESSION_PRESENTATION_BLOCKS,
-} from './presentation/validation.js';
-export type * from './query/contracts.js';
-export { DEFAULT_SESSION_QUERY_LIMIT, MAX_SESSION_QUERY_LIMIT } from './query/contracts.js';
-export {
-  MAX_SESSION_TITLE_CHARACTERS,
-  normalizeRenameSessionInput,
-  normalizeSessionTitle,
-} from './query/metadata.js';
-export {
-  normalizeListSessionsInput,
-  normalizeListSessionTurnsInput,
-  type NormalizedListSessionsInput,
-  type NormalizedListSessionTurnsInput,
-} from './query/normalization.js';
-export type * from './navigation/contracts.js';
-export { executeSessionNavigation } from './navigation/coordinator.js';
+  assertSessionRecoveryRevision,
+  defineSessionExecutionFence,
+  defineSessionLifecycleSnapshot,
+  normalizeListRetiredSessionsInput,
+  normalizePurgeSessionInput,
+  normalizeRecoverSessionExecutionsInput,
+  normalizeSessionExecutionLease,
+  normalizeSessionLifecycleMutationInput,
+  parseSessionExecutionId,
+  requireSessionMetadataRevision,
+  requireSessionReference,
+  restoreSessionState,
+  retireSessionState,
+  supportsSessionExecution,
+} from './lifecycle/index.js';
+export type {
+  ListRetiredSessionsInput,
+  NormalizedListRetiredSessionsInput,
+  PurgeSessionInput,
+  RecoverSessionExecutionsInput,
+  RestoreSessionInput,
+  RetireSessionInput,
+  RetiredSessionListCursor,
+  RetiredSessionListPage,
+  SessionExecutionFence,
+  SessionExecutionId,
+  SessionExecutionLease,
+  SessionExecutionPort,
+  SessionExecutionRecoveryPort,
+  SessionLifecycleInspection,
+  SessionLifecycleListPage,
+  SessionLifecycleMutationInput,
+  SessionLifecyclePort,
+  SessionLifecycleQueryPort,
+  SessionLifecycleSnapshot,
+  SessionLifecycleState,
+  SessionLifecycleSummary,
+  SessionPurgePort,
+  SessionWriteAuthority,
+} from './lifecycle/index.js';
 export {
   completedLineageBeforeTurn,
   completedLineageForBranch,
   isCompletedAncestor,
   requireSessionBranch,
-  toSessionNavigationSnapshot,
-} from './navigation/lineage.js';
-export { createSessionNavigationWorkflow } from './navigation/workflow/create-workflow.js';
-export { createDefaultSessionNavigationStepOverrides } from './navigation/workflow/default-steps.js';
+} from './lineage.js';
+export {
+  MAX_SESSION_TITLE_CHARACTERS,
+  normalizeRenameSessionInput,
+  normalizeSessionTitle,
+} from './metadata/index.js';
+export type { RenameSessionInput, SessionMetadataPort } from './metadata/index.js';
 export {
   SESSION_NAVIGATION_STEP_NAMES,
   SESSION_NAVIGATION_WORKFLOW_NAME,
-  type SessionNavigationLeafStepName,
-  type SessionNavigationStepName,
-  type SessionNavigationWorkflowName,
-} from './navigation/workflow/names.js';
-export { createSessionNavigationStepDefinitions } from './navigation/workflow/step-definitions.js';
-export type * from './navigation/workflow/types.js';
-export type * from './compaction/contracts.js';
-export type * from './compaction/planning/contracts.js';
-export { SESSION_COMPACTION_REJECTION_REASON } from './compaction/planning/contracts.js';
+  SessionNavigationStepNotImplementedError,
+  executeSessionNavigation,
+  toSessionNavigationSnapshot,
+} from './navigation/index.js';
+export type {
+  AppliedSessionNavigation,
+  ApplySessionNavigationRequest,
+  MutatingSessionNavigationCommand,
+  NavigateSessionInput,
+  SessionNavigationCoordinatorPort,
+  SessionNavigationCoordinatorRequest,
+  SessionNavigationLeafStepName,
+  SessionNavigationOperation,
+  SessionNavigationOperationOptions,
+  SessionNavigationOutcome,
+  SessionNavigationPort,
+  SessionNavigationStepName,
+  SessionNavigationWorkflowInput,
+  SessionNavigationWorkflowName,
+  SessionNavigationWorkflowState,
+  ValidatedSessionNavigationCommand,
+} from './navigation/index.js';
 export {
-  defineSessionCompactionTarget,
-  resolveSessionCompactionTarget,
-} from './compaction/planning/target.js';
-export { refineSessionCompactionPromptTarget } from './compaction/planning/feedback.js';
+  MAX_SESSION_PRESENTATION_BLOCKS,
+  MAX_SESSION_PRESENTATION_CHARACTERS,
+  defineSessionTurnPresentation,
+  supportsSessionPresentation,
+} from './presentation/index.js';
+export type {
+  CompleteSessionTurnWithPresentationRequest,
+  SessionPresentationPort,
+  SessionReasoningBlock,
+  SessionTurnPresentation,
+  SessionTurnPresentationRecord,
+  SessionTurnPresentationReference,
+} from './presentation/index.js';
 export {
-  bindSessionCompactionTokenCounter,
-  measureSessionCompactionText,
-} from './compaction/planning/measurement.js';
+  DEFAULT_SESSION_QUERY_LIMIT,
+  MAX_SESSION_QUERY_LIMIT,
+  normalizeListSessionTurnsInput,
+  normalizeListSessionsInput,
+} from './query/index.js';
+export type {
+  ListSessionTurnsInput,
+  ListSessionsInput,
+  NormalizedListSessionTurnsInput,
+  NormalizedListSessionsInput,
+  SessionInspection,
+  SessionListCursor,
+  SessionListPage,
+  SessionQueryPort,
+  SessionSummary,
+  SessionTurnPage,
+} from './query/index.js';
+export type {
+  BeginSessionTurnRequest,
+  CompleteSessionTurnRequest,
+  FailSessionTurnRequest,
+} from './turns/index.js';
+export type { AgentSessionErrorCode } from './types/errors.js';
+export type {
+  CompactableSessionPort,
+  InspectableSessionPort,
+  ManageableSessionQueryPort,
+  NavigableCompactableSessionPort,
+  NavigableSessionPort,
+  SessionPort,
+} from './types/session-ports.js';
 export {
-  DEFAULT_SESSION_COMPACTION_POLICY,
-  MAX_SESSION_COMPACTION_CHARACTERS,
-  NO_SESSION_COMPACTION_TIMEOUT,
-  validateSessionCompactionPolicy,
-} from './compaction/policy.js';
-export {
-  selectSessionCompactionSource,
-  type SessionCompactionSelection,
-} from './compaction/source-selection.js';
-export { createShouldCompactSessionCondition } from './compaction/workflow/condition.js';
-export { defineCompactSessionInput } from './compaction/input.js';
-export { createSessionCompactionWorkflow } from './compaction/workflow/create-workflow.js';
-export { createDefaultSessionCompactionStepOverrides } from './compaction/workflow/default-steps.js';
-export { SessionCompactionAttemptsExhaustedError } from './compaction/errors.js';
-export type { SessionCompactionExhaustion } from './compaction/errors.js';
-export {
-  SESSION_COMPACTION_STEP_NAMES,
-  SESSION_COMPACTION_WORKFLOW_NAME,
-  type SessionCompactionLeafStepName,
-  type SessionCompactionStepName,
-  type SessionCompactionWorkflowName,
-} from './compaction/workflow/names.js';
-export { createSessionCompactionStepDefinitions } from './compaction/workflow/step-definitions.js';
-export type * from './compaction/workflow/types.js';
+  createDefaultSessionCompactionStepOverrides,
+  createDefaultSessionNavigationStepOverrides,
+  createSessionCompactionStepDefinitions,
+  createSessionCompactionWorkflow,
+  createSessionNavigationStepDefinitions,
+  createSessionNavigationWorkflow,
+  createShouldCompactSessionCondition,
+} from './session-workflows.js';
+export type {
+  CreateSessionCompactionWorkflowOptions,
+  CreateSessionNavigationWorkflowOptions,
+  SessionCompactionCondition,
+  SessionCompactionDefinition,
+  SessionCompactionResources,
+  SessionCompactionWorkflowContext,
+  SessionNavigationResources,
+  SessionNavigationWorkflowContext,
+} from './types/session-workflows.js';

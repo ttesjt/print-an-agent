@@ -1,16 +1,16 @@
-import { finalizeSessionExecution } from '../lifecycle/workflow-execution.js';
-import type {
-  SessionNavigationCoordinatorRequest,
-  SessionNavigationOperationOptions,
-  SessionNavigationOutcome,
-} from './contracts.js';
+import { AgentSessionError } from '../errors.js';
+import { finalizeSessionExecution } from '../lifecycle/index.js';
 import {
   commitSessionNavigationState,
   inspectSessionNavigationState,
   type SessionNavigationExecutionState,
   validateSessionNavigationState,
-} from './coordinator-internal.js';
-import { AgentSessionError } from '../errors.js';
+} from './execution/index.js';
+import type {
+  SessionNavigationCoordinatorRequest,
+  SessionNavigationOperationOptions,
+} from './types/coordinator.js';
+import type { SessionNavigationOutcome } from './types/outcome.js';
 
 const NEVER_ABORTED_SIGNAL = new AbortController().signal;
 

@@ -1,5 +1,6 @@
 import { AgentSessionError } from '../errors.js';
-import type { SessionReasoningBlock, SessionTurnPresentation } from './contracts.js';
+import { enumerableDataProperty, isPlainRecord } from '../validation/data-record.js';
+import type { SessionReasoningBlock, SessionTurnPresentation } from './types.js';
 
 /** Total readable text in UTF-16 code units, not a per-block allowance. */
 export const MAX_SESSION_PRESENTATION_CHARACTERS = 64_000;
@@ -38,9 +39,7 @@ export function defineSessionTurnPresentation(input: unknown): SessionTurnPresen
 }
 
 function requireRecord(input: unknown, fields: readonly string[]): asserts input is object {
-  if (typeof input !== 'object' || input === null || Array.isArray(input)) return invalid();
-  const prototype: unknown = Object.getPrototypeOf(input);
-  if (prototype !== Object.prototype && prototype !== null) return invalid();
+  if (!isPlainRecord(input)) return invalid();
   const keys = Reflect.ownKeys(input);
   if (
     keys.length !== fields.length ||
@@ -50,10 +49,9 @@ function requireRecord(input: unknown, fields: readonly string[]): asserts input
 }
 
 function dataField(input: object, key: string): unknown {
-  const descriptor = Object.getOwnPropertyDescriptor(input, key);
-  if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor))
-    return invalid();
-  return descriptor.value as unknown;
+  const descriptor = enumerableDataProperty(input, key);
+  if (descriptor === undefined) return invalid();
+  return descriptor.value;
 }
 
 function limitExceeded(): never {

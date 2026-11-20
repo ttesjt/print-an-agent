@@ -1,30 +1,15 @@
 import { STEP_CARDINALITY, type Step, type StepDefinitions } from '@print-an-agent/workflow-core';
-import { SessionCompactionStepNotImplementedError } from '../../errors.js';
+import { SessionCompactionStepNotImplementedError } from '../errors.js';
 import type { SessionCompactionLeafStepName, SessionCompactionStepName } from './names.js';
+import { runSessionCompaction } from './run-session-compaction.js';
+import { buildCompactedContext } from './steps/build-compacted-context/index.js';
 import type { SessionCompactionWorkflowContext } from './types.js';
-import { buildCompactedContext } from './composites.js';
 
 function createPlaceholderStep(
   stepName: SessionCompactionLeafStepName
 ): Step<SessionCompactionWorkflowContext> {
   return () => Promise.reject(new SessionCompactionStepNotImplementedError(stepName));
 }
-
-const runSessionCompaction: Step<SessionCompactionWorkflowContext> = async (context) => {
-  const steps: readonly SessionCompactionStepName[] = [
-    'inspectSession',
-    'selectCompactionSource',
-    'resolveCompactionTarget',
-    'resolveCompactionTokenCounter',
-    'resolveCompactionActor',
-    'buildCompactedContext',
-    'persistCompaction',
-  ];
-  for (const stepName of steps) {
-    await context.runStep(stepName);
-    if (context.state.outcome !== undefined) return;
-  }
-};
 
 export function createSessionCompactionStepDefinitions(): StepDefinitions<
   SessionCompactionStepName,

@@ -1,13 +1,10 @@
+import type { SessionBranchId, SessionSnapshot } from '../contracts/index.js';
 import { AgentSessionError } from '../errors.js';
-import type { SessionSnapshot } from '../types.js';
-import type { SessionBranchId } from '../types.js';
-import { completedLineageForBranch } from '../navigation/lineage.js';
-import type {
-  SessionCompaction,
-  SessionCompactionPolicy,
-  SessionCompactionSource,
-} from './contracts.js';
+import { completedLineageForBranch } from '../lineage.js';
 import { validateSessionCompactionPolicy } from './policy.js';
+import type { SessionCompactionPolicy } from './types/policy.js';
+import type { SessionCompaction } from './types/projection.js';
+import type { SessionCompactionSource } from './types/source.js';
 
 export type SessionCompactionSelection =
   | Readonly<{ status: 'selected'; source: SessionCompactionSource }>

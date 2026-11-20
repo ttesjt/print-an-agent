@@ -1,0 +1,3 @@
+export const DEFAULT_SESSION_QUERY_LIMIT = 50;
+
+export const MAX_SESSION_QUERY_LIMIT = 200;

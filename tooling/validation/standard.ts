@@ -1,10 +1,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { dirname, extname, normalize, relative } from 'node:path';
 
-const WORKFLOW_CONTRACT_PACKAGES = [
-  '@print-an-agent/workflow-core',
-  '@print-an-agent/workflow-bundle',
-];
+const WORKFLOW_CONTRACT_PACKAGES = ['@print-an-agent/workflow-core'];
 const WORKFLOW_QUALIFICATION = '@print-an-agent/workflow-qualification';
 
 type WorkspacePackage = {

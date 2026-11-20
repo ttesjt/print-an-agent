@@ -32,7 +32,7 @@ Local Standard compares the working tree, including new untracked files, against
 with `origin/main`. To use a different base, pass a Git revision such as
 `pnpm validate:standard main`. Markdown changes alone do not select packages.
 
-Changes to Workflow Core or Bundle also run the Workflow qualification typecheck to verify
+Changes to Workflow Core, including its Bundle subentry, also run the Workflow qualification typecheck to verify
 the public types from an independent consumer.
 
 Local HTTP fixtures need permission to listen on loopback. The default gate does not require

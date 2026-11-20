@@ -10,6 +10,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./bundle": {
+      "types": "./dist/bundle/index.d.ts",
+      "import": "./dist/bundle/index.js"
     }
   },
   "files": [

@@ -1,4 +1,7 @@
-import { WorkflowBundle, type BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
+import {
+  WorkflowBundle,
+  type BundleWorkflowDefinition,
+} from '@print-an-agent/workflow-core/bundle';
 import {
   recordUpdateDefinition,
   type CatalogRecord,

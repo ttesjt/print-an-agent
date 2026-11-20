@@ -20,7 +20,6 @@
     "@print-an-agent/retrieval-memory": "workspace:*",
     "@print-an-agent/retrieval-memory-sqlite": "workspace:*",
     "@print-an-agent/model-invocation-token-counters": "workspace:*",
-    "@print-an-agent/workflow-bundle": "workspace:*",
     "@print-an-agent/workflow-core": "workspace:*",
     "@print-an-agent/base-actor": "workspace:*",
     "@print-an-agent/base-composition": "workspace:*",

@@ -1,6 +1,6 @@
 # Workflow independent qualification
 
-Test-only external consumer of compiled `@print-an-agent/workflow-core` and `@print-an-agent/workflow-bundle` exports. No source aliases, runtime
+Test-only external consumer of the compiled `@print-an-agent/workflow-core` root and `/bundle` exports. No source aliases, runtime
 exports, Agent dependencies, or product services. The record-update consumer uses independent input,
 ports, state and result types and a real SQLite adapter with revision CAS, owned/closed by the test.
 Consumers bind their ports at construction and reuse each assembled Workflow across calls.

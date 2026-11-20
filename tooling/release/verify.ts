@@ -23,8 +23,13 @@ const profiles: readonly ReleaseConsumerProfile[] = [
   {
     name: 'all-apis',
     dependencies: release.packages.map(({ name }) => name),
-    sourceFiles: ['smoke.ts', 'session-port.ts', 'session-workflows.test.ts'],
-    testFiles: ['smoke.ts', 'session-workflows.test.ts'],
+    sourceFiles: [
+      'smoke.ts',
+      'session-port.ts',
+      'session-workflows.test.ts',
+      'workflow-bundle.test.ts',
+    ],
+    testFiles: ['smoke.ts', 'session-workflows.test.ts', 'workflow-bundle.test.ts'],
   },
 ];
 const fixture = await startPackageRegistry(release, directory);

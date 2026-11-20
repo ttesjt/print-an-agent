@@ -1,4 +1,4 @@
-import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-core/bundle';
 import {
   createMemoryCreateDefinition,
   createMemoryApplyDefinition,

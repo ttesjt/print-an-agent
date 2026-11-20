@@ -1170,7 +1170,7 @@ describe('module architecture', () => {
       for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
         if (!specifier.startsWith('@print-an-agent/')) continue;
         expect(specifier).toMatch(
-          /^@print-an-agent\/(?:(?:base-|model-invocation-)[^/]+|base-composition\/resource-registry|context-memory(?:-sqlite)?|retrieval-memory(?:-sqlite)?|workflow-(?:bundle|core))$/
+          /^@print-an-agent\/(?:(?:base-|model-invocation-)[^/]+|base-composition\/resource-registry|context-memory(?:-sqlite)?|retrieval-memory(?:-sqlite)?|workflow-core(?:\/bundle)?)$/
         );
       }
       expect(normalize(sourceFile)).not.toContain(`${normalize('/src/')}`);

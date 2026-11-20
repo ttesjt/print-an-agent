@@ -1,12 +1,15 @@
 import { Workflow, type RunnableWorkflow } from '@print-an-agent/workflow-core';
-import { WorkflowBundle, type BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
+import {
+  WorkflowBundle,
+  type BundleWorkflowDefinition,
+} from '@print-an-agent/workflow-core/bundle';
 import {
   readDefinition,
   writeDefinition,
   type ReadContext,
   type ReadInput,
   type WriteContext,
-} from '../support/definitions.js';
+} from '../../support/bundle/definitions.js';
 
 const resources = {
   read: () => Promise.resolve('value'),

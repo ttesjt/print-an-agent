@@ -1,4 +1,7 @@
-import { WorkflowBundle, type BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
+import {
+  WorkflowBundle,
+  type BundleWorkflowDefinition,
+} from '@print-an-agent/workflow-core/bundle';
 
 export interface DocumentReader {
   read(documentId: string, signal: AbortSignal): Promise<string>;

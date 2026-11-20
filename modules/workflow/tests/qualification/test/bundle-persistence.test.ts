@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-core/bundle';
 import { expect, it, vi } from 'vitest';
 import { recordBundle, recordInspectionDefinition } from './consumers/record-bundle.js';
 import { recordUpdateDefinition, type UpdatePorts } from './consumers/record-update.js';

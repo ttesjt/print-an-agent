@@ -1,7 +1,10 @@
 import { Workflow, WorkflowDefinitionError } from '@print-an-agent/workflow-core';
-import { WorkflowBundle, WorkflowBundleDefinitionError } from '@print-an-agent/workflow-bundle';
+import {
+  WorkflowBundle,
+  WorkflowBundleDefinitionError,
+} from '@print-an-agent/workflow-core/bundle';
 import { expect, it, vi } from 'vitest';
-import { readDefinition } from '../support/definitions.js';
+import { readDefinition } from '../../support/bundle/definitions.js';
 
 const resources = { read: () => Promise.resolve('record') };
 function construct(options: unknown): void {

@@ -1,7 +1,11 @@
 import { skipWorkflow, type WorkflowEvent } from '@print-an-agent/workflow-core';
-import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-core/bundle';
 import { expect, it, vi } from 'vitest';
-import { readDefinition, type ReadContext, type ReadInput } from '../support/definitions.js';
+import {
+  readDefinition,
+  type ReadContext,
+  type ReadInput,
+} from '../../support/bundle/definitions.js';
 
 it('preserves condition skipping and the skip result without creating state or closing resources', async () => {
   const resources = { read: vi.fn(() => Promise.resolve('value')), close: vi.fn() };

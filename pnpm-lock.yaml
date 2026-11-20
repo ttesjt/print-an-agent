@@ -387,9 +387,6 @@ importers:
       '@print-an-agent/retrieval-memory-sqlite':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/retrieval-memory-sqlite
-      '@print-an-agent/workflow-bundle':
-        specifier: workspace:*
-        version: link:../../../workflow/packages/bundle
       '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
@@ -482,9 +479,6 @@ importers:
       '@print-an-agent/retrieval-memory-sqlite':
         specifier: workspace:*
         version: link:../../../agent-memory/packages/retrieval-memory-sqlite
-      '@print-an-agent/workflow-bundle':
-        specifier: workspace:*
-        version: link:../../../workflow/packages/bundle
       '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
@@ -506,9 +500,6 @@ importers:
       '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@print-an-agent/workflow-bundle':
-        specifier: workspace:*
-        version: link:../../../workflow/packages/bundle
       '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
@@ -553,9 +544,6 @@ importers:
       '@print-an-agent/model-invocation-core':
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
-      '@print-an-agent/workflow-bundle':
-        specifier: workspace:*
-        version: link:../../../workflow/packages/bundle
       '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../../workflow/packages/core
@@ -1211,22 +1199,6 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
 
-  modules/workflow/packages/bundle:
-    dependencies:
-      '@print-an-agent/workflow-core':
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.12.4
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
-
   modules/workflow/packages/core:
     devDependencies:
       '@types/node':
@@ -1241,9 +1213,6 @@ importers:
 
   modules/workflow/tests/qualification:
     devDependencies:
-      '@print-an-agent/workflow-bundle':
-        specifier: workspace:*
-        version: link:../../packages/bundle
       '@print-an-agent/workflow-core':
         specifier: workspace:*
         version: link:../../packages/core

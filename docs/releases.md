@@ -27,6 +27,10 @@ The four release entries and their production closure contain exactly these ten 
 - `@print-an-agent/model-invocation-core`
 - `@print-an-agent/model-invocation-pi`
 
+Workflow Core includes both its root execution API and the
+[`@print-an-agent/workflow-core/bundle`](../modules/workflow/packages/core/docs/bundle.md) assembly
+subentry. Bundle does not require a separate package installation.
+
 These are ESM packages for Node.js `>=24.15.0 <25`. A server-side website integration can use the
 [Sessionless Workflow](../modules/agent-base/packages/request/docs/sessionless.md) without creating
 an Agent or Session. Keep provider credentials on the server. Composition, local adapters, Memory,
@@ -59,7 +63,8 @@ Verification inspects the actual tarballs, checks public entries and integrity, 
 read-only loopback npm registry serving only these artifacts. Two independent temporary projects
 outside the workspace cover separate consumers. The entry-only profile declares exactly the release
 entries and runs website smoke tests; its other public packages must resolve transitively. The full
-API profile explicitly declares all ten public packages and also exercises Session-aware Workflows
+API profile explicitly declares all ten public packages and also exercises the Workflow Bundle
+subentry and Session-aware Workflows
 and Agent bindings. Each profile gets fresh configs, caches, lockfiles and stores, then runs both
 npm and pnpm installation and type/runtime checks. Neither uses workspace links or hoisting.
 External packages come from the public npm registry. The verifier uses empty user/global npm config

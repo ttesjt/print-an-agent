@@ -1,4 +1,5 @@
-import { Workflow, type RunnableWorkflow } from '@print-an-agent/workflow-core';
+import { Workflow } from '../workflow.js';
+import type { RunnableWorkflow } from '../types/workflow.js';
 import { readMember, readRecord } from './definition.js';
 import { WorkflowBundleDefinitionError } from './errors.js';
 import type { BundleWorkflows, WorkflowBundleOptions } from './types.js';

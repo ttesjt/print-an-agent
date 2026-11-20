@@ -185,11 +185,12 @@ export const boundaryConfigs = Object.freeze([
   },
   {
     files: ['modules/workflow/packages/core/src/**/*.{ts,tsx}'],
+    ignores: ['modules/workflow/packages/core/src/bundle/**'],
     rules: moduleRestrictions([
       ...workflowDomainRestrictions,
       {
-        group: ['@print-an-agent/workflow-bundle', '@print-an-agent/workflow-bundle/**'],
-        message: 'Workflow Core must not depend on Bundle assembly.',
+        regex: '^(?:@print-an-agent/workflow-core/bundle(?:/|$)|(?:\\.{1,2}/)+bundle(?:/|$))',
+        message: 'Workflow execution must remain independent of Bundle assembly.',
       },
     ]),
   },

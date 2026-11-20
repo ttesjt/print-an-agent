@@ -25,7 +25,6 @@
   },
   "dependencies": {
     "@print-an-agent/workflow-core": "workspace:*",
-    "@print-an-agent/workflow-bundle": "workspace:*",
     "@print-an-agent/model-invocation-core": "workspace:*"
   },
   "devDependencies": {

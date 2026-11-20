@@ -1,4 +1,4 @@
-import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
+import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
 import type { RetrievalQueryResources } from './resources.js';
 import type { RetrievalQueryOperations } from '../domain/queries.js';
 import type { SkippedRetrieval } from './mutation.js';

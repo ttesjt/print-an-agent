@@ -33,7 +33,6 @@
     "@print-an-agent/context-memory-sqlite": "workspace:*",
     "@print-an-agent/retrieval-memory": "workspace:*",
     "@print-an-agent/retrieval-memory-sqlite": "workspace:*",
-    "@print-an-agent/workflow-bundle": "workspace:*",
     "@print-an-agent/base-actor": "workspace:*",
     "@print-an-agent/base-composition": "workspace:*",
     "@print-an-agent/base-config": "workspace:*",

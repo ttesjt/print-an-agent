@@ -1,4 +1,4 @@
-import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
+import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
 import type { MemoryOperations } from './resources.js';
 import { ContextMemoryError } from '../errors.js';
 import {

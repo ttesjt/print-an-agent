@@ -77,7 +77,7 @@ it('qualifies non-Agent consumers within the existing Base integration project t
     'retrieval-memory',
     'retrieval-memory-sqlite',
     'model-invocation-core',
-    'workflow-bundle',
+    'workflow-core',
   ])
     expect(manifest.devDependencies[`@print-an-agent/${name}`]).toBe('workspace:*');
   for (const file of sources(consumer)) {
@@ -113,7 +113,9 @@ it('qualifies non-Agent consumers within the existing Base integration project t
             expect(specifier).toBe(
               packageName === '@print-an-agent/base-composition'
                 ? '@print-an-agent/base-composition/resource-registry'
-                : packageName
+                : packageName === '@print-an-agent/workflow-core'
+                  ? '@print-an-agent/workflow-core/bundle'
+                  : packageName
             );
         }
       }
@@ -155,18 +157,18 @@ it.each([
 });
 
 it.each([
-  'workflow/packages/core',
-  'workflow/packages/bundle',
-  'agent-memory/packages/context-memory',
-  'agent-memory/packages/retrieval-memory',
-  'model-invocation/packages/core',
-  'agent-base/packages/runtime',
-  'agent-base/packages/session',
-])('keeps the Registry out of neutral execution/domain package %s', async (consumer) => {
+  'workflow/packages/core/src/index.ts',
+  'workflow/packages/core/src/bundle/index.ts',
+  'agent-memory/packages/context-memory/src/index.ts',
+  'agent-memory/packages/retrieval-memory/src/index.ts',
+  'model-invocation/packages/core/src/index.ts',
+  'agent-base/packages/runtime/src/index.ts',
+  'agent-base/packages/session/src/index.ts',
+])('keeps the Registry out of neutral execution/domain source %s', async (consumer) => {
   const results = await eslint.lintText(
     "import '@print-an-agent/base-composition/resource-registry';\n",
     {
-      filePath: join(root, 'modules', consumer, 'src/index.ts'),
+      filePath: join(root, 'modules', consumer),
     }
   );
   expect(results.flatMap((result) => result.messages)).toEqual(

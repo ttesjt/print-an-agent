@@ -15,7 +15,7 @@ import type {
   TextTokenInput,
   TokenCounter,
 } from '@print-an-agent/model-invocation-core';
-import { WorkflowBundle } from '@print-an-agent/workflow-bundle';
+import { WorkflowBundle } from '@print-an-agent/workflow-core/bundle';
 
 export type ContextBundle = WorkflowBundle<ModelMemoryResources, ModelMemoryWorkflowDefinitions>;
 export type RetrievalBundle = ReturnType<typeof createRetrievalMemoryBundle>;

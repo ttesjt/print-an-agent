@@ -1,4 +1,4 @@
-import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
+import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
 import type { MutationOperation } from '../contracts/inputs.js';
 import type { MutationResult } from '../contracts/publication.js';
 import type { PreparedMutation } from '../domain/mutations.js';

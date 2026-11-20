@@ -5,7 +5,7 @@ import { ESLint } from 'eslint';
 import { expect, it } from 'vitest';
 
 const root = fileURLToPath(new URL('../modules/workflow/packages/core/', import.meta.url));
-const bundle = fileURLToPath(new URL('../modules/workflow/packages/bundle/', import.meta.url));
+const bundle = join(root, 'src/bundle');
 const qualification = fileURLToPath(
   new URL('../modules/workflow/tests/qualification/', import.meta.url)
 );
@@ -30,20 +30,27 @@ it('has no runtime dependencies on Agent, UI, persistence or product packages', 
     expect(source, file).not.toMatch(/@print-an-agent\/(?:base|ui|self-learn|workbench)-/);
     expect(source, file).not.toMatch(/(?:agentRunContext|applyResult|applyTo|AgentIdentity)/);
     expect(source, file).not.toMatch(/(?:agent-base|agent-ui|self-learn-agent|model-workbench)\//);
-    expect(source, file).not.toContain('@print-an-agent/workflow-bundle');
   }
 });
 
+it('exports Core and Bundle from one dependency-free package', () => {
+  const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
+    exports: Record<string, { types: string; import: string }>;
+  };
+  expect(manifest.exports).toEqual({
+    '.': { types: './dist/index.d.ts', import: './dist/index.js' },
+    './bundle': { types: './dist/bundle/index.d.ts', import: './dist/bundle/index.js' },
+  });
+  expect(existsSync(join(root, '../bundle/package.json'))).toBe(false);
+  expect(readFileSync(join(root, 'src/index.ts'), 'utf8')).not.toContain('./bundle');
+});
+
 it('keeps independently qualified consumers on the public package entry', () => {
-  for (const file of [
-    ...sources(join(root, 'test')),
-    ...sources(join(bundle, 'test')),
-    ...sources(join(qualification, 'test')),
-  ]) {
+  for (const file of [...sources(join(root, 'test')), ...sources(join(qualification, 'test'))]) {
     const source = readFileSync(file, 'utf8');
     expect(source, file).not.toMatch(/(?:\.\.\/)+src\//);
     expect(source, file).not.toMatch(
-      /(?:packages\/(?:core|bundle)|@print-an-agent\/workflow-(?:core|bundle)\/)/
+      /packages\/(?:core|bundle)\/|@print-an-agent\/workflow-core\/(?!bundle['"])/
     );
   }
 });
@@ -57,26 +64,20 @@ it('keeps the second consumer test-only and linked to the official public packag
   expect(manifest.dependencies ?? {}).toEqual({});
   expect(manifest.exports).toBeUndefined();
   expect(manifest.devDependencies['@print-an-agent/workflow-core']).toBe('workspace:*');
-  expect(manifest.devDependencies['@print-an-agent/workflow-bundle']).toBe('workspace:*');
   expect(
     Object.keys(manifest.devDependencies).filter((name) => name.startsWith('@print-an-agent/'))
-  ).toEqual(['@print-an-agent/workflow-bundle', '@print-an-agent/workflow-core']);
+  ).toEqual(['@print-an-agent/workflow-core']);
 });
 
 it('keeps Bundle assembly on Core without product dependencies or another execution kernel', () => {
-  const manifest = JSON.parse(readFileSync(join(bundle, 'package.json'), 'utf8')) as {
-    dependencies: Record<string, string>;
-    peerDependencies?: Record<string, string>;
-  };
-  expect(manifest.dependencies).toEqual({ '@print-an-agent/workflow-core': 'workspace:*' });
-  expect(manifest.peerDependencies ?? {}).toEqual({});
-  for (const file of [...sources(join(bundle, 'src')), ...sources(join(bundle, 'dist'))]) {
+  for (const file of [...sources(bundle), ...sources(join(root, 'dist/bundle'))]) {
     const source = readFileSync(file, 'utf8');
     expect(source, file).not.toMatch(/@print-an-agent\/(?:base|ui|self-learn|workbench)-/);
     expect(source, file).not.toMatch(/class Workflow\b|class ExecutionScope|class StepRuntime/);
-    expect(source, file).not.toMatch(/@print-an-agent\/workflow-core\//);
+    expect(source, file).not.toContain('@print-an-agent/workflow-core');
+    expect(source, file).not.toContain("from '../index.js'");
   }
-  expect(readFileSync(join(bundle, 'src/workflow-bundle.ts'), 'utf8')).toContain('new Workflow');
+  expect(readFileSync(join(bundle, 'workflow-bundle.ts'), 'utf8')).toContain('new Workflow');
 });
 
 it('keeps Agent execution on Core with only Agent-owned bindings and no duplicate kernel', () => {
@@ -112,7 +113,6 @@ it.each([
   '@print-an-agent/self-learn-domain',
   '@print-an-agent/ui-contracts',
   '@print-an-agent/workflow-core/src/internal.js',
-  '@print-an-agent/workflow-bundle',
 ])('rejects %s using the effective production ESLint configuration', async (specifier) => {
   const results = await eslint.lintText(`import '${specifier}';\n`, {
     filePath: join(root, 'src/index.ts'),
@@ -134,7 +134,7 @@ it.each([
   'rejects %s from Bundle using the effective production ESLint configuration',
   async (specifier) => {
     const results = await eslint.lintText(`import '${specifier}';\n`, {
-      filePath: join(bundle, 'src/index.ts'),
+      filePath: join(bundle, 'index.ts'),
     });
     expect(results.flatMap((result) => result.messages)).toEqual(
       expect.arrayContaining([
@@ -144,11 +144,26 @@ it.each([
   }
 );
 
-it('allows Bundle to consume Core through its public entry', async () => {
-  const results = await eslint.lintText("import '@print-an-agent/workflow-core';\n", {
-    filePath: join(bundle, 'src/index.ts'),
+it('allows consumers to use the public Bundle subentry', async () => {
+  const results = await eslint.lintText("import '@print-an-agent/workflow-core/bundle';\n", {
+    filePath: join(runtime, 'src/index.ts'),
   });
   expect(results.flatMap((result) => result.messages)).toEqual([]);
+});
+
+it.each([
+  ['workflow.ts', '@print-an-agent/workflow-core/bundle'],
+  ['workflow.ts', './bundle/index.js'],
+  ['execution/step-runtime.ts', '../bundle/index.js'],
+] as const)('rejects %s depending on Bundle through %s', async (file, specifier) => {
+  const results = await eslint.lintText(`import '${specifier}';\n`, {
+    filePath: join(root, 'src', file),
+  });
+  expect(results.flatMap((result) => result.messages)).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ ruleId: 'no-restricted-imports', severity: 2 }),
+    ])
+  );
 });
 
 it('allows domain-independent imports using the effective production ESLint configuration', async () => {

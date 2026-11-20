@@ -4,7 +4,7 @@ import {
   RUN_WORKFLOW,
   type WorkflowContext,
 } from '@print-an-agent/workflow-core';
-import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-bundle';
+import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
 
 export interface CatalogRecord {
   readonly revision: number;

@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
-    "clean": "tsc --build tsconfig.build.json --clean",
+    "clean": "rm -rf dist *.tsbuildinfo",
     "typecheck": "pnpm run build && tsc --noEmit",
     "test": "pnpm run build && vitest run",
     "lint": "eslint .",

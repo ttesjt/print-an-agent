@@ -152,8 +152,8 @@ it('allows consumers to use the public Bundle subentry', async () => {
 });
 
 it.each([
-  ['workflow.ts', '@print-an-agent/workflow-core/bundle'],
-  ['workflow.ts', './bundle/index.js'],
+  ['workflow/workflow.ts', '@print-an-agent/workflow-core/bundle'],
+  ['workflow/workflow.ts', '../bundle/index.js'],
   ['execution/step-runtime.ts', '../bundle/index.js'],
 ] as const)('rejects %s depending on Bundle through %s', async (file, specifier) => {
   const results = await eslint.lintText(`import '${specifier}';\n`, {
@@ -225,6 +225,22 @@ it.each(['request', 'session'])(
           .flatMap((entry) => entry.messages)
           .filter((message) => message.ruleId === 'no-restricted-imports')
       ).toEqual([]);
+    }
+  }
+);
+
+it.each(['@print-an-agent/workflow-core', '@print-an-agent/workflow-core/bundle'])(
+  'rejects source bypassing feature entries through its own package alias %s',
+  async (specifier) => {
+    for (const source of ['workflow/workflow.ts', 'bundle/workflow-bundle.ts']) {
+      const results = await eslint.lintText(`import '${specifier}';\n`, {
+        filePath: join(root, 'src', source),
+      });
+      expect(results.flatMap((result) => result.messages)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ ruleId: 'no-restricted-imports', severity: 2 }),
+        ])
+      );
     }
   }
 );

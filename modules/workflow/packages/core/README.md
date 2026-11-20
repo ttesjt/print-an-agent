@@ -15,9 +15,39 @@ The package has two public entries:
 Bundle members are ordinary Core Workflows. Bundle-specific exports belong to the `/bundle` subentry;
 the root entry retains its existing API. No other package subpaths are public.
 
-Internally, Bundle reuses the existing shared Core `src/workflow.ts` capability and
-`src/types/workflow.ts` contracts directly. It does not import through the root aggregate entry;
-execution code remains independent of Bundle assembly.
+## Source organization
+
+```text
+src/
+  index.ts                 # Explicit package API; implementations use feature entries
+  contracts/               # Shared Step/context protocols, policy values and framework errors
+    types/                 # Shared compile-time declarations
+  cancellation/            # Signal composition and explicit deadlines, independent of Workflow
+  steps/                   # Definition-time registry resolution, overrides and sequential composition
+    registry/              # Local validation and normalization implementations
+  execution/               # Per-Run dispatch and locked protocol failures
+    scope/                 # Admission, cancellation, tracking, parallel groups and drain
+    invocation/            # Executor attempts and scope-bound context views
+    observation/           # Metadata events and diagnostic failure-code classification
+  workflow/                # Definition preparation, condition decisions, result rules and Run ordering
+    types/                 # Workflow-owned definition and callable contracts
+  bundle/                  # Member binding and Bundle-specific configuration validation
+```
+
+Each feature has a named `index.ts` entry. Runtime classes/options live with their runtime owner;
+pure declarations use the owner's `types.ts` or `types/`. Controlled options retain their derived
+types. Shared contracts depend on no higher feature. Cancellation is independent of Workflow and
+execution; Steps depend only on contracts. Workflow composes Steps and execution; Bundle consumes
+only the Workflow feature entry. These internal entries do not add package export subpaths.
+
+Execution dispatch coordinates its Scope, invocation and observation features. Scope owns task
+admission/drain, invocation guards serial implementation attempts, and observation cannot change
+execution outcomes. Descendants may consume the explicitly shared execution `types.ts` and
+`failures.ts` modules; they do not import the execution aggregate or its private dispatcher.
+
+The source-boundary declaration and dependency rules live in the repository's
+[Workflow source checks](../../../../test/workflow-source-boundaries.test.ts). Public package and
+module contracts are checked separately by [Workflow architecture checks](../../../../test/workflow-architecture.test.ts).
 
 ```ts
 import { Workflow } from '@print-an-agent/workflow-core';

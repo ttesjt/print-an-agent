@@ -1,6 +1,6 @@
-import { Workflow } from '../workflow.js';
-import type { RunnableWorkflow } from '../types/workflow.js';
-import { readMember, readRecord } from './definition.js';
+import { Workflow, type RunnableWorkflow } from '../workflow/index.js';
+import { readMember } from './member-definition.js';
+import { readRecord } from './records.js';
 import { WorkflowBundleDefinitionError } from './errors.js';
 import type { BundleWorkflows, WorkflowBundleOptions } from './types.js';
 

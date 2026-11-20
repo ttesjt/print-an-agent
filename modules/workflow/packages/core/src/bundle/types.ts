@@ -1,4 +1,4 @@
-import type { RunnableWorkflow, WorkflowDefinition } from '../types/workflow.js';
+import type { RunnableWorkflow, WorkflowDefinition } from '../workflow/index.js';
 
 /** A Core definition whose resource binding is supplied exclusively by its Bundle. */
 export type BundleWorkflowDefinition<N extends string, I, S, R, O> = Omit<
@@ -39,3 +39,8 @@ export interface WorkflowBundleOptions<R, D extends object> {
     CheckedDefinitions<NoInfer<R>, NoInfer<D>> &
     Readonly<Record<Extract<keyof D, symbol>, never>>;
 }
+
+export type WorkflowBundleDefinitionErrorCode =
+  | 'WORKFLOW_BUNDLE_DEFINITION_INVALID'
+  | 'WORKFLOW_BUNDLE_MEMBER_INVALID'
+  | 'WORKFLOW_BUNDLE_RESOURCE_BINDING_FORBIDDEN';

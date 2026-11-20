@@ -36,6 +36,15 @@ const workflowDomainRestrictions = [
   },
 ];
 
+const workflowCoreRestrictions = [
+  ...workflowDomainRestrictions,
+  {
+    group: ['@print-an-agent/workflow-core', '@print-an-agent/workflow-core/**'],
+    message:
+      'Workflow source consumes relative feature entries, not its own package aggregate or subpaths.',
+  },
+];
+
 const modelInvocationDomainRestrictions = [
   {
     group: [
@@ -185,11 +194,15 @@ export const boundaryConfigs = Object.freeze([
   },
   {
     files: ['modules/workflow/packages/core/src/**/*.{ts,tsx}'],
+    rules: moduleRestrictions(workflowCoreRestrictions),
+  },
+  {
+    files: ['modules/workflow/packages/core/src/**/*.{ts,tsx}'],
     ignores: ['modules/workflow/packages/core/src/bundle/**'],
     rules: moduleRestrictions([
-      ...workflowDomainRestrictions,
+      ...workflowCoreRestrictions,
       {
-        regex: '^(?:@print-an-agent/workflow-core/bundle(?:/|$)|(?:\\.{1,2}/)+bundle(?:/|$))',
+        regex: '^(?:\\.{1,2}/)+bundle(?:/|$)',
         message: 'Workflow execution must remain independent of Bundle assembly.',
       },
     ]),

@@ -1,33 +1,15 @@
-export type { StepRunner, WorkflowInputs, WorkflowContext } from './types/context.js';
-export { Workflow } from './workflow.js';
-export { WorkflowDefinitionError, WorkflowRunError } from './errors.js';
-export type { WorkflowDefinitionErrorCode, WorkflowRunErrorCode } from './errors.js';
-export { resolveStepRegistry } from './registry/step-registry.js';
-export { mergeStepOverrides } from './registry/merge-step-overrides.js';
-export { createSequentialStep } from './sequential.js';
-export { composeExecutionSignal } from './signals.js';
-export type { ExecutionSignalSources } from './signals.js';
 export {
-  runWithExecutionTimeout,
-  isExecutionTimeoutFailure,
-  NO_EXECUTION_TIMEOUT,
-  MAX_EXECUTION_TIMEOUT_MILLISECONDS,
-} from './timeout.js';
+  WorkflowDefinitionError,
+  WorkflowRunError,
+  STEP_CARDINALITY,
+  SKIP_STEP,
+} from './contracts/index.js';
 export type {
-  ExecutionTimeoutMilliseconds,
-  ExecutionTimeoutFailure,
-  RunWithExecutionTimeoutOptions,
-  ExecutionTimeoutFailureFactory,
-  ExecutionTimeoutFailureFactoryInput,
-} from './timeout.js';
-export type {
+  WorkflowDefinitionErrorCode,
+  WorkflowRunErrorCode,
+  StepRunner,
+  WorkflowContext,
   WorkflowEventReference,
-  WorkflowEvent,
-  WorkflowObserver,
-  WorkflowFailureClassifier,
-} from './types/events.js';
-export { STEP_CARDINALITY, SKIP_STEP } from './types/step.js';
-export type {
   StepCardinality,
   Step,
   StepDefinition,
@@ -39,12 +21,34 @@ export type {
   ResolvedStepRegistry,
   StepExecution,
   StepExecutor,
-} from './types/step.js';
-export { RUN_WORKFLOW, skipWorkflow } from './types/workflow.js';
+} from './contracts/index.js';
+export {
+  composeExecutionSignal,
+  runWithExecutionTimeout,
+  isExecutionTimeoutFailure,
+  NO_EXECUTION_TIMEOUT,
+  MAX_EXECUTION_TIMEOUT_MILLISECONDS,
+} from './cancellation/index.js';
 export type {
+  ExecutionSignalSources,
+  ExecutionTimeoutMilliseconds,
+  ExecutionTimeoutFailure,
+  RunWithExecutionTimeoutOptions,
+  ExecutionTimeoutFailureFactory,
+  ExecutionTimeoutFailureFactoryInput,
+} from './cancellation/index.js';
+export { resolveStepRegistry, mergeStepOverrides, createSequentialStep } from './steps/index.js';
+export type {
+  WorkflowEvent,
+  WorkflowObserver,
+  WorkflowFailureClassifier,
+} from './execution/index.js';
+export { Workflow, RUN_WORKFLOW, skipWorkflow } from './workflow/index.js';
+export type {
+  WorkflowInputs,
   WorkflowDecision,
   WorkflowRunOptions,
   WorkflowLifecycle,
   WorkflowDefinition,
   RunnableWorkflow,
-} from './types/workflow.js';
+} from './workflow/index.js';

@@ -119,16 +119,18 @@ who releases an acquired resource still require review, even when the checks pas
 
 ### Declared source-feature boundaries
 
-`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. The Session package
-declares its entries, shared ancestor contracts/capabilities and dependency directions in
-`test/session-architecture.test.ts`; `test/source-boundaries.test.ts` qualifies accepted and rejected
-imports. Both run in `pnpm test:architecture`. Other packages do not acquire feature-boundary
+`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session declares its
+entries, shared ancestor contracts/capabilities and dependency directions in
+`test/session-architecture.test.ts`; Workflow Core does so in
+`test/workflow-source-boundaries.test.ts`. `test/source-boundaries.test.ts` qualifies the shared
+checker with accepted and rejected imports. All run in `pnpm test:architecture`, and Workflow's
+checks also run in `pnpm test:workflow-qualification`. Other packages do not acquire feature-boundary
 coverage simply by containing an `index.ts`.
 
-The check scans all Session production `.ts` sources, including type-only imports, re-exports,
+The check scans all Session and Workflow Core production `.ts` sources, including type-only imports, re-exports,
 import types and literal dynamic imports. It checks every enclosing boundary, explicitly shared
 ancestor entries, imports back through an owning aggregate, dependency direction and wildcard
 exports. File entries are allowed for shared responsibility modules. Dependency rules cover the
-shared contracts, validation and lineage capabilities as well as domain features. It does not
+explicitly declared shared capabilities and feature dependencies in each package. It does not
 resolve computed import paths, package aliases, custom loaders or runtime resource ownership;
 those still need review. Compiler checks remain responsible for symbol existence and types.

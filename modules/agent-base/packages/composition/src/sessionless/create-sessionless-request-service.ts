@@ -5,7 +5,7 @@ import type {
   SessionlessInteractionServiceDefinition,
   SessionlessInteractionWorkflow,
   SessionlessRequestService,
-} from './contracts.js';
+} from './types.js';
 
 function assertFields(value: unknown, keys: readonly string[]): void {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {

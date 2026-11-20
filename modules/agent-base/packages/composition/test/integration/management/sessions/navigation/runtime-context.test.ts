@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
 import { createDeterministicAgentAPI } from '../../../../../src/index.js';
-import { TEST_COMPACTION_TOKEN_COUNTER } from '../../../../support/compaction-token-counter.js';
+import { TEST_COMPACTION_TOKEN_COUNTER } from '../../../../support/runtime/compaction-token-counter.js';
 
 it('uses out-of-band navigation with branch-scoped runtime context and replay', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'ta-agent-navigation-'));

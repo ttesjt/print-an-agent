@@ -1,5 +1,5 @@
 import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
-import { Workflow, STEP_CARDINALITY, type WorkflowDefinition } from '@print-an-agent/workflow-core';
+import { STEP_CARDINALITY, Workflow, type WorkflowDefinition } from '@print-an-agent/workflow-core';
 import type { BaseAgentRunContext } from '../../src/index.js';
 
 export type Run = BaseAgentRunContext<string, string>;

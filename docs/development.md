@@ -119,10 +119,11 @@ who releases an acquired resource still require review, even when the checks pas
 
 ### Declared source-feature boundaries
 
-`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session and Composition
+`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session, Composition and Runtime
 declare their entries, shared ancestor contracts/capabilities and dependency directions in
-`test/session-architecture.test.ts` and `test/composition-architecture.test.ts`. Composition also checks
-its own dependency declarations and runtime erasure of type modules. Workflow Core declares its
+`test/session-architecture.test.ts`, `test/composition-architecture.test.ts` and
+`test/runtime-architecture.test.ts`. Composition and Runtime also check
+their own dependency declarations and runtime erasure of type modules. Workflow Core declares its
 boundaries in `test/workflow-source-boundaries.test.ts`. `test/source-boundaries.test.ts` qualifies
 the shared checker with accepted and rejected imports. All run in `pnpm test:architecture`, and
 Workflow's checks also run in `pnpm test:workflow-qualification`. Identity/Config declares its package

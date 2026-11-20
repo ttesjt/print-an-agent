@@ -78,8 +78,38 @@ checklist. Start small responsibilities as specifically named files; grow into a
 folder when several independently named modules belong together. Do not create
 empty categories. Avoid generic utils.ts files; use descriptive helper filenames.
 A utils/ folder still contains named helpers, and a stable concept can later own
-its own directory. Keep schemas with their inferred types; independent contracts
-may live in types/ without duplicating schema-derived definitions.
+its own directory.
+
+#### Type and interface placement
+
+Use the same placement rules for type aliases and interfaces. Keep them in their
+smallest owning feature or subfeature, then make their responsibility visible:
+
+| Definition                                         | Default placement                                                     |
+| -------------------------------------------------- | --------------------------------------------------------------------- |
+| Several independently named pure-type modules      | The owner's `types/<concept>.ts` files                                |
+| One small, cohesive group of independent types     | The owner's `types.ts`                                                |
+| Runtime schema and its inferred types              | Together in the owning schema module, normally `schemas/<concept>.ts` |
+| Controlled runtime options and their derived union | Together in the options' owning module                                |
+| Small types used by one implementation             | Beside that implementation                                            |
+
+- Name type modules for their concepts, such as `command.ts`, `outcome.ts` and
+  `ports.ts`. Do not split interfaces into a separate `interfaces/` category.
+- `types.ts` and `types/` modules contain compile-time declarations, type-only
+  imports/exports and any erased declarations needed for branded types. Runtime
+  constants, functions, classes and enums belong to their runtime owner.
+- Keep schemas with their inferred types and controlled options with their derived
+  types; do not maintain a second declaration in `types/`. Do not extract every
+  local helper type or create a directory for each individual definition.
+- `contracts` describes an agreement between participants; `types` describes a
+  file's responsibility. A contract may include runtime validation or controlled
+  options. Use `types.ts` or `types/<concept>.ts` for independent pure-type
+  contracts, including port interfaces, rather than using `contracts.ts` as an
+  interchangeable name for a pure-type file.
+- A `types/` directory is a responsibility category, not an automatic public or
+  shared boundary. Expose types through the owning feature's public API, declare
+  ancestor contracts explicitly, and preserve dependency direction for type-only
+  imports as well as runtime imports.
 
 ### G3. Readable files and functions
 

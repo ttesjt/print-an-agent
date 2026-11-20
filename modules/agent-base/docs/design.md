@@ -259,7 +259,7 @@ cancellation by default, and fail closed on undeclared targets or invocation cyc
 
 ## Identity
 
-`@print-an-agent/base-identity` defines the smallest shared identity value:
+`@print-an-agent/base-identity-config/identity` defines the smallest shared identity value:
 
 ```ts
 interface AgentIdentity {
@@ -281,7 +281,7 @@ semantics remain outside this generic lifecycle.
 
 ## Configuration
 
-`@print-an-agent/base-config` owns configuration ports and lifecycle semantics without owning a storage
+`@print-an-agent/base-identity-config/config` owns configuration ports and lifecycle semantics without owning a storage
 implementation or a universal product schema:
 
 ```text
@@ -664,10 +664,9 @@ Agent Base and Model Workbench remain independent.
 
 The current foundation contains:
 
-- `@print-an-agent/base-identity`: stable identity values, active/disabled catalog lifecycle, CAS, and
-  adapter contracts;
-- `@print-an-agent/base-config`: generic codecs, closed JSON values, snapshots, CAS revisions, storage
-  ports, and lifecycle behavior;
+- `@print-an-agent/base-identity-config`: stable identity values, active/disabled catalog lifecycle,
+  generic config codecs, JSON values, independent CAS revisions and injected storage ports. The
+  `/identity` and `/config` entries preserve separate feature contracts in one package;
 - `@print-an-agent/model-invocation-core`: Provider Model and credential references, an invocation-time credential
   resolver port, normalized text messages and usage, bounded Agent Loop events, execution targets,
   runtime ports, and structured failures;

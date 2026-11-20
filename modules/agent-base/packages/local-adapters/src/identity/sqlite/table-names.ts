@@ -1,4 +1,4 @@
-import { AgentIdentityError } from '@print-an-agent/base-identity';
+import { AgentIdentityError } from '@print-an-agent/base-identity-config/identity';
 
 export type SqliteAgentIdentityTableName = 'schema' | 'identities';
 

@@ -13,7 +13,7 @@ import {
   type SessionNavigationPorts,
   type StagedManagedAgentNamespace,
 } from '@print-an-agent/base-composition';
-import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   createResourceScope,
   ResourceCleanupError,

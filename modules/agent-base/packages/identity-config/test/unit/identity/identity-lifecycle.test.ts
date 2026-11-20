@@ -9,7 +9,7 @@ import {
   renameAgentIdentity,
   type AgentIdentityCatalogPort,
   type AgentIdentitySnapshot,
-} from '../../src/index.js';
+} from '@print-an-agent/base-identity-config/identity';
 
 function unexpectedCall<T>(method: string): Promise<T> {
   return Promise.reject(new Error(`Unexpected Identity catalog call: ${method}.`));

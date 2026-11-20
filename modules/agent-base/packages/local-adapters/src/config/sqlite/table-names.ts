@@ -1,4 +1,4 @@
-import { AgentConfigError } from '@print-an-agent/base-config';
+import { AgentConfigError } from '@print-an-agent/base-identity-config/config';
 
 export type SqliteAgentConfigTableName = 'schema' | 'configs';
 

@@ -2,7 +2,10 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { AgentIdentityError, defineAgentIdentity } from '@print-an-agent/base-identity';
+import {
+  AgentIdentityError,
+  defineAgentIdentity,
+} from '@print-an-agent/base-identity-config/identity';
 import {
   SqliteAgentIdentityCatalogAdapter,
   type SqliteAgentIdentityTableNamesInput,

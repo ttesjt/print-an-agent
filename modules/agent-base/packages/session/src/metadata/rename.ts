@@ -1,4 +1,4 @@
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { parseSessionId } from '../contracts/index.js';
 import { AgentSessionError } from '../errors.js';
 import type { RenameSessionInput } from './types.js';

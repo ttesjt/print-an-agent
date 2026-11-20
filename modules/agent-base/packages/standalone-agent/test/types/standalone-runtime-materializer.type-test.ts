@@ -1,4 +1,4 @@
-import type { AgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import type { RequestJournalPort } from '@print-an-agent/base-request';
 import type { CompactableSessionPort } from '@print-an-agent/base-session';
 import {

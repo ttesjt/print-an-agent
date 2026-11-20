@@ -28,8 +28,14 @@ const profiles: readonly ReleaseConsumerProfile[] = [
       'session-port.ts',
       'session-workflows.test.ts',
       'workflow-bundle.test.ts',
+      'identity-config.test.ts',
     ],
-    testFiles: ['smoke.ts', 'session-workflows.test.ts', 'workflow-bundle.test.ts'],
+    testFiles: [
+      'smoke.ts',
+      'session-workflows.test.ts',
+      'workflow-bundle.test.ts',
+      'identity-config.test.ts',
+    ],
   },
 ];
 const fixture = await startPackageRegistry(release, directory);

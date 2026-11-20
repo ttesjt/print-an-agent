@@ -1,6 +1,6 @@
-import type { AgentConfigCodec } from '@print-an-agent/base-config';
+import type { AgentConfigCodec } from '@print-an-agent/base-identity-config/config';
 import type { AgentWebConfig, AgentModelBinding } from '../../application/agent-config.js';
-import type { ConfigValue } from '@print-an-agent/base-config';
+import type { ConfigValue } from '@print-an-agent/base-identity-config/config';
 import { defineAgentWebConfig } from '../../application/agent-config-validation.js';
 
 export const WEB_AGENT_CONFIG_CODEC: AgentConfigCodec<AgentWebConfig> = Object.freeze({

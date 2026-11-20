@@ -16,7 +16,7 @@ export const PACKAGE_DIRECTORIES = {
   '@print-an-agent/model-invocation-core': 'modules/model-invocation/packages/core',
   '@print-an-agent/model-invocation-pi': 'modules/model-invocation/packages/pi',
   '@print-an-agent/workflow-core': 'modules/workflow/packages/core',
-  '@print-an-agent/base-identity': 'modules/agent-base/packages/identity',
+  '@print-an-agent/base-identity-config': 'modules/agent-base/packages/identity-config',
   '@print-an-agent/base-observability': 'modules/agent-base/packages/observability',
   '@print-an-agent/base-runtime': 'modules/agent-base/packages/runtime',
   '@print-an-agent/base-tool': 'modules/agent-base/packages/tool',

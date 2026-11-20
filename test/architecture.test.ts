@@ -58,6 +58,7 @@ interface PackageManifest {
   readonly dependencies?: Readonly<Record<string, string>>;
   readonly devDependencies?: Readonly<Record<string, string>>;
   readonly optionalDependencies?: Readonly<Record<string, string>>;
+  readonly exports?: Readonly<Record<string, unknown>>;
   readonly peerDependencies?: Readonly<Record<string, string>>;
 }
 
@@ -251,6 +252,17 @@ function reachablePublicDeclarations(entryPoint: string): readonly string[] {
   return Object.freeze([...visited]);
 }
 
+/** Public paths come from their owner manifests; subpaths are not inherently private. */
+const agentBasePublicEntries: ReadonlySet<string> = new Set(
+  packageManifests('agent-base').flatMap((manifest) => {
+    const name = manifest.name;
+    if (!name?.startsWith('@print-an-agent/base-')) return [];
+    return Object.keys(manifest.exports ?? {})
+      .filter((entry) => (entry === '.' || entry.startsWith('./')) && !entry.includes('*'))
+      .map((entry) => (entry === '.' ? name : `${name}${entry.slice(1)}`));
+  })
+);
+
 describe('module architecture', () => {
   it('keeps Sessionless request implementation free of Agent owners and concrete persistence', () => {
     const requestRoot = join(repositoryRoot, 'modules/agent-base/packages/request/src');
@@ -260,7 +272,7 @@ describe('module architecture', () => {
       '@print-an-agent/base-runtime',
       '@print-an-agent/base-session',
       '@print-an-agent/base-local-adapters',
-      '@print-an-agent/base-identity',
+      '@print-an-agent/base-identity-config',
       '@print-an-agent/model-invocation-pi',
       'node:fs',
       'node:sqlite',
@@ -390,7 +402,7 @@ describe('module architecture', () => {
 
   it('keeps generic Agent Base domains independent from official local adapters', () => {
     const packagesRoot = join(repositoryRoot, 'modules', 'agent-base', 'packages');
-    const domainPackages = ['config', 'identity', 'observability', 'request', 'session'];
+    const domainPackages = ['identity-config', 'observability', 'request', 'session'];
     for (const packageName of domainPackages) {
       const packageRoot = join(packagesRoot, packageName);
       const manifest = JSON.parse(
@@ -404,8 +416,8 @@ describe('module architecture', () => {
     }
 
     for (const adapterSource of [
-      join(packagesRoot, 'config', 'src', 'adapters'),
-      join(packagesRoot, 'identity', 'src', 'catalog', 'adapters'),
+      join(packagesRoot, 'identity-config', 'src', 'config', 'adapters'),
+      join(packagesRoot, 'identity-config', 'src', 'identity', 'catalog', 'adapters'),
       join(packagesRoot, 'observability', 'src', 'adapters'),
       join(packagesRoot, 'request', 'src', 'adapters'),
       join(packagesRoot, 'request', 'src', 'replay', 'adapters'),
@@ -421,8 +433,7 @@ describe('module architecture', () => {
       readFileSync(join(packagesRoot, 'local-adapters', 'package.json'), 'utf8')
     ) as PackageManifest;
     expect(Object.keys(localManifest.dependencies ?? {}).sort()).toEqual([
-      '@print-an-agent/base-config',
-      '@print-an-agent/base-identity',
+      '@print-an-agent/base-identity-config',
       '@print-an-agent/base-observability',
       '@print-an-agent/base-request',
       '@print-an-agent/base-session',
@@ -478,8 +489,8 @@ describe('module architecture', () => {
     for (const sourceFile of typeScriptFiles(modulesRoot)) {
       for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
         if (
-          /^@print-an-agent\/base-[^/]+\//u.test(specifier) &&
-          specifier !== '@print-an-agent/base-composition/resource-registry'
+          specifier.startsWith('@print-an-agent/base-') &&
+          !agentBasePublicEntries.has(specifier)
         ) {
           deepImports.push(`${normalize(relative(repositoryRoot, sourceFile))}: ${specifier}`);
         }
@@ -487,6 +498,17 @@ describe('module architecture', () => {
     }
 
     expect(deepImports).toEqual([]);
+  });
+
+  it.each([
+    ['@print-an-agent/base-identity-config', true],
+    ['@print-an-agent/base-identity-config/identity', true],
+    ['@print-an-agent/base-identity-config/config', true],
+    ['@print-an-agent/base-identity-config/identity/types/identity', false],
+    ['@print-an-agent/base-identity-config/config/lib/config-value.js', false],
+    ['@print-an-agent/base-identity-config/dist/index.js', false],
+  ] as const)('recognizes declared public entry %s = %s', (specifier, allowed) => {
+    expect(agentBasePublicEntries.has(specifier)).toBe(allowed);
   });
 
   it('keeps reusable Agent UI packages independent from domain runtimes', () => {
@@ -545,7 +567,11 @@ describe('module architecture', () => {
             expect(normalize(relativeImport)).not.toMatch(/^node\//u);
           }
         }
-        expect(specifier).not.toMatch(/^@print-an-agent\/base-[^/]+\//u);
+        if (specifier.startsWith('@print-an-agent/base-'))
+          expect(agentBasePublicEntries.has(specifier), `${normalize(file)}: ${specifier}`).toBe(
+            true
+          );
+        expect(specifier).not.toBe('@print-an-agent/base-composition/resource-registry');
         expect(specifier).not.toBe('@print-an-agent/base-observability');
         expect(specifier).not.toBe('node:sqlite');
       }
@@ -1170,7 +1196,7 @@ describe('module architecture', () => {
       for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
         if (!specifier.startsWith('@print-an-agent/')) continue;
         expect(specifier).toMatch(
-          /^@print-an-agent\/(?:(?:base-|model-invocation-)[^/]+|base-composition\/resource-registry|context-memory(?:-sqlite)?|retrieval-memory(?:-sqlite)?|workflow-core(?:\/bundle)?)$/
+          /^@print-an-agent\/(?:(?:base-|model-invocation-)[^/]+|base-composition\/resource-registry|base-identity-config\/(?:identity|config)|context-memory(?:-sqlite)?|retrieval-memory(?:-sqlite)?|workflow-core(?:\/bundle)?)$/
         );
       }
       expect(normalize(sourceFile)).not.toContain(`${normalize('/src/')}`);

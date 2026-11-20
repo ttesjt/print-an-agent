@@ -2,8 +2,11 @@ import { isAbsolute } from 'node:path';
 import { defineAgentActor } from '@print-an-agent/base-actor';
 import { type ActorInvocationConfig } from '@print-an-agent/model-invocation-core';
 import { defineProviderConfig } from '@print-an-agent/base-composition';
-import type { AgentConfigCodec, ConfigValue } from '@print-an-agent/base-config';
-import { defineAgentIdentity, type AgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentConfigCodec, ConfigValue } from '@print-an-agent/base-identity-config/config';
+import {
+  defineAgentIdentity,
+  type AgentIdentity,
+} from '@print-an-agent/base-identity-config/identity';
 import { AgentBaseStandaloneError } from './errors.js';
 import { defineTextTokenCounterConfig } from '@print-an-agent/model-invocation-token-counters';
 import {

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it, onTestFinished, vi } from 'vitest';
 import { createAgentManagementService } from '@print-an-agent/base-composition';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   createTokenCounter,
   TEXT_TOKEN_INPUT_CONTRACT,

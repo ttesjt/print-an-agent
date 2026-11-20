@@ -5,7 +5,7 @@ import {
   createSessionNavigationService,
 } from '@print-an-agent/base-composition';
 import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { createStandaloneMemorySetup, createStandaloneAgent } from '../../src/index.js';
 import {

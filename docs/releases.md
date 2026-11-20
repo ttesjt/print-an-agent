@@ -18,7 +18,7 @@ The four release entries and their production closure contain exactly these ten 
 
 - `@print-an-agent/base-request`
 - `@print-an-agent/base-actor`
-- `@print-an-agent/base-identity`
+- `@print-an-agent/base-identity-config`
 - `@print-an-agent/base-observability`
 - `@print-an-agent/base-runtime`
 - `@print-an-agent/base-session`
@@ -30,6 +30,11 @@ The four release entries and their production closure contain exactly these ten 
 Workflow Core includes both its root execution API and the
 [`@print-an-agent/workflow-core/bundle`](../modules/workflow/packages/core/docs/bundle.md) assembly
 subentry. Bundle does not require a separate package installation.
+
+Identity and Config are distributed together as
+[`@print-an-agent/base-identity-config`](../modules/agent-base/packages/identity-config/README.md),
+with root, `/identity` and `/config` entries. This replaces the former Identity release package and
+includes the previously private Config API. The reviewed production closure remains ten packages.
 
 These are ESM packages for Node.js `>=24.15.0 <25`. A server-side website integration can use the
 [Sessionless Workflow](../modules/agent-base/packages/request/docs/sessionless.md) without creating
@@ -64,8 +69,8 @@ read-only loopback npm registry serving only these artifacts. Two independent te
 outside the workspace cover separate consumers. The entry-only profile declares exactly the release
 entries and runs website smoke tests; its other public packages must resolve transitively. The full
 API profile explicitly declares all ten public packages and also exercises the Workflow Bundle
-subentry and Session-aware Workflows
-and Agent bindings. Each profile gets fresh configs, caches, lockfiles and stores, then runs both
+subentry, Identity/Config entry compatibility and independent revision contracts, and Session-aware
+Workflows and Agent bindings. Each profile gets fresh configs, caches, lockfiles and stores, then runs both
 npm and pnpm installation and type/runtime checks. Neither uses workspace links or hoisting.
 External packages come from the public npm registry. The verifier uses empty user/global npm config
 files and removes inherited npm authentication from child processes.

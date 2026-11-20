@@ -5,7 +5,7 @@ import type {
   SessionNavigationInspectionOutcome,
   SessionNavigationService,
 } from '@print-an-agent/base-composition';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   parseSessionBranchId,
   parseSessionId,

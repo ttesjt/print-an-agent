@@ -1,4 +1,4 @@
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { jsonValue } from '@print-an-agent/context-memory';
 import type { AgentMemoryReference, MemoryManagementOptions } from './contracts/memory.js';
 import { MemoryManagementError } from './memory-errors.js';

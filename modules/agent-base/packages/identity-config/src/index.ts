@@ -1,0 +1,47 @@
+export {
+  AgentIdentityError,
+  createAgentIdentity,
+  defineAgentIdentity,
+  defineAgentIdentitySnapshot,
+  disableAgentIdentity,
+  isAgentId,
+  isAgentIdentityStatus,
+  listAgentIdentities,
+  parseAgentId,
+  reactivateAgentIdentity,
+  readAgentIdentity,
+  renameAgentIdentity,
+} from './identity/index.js';
+export type {
+  AgentId,
+  AgentIdentity,
+  AgentIdentityCatalogPort,
+  AgentIdentityCatalogReadPort,
+  AgentIdentityInput,
+  AgentIdentitySnapshot,
+  AgentIdentityStatus,
+  CreateAgentIdentityOptions,
+  CreateAgentIdentityRequest,
+  ReadAgentIdentityOptions,
+  RenameAgentIdentityOptions,
+  RenameAgentIdentityRequest,
+  TransitionAgentIdentityOptions,
+  TransitionAgentIdentityRequest,
+} from './identity/index.js';
+export {
+  AgentConfigError,
+  normalizeConfigValue,
+  resolveAgentConfig,
+  writeAgentConfig,
+} from './config/index.js';
+export type {
+  AgentConfigCodec,
+  AgentConfigReadAdapter,
+  AgentConfigSnapshot,
+  AgentConfigWriteAdapter,
+  AgentConfigWriteRequest,
+  ConfigValue,
+  ResolveAgentConfigOptions,
+  ResolvedAgentConfig,
+  WriteAgentConfigOptions,
+} from './config/index.js';

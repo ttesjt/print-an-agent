@@ -1,4 +1,4 @@
-import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import { openManagedAgentRuntime } from './agent-runtime-operations.js';
 import type { AgentRuntimeService } from './contracts/agent-runtime.js';
 import type { ManagedAgentCompositionDefinition } from './definition.js';

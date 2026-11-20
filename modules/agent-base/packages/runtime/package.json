@@ -30,9 +30,9 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@print-an-agent/base-identity": "workspace:*",
     "@print-an-agent/base-observability": "workspace:*",
-    "@print-an-agent/workflow-core": "workspace:*"
+    "@print-an-agent/workflow-core": "workspace:*",
+    "@print-an-agent/base-identity-config": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

@@ -1,4 +1,4 @@
-import type { AgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import type { ManagedAgentNamespace } from './namespace.js';
 
 /** The typed authoritative view supplied to an optional external Config projection. */

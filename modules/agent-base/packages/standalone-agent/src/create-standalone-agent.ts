@@ -2,7 +2,10 @@ import {
   createAgentManagementService,
   createAgentRuntimeService,
 } from '@print-an-agent/base-composition';
-import { parseAgentId, type AgentIdentityInput } from '@print-an-agent/base-identity';
+import {
+  parseAgentId,
+  type AgentIdentityInput,
+} from '@print-an-agent/base-identity-config/identity';
 import { defineStandaloneAgentConfig } from './config.js';
 import type { StandaloneSetup } from './profiles/setup.js';
 import type { StandaloneAgentConfigInput, StandaloneRawAgent } from './types.js';

@@ -5,7 +5,7 @@ import {
   type ManagedAgentCommitResult,
   type ManagedAgentSnapshot,
 } from '@print-an-agent/base-composition';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { defineStandaloneAgentConfig, defineStandaloneAgentManifest } from '../../src/config.js';
 import type {
   StandaloneAgentConfig,

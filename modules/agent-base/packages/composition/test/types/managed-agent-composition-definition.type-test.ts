@@ -1,9 +1,9 @@
-import type { AgentConfigCodec } from '@print-an-agent/base-config';
+import type { AgentConfigCodec } from '@print-an-agent/base-identity-config/config';
 import {
   parseAgentId,
   type AgentIdentityCatalogPort,
   type AgentIdentitySnapshot,
-} from '@print-an-agent/base-identity';
+} from '@print-an-agent/base-identity-config/identity';
 import { parseSessionId } from '@print-an-agent/base-session';
 import type {
   Agent,

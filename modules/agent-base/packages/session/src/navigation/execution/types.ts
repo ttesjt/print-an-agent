@@ -1,4 +1,4 @@
-import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import type { SessionId, SessionSnapshot } from '../../contracts/index.js';
 import type { SessionExecutionLease } from '../../lifecycle/index.js';
 import type { NavigateSessionInput, ValidatedSessionNavigationCommand } from '../types/command.js';

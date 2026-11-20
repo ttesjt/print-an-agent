@@ -1,5 +1,5 @@
-import { AgentConfigError } from '@print-an-agent/base-config';
-import { AgentIdentityError } from '@print-an-agent/base-identity';
+import { AgentConfigError } from '@print-an-agent/base-identity-config/config';
+import { AgentIdentityError } from '@print-an-agent/base-identity-config/identity';
 import { AgentSessionError } from '@print-an-agent/base-session';
 import { ManagedAgentNamespaceError } from './contracts/namespace.js';
 import { SessionMemoryCommitError } from './context-memory/mutations.js';

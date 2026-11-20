@@ -3,7 +3,7 @@ import {
   createAgentRuntimeService,
   createSessionManagementService,
 } from '@print-an-agent/base-composition';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
 import { ResourceCleanupError } from '@print-an-agent/base-composition/resource-registry';
 import { describe, expect, it, vi } from 'vitest';

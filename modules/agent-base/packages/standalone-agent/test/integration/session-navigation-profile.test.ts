@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { SqliteSessionAdapter } from '@print-an-agent/base-local-adapters';
 import { DEFAULT_SESSION_BRANCH_ID } from '@print-an-agent/base-session';
 import { describe, expect, it } from 'vitest';

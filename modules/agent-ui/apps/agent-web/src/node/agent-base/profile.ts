@@ -39,7 +39,7 @@ import {
   supportsSessionMemoryNavigation,
   supportsSessionExecution,
 } from '@print-an-agent/base-session';
-import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import type { ToolRegistry } from '@print-an-agent/base-tool';
 import type { AgentWebConfig } from '../../application/agent-config.js';
 import { WEB_AGENT_CONFIG_CODEC } from './config.js';

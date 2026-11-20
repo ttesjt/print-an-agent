@@ -9,7 +9,10 @@ import type {
   DefinedProviderConfig,
   ProviderConfigInput,
 } from '@print-an-agent/base-composition';
-import type { AgentIdentity, AgentIdentityInput } from '@print-an-agent/base-identity';
+import type {
+  AgentIdentity,
+  AgentIdentityInput,
+} from '@print-an-agent/base-identity-config/identity';
 import type {
   MemoryAuthorityFactory,
   MemorySessionPersistenceFactory,

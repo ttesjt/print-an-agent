@@ -1,4 +1,4 @@
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import { RUN_WORKFLOW } from '@print-an-agent/workflow-core';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import {

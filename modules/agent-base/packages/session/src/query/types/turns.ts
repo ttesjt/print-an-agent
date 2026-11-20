@@ -1,4 +1,4 @@
-import type { parseAgentId } from '@print-an-agent/base-identity';
+import type { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import type {
   parseSessionId,
   parseTurnId,

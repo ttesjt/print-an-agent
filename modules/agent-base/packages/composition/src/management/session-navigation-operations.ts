@@ -1,4 +1,4 @@
-import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   AgentSessionError,
   executeSessionNavigation,

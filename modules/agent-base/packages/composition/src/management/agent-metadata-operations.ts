@@ -2,7 +2,7 @@ import {
   parseAgentId,
   renameAgentIdentity,
   type AgentIdentityCatalogPort,
-} from '@print-an-agent/base-identity';
+} from '@print-an-agent/base-identity-config/identity';
 import { createManagedAgentAuthorityPorts, readManagedAgentAuthority } from './authority.js';
 import type {
   ManagedAgentCommitResult,

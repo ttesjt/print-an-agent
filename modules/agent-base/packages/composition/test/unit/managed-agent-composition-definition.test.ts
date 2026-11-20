@@ -1,5 +1,5 @@
-import type { AgentConfigCodec, ConfigValue } from '@print-an-agent/base-config';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import type { AgentConfigCodec, ConfigValue } from '@print-an-agent/base-identity-config/config';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import type { Agent } from '@print-an-agent/base-runtime';
 import {
   defineManagedAgentComposition,

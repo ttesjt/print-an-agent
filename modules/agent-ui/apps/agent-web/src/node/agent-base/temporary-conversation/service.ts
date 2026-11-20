@@ -2,7 +2,7 @@ import {
   createSessionlessRequestService,
   type AgentManagementService,
 } from '@print-an-agent/base-composition';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { ActorError, ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import { AgentRequestError } from '@print-an-agent/base-request';
 import { runWithExecutionTimeout } from '@print-an-agent/workflow-core';

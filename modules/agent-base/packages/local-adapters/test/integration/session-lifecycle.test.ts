@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { parseTurnId, parseSessionBranchId } from '@print-an-agent/base-session';
 import { createRequestFingerprint, parseRequestIdempotencyKey } from '@print-an-agent/base-request';
 import { describe, expect, it } from 'vitest';

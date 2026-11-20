@@ -1,4 +1,4 @@
-import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import type { RawManagedAgent } from './runtime.js';
 
 /** Materializes independent raw Agent instances from published managed authority. */

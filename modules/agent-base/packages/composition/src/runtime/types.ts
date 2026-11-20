@@ -5,7 +5,7 @@ import type {
   ResponsibilityDefinitionInput,
 } from '@print-an-agent/base-actor';
 import type { ActorId, TokenCounter, TextTokenInput } from '@print-an-agent/model-invocation-core';
-import type { AgentIdentityInput } from '@print-an-agent/base-identity';
+import type { AgentIdentityInput } from '@print-an-agent/base-identity-config/identity';
 import type { AgentTraceRuntimeOptions } from '@print-an-agent/base-observability';
 import type {
   CompactableSessionPort,

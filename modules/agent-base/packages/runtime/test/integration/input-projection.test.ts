@@ -1,4 +1,4 @@
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import { type AgentTraceEvent } from '@print-an-agent/base-observability';
 import {
   bindAgentWorkflow,

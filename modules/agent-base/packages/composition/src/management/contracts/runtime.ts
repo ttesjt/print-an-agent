@@ -1,4 +1,7 @@
-import type { AgentIdentity, AgentIdentitySnapshot } from '@print-an-agent/base-identity';
+import type {
+  AgentIdentity,
+  AgentIdentitySnapshot,
+} from '@print-an-agent/base-identity-config/identity';
 import type { Agent } from '@print-an-agent/base-runtime';
 import type { ManagedAgentConfigSnapshot } from './agent-management.js';
 import type { ManagedAgentNamespace } from './namespace.js';

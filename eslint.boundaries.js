@@ -251,7 +251,7 @@ export const boundaryConfigs = Object.freeze([
   },
   {
     files: [
-      'modules/agent-base/packages/{runtime,request,session,actor,config,identity,tool}/src/**/*.ts',
+      'modules/agent-base/packages/{runtime,request,session,actor,identity-config,tool}/src/**/*.ts',
     ],
     rules: moduleRestrictions([
       {
@@ -302,6 +302,24 @@ export const boundaryConfigs = Object.freeze([
         ],
         message:
           'Request and Session workflows consume explicit inputs and resources; Agent binding belongs to composition.',
+      },
+    ]),
+  },
+  {
+    files: ['modules/agent-base/packages/identity-config/src/**/*.ts'],
+    rules: moduleRestrictions([
+      {
+        group: [
+          '@print-an-agent/*',
+          '@print-an-agent/*/**',
+          'node:fs',
+          'node:fs/**',
+          'node:sqlite',
+          'better-sqlite3',
+          'sqlite-vec',
+        ],
+        message:
+          'Identity/Config uses relative feature contracts and injected ports, independent of concrete integrations.',
       },
     ]),
   },

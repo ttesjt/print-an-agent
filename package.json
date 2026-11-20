@@ -17,7 +17,7 @@
     "lint": "pnpm -r --if-present build && eslint . && pnpm python:lint",
     "lint:fix": "eslint . --fix && pnpm python:lint:fix",
     "test": "pnpm test:architecture && pnpm -r --if-present test && pnpm python:test",
-    "test:architecture": "pnpm -r --if-present build && vitest run test/architecture.test.ts test/source-boundaries.test.ts test/session-architecture.test.ts test/workflow-architecture.test.ts test/workflow-source-boundaries.test.ts test/model-invocation-architecture.test.ts test/memory-architecture.test.ts test/retrieval-memory-architecture.test.ts test/resource-registry-architecture.test.ts test/release-packages.test.ts",
+    "test:architecture": "pnpm -r --if-present build && vitest run test/identity-config-architecture.test.ts test/architecture.test.ts test/source-boundaries.test.ts test/session-architecture.test.ts test/workflow-architecture.test.ts test/workflow-source-boundaries.test.ts test/model-invocation-architecture.test.ts test/memory-architecture.test.ts test/retrieval-memory-architecture.test.ts test/resource-registry-architecture.test.ts test/release-packages.test.ts",
     "test:model-invocation-qualification": "pnpm --filter '@print-an-agent/model-invocation-*' --if-present build && pnpm --filter '@print-an-agent/model-invocation-*' typecheck && eslint modules/model-invocation && prettier --check modules/model-invocation && pnpm --filter '@print-an-agent/model-invocation-*' test && vitest run test/model-invocation-architecture.test.ts",
     "test:watch": "pnpm -r --parallel --if-present test:watch",
     "test:coverage": "pnpm -r --if-present test:coverage",
@@ -40,7 +40,8 @@
     "validate:standard": "node tooling/validation/standard.ts",
     "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "release:prepare": "node tooling/release/prepare.ts",
-    "release:verify": "node tooling/release/verify.ts"
+    "release:verify": "node tooling/release/verify.ts",
+    "test:identity-config-qualification": "pnpm --filter @print-an-agent/base-identity-config typecheck && pnpm --filter @print-an-agent/base-identity-config lint && pnpm --filter @print-an-agent/base-identity-config format:check && pnpm --filter @print-an-agent/base-identity-config test && vitest run test/identity-config-architecture.test.ts"
   },
   "engines": {
     "node": ">=24.15.0 <25",

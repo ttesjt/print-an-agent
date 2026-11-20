@@ -23,8 +23,6 @@
     "@print-an-agent/workflow-core": "workspace:*",
     "@print-an-agent/base-actor": "workspace:*",
     "@print-an-agent/base-composition": "workspace:*",
-    "@print-an-agent/base-config": "workspace:*",
-    "@print-an-agent/base-identity": "workspace:*",
     "@print-an-agent/base-local-adapters": "workspace:*",
     "@print-an-agent/model-invocation-core": "workspace:*",
     "@print-an-agent/base-observability": "workspace:*",
@@ -37,7 +35,8 @@
     "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "@print-an-agent/model-invocation-pi": "workspace:*"
+    "@print-an-agent/model-invocation-pi": "workspace:*",
+    "@print-an-agent/base-identity-config": "workspace:*"
   },
   "license": "MIT",
   "engines": {

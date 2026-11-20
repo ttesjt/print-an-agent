@@ -1,4 +1,4 @@
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { Agent, createAgent } from '@print-an-agent/base-runtime';
 import { describe, expect, it } from 'vitest';
 import {

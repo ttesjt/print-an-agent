@@ -5,7 +5,7 @@ import {
   createResponsibilityRouter,
   MAIN_ACTOR_ID,
 } from '@print-an-agent/base-actor';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   MemoryOutputSink,
   MemoryRequestJournalAdapter,

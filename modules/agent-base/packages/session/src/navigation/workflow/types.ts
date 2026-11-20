@@ -1,4 +1,4 @@
-import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import type { AgentTraceEmitter } from '@print-an-agent/base-observability';
 import type { WorkflowContext, WorkflowDefinition } from '@print-an-agent/workflow-core';
 import type { SessionNavigationExecutionState } from '../execution/index.js';

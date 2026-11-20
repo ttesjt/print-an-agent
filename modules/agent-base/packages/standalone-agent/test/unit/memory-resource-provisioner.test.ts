@@ -1,4 +1,4 @@
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryStandaloneResourceProvisioner } from '../../src/resources/memory/provisioner.js';

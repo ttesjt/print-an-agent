@@ -1,6 +1,6 @@
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { quoteSqliteIdentifier } from './table-names.js';
-import { AgentIdentityError } from '@print-an-agent/base-identity';
+import { AgentIdentityError } from '@print-an-agent/base-identity-config/identity';
 import { runIdentityTransaction } from './database.js';
 import { createIdentityCatalogMigration } from './migrations/0001_create_identity_catalog.js';
 import type { SqliteAgentIdentityTableNames } from './table-names.js';

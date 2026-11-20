@@ -1,4 +1,4 @@
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
 import { describe, expect, it } from 'vitest';
 import { AgentBaseStandaloneError, materializeStandaloneAgentRuntime } from '../../src/index.js';

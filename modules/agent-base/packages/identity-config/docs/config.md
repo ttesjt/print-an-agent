@@ -1,4 +1,4 @@
-# `@print-an-agent/base-config`
+# `@print-an-agent/base-identity-config/config`
 
 Storage-agnostic Agent configuration contracts.
 

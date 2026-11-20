@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
-import type { AgentId, AgentIdentity } from '@print-an-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
+import type { AgentId, AgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import {
   createAgentTraceEmitter,
   traceErrorCode,

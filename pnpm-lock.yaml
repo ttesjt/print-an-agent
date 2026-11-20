@@ -105,12 +105,9 @@ importers:
       '@print-an-agent/base-actor':
         specifier: workspace:*
         version: link:../actor
-      '@print-an-agent/base-config':
+      '@print-an-agent/base-identity-config':
         specifier: workspace:*
-        version: link:../config
-      '@print-an-agent/base-identity':
-        specifier: workspace:*
-        version: link:../identity
+        version: link:../identity-config
       '@print-an-agent/base-local-adapters':
         specifier: workspace:*
         version: link:../local-adapters
@@ -161,26 +158,7 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
 
-  modules/agent-base/packages/config:
-    dependencies:
-      '@print-an-agent/base-identity':
-        specifier: workspace:*
-        version: link:../identity
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.12.4
-      '@vitest/coverage-v8':
-        specifier: 'catalog:'
-        version: 3.2.4(vitest@3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0))
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
-
-  modules/agent-base/packages/identity:
+  modules/agent-base/packages/identity-config:
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -197,12 +175,9 @@ importers:
 
   modules/agent-base/packages/local-adapters:
     dependencies:
-      '@print-an-agent/base-config':
+      '@print-an-agent/base-identity-config':
         specifier: workspace:*
-        version: link:../config
-      '@print-an-agent/base-identity':
-        specifier: workspace:*
-        version: link:../identity
+        version: link:../identity-config
       '@print-an-agent/base-observability':
         specifier: workspace:*
         version: link:../observability
@@ -258,9 +233,9 @@ importers:
       '@print-an-agent/base-actor':
         specifier: workspace:*
         version: link:../actor
-      '@print-an-agent/base-identity':
+      '@print-an-agent/base-identity-config':
         specifier: workspace:*
-        version: link:../identity
+        version: link:../identity-config
       '@print-an-agent/base-observability':
         specifier: workspace:*
         version: link:../observability
@@ -292,9 +267,9 @@ importers:
 
   modules/agent-base/packages/runtime:
     dependencies:
-      '@print-an-agent/base-identity':
+      '@print-an-agent/base-identity-config':
         specifier: workspace:*
-        version: link:../identity
+        version: link:../identity-config
       '@print-an-agent/base-observability':
         specifier: workspace:*
         version: link:../observability
@@ -320,9 +295,9 @@ importers:
       '@print-an-agent/base-actor':
         specifier: workspace:*
         version: link:../actor
-      '@print-an-agent/base-identity':
+      '@print-an-agent/base-identity-config':
         specifier: workspace:*
-        version: link:../identity
+        version: link:../identity-config
       '@print-an-agent/base-observability':
         specifier: workspace:*
         version: link:../observability
@@ -354,12 +329,9 @@ importers:
       '@print-an-agent/base-composition':
         specifier: workspace:*
         version: link:../composition
-      '@print-an-agent/base-config':
+      '@print-an-agent/base-identity-config':
         specifier: workspace:*
-        version: link:../config
-      '@print-an-agent/base-identity':
-        specifier: workspace:*
-        version: link:../identity
+        version: link:../identity-config
       '@print-an-agent/base-local-adapters':
         specifier: workspace:*
         version: link:../local-adapters
@@ -431,12 +403,9 @@ importers:
       '@print-an-agent/base-composition':
         specifier: workspace:*
         version: link:../../packages/composition
-      '@print-an-agent/base-config':
+      '@print-an-agent/base-identity-config':
         specifier: workspace:*
-        version: link:../../packages/config
-      '@print-an-agent/base-identity':
-        specifier: workspace:*
-        version: link:../../packages/identity
+        version: link:../../packages/identity-config
       '@print-an-agent/base-local-adapters':
         specifier: workspace:*
         version: link:../../packages/local-adapters
@@ -645,12 +614,9 @@ importers:
       '@print-an-agent/base-composition':
         specifier: workspace:*
         version: link:../../../agent-base/packages/composition
-      '@print-an-agent/base-config':
+      '@print-an-agent/base-identity-config':
         specifier: workspace:*
-        version: link:../../../agent-base/packages/config
-      '@print-an-agent/base-identity':
-        specifier: workspace:*
-        version: link:../../../agent-base/packages/identity
+        version: link:../../../agent-base/packages/identity-config
       '@print-an-agent/base-local-adapters':
         specifier: workspace:*
         version: link:../../../agent-base/packages/local-adapters

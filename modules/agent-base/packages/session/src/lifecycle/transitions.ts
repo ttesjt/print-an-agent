@@ -1,16 +1,14 @@
 import { AgentSessionError } from '../errors.js';
-import type {
-  PurgeSessionInput,
-  SessionLifecycleMutationInput,
-  SessionLifecycleSnapshot,
-} from './contracts.js';
-import type { SessionExecutionFence } from './execution.js';
-import { assertSessionIdle, requireSessionMetadataRevision } from './guards.js';
-import { lifecycleInteger } from './validation-record.js';
+import { authorityInteger } from '../validation/authority-record.js';
+import type { SessionExecutionFence } from './execution/index.js';
+import { assertSessionIdle } from './execution/index.js';
 import {
   normalizePurgeSessionInput,
   normalizeSessionLifecycleMutationInput,
-} from './validation.js';
+} from './mutation-input.js';
+import type { SessionLifecycleMutationInput, SessionLifecycleSnapshot } from './state/index.js';
+import { requireSessionMetadataRevision } from './state/index.js';
+import type { PurgeSessionInput } from './types/management.js';
 
 /** Pure decision only. An adapter must commit this together with identity/CAS/occupancy checks. */
 export function retireSessionState(
@@ -64,8 +62,8 @@ export function assertSessionPurgeAllowed(
 }
 
 function transitionMetadata(snapshot: SessionLifecycleSnapshot, timestamp: number) {
-  lifecycleInteger(timestamp);
-  const revision = lifecycleInteger(snapshot.metadataRevision + 1);
+  authorityInteger(timestamp);
+  const revision = authorityInteger(snapshot.metadataRevision + 1);
   if (timestamp < snapshot.metadataUpdatedAt) {
     throw new AgentSessionError(
       'SESSION_LIFECYCLE_INVALID',

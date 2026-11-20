@@ -1,16 +1,14 @@
 import type { AgentId } from '@print-an-agent/base-identity';
 import type { AgentTraceEmitter } from '@print-an-agent/base-observability';
 import type { WorkflowContext, WorkflowDefinition } from '@print-an-agent/workflow-core';
-import type {
-  NavigateSessionInput,
-  NavigableSessionPort,
-  SessionNavigationOutcome,
-} from '../contracts.js';
-import type { SessionNavigationExecutionState } from '../coordinator-internal.js';
+import type { SessionNavigationExecutionState } from '../execution/index.js';
+import type { NavigateSessionInput } from '../types/command.js';
+import type { SessionNavigationOutcome } from '../types/outcome.js';
+import type { SessionNavigationCoordinatorPort } from '../types/ports.js';
 import type { SessionNavigationStepName } from './names.js';
 
 export interface SessionNavigationResources {
-  readonly session: NavigableSessionPort;
+  readonly session: SessionNavigationCoordinatorPort;
 }
 export interface SessionNavigationWorkflowInput {
   readonly agentId: AgentId;
@@ -22,17 +20,17 @@ export interface SessionNavigationWorkflowState extends SessionNavigationExecuti
   readonly traceEmitter?: AgentTraceEmitter;
   outcome?: SessionNavigationOutcome;
 }
-export type SessionNavigationWorkflowContext = WorkflowContext<
-  SessionNavigationStepName,
-  SessionNavigationWorkflowState,
-  SessionNavigationResources
->;
-export type CreateSessionNavigationWorkflowOptions = Omit<
+export type SessionNavigationWorkflowContext<
+  R extends SessionNavigationResources = SessionNavigationResources,
+> = WorkflowContext<SessionNavigationStepName, SessionNavigationWorkflowState, R>;
+export type CreateSessionNavigationWorkflowOptions<
+  R extends SessionNavigationResources = SessionNavigationResources,
+> = Omit<
   WorkflowDefinition<
     SessionNavigationStepName,
     SessionNavigationWorkflowInput,
     SessionNavigationWorkflowState,
-    SessionNavigationResources,
+    R,
     SessionNavigationOutcome | undefined
   >,
   'name' | 'entryStep' | 'stepDefinitions' | 'createState' | 'createResult' | 'createSkippedResult'

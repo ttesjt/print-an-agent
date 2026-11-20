@@ -1,6 +1,6 @@
 import { AgentSessionError } from '../../errors.js';
-import type { SessionCompactionTarget } from './contracts.js';
-import { compactionInteger, compactionRatio, compactionRecord } from './validation.js';
+import { compactionInteger, compactionRatio, compactionRecord } from '../input-validation.js';
+import type { SessionCompactionTarget } from './types.js';
 
 export const DEFAULT_SESSION_COMPACTION_TARGET_RATIO = 0.8;
 export const DEFAULT_SESSION_COMPACTION_RESERVE_TOKENS = 0;

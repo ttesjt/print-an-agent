@@ -205,3 +205,56 @@ recovery alone does not certify Journal recovery.
 
 The core contract remains storage-agnostic. Future file, product-database, or Pi Session adapters can
 replace these implementations without exposing their types to request or workflow logic.
+
+## Source organization
+
+`src/index.ts` is the package API. Features own explicit named entries, and public Workflow APIs
+are exposed through their enclosing feature. Cross-feature consumers use those entries; shared
+ancestor contracts and capabilities are explicitly declared in the source-boundary checks.
+
+Independent type aliases and interfaces follow the repository's
+[type placement convention](../../../../docs/standards/code-standards.md#type-and-interface-placement):
+
+| Owner                                                                                 | Pure-type paths                                |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Shared identity, reference, Turn and snapshot contracts                               | `contracts/types/`                             |
+| Package error codes and capability combinations                                       | `types/errors.ts`, `types/session-ports.ts`    |
+| Turn write requests                                                                   | `turns/types.ts`                               |
+| Lifecycle management, queries and state                                               | `lifecycle/types/`, `lifecycle/state/types.ts` |
+| Execution leases, fences, ports and recovery                                          | `lifecycle/execution/types/`                   |
+| Navigation commands, outcomes, ports and coordinator inputs                           | `navigation/types/`                            |
+| Navigation invocation state                                                           | `navigation/execution/types.ts`                |
+| Compaction policy, projection, input/output, source, assessment and counter resources | `compaction/types/`                            |
+| Planning target                                                                       | `compaction/planning/types.ts`                 |
+| Workflow invocation contracts                                                         | Each Workflow's `types.ts`                     |
+| Bounded queries and normalized paging inputs                                          | `query/types/`                                 |
+| Metadata writes and Turn presentation                                                 | `metadata/types.ts`, `presentation/types.ts`   |
+| Context Memory coordination records and navigation                                    | `context-memory/types/`                        |
+
+These responsibility directories do not introduce new feature boundaries or automatic public APIs.
+Features never depend back on the package's capability combinations. Their Workflow implementations
+require only inspection/navigation or inspection/compaction capabilities. The package-level Workflow
+resource and Context types retain full Session capabilities by default for existing custom Steps.
+Factories preserve the supplied resource type in overrides, conditions, executors and lifecycle
+hooks, including additional capabilities. Generic Context/options types accept an explicit resource
+type, and generic resource types accept a narrower Session port when needed. Default-Step and
+definition helpers accept the same resource type parameter. Package-level compatibility types live
+in `types/session-workflows.ts`; feature implementations do not depend on them.
+
+Runtime capability predicates live in `supports-execution.ts`, `supports-memory.ts` and
+`supports-presentation.ts` within their owning features. Query limits have their own `limits.ts`.
+Controlled Step names, Memory record kinds and compaction rejection reasons retain their derived
+unions next to their runtime options. Small implementation-specific types, such as a feedback
+function's input, a source selector's result, finalization context and error-constructor details,
+remain with that implementation.
+
+Shared lineage decisions live in `src/lineage.ts`; navigation snapshot projection stays with
+navigation. Navigation's `execution/` capability owns command parsing and validation/inspection/
+commit phases, shared by the direct coordinator and optional Workflow. Lifecycle management
+composes its shared state authority and execution child through their public entries.
+
+Compaction separates its outer Workflow plan and registry from registered Step implementations.
+Preparation and publication Steps live in `workflow/steps/`; `build-compacted-context/` owns the
+bounded candidate loop and its repeatable Steps. Step cardinality stays authoritative in
+`step-definitions.ts`. Target resolution and feedback remain planning responsibilities; token
+measurement belongs to the enclosing compaction feature.

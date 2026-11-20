@@ -189,3 +189,8 @@ cancellation and suspended maintenance writes are covered in
 `base-composition/test/integration/session-lifecycle.test.ts`. Persistent recovery tests reopen
 SQLite adapters/connections and inject storage failures; they do not certify remote stores or
 exactly-once external side effects. Standalone namespace-based management services remain separate.
+
+Lifecycle source separates shared state authority in `src/lifecycle/state/` from execution
+admission, leases, fences, recovery and finalization in `src/lifecycle/execution/`. The enclosing
+feature owns management contracts, mutation normalization, snapshot validation, retired queries
+and transitions. Child capabilities use shared state contracts rather than the parent aggregate.

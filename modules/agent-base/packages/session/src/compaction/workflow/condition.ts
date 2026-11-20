@@ -1,10 +1,10 @@
-import { parseSessionBranchId, parseSessionId } from '../../identifiers.js';
-import { selectSessionCompactionSource } from '../source-selection.js';
-import { resolveSessionCompactionTarget } from '../planning/target.js';
+import { RUN_WORKFLOW, skipWorkflow } from '@print-an-agent/workflow-core';
+import { parseSessionBranchId, parseSessionId } from '../../contracts/index.js';
 import { AgentSessionError } from '../../errors.js';
 import { defineCompactSessionInput } from '../input.js';
+import { resolveSessionCompactionTarget } from '../planning/target.js';
+import { selectSessionCompactionSource } from '../source-selection.js';
 import type { SessionCompactionCondition } from './types.js';
-import { RUN_WORKFLOW, skipWorkflow } from '@print-an-agent/workflow-core';
 
 export function createShouldCompactSessionCondition(): SessionCompactionCondition {
   return async ({ input, resources }) => {

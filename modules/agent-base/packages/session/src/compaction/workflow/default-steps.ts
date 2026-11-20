@@ -1,20 +1,19 @@
 import type { StepOverrides } from '@print-an-agent/workflow-core';
-import { buildCompactedContext } from './composites.js';
-import {
-  inspectSession,
-  selectCompactionSource,
-  resolveCompactionTarget,
-  resolveCompactionTokenCounter,
-  persistCompaction,
-} from './session-steps.js';
-import { generateCompactionCandidate, resolveCompactionActor } from './generation-steps.js';
-import {
-  prepareCompactionAttempt,
-  measureCompactionCandidate,
-  validateCompactionCandidate,
-  refineCompactionPlan,
-} from './candidate-steps.js';
 import type { SessionCompactionStepName } from './names.js';
+import {
+  buildCompactedContext,
+  generateCompactionCandidate,
+  measureCompactionCandidate,
+  prepareCompactionAttempt,
+  refineCompactionPlan,
+  validateCompactionCandidate,
+} from './steps/build-compacted-context/index.js';
+import { inspectSession } from './steps/inspect-session.js';
+import { persistCompaction } from './steps/persist-compaction.js';
+import { resolveCompactionActor } from './steps/resolve-compaction-actor.js';
+import { resolveCompactionTarget } from './steps/resolve-compaction-target.js';
+import { resolveCompactionTokenCounter } from './steps/resolve-compaction-token-counter.js';
+import { selectCompactionSource } from './steps/select-compaction-source.js';
 import type { SessionCompactionWorkflowContext } from './types.js';
 
 export function createDefaultSessionCompactionStepOverrides(): StepOverrides<

@@ -1,15 +1,19 @@
-import { Workflow, RUN_WORKFLOW } from '@print-an-agent/workflow-core';
-import { finalizeSessionExecution } from '../../lifecycle/workflow-execution.js';
+import { RUN_WORKFLOW, Workflow } from '@print-an-agent/workflow-core';
 import { AgentSessionError } from '../../errors.js';
-import { SESSION_COMPACTION_WORKFLOW_NAME } from './names.js';
-import { createSessionCompactionStepDefinitions } from './step-definitions.js';
+import { finalizeSessionExecution } from '../../lifecycle/index.js';
 import { defineCompactSessionInput } from '../input.js';
 import { validateSessionCompactionPolicy } from '../policy.js';
-import { bindSessionCompactionTokenCounter } from '../planning/measurement.js';
+import { bindSessionCompactionTokenCounter } from '../token-measurement.js';
+import type { SessionCompactionOutcome } from '../types/outcome.js';
+import type { SessionCompactionStepName } from './names.js';
+import { SESSION_COMPACTION_WORKFLOW_NAME } from './names.js';
+import { createSessionCompactionStepDefinitions } from './step-definitions.js';
 import type {
   CreateSessionCompactionWorkflowOptions,
-  SessionCompactionWorkflowContext,
   SessionCompactionDefinition,
+  SessionCompactionResources,
+  SessionCompactionState,
+  SessionCompactionWorkflowContext,
   SessionCompactionWorkflowInput,
 } from './types.js';
 
@@ -23,9 +27,17 @@ function normalizeWorkflowInput(
   };
 }
 
-export function createSessionCompactionWorkflow(options: CreateSessionCompactionWorkflowOptions) {
+export function createSessionCompactionWorkflow<R extends SessionCompactionResources>(
+  options: CreateSessionCompactionWorkflowOptions<R>
+): Workflow<
+  SessionCompactionStepName,
+  SessionCompactionWorkflowInput,
+  SessionCompactionState,
+  R,
+  SessionCompactionOutcome | undefined
+> {
   const condition = options.condition;
-  const definition: SessionCompactionDefinition = {
+  const definition: SessionCompactionDefinition<R> = {
     ...options,
     resources: Object.freeze({
       ...options.resources,

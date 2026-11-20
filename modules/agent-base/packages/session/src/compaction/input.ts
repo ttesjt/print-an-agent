@@ -1,8 +1,8 @@
+import { parseSessionBranchId, parseSessionId } from '../contracts/index.js';
 import { AgentSessionError } from '../errors.js';
-import { parseSessionBranchId, parseSessionId } from '../identifiers.js';
-import type { CompactSessionInput } from './contracts.js';
+import { compactionRecord } from './input-validation.js';
 import { defineSessionCompactionTarget } from './planning/target.js';
-import { compactionRecord } from './planning/validation.js';
+import type { CompactSessionInput } from './types/input.js';
 
 /** Validate data descriptors before reading values; detach and freeze the business input. */
 export function defineCompactSessionInput(input: unknown): CompactSessionInput {

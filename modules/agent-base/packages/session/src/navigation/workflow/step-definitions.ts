@@ -1,5 +1,5 @@
 import { STEP_CARDINALITY, type Step, type StepDefinitions } from '@print-an-agent/workflow-core';
-import { SessionNavigationStepNotImplementedError } from '../../errors.js';
+import { SessionNavigationStepNotImplementedError } from '../errors.js';
 import type { SessionNavigationLeafStepName, SessionNavigationStepName } from './names.js';
 import type { SessionNavigationWorkflowContext } from './types.js';
 

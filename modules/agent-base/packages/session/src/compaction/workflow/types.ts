@@ -8,23 +8,25 @@ import type {
   TextTokenInput,
   TokenCounter,
 } from '@print-an-agent/model-invocation-core';
-import type { SessionCompactionRejectionReason } from '../planning/contracts.js';
-import type { CompactionMeasurementResources } from '../planning/measurement.js';
 import type { WorkflowContext, WorkflowDefinition } from '@print-an-agent/workflow-core';
-import type { SessionBranchId, SessionSnapshot } from '../../types.js';
-import type { SessionExecutionLease } from '../../lifecycle/execution.js';
 import type {
-  CompactableSessionPort,
-  CompactSessionInput,
-  SessionCompaction,
-  SessionCompactionOutcome,
-  SessionCompactionPolicy,
-  SessionCompactionSource,
-} from '../contracts.js';
+  SessionBranchId,
+  SessionInspectionPort,
+  SessionSnapshot,
+} from '../../contracts/index.js';
+import type { SessionExecutionLease } from '../../lifecycle/index.js';
+import type { SessionCompactionAssessment } from '../types/assessment.js';
+import type { CompactSessionInput } from '../types/input.js';
+import type { SessionCompactionOutcome } from '../types/outcome.js';
+import type { SessionCompactionPolicy } from '../types/policy.js';
+import type { SessionCompactionPort } from '../types/ports.js';
+import type { SessionCompaction } from '../types/projection.js';
+import type { SessionCompactionSource } from '../types/source.js';
+import type { CompactionMeasurementResources } from '../types/token-measurement.js';
 import type { SessionCompactionStepName } from './names.js';
 
 export interface SessionCompactionResources extends CompactionMeasurementResources {
-  readonly session: CompactableSessionPort;
+  readonly session: SessionInspectionPort & SessionCompactionPort;
   readonly responsibilities: ResponsibilityRouter;
   readonly instructions: string;
   readonly policy: SessionCompactionPolicy;
@@ -38,11 +40,9 @@ export interface SessionCompactionWorkflowInput {
   readonly traceEmitter?: AgentTraceEmitter;
 }
 
-export type SessionCompactionWorkflowContext = WorkflowContext<
-  SessionCompactionStepName,
-  SessionCompactionState,
-  SessionCompactionResources
->;
+export type SessionCompactionWorkflowContext<
+  R extends SessionCompactionResources = SessionCompactionResources,
+> = WorkflowContext<SessionCompactionStepName, SessionCompactionState, R>;
 export interface SessionCompactionState extends SessionCompactionWorkflowInput {
   snapshot?: SessionSnapshot;
   execution?: SessionExecutionLease;
@@ -63,24 +63,21 @@ export interface SessionCompactionState extends SessionCompactionWorkflowInput {
   outcome?: SessionCompactionOutcome;
 }
 
-export type SessionCompactionAssessment =
-  | Readonly<{ status: 'accepted'; actualTokens: number }>
-  | Readonly<{
-      status: 'rejected';
-      reason: SessionCompactionRejectionReason;
-      actualTokens?: number;
-      cause?: unknown;
-    }>;
-
-export type SessionCompactionDefinition = WorkflowDefinition<
+export type SessionCompactionDefinition<
+  R extends SessionCompactionResources = SessionCompactionResources,
+> = WorkflowDefinition<
   SessionCompactionStepName,
   SessionCompactionWorkflowInput,
   SessionCompactionState,
-  SessionCompactionResources,
+  R,
   SessionCompactionOutcome | undefined
 >;
-export type SessionCompactionCondition = NonNullable<SessionCompactionDefinition['condition']>;
-export type CreateSessionCompactionWorkflowOptions = Omit<
-  SessionCompactionDefinition,
+export type SessionCompactionCondition<
+  R extends SessionCompactionResources = SessionCompactionResources,
+> = NonNullable<SessionCompactionDefinition<R>['condition']>;
+export type CreateSessionCompactionWorkflowOptions<
+  R extends SessionCompactionResources = SessionCompactionResources,
+> = Omit<
+  SessionCompactionDefinition<R>,
   'name' | 'entryStep' | 'stepDefinitions' | 'createState' | 'createResult' | 'createSkippedResult'
 >;

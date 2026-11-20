@@ -1,6 +1,13 @@
 import { AgentSessionError } from '../../errors.js';
-import type { SessionCompactionFeedback } from './contracts.js';
-import { compactionInteger, compactionRatio } from './validation.js';
+import { compactionInteger, compactionRatio } from '../input-validation.js';
+
+export interface SessionCompactionFeedback {
+  readonly currentTargetTokens: number;
+  readonly actualTokens: number;
+  readonly targetTokens: number;
+  readonly retrySafetyFactor: number;
+  readonly minimumTargetTokens: number;
+}
 
 /** Soft-target feedback only; it never changes the authoritative acceptance target. */
 export function refineSessionCompactionPromptTarget(input: SessionCompactionFeedback): number {

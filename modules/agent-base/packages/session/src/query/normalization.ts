@@ -1,21 +1,9 @@
 import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseSessionId, parseTurnId } from '../contracts/index.js';
 import { AgentSessionError } from '../errors.js';
-import { parseSessionId, parseTurnId } from '../identifiers.js';
-import type { ListSessionsInput, ListSessionTurnsInput, SessionListCursor } from './contracts.js';
-import { DEFAULT_SESSION_QUERY_LIMIT, MAX_SESSION_QUERY_LIMIT } from './contracts.js';
-
-export interface NormalizedListSessionsInput {
-  readonly agentId: ReturnType<typeof parseAgentId>;
-  readonly cursor?: SessionListCursor;
-  readonly limit: number;
-}
-
-export interface NormalizedListSessionTurnsInput {
-  readonly agentId: ReturnType<typeof parseAgentId>;
-  readonly sessionId: ReturnType<typeof parseSessionId>;
-  readonly beforeTurnId?: ReturnType<typeof parseTurnId>;
-  readonly limit: number;
-}
+import { DEFAULT_SESSION_QUERY_LIMIT, MAX_SESSION_QUERY_LIMIT } from './limits.js';
+import type { ListSessionsInput, NormalizedListSessionsInput } from './types/list.js';
+import type { ListSessionTurnsInput, NormalizedListSessionTurnsInput } from './types/turns.js';
 
 function normalizeLimit(value: number | undefined): number {
   const limit = value ?? DEFAULT_SESSION_QUERY_LIMIT;
@@ -29,13 +17,13 @@ function normalizeLimit(value: number | undefined): number {
 }
 
 function normalizeTimestamp(value: unknown, path: string): number {
-  if (!Number.isSafeInteger(value) || (value as number) < 0) {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
     throw new AgentSessionError(
       'SESSION_QUERY_INVALID',
       `${path} must be a non-negative safe integer.`
     );
   }
-  return value as number;
+  return value;
 }
 
 export function normalizeListSessionsInput(input: ListSessionsInput): NormalizedListSessionsInput {

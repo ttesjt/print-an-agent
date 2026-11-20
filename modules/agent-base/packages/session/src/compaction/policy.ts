@@ -4,14 +4,14 @@ import {
   type ExecutionTimeoutMilliseconds,
 } from '@print-an-agent/workflow-core';
 import { AgentSessionError } from '../errors.js';
-import type { SessionCompactionPolicy } from './contracts.js';
+import { compactionRatio, compactionRecord } from './input-validation.js';
 import {
+  DEFAULT_SESSION_COMPACTION_RESERVE_TOKENS,
+  DEFAULT_SESSION_COMPACTION_TARGET_RATIO,
   defineSessionCompactionTarget,
   resolveSessionCompactionTarget,
-  DEFAULT_SESSION_COMPACTION_TARGET_RATIO,
-  DEFAULT_SESSION_COMPACTION_RESERVE_TOKENS,
 } from './planning/target.js';
-import { compactionRatio, compactionRecord } from './planning/validation.js';
+import type { SessionCompactionPolicy } from './types/policy.js';
 
 const MAX_POLICY_INTEGER = 1_000_000;
 export const MAX_SESSION_COMPACTION_CHARACTERS = MAX_POLICY_INTEGER;

@@ -3,7 +3,7 @@ import {
   commitSessionNavigationState,
   inspectSessionNavigationState,
   validateSessionNavigationState,
-} from '../coordinator-internal.js';
+} from '../execution/index.js';
 import type { SessionNavigationStepName } from './names.js';
 import type { SessionNavigationWorkflowContext } from './types.js';
 

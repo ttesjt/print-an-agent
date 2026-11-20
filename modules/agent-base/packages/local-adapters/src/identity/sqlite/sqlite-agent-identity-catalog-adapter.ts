@@ -10,7 +10,7 @@ import {
   type CreateAgentIdentityRequest,
   type TransitionAgentIdentityRequest,
   type RenameAgentIdentityRequest,
-} from '@print-an-agent/base-identity';
+} from '@print-an-agent/base-identity-config/identity';
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import {
   defineIdentityDatabaseConfiguration,

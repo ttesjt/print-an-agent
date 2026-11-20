@@ -3,7 +3,7 @@ import {
   createResponsibilityCatalog,
   createResponsibilityRouter,
 } from '@print-an-agent/base-actor';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { RUN_WORKFLOW, skipWorkflow } from '@print-an-agent/workflow-core';
 import { expect, it, vi } from 'vitest';
 import {

@@ -6,7 +6,7 @@ import {
   transitionManagedAgent,
   updateManagedAgentConfig,
 } from './agent-management-operations.js';
-import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import type {
   AgentManagementService,
   CreateManagedAgentRequest,

@@ -22,7 +22,7 @@ import {
   type MemoryWorkflowDefinitions,
 } from '@print-an-agent/context-memory';
 import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   createStandaloneMemorySetup,
   createStandaloneDirectorySetup,

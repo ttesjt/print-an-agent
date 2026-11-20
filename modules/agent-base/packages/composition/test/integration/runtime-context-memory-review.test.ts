@@ -11,7 +11,7 @@ import {
 } from '@print-an-agent/context-memory';
 import type { VersionedMemoryWorkflowDefinitions } from '@print-an-agent/context-memory';
 import { skipWorkflow } from '@print-an-agent/workflow-core';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { createDeterministicAgentAPI } from '../../src/index.js';
 import { MemoryJournal } from '../../src/management/context-memory/journal.js';
 import { runtimeMemoryFixture, memoryToolPermissions } from '../support/runtime-context-memory.js';

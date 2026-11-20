@@ -8,7 +8,7 @@ import {
   renameAgentIdentity,
   type AgentIdentityCatalogPort,
   type AgentIdentityError,
-} from '@print-an-agent/base-identity';
+} from '@print-an-agent/base-identity-config/identity';
 import { describe, expect, it } from 'vitest';
 
 export interface IdentityCatalogFixture {

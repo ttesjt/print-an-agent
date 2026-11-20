@@ -2,7 +2,7 @@ import type {
   AgentId,
   AgentIdentityInput,
   AgentIdentitySnapshot,
-} from '@print-an-agent/base-identity';
+} from '@print-an-agent/base-identity-config/identity';
 import type { ManagementOperationOptions } from './operation.js';
 import type { AgentConfigProjectionStatus } from './projection.js';
 

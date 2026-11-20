@@ -12,7 +12,7 @@ import {
   BUILT_IN_RESPONSIBILITIES,
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
 } from '@print-an-agent/base-actor';
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
 import { DEFAULT_SESSION_COMPACTION_POLICY } from '@print-an-agent/base-session';
 import { composeAgent } from '../../src/index.js';

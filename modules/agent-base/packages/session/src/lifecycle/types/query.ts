@@ -1,4 +1,4 @@
-import type { AgentId, parseAgentId } from '@print-an-agent/base-identity';
+import type { AgentId, parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import type { SessionId, SessionReference } from '../../contracts/index.js';
 import type {
   ListSessionsInput,

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { AgentIdentityError } from '../../src/index.js';
-import { defineAgentIdentity, isAgentId, parseAgentId } from '../../src/index.js';
+import type { AgentIdentityError } from '@print-an-agent/base-identity-config/identity';
+import {
+  defineAgentIdentity,
+  isAgentId,
+  parseAgentId,
+} from '@print-an-agent/base-identity-config/identity';
 
 function expectIdentityError(run: () => unknown, code: AgentIdentityError['code']): void {
   try {

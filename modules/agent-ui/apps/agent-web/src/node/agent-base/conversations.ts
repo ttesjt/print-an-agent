@@ -1,4 +1,4 @@
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { FOREGROUND_AGENT_OPERATION_NAME } from '@print-an-agent/base-composition';
 import { parseTurnId, AgentSessionError } from '@print-an-agent/base-session';
 import type { ConversationManagementPort } from '../../application/ports.js';

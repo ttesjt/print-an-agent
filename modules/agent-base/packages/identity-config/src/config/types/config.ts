@@ -1,4 +1,4 @@
-import type { AgentId, AgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentId, AgentIdentity } from '../../identity/index.js';
 
 export type ConfigValue =
   | null

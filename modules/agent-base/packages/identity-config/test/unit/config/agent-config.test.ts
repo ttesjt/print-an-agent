@@ -1,4 +1,4 @@
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import { describe, expect, it, vi } from 'vitest';
 import {
   AgentConfigError,
@@ -10,7 +10,7 @@ import {
   type AgentConfigWriteAdapter,
   type AgentConfigWriteRequest,
   type ConfigValue,
-} from '../../src/index.js';
+} from '@print-an-agent/base-identity-config/config';
 
 interface TestConfig {
   readonly enabled: boolean;

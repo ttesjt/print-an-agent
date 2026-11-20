@@ -1,4 +1,4 @@
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { quoteSqliteIdentifier } from './table-names.js';
 import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import {

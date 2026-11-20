@@ -23,7 +23,7 @@ import {
   materializeStandaloneAgentRuntime,
 } from '../../src/index.js';
 import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import {
   resourceProfileConfig,
   resourceProfileRuntimeOptions,

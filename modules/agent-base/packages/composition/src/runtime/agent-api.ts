@@ -1,4 +1,4 @@
-import type { AgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import type { CompactSessionInput, SessionCompactionOutcome } from '@print-an-agent/base-session';
 import type { AgentRequestInput, AgentResponse } from '@print-an-agent/base-request';
 import type { AgentRunOptions } from '@print-an-agent/base-runtime';

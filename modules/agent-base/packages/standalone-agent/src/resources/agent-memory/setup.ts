@@ -29,7 +29,7 @@ import { contextMemoryProvisioning } from './context.js';
 import { retrievalMemoryProvisioning } from './retrieval.js';
 import type { AgentMemoryStorageBinding, StandaloneMemoryManagementOptions } from './contracts.js';
 import { runtimeMemoryProvisioning, runtimeMemorySession } from './runtime.js';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { RuntimeMemoryLifetime } from './runtime-lifetime.js';
 
 type BaseDefinition<N> = SessionManagedAgentCompositionDefinition<

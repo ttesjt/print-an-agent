@@ -1,4 +1,4 @@
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { parseSessionId, parseTurnId } from '../contracts/index.js';
 import { AgentSessionError } from '../errors.js';
 import { DEFAULT_SESSION_QUERY_LIMIT, MAX_SESSION_QUERY_LIMIT } from './limits.js';

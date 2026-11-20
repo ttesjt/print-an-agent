@@ -4,7 +4,7 @@ import {
   BUILT_IN_RESPONSIBILITIES,
   MAIN_ACTOR_ID,
 } from '@print-an-agent/base-actor';
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
 import {
   defineAssistantModelMessage,

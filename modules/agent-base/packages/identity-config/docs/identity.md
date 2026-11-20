@@ -1,4 +1,4 @@
-# `@print-an-agent/base-identity`
+# `@print-an-agent/base-identity-config/identity`
 
 Stable Agent identity primitives and adapter-driven lifecycle catalogs.
 
@@ -6,7 +6,7 @@ An Agent ID is a logical namespace key, not a filesystem path. Adapters must sti
 containment and storage isolation independently.
 
 ```ts
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 
 const identity = defineAgentIdentity({
   id: 'bro',

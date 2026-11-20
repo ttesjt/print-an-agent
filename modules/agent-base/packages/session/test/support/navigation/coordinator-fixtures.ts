@@ -1,4 +1,4 @@
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   DEFAULT_SESSION_BRANCH_ID,
   parseSessionExecutionId,

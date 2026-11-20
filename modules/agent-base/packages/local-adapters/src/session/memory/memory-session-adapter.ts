@@ -6,7 +6,7 @@ import {
   type WriteSessionMemoryRecord,
   type PublishSessionMemoryNavigation,
 } from '@print-an-agent/base-session';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { type ModelMessage } from '@print-an-agent/model-invocation-core';
 import {
   AgentSessionError,

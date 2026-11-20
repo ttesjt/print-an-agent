@@ -1,4 +1,4 @@
-import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentId } from '../../identity/index.js';
 import type { AgentConfigSnapshot, ConfigValue } from './config.js';
 
 export interface AgentConfigWriteRequest {

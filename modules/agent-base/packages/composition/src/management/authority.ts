@@ -2,7 +2,7 @@ import {
   resolveAgentConfig,
   writeAgentConfig,
   type AgentConfigCodec,
-} from '@print-an-agent/base-config';
+} from '@print-an-agent/base-identity-config/config';
 import {
   AgentIdentityError,
   createAgentIdentity,
@@ -11,7 +11,7 @@ import {
   type AgentId,
   type AgentIdentity,
   type AgentIdentitySnapshot,
-} from '@print-an-agent/base-identity';
+} from '@print-an-agent/base-identity-config/identity';
 import { managedAgentConfigsEqual } from './config.js';
 import type { ManagedAgentAuthorityPorts } from './contracts/authority.js';
 import type { ManagedAgentConfigSnapshot } from './contracts/agent-management.js';

@@ -44,8 +44,8 @@ Read [the Agent Base design](./docs/design.md) before adding packages.
 
 Current foundation packages:
 
-- `@print-an-agent/base-identity`: stable Agent identity values and lifecycle catalog contracts;
-- `@print-an-agent/base-config`: storage-agnostic typed configuration lifecycle and adapter contracts;
+- `@print-an-agent/base-identity-config`: stable identity values, lifecycle catalog contracts and
+  storage-agnostic typed configuration, available through its `/identity` and `/config` subentries;
 - `@print-an-agent/base-actor`: Agent Actor tool permissions and Responsibility routing over the independent
   `@print-an-agent/model-invocation-core` Actor and model protocols;
 - `@print-an-agent/base-observability`: privacy-safe correlated trace contracts and no-op sink;

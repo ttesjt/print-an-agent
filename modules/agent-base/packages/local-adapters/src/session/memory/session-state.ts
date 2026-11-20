@@ -1,4 +1,4 @@
-import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   defineAssistantModelMessage,
   type ContextModelMessage,

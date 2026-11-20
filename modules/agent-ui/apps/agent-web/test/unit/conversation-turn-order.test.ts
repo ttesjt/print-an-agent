@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { defineAssistantModelMessage } from '@print-an-agent/model-invocation-core';
 import {
   parseSessionBranchId,

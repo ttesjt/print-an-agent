@@ -7,7 +7,7 @@ import {
   createRetrievalMemoryManagementService,
   scopedAgentMemoryId,
 } from '@print-an-agent/base-composition';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { createStandaloneDirectorySetup } from '../../src/index.js';
 import { resourceProfileConfig } from '../support/resource-profile.js';
 import {

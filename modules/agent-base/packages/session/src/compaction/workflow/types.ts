@@ -1,5 +1,5 @@
 import type { ResolvedResponsibility, ResponsibilityRouter } from '@print-an-agent/base-actor';
-import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import type { AgentTraceEmitter } from '@print-an-agent/base-observability';
 import type {
   AssistantModelMessage,

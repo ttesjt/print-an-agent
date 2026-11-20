@@ -15,7 +15,7 @@ import {
   MemoryRequestJournalAdapter,
   MemorySessionAdapter,
 } from '@print-an-agent/base-local-adapters';
-import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   defineStandaloneAgentConfig,
   materializeStandaloneAgentRuntime,

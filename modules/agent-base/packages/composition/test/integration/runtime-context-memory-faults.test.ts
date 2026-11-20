@@ -8,7 +8,7 @@ import { createDeterministicAgentAPI } from '../../src/index.js';
 import { executeSessionNavigation } from '@print-an-agent/base-session';
 import { supportsSessionMemoryNavigation } from '@print-an-agent/base-session';
 import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { recoverSessionWithContextMemory, createSessionContextMemory } from '../../src/index.js';
 import { runtimeMemoryFixture, memoryToolPermissions } from '../support/runtime-context-memory.js';
 

@@ -162,6 +162,9 @@ it.each([
   'agent-memory/packages/context-memory/src/index.ts',
   'agent-memory/packages/retrieval-memory/src/index.ts',
   'model-invocation/packages/core/src/index.ts',
+  'agent-base/packages/identity-config/src/index.ts',
+  'agent-base/packages/identity-config/src/identity/index.ts',
+  'agent-base/packages/identity-config/src/config/index.ts',
   'agent-base/packages/runtime/src/index.ts',
   'agent-base/packages/session/src/index.ts',
 ])('keeps the Registry out of neutral execution/domain source %s', async (consumer) => {

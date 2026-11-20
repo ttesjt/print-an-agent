@@ -29,12 +29,11 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@print-an-agent/base-config": "workspace:*",
-    "@print-an-agent/base-identity": "workspace:*",
     "@print-an-agent/model-invocation-core": "workspace:*",
     "@print-an-agent/base-observability": "workspace:*",
     "@print-an-agent/base-request": "workspace:*",
-    "@print-an-agent/base-session": "workspace:*"
+    "@print-an-agent/base-session": "workspace:*",
+    "@print-an-agent/base-identity-config": "workspace:*"
   },
   "devDependencies": {
     "@print-an-agent/base-actor": "workspace:*",

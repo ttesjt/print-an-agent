@@ -1,4 +1,4 @@
-import type { AgentId, AgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentId, AgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import type { AgentTraceRuntimeOptions } from '@print-an-agent/base-observability';
 import type {
   AgentOperationDefinitionMap,

@@ -1,4 +1,4 @@
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { describe, expect, it, vi } from 'vitest';
 import type { SessionPortContractHarness } from './session-port-contract.js';
 

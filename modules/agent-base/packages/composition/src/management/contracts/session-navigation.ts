@@ -6,7 +6,7 @@ import type {
   SessionNavigationOperationOptions,
   TurnId,
 } from '@print-an-agent/base-session';
-import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import type { ManagedAgentNamespace } from './namespace.js';
 
 /** The exact out-of-band capability required by the standard Session navigation Service. */

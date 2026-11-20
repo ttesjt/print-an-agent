@@ -1,9 +1,9 @@
-import type { AgentConfigCodec, ConfigValue } from '@print-an-agent/base-config';
+import type { AgentConfigCodec, ConfigValue } from '@print-an-agent/base-identity-config/config';
 import {
   MemoryAgentConfigAdapter,
   MemoryAgentIdentityCatalogAdapter,
 } from '@print-an-agent/base-local-adapters';
-import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config/identity';
 import { createAgent, type Agent } from '@print-an-agent/base-runtime';
 import { vi } from 'vitest';
 import {

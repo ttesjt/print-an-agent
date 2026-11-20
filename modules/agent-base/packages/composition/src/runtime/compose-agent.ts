@@ -1,6 +1,6 @@
 import { createResponsibilityRouter, MAIN_ACTOR_ID } from '@print-an-agent/base-actor';
 import { type ActorId } from '@print-an-agent/model-invocation-core';
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import { NOOP_AGENT_TRACE_SINK } from '@print-an-agent/base-observability';
 import {
   MemoryOutputSink,

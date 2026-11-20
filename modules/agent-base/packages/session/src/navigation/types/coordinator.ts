@@ -1,4 +1,4 @@
-import type { AgentId } from '@print-an-agent/base-identity';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import type { NavigateSessionInput } from './command.js';
 import type { SessionNavigationCoordinatorPort } from './ports.js';
 

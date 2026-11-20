@@ -1,4 +1,4 @@
-import { parseAgentId, type AgentId } from '@print-an-agent/base-identity';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config/identity';
 import { Agent } from '@print-an-agent/base-runtime';
 import { createManagedAgentAuthorityPorts, readManagedAgentAuthority } from './authority.js';
 import type { ManagedAgentCompositionDefinition } from './definition.js';

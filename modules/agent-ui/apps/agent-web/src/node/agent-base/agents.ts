@@ -1,5 +1,5 @@
-import { parseAgentId } from '@print-an-agent/base-identity';
-import { AgentConfigError } from '@print-an-agent/base-config';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
+import { AgentConfigError } from '@print-an-agent/base-identity-config/config';
 import type { AgentManagementPort } from '../../application/ports.js';
 import type { AgentWebConfig } from '../../application/agent-config.js';
 import type { AgentManagementResult } from '@print-an-agent/ui-contracts';

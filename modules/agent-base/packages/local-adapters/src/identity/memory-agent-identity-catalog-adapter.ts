@@ -10,7 +10,7 @@ import {
   type CreateAgentIdentityRequest,
   type TransitionAgentIdentityRequest,
   type RenameAgentIdentityRequest,
-} from '@print-an-agent/base-identity';
+} from '@print-an-agent/base-identity-config/identity';
 
 export interface MemoryAgentIdentityCatalogAdapterOptions {
   readonly clock?: () => number;

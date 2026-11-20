@@ -9,7 +9,7 @@ import {
   createActorCatalog,
   createResponsibilityCatalog,
 } from '@print-an-agent/base-actor';
-import type { AgentIdentity } from '@print-an-agent/base-identity';
+import type { AgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import type { RequestJournalPort, RequestContextMemory } from '@print-an-agent/base-request';
 import type { CompactableSessionPort } from '@print-an-agent/base-session';
 import { createStandaloneCredentialResolver } from '../credential-resolver.js';

@@ -32,9 +32,9 @@
   "dependencies": {
     "@print-an-agent/base-observability": "workspace:*",
     "@print-an-agent/base-actor": "workspace:*",
-    "@print-an-agent/base-identity": "workspace:*",
     "@print-an-agent/model-invocation-core": "workspace:*",
-    "@print-an-agent/workflow-core": "workspace:*"
+    "@print-an-agent/workflow-core": "workspace:*",
+    "@print-an-agent/base-identity-config": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

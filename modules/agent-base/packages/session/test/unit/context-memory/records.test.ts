@@ -1,4 +1,4 @@
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { expect, it } from 'vitest';
 import { decideMemoryRecord, parseSessionId, supportsSessionMemory } from '../../../src/index.js';
 

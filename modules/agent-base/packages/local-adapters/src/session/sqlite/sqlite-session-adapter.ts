@@ -10,7 +10,7 @@ import {
   pendingSessionMemoryRecords,
   sessionHasMemoryBindings,
 } from './session-memory-storage.js';
-import { parseAgentId } from '@print-an-agent/base-identity';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import type { DatabaseSync } from 'node:sqlite';
 import type { ModelMessage } from '@print-an-agent/model-invocation-core';
 import {

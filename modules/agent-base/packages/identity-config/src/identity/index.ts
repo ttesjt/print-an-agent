@@ -9,7 +9,17 @@ export {
 export { defineAgentIdentitySnapshot, isAgentIdentityStatus } from './catalog/snapshot.js';
 export { AgentIdentityError } from './types/errors.js';
 export { renameAgentIdentity } from './catalog/metadata.js';
-export type * from './catalog/contracts.js';
+export type {
+  CreateAgentIdentityRequest,
+  TransitionAgentIdentityRequest,
+  AgentIdentityCatalogReadPort,
+  AgentIdentityCatalogPort,
+  RenameAgentIdentityRequest,
+  RenameAgentIdentityOptions,
+  CreateAgentIdentityOptions,
+  ReadAgentIdentityOptions,
+  TransitionAgentIdentityOptions,
+} from './catalog/contracts.js';
 export type {
   AgentId,
   AgentIdentity,

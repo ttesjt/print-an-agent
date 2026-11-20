@@ -5,7 +5,7 @@ import {
   createResponsibilityRouter,
   MAIN_ACTOR_ID,
 } from '@print-an-agent/base-actor';
-import { defineAgentIdentity } from '@print-an-agent/base-identity';
+import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import {
   defineActorEngine,
   defineAssistantModelMessage,

@@ -10,6 +10,48 @@ Agent execution ownership over the independent `@print-an-agent/workflow-core` p
 - `AgentWorkflowRun.applyTo` accepts only the originating Run Context.
 - Workflow Catalogs and optional configuration registries organize exact binding references.
 
+## Source ownership
+
+```text
+src/
+  agent/       The one raw Agent owner, registration and public invocation
+  operations/  Operation definitions, exact references and type inference
+  runs/        Run lifecycle, plan execution, narrowed child calls and executor protocol
+  workflows/   Core bindings, synchronous input projection, tracing, Catalog and Registry
+  types/       Shared Run Context and invocation contracts only
+  errors.ts    The canonical runtime Definition and Run error classes
+```
+
+The Agent retains its immutable identity, borrowed resource references and instance-owned
+registration tables. Registration gathers exact Workflow bindings and validates Operation keys,
+reference identities and callable targets before a Run can begin. Keeping this composition in
+`agent/` lets the Workflow Catalog remain independent from Operation definitions.
+
+Run execution borrows identity, trace options and a narrow reference lookup from that owner. It
+creates isolated input/signal state, lineage, Context, trace emitter and executor protocol for each
+invocation. Preparation, terminal error mapping and ordered result application retain their original
+boundaries. Extracting these modules adds no second Agent owner, resource lifecycle or execution
+kernel. The executor protocol keeps cancellation, authoritative failure selection and actual
+execution drainage in one state machine.
+
+Dependencies flow from Agent assembly to Run execution, Operation definitions and Workflow bindings.
+The shared `types/` contracts do not import these implementations. Each feature exposes a deliberate
+`index.ts`; callers do not enter sibling private files or import through their own aggregate.
+Independent types belong to their feature's `types.ts` or `types/`. Runtime classes stay with their
+runtime owner, and `SkipWorkflow` stays next to its authoritative `SKIP_WORKFLOW` symbol.
+
+The package keeps its single public entry and existing type/value distinction. In particular,
+`AgentOperationReference` is exported as a type; `defineAgentOperationReference()` is its public
+construction API. Runtime errors retain one constructor identity across features.
+
+Unit tests follow registration, invocation, Run preparation, executor completion/cancellation,
+child permissions/cancellation and Context isolation. Workflow binding and registry tests live
+under `test/unit/workflows`; compile-only contracts live in `test/types`. Repository-level
+`test/runtime-architecture.test.ts` checks feature entries, allowed dependency direction including
+types and erased type modules, using the shared source-boundary checker. The existing Workflow
+architecture checks retain the Runtime/Core separation. Runtime ownership and drainage still need
+behavior tests and review; static imports alone cannot prove those properties.
+
 Import `Workflow`, Step types, registries, overrides, signal composition and timeout helpers directly
 from `@print-an-agent/workflow-core`. Agent Base does not re-export or duplicate that execution kernel.
 

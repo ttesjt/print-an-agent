@@ -34,3 +34,17 @@ cycles, non-finite numbers, non-plain objects, unsupported values, and excessive
 persistence. Adapters do not parse product config, choose defaults, or know about Workflow, Pi, or
 sessions. Writes use explicit compare-and-swap revisions; `null` means “create only if absent.”
 Resolving a default validates it but does not silently persist it.
+
+## Source ownership
+
+`config/agent-config.ts` keeps the resolve and write flows together. Both use `codec.ts` for schema
+version validation and codec round trips, and `snapshot.ts` for checking and decoding adapter
+results. `value.ts` owns the bounded JSON normalization algorithm and its local traversal state.
+`errors.ts` owns the runtime error class.
+
+Pure declarations live in `config/types/`: `codec.ts` groups the JSON value and codec contracts,
+`snapshot.ts` describes stored snapshots and resolved results, `adapter.ts` owns storage ports and
+write requests, `options.ts` composes operation inputs, and `errors.ts` owns error codes. Operation
+options import adapter ports and base contracts; ports import value/snapshot contracts. Base
+contracts do not import ports or operation options. References to Identity use type-only imports through its public feature entry.
+These responsibility modules remain private npm paths.

@@ -1,29 +1,26 @@
-export { defineAgentIdentity, isAgentId, parseAgentId } from './lib/identity.js';
+export { defineAgentIdentity, isAgentId, parseAgentId } from './values.js';
+export { AgentIdentityError } from './errors.js';
+export type { AgentId, AgentIdentity, AgentIdentityInput } from './types/identity.js';
 export {
   createAgentIdentity,
+  defineAgentIdentitySnapshot,
   disableAgentIdentity,
+  isAgentIdentityStatus,
   listAgentIdentities,
   reactivateAgentIdentity,
   readAgentIdentity,
-} from './catalog/lifecycle.js';
-export { defineAgentIdentitySnapshot, isAgentIdentityStatus } from './catalog/snapshot.js';
-export { AgentIdentityError } from './types/errors.js';
-export { renameAgentIdentity } from './catalog/metadata.js';
+  renameAgentIdentity,
+} from './catalog/index.js';
 export type {
-  CreateAgentIdentityRequest,
-  TransitionAgentIdentityRequest,
-  AgentIdentityCatalogReadPort,
   AgentIdentityCatalogPort,
-  RenameAgentIdentityRequest,
-  RenameAgentIdentityOptions,
-  CreateAgentIdentityOptions,
-  ReadAgentIdentityOptions,
-  TransitionAgentIdentityOptions,
-} from './catalog/contracts.js';
-export type {
-  AgentId,
-  AgentIdentity,
-  AgentIdentityInput,
+  AgentIdentityCatalogReadPort,
   AgentIdentitySnapshot,
   AgentIdentityStatus,
-} from './types/identity.js';
+  CreateAgentIdentityOptions,
+  CreateAgentIdentityRequest,
+  ReadAgentIdentityOptions,
+  RenameAgentIdentityOptions,
+  RenameAgentIdentityRequest,
+  TransitionAgentIdentityOptions,
+  TransitionAgentIdentityRequest,
+} from './catalog/index.js';

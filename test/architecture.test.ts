@@ -506,6 +506,10 @@ describe('module architecture', () => {
     ['@print-an-agent/base-identity-config/config', true],
     ['@print-an-agent/base-identity-config/identity/types/identity', false],
     ['@print-an-agent/base-identity-config/config/lib/config-value.js', false],
+    ['@print-an-agent/base-identity-config/identity/catalog/index.js', false],
+    ['@print-an-agent/base-identity-config/identity/values.js', false],
+    ['@print-an-agent/base-identity-config/config/value.js', false],
+    ['@print-an-agent/base-identity-config/config/types/codec.js', false],
     ['@print-an-agent/base-identity-config/dist/index.js', false],
   ] as const)('recognizes declared public entry %s = %s', (specifier, allowed) => {
     expect(agentBasePublicEntries.has(specifier)).toBe(allowed);

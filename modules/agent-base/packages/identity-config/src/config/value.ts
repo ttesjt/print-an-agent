@@ -1,5 +1,5 @@
-import type { ConfigValue } from '../types/config.js';
-import { AgentConfigError } from '../types/errors.js';
+import type { ConfigValue } from './types/codec.js';
+import { AgentConfigError } from './errors.js';
 
 const MAX_CONFIG_VALUE_DEPTH = 64;
 const MAX_CONFIG_VALUE_NODES = 100_000;

@@ -1,8 +1,8 @@
-import { defineAgentIdentity } from '../lib/identity.js';
-import { AgentIdentityError } from '../types/errors.js';
-import type { AgentIdentitySnapshot } from '../types/identity.js';
-import type { RenameAgentIdentityOptions } from './contracts.js';
-import { readAgentIdentity } from './lifecycle.js';
+import { defineAgentIdentity } from '../values.js';
+import { AgentIdentityError } from '../errors.js';
+import type { AgentIdentitySnapshot } from './types/snapshot.js';
+import type { RenameAgentIdentityOptions } from './types/options.js';
+import { readAgentIdentity } from './queries.js';
 import { assertSnapshotAgentId, defineAgentIdentitySnapshot } from './snapshot.js';
 
 /** Metadata updates never change stable identity, lifecycle, or creation authority. */

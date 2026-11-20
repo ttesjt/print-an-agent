@@ -29,3 +29,21 @@ the ID, lifecycle and creation timestamp. Catalog `rename` is an optional metada
 unsupported custom catalogs return `AGENT_IDENTITY_METADATA_UNSUPPORTED`. Official Memory/SQLite
 adapters support it. Managed composition exposes the same authority through `service.rename()` and
 reconciles projections without materializing an Agent or changing Config/Session resources.
+
+## Source ownership
+
+`identity/values.ts` owns ID validation and immutable Identity construction. Its primitive types
+live in `identity/types/identity.ts`; the runtime error class lives in `identity/errors.ts`, with
+its error-code union in `identity/types/errors.ts`.
+
+`identity/catalog/index.ts` is the internal Catalog feature entry. Catalog owns its snapshot and
+status types, storage ports and requests, and operation options in `catalog/types/`. The enclosing
+Identity entry deliberately re-exports that API. Catalog consumes the explicitly shared primitive
+values, types and error implementation directly; it never imports the enclosing aggregate.
+These source entries do not add public npm subpaths.
+
+Within Catalog, `queries.ts` owns read/list and `lifecycle.ts` owns create/disable/reactivate.
+`metadata.ts` owns rename, including its optional capability and pre-write revision checks.
+`snapshot.ts` owns snapshot construction and adapter-result normalization, shared by queries and
+lifecycle operations. Rename uses the same snapshot constructor and additionally checks that the
+adapter preserved lifecycle and creation authority.

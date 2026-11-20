@@ -1,7 +1,4 @@
-export type WorkflowBundleDefinitionErrorCode =
-  | 'WORKFLOW_BUNDLE_DEFINITION_INVALID'
-  | 'WORKFLOW_BUNDLE_MEMBER_INVALID'
-  | 'WORKFLOW_BUNDLE_RESOURCE_BINDING_FORBIDDEN';
+import type { WorkflowBundleDefinitionErrorCode } from './types.js';
 
 export class WorkflowBundleDefinitionError extends Error {
   constructor(

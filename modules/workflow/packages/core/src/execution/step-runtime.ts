@@ -1,13 +1,15 @@
-import { WorkflowRunError } from '../errors.js';
-import type { WorkflowContext } from '../types/context.js';
-import type { WorkflowEventReference } from '../types/events.js';
-import { STEP_CARDINALITY, type ResolvedStepRegistry, type StepExecutor } from '../types/step.js';
-import { createContext, type RunData } from './context.js';
-import { executeInvocation } from './executor.js';
-import type { WorkflowEventEmitter } from './observer.js';
-import { runParallel } from './parallel.js';
-import { ExecutionScope } from './scope.js';
-import { runInScope } from './run-in-scope.js';
+import {
+  WorkflowRunError,
+  type WorkflowContext,
+  type WorkflowEventReference,
+  STEP_CARDINALITY,
+  type ResolvedStepRegistry,
+  type StepExecutor,
+} from '../contracts/index.js';
+import { createContext, executeInvocation } from './invocation/index.js';
+import type { RunData } from './types.js';
+import type { WorkflowEventEmitter } from './observation/index.js';
+import { runParallel, ExecutionScope, runInScope } from './scope/index.js';
 
 export class StepRuntime<N extends string, S, R> {
   readonly #invocations = new Map<N, 'running' | 'settled'>();

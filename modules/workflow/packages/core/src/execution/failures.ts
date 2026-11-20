@@ -1,7 +1,7 @@
 const aggregates = new WeakSet<AggregateError>();
 
 /** Only flatten our own aggregates; arbitrary domain errors retain their identity. */
-export function distinctFailures(errors: readonly unknown[]): unknown[] {
+function distinctFailures(errors: readonly unknown[]): unknown[] {
   const result: unknown[] = [];
   const add = (error: unknown): void => {
     if (error instanceof AggregateError && aggregates.has(error)) {

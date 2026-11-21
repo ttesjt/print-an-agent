@@ -7,20 +7,21 @@ import {
 } from '@print-an-agent/base-tool';
 import { AgentRequestError } from '../../errors.js';
 import { DEFAULT_REQUEST_POLICY } from '../../policy/index.js';
-import { bindGenerationResources } from '../resources.js';
-import { closedRecord, defineSessionlessGenerationPolicy } from '../validation.js';
+import { closedRecord } from '../configuration.js';
+import { defineSessionlessPolicy } from '../policy.js';
+import { bindSessionlessResources } from '../resources.js';
 import type {
   BoundSessionlessInteractionResources,
   SessionlessInteractionPolicy,
   SessionlessInteractionResources,
-} from './contracts.js';
+} from './types/profile.js';
 
 export function defineSessionlessInteractionPolicy(
   input: unknown = {}
 ): SessionlessInteractionPolicy {
   const record = closedRecord(
     input,
-    [...Object.keys(defineSessionlessGenerationPolicy()), 'maxModelTurns'],
+    [...Object.keys(defineSessionlessPolicy()), 'maxModelTurns'],
     'REQUEST_POLICY_INVALID'
   );
   const { maxModelTurns, ...generation } = record;
@@ -32,7 +33,7 @@ export function defineSessionlessInteractionPolicy(
       'REQUEST_POLICY_INVALID',
       'Interaction model-turn budget must be a positive safe integer.'
     );
-  return Object.freeze({ ...defineSessionlessGenerationPolicy(generation), maxModelTurns: turns });
+  return Object.freeze({ ...defineSessionlessPolicy(generation), maxModelTurns: turns });
 }
 
 export const DEFAULT_SESSIONLESS_INTERACTION_POLICY = defineSessionlessInteractionPolicy();
@@ -47,7 +48,7 @@ export function bindInteractionResources(
   );
   const { tools, policy, ...generation } = input;
   const resolvedPolicy = defineSessionlessInteractionPolicy(policy);
-  const base = bindGenerationResources(generation);
+  const base = bindSessionlessResources(generation);
   if (tools !== undefined) {
     closedRecord(
       tools,

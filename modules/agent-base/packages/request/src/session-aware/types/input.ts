@@ -1,5 +1,5 @@
 import type { SessionId } from '@print-an-agent/base-session';
-import type { RequestIdempotencyKey } from '../../replay/index.js';
+import type { RequestIdempotencyKey } from '../replay/index.js';
 import type { OutputSink } from './output.js';
 
 export interface AgentRequestInput {

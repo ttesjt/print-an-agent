@@ -1,8 +1,8 @@
-import {
-  type ToolExecutionPolicy,
-  type ToolPermissionPolicy,
-  type ToolRegistry,
-  type ToolRuntime,
+import type {
+  ToolExecutionPolicy,
+  ToolPermissionPolicy,
+  ToolRegistry,
+  ToolRuntime,
 } from '@print-an-agent/base-tool';
 
 export interface ToolPreparationContext {

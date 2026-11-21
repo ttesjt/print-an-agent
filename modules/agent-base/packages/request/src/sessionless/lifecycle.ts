@@ -1,11 +1,12 @@
 import type { ActorDirectResult } from '@print-an-agent/model-invocation-core';
 import type { WorkflowLifecycle } from '@print-an-agent/workflow-core';
-import type { SessionlessOutputOutcome, SessionlessValidatedRequest } from './contracts.js';
 import {
   publishOutput,
   requireCompletedSessionlessResponse,
   sessionlessOutputFailure,
 } from './output.js';
+import type { SessionlessValidatedRequest } from './types/input.js';
+import type { SessionlessOutputOutcome } from './types/output.js';
 
 interface SessionlessLifecycleContext {
   readonly state: {

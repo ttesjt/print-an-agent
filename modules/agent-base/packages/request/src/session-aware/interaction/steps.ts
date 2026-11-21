@@ -6,109 +6,21 @@ import {
 import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import { type StepOverrides } from '@print-an-agent/workflow-core';
 import { AgentRequestError } from '../../errors.js';
-import { createInteractionEventAccounting } from '../../interaction/budgets.js';
-import { InteractionEventDelivery } from '../../interaction/event-delivery.js';
-import { invokeRequestInteraction } from '../../interaction/invoke.js';
-import { requireInteraction, requireInteractionEvent } from '../../interaction/state.js';
-import { type RequestInteractionState } from '../../interaction/types.js';
+import {
+  invokeRequestInteraction,
+  requireInteraction,
+  requireInteractionEvent,
+} from '../../interaction/index.js';
 import {
   deliverReasoningDelta as writeReasoningDelta,
   deliverTextDelta as writeTextDelta,
 } from '../../output/index.js';
 import { requireValue } from '../../state-access.js';
-import type { RequestStepName } from '../../workflow/index.js';
-import {
-  traceAgentLoopCompleted,
-  traceAgentLoopFailed,
-  traceAgentLoopStarted,
-  traceModelInteractionEvent,
-  traceOutputFailed,
-  traceOutputStarted,
-} from '../tracing.js';
+import { traceOutputFailed, traceOutputStarted } from '../tracing.js';
 import type { DefaultRequestWorkflowContext } from '../types/workflow.js';
+import type { RequestStepName } from '../workflow/index.js';
 import { buildTurnPresentation, captureReasoningPresentation } from './presentation.js';
-
-async function runAgentInteraction(context: DefaultRequestWorkflowContext): Promise<void> {
-  const accountEvent = createInteractionEventAccounting(context);
-  const delivery = new InteractionEventDelivery({
-    signal: context.signal,
-    capacity: context.resources.policy.maxPendingInteractionEvents,
-    dispatch: async (event) => {
-      accountEvent(event);
-      await traceModelInteractionEvent(context, event);
-      delivery.assertHealthy();
-      await context.runStep('dispatchInteractionEvent');
-    },
-  });
-  context.state.interaction = Object.seal({
-    signal: delivery.signal,
-    emit: delivery.emit,
-    stop: (cause: unknown) => delivery.stop(cause),
-    get currentEvent() {
-      return delivery.currentEvent;
-    },
-    result: undefined,
-  } satisfies RequestInteractionState);
-  let failure: { readonly cause: unknown } | undefined;
-  let loopStarted = false;
-  let toolsCloseAttempted = false;
-  const closeTools = (): void => {
-    if (toolsCloseAttempted) return;
-    toolsCloseAttempted = true;
-    context.state.tools?.close();
-  };
-  try {
-    delivery.assertHealthy();
-    await context.runStep('openResponseStream');
-    delivery.assertHealthy();
-    loopStarted = true;
-    await traceAgentLoopStarted(context);
-    delivery.assertHealthy();
-    await context.runStep('invokeActorInteraction');
-    await delivery.finish();
-    closeTools();
-    await traceAgentLoopCompleted(context);
-    loopStarted = false;
-    delivery.assertHealthy();
-    await context.runStep('buildAgentResponse');
-    delivery.assertHealthy();
-  } catch (cause: unknown) {
-    const error = delivery.stop(cause);
-    failure = { cause: error };
-    // No OutputSink.fail()/Session failure cleanup can race accepted writes after this drains.
-    await delivery.drain();
-    if (loopStarted) {
-      try {
-        await traceAgentLoopFailed(context, error);
-      } catch (traceError: unknown) {
-        failure = {
-          cause: new AggregateError([error, traceError], 'Interaction failure tracing failed.', {
-            cause: error,
-          }),
-        };
-      }
-    }
-  } finally {
-    delivery.dispose();
-    delete context.state.capturedReasoning;
-    delete context.state.turnPresentation;
-  }
-  try {
-    closeTools();
-  } catch (cleanupError: unknown) {
-    failure = {
-      cause:
-        failure === undefined
-          ? cleanupError
-          : new AggregateError(
-              [failure.cause, cleanupError],
-              'Interaction failed and Tool cleanup also failed.',
-              { cause: failure.cause }
-            ),
-    };
-  }
-  if (failure !== undefined) throw failure.cause;
-}
+import { runAgentInteraction } from './run.js';
 
 async function openResponseStream(context: DefaultRequestWorkflowContext): Promise<void> {
   const request = requireValue(context.state.request, 'request');

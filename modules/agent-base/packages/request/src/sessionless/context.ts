@@ -1,11 +1,18 @@
+import { defineModelMessage, type ModelMessage } from '@print-an-agent/model-invocation-core';
+import { AgentRequestError } from '../errors.js';
 import { validateRequestMessage } from '../preparation/index.js';
 import { requireValue } from '../state-access.js';
-import type { SessionlessGenerationContext, SessionlessGenerationState } from './contracts.js';
-import { validateSessionlessOutputSink } from './output.js';
-import { closedRecord, prepareSessionlessMessages } from './validation.js';
+import type { BoundSessionlessResources } from './types/resources.js';
+import type { SessionlessState } from './types/state.js';
 
-type InputContext = Pick<SessionlessGenerationContext, 'resources' | 'signal' | 'workflowRunId'> & {
-  readonly state: Pick<SessionlessGenerationState, 'input' | 'request'>;
+import { closedRecord } from './configuration.js';
+import { validateSessionlessOutputSink } from './output.js';
+
+type InputContext = {
+  readonly resources: BoundSessionlessResources;
+  readonly signal: AbortSignal;
+  readonly workflowRunId: string;
+  readonly state: Pick<SessionlessState, 'input' | 'request'>;
 };
 
 export async function validateSessionlessRequest(context: InputContext): Promise<void> {
@@ -37,8 +44,8 @@ export async function validateSessionlessRequest(context: InputContext): Promise
 }
 
 export function prepareSessionlessContext(context: {
-  readonly resources: Pick<SessionlessGenerationContext['resources'], 'clock' | 'policy'>;
-  readonly state: Pick<SessionlessGenerationState, 'request' | 'externalContext'>;
+  readonly resources: Pick<BoundSessionlessResources, 'clock' | 'policy'>;
+  readonly state: Pick<SessionlessState, 'request' | 'externalContext'>;
 }) {
   const request = requireValue(context.state.request, 'request');
   return prepareSessionlessMessages(
@@ -50,4 +57,39 @@ export function prepareSessionlessContext(context: {
     context.resources.policy.maxContextCharacters,
     context.resources.policy.maxContextMessages
   );
+}
+
+/** Core owns each message protocol. This boundary owns collection size and text budgets only. */
+function prepareSessionlessMessages(
+  history: unknown,
+  maxCharacters: number,
+  maxMessages: number
+): readonly ModelMessage[] {
+  if (!Array.isArray(history))
+    throw new AgentRequestError('REQUEST_INPUT_INVALID', 'Request history must be an array.');
+  const messages: ModelMessage[] = [];
+  let characters = 0;
+  // Collection metadata also consumes the budget, including arrays of empty messages.
+  if (history.length > maxMessages)
+    throw new AgentRequestError(
+      'REQUEST_INPUT_INVALID',
+      'Request context exceeds its collection budget.'
+    );
+  for (let index = 0; index < history.length; index++) {
+    const descriptor = Object.getOwnPropertyDescriptor(history, index);
+    if (descriptor === undefined || !('value' in descriptor))
+      throw new AgentRequestError(
+        'REQUEST_INPUT_INVALID',
+        'Request history must contain data entries.'
+      );
+    const message = defineModelMessage(descriptor.value);
+    characters += message.text.length;
+    if (characters > maxCharacters)
+      throw new AgentRequestError(
+        'REQUEST_INPUT_INVALID',
+        'Request context exceeds its character budget.'
+      );
+    messages.push(message);
+  }
+  return Object.freeze(messages);
 }

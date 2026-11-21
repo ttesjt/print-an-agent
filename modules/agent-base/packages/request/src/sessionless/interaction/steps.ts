@@ -4,7 +4,7 @@ import { invokeRequestInteraction } from '../../interaction/index.js';
 import { buildInteractionRequest } from '../../preparation/index.js';
 import { requireValue } from '../../state-access.js';
 import { prepareSessionlessContext } from '../context.js';
-import type { SessionlessInteractionContext } from './contracts.js';
+import type { SessionlessInteractionContext } from './types/profile.js';
 
 export function resolveInteractionTarget(context: SessionlessInteractionContext): Promise<void> {
   const actor = requireInteractionCapability(context.resources.actor);

@@ -1,13 +1,10 @@
 import { AgentRequestError } from '../errors.js';
-import type {
-  BoundSessionlessGenerationResources,
-  SessionlessGenerationResources,
-} from './contracts.js';
-import { closedRecord, defineSessionlessGenerationPolicy } from './validation.js';
+import { defineSessionlessPolicy } from './policy.js';
+import type { BoundSessionlessResources, SessionlessResources } from './types/resources.js';
 
-export function bindGenerationResources(
-  input: SessionlessGenerationResources
-): BoundSessionlessGenerationResources {
+import { closedRecord } from './configuration.js';
+
+export function bindSessionlessResources(input: SessionlessResources): BoundSessionlessResources {
   closedRecord(
     input,
     ['actor', 'policy', 'instructionContributors', 'createOutputSink', 'clock'],
@@ -29,7 +26,7 @@ export function bindGenerationResources(
   }
   return Object.freeze({
     ...input,
-    policy: defineSessionlessGenerationPolicy(input.policy),
+    policy: defineSessionlessPolicy(input.policy),
     instructionContributors: Object.freeze([...(input.instructionContributors ?? [])]),
     clock: input.clock ?? Date.now,
   });

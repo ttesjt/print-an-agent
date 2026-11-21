@@ -1,3 +1,8 @@
+export { createInteractionWorkflow } from './create-workflow.js';
+export {
+  DEFAULT_SESSIONLESS_INTERACTION_POLICY,
+  defineSessionlessInteractionPolicy,
+} from './resources.js';
 export type {
   BoundSessionlessInteractionResources,
   SessionlessInteractionContext,
@@ -7,17 +12,4 @@ export type {
   SessionlessInteractionState,
   SessionlessInteractionStepName,
   SessionlessInteractionWorkflowOptions,
-} from './contracts.js';
-export {
-  DEFAULT_SESSIONLESS_INTERACTION_POLICY,
-  bindInteractionResources,
-  defineSessionlessInteractionPolicy,
-} from './resources.js';
-export {
-  buildInteractionResponse,
-  buildSessionlessInteractionContext,
-  closeSessionlessTools,
-  invokeSessionlessInteraction,
-  resolveInteractionTarget,
-} from './steps.js';
-export { createInteractionWorkflow } from './workflow.js';
+} from './types/profile.js';

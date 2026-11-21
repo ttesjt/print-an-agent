@@ -1,6 +1,6 @@
-import type { ToolHandlerResult } from '../contracts.js';
 import type { ToolExecutionOutcome } from '@print-an-agent/model-invocation-core';
 import { AgentToolError } from '../errors.js';
+import type { ToolHandlerResult } from '../types/handler.js';
 
 /** Cancellation is cooperative: do not release the caller until the handler has settled. */
 export async function executeToolHandler(

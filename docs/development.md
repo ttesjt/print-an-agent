@@ -125,10 +125,10 @@ The shared `tooling/architecture/source-boundaries.ts` scanner and cycle checker
 reuse the type checker. These opt-in checks inspect supplied literal modules; TypeScript owns
 resolution and type correctness.
 
-`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session, Composition, Runtime, Request, Standalone and Local Adapters
+`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session, Composition, Runtime, Request, Tool, Standalone and Local Adapters
 declare their entries, shared ancestor contracts/capabilities and dependency directions in
 `test/session-architecture.test.ts`, `test/composition-architecture.test.ts`,
-`test/runtime-architecture.test.ts`, `test/request-architecture.test.ts`,
+`test/runtime-architecture.test.ts`, `test/request-architecture.test.ts`, `test/tool-architecture.test.ts`,
 `test/standalone-architecture.test.ts` and `test/local-adapters-architecture.test.ts`. Composition and Runtime also check
 their own dependency declarations and runtime erasure of type modules. Workflow Core declares its
 boundaries in `test/workflow-source-boundaries.test.ts`. `test/source-boundaries.test.ts` qualifies
@@ -140,13 +140,18 @@ entries, Catalog child entry, shared Identity foundation, and Catalog/Config dep
 that its dependency on Identity is erased. Other packages do not acquire feature-boundary coverage
 simply by containing an `index.ts`.
 
-Request and Standalone additionally check runtime erasure of independent type modules and an
+Request, Tool and Standalone additionally check runtime erasure of independent type modules and an
 acyclic internal module graph, including type-only edges, using the shared literal source scanner.
+The shared scanner and cycle checker are qualified by accepted and rejected cases in
+`test/source-boundaries.test.ts`. Cycle checks follow relative literal paths within the supplied
+source inventory; the compiler owns unresolved module diagnostics.
 Request follows the complete internal Sessionless source closure
 to reject Session-aware implementations and direct Session/runtime/local-adapter dependencies.
 This closure check follows relative literal imports, not transitive imports inside external packages.
 Request package tests guard the runtime export names; consumer typechecks exercise generic Workflow
 customization and declaration portability through the compiled public package entry.
+Tool guards runtime export names and public type contracts, including nested Schema-derived argument
+inference and readonly values.
 
 Standalone declares the outer profiles boundary and all three child profile APIs. Shared Config,
 Provider, runtime, Setup, SQLite and Service projection layers cannot depend back on those profiles;

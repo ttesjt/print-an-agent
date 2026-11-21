@@ -5,7 +5,7 @@ import {
   DEFAULT_TOOL_EXECUTION_POLICY,
   defineTool,
   defineToolPermissionPolicy,
-} from '../../src/index.js';
+} from '../../../src/index.js';
 
 const proposal = { callId: 'call', toolName: 'work', arguments: {} };
 

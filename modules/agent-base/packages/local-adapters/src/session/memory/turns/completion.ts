@@ -5,12 +5,9 @@ import {
   type SessionTurnPresentation,
 } from '@print-an-agent/base-session';
 import { defineAssistantModelMessage } from '@print-an-agent/model-invocation-core';
-import {
-  cloneMemoryTurn,
-  readMemoryClock,
-  touchMemorySession,
-  type StoredMemorySession,
-} from './session-state.js';
+import { readMemoryClock, touchMemorySession } from '../state/clock.js';
+import { cloneMemoryTurn } from '../state/cloning.js';
+import type { StoredMemorySession } from '../types/state.js';
 
 /** All fallible validation precedes the synchronous, non-interleaved commit. */
 export function completeMemorySessionTurn(

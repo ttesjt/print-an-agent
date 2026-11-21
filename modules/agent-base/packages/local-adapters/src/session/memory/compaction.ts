@@ -4,14 +4,11 @@ import {
   type CommitSessionCompactionRequest,
   type SessionCompaction,
 } from '@print-an-agent/base-session';
-import {
-  cloneMemoryCompaction,
-  createMemorySessionSnapshot,
-  readMemoryClock,
-  touchMemorySession,
-  validateMemoryContext,
-  type StoredMemorySession,
-} from './session-state.js';
+import { readMemoryClock, touchMemorySession } from './state/clock.js';
+import { cloneMemoryCompaction } from './state/cloning.js';
+import { validateMemoryContext } from './state/context-message.js';
+import { createMemorySessionSnapshot } from './state/snapshot.js';
+import type { StoredMemorySession } from './types/state.js';
 
 export function commitMemorySessionCompaction(
   session: StoredMemorySession,

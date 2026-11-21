@@ -1,3 +1,4 @@
+import type { SessionMemoryRecord } from '@print-an-agent/base-session';
 import type { SessionPurgePort, SessionExecutionRecoveryPort } from '@print-an-agent/base-session';
 import type {
   CoordinatedSessionMaintenance,
@@ -19,3 +20,8 @@ void contract(createMemorySessionPersistence({ createSessionId: () => 'fresh' })
 void new MemorySessionAdapter(() => 'legacy-constructor');
 // @ts-expect-error Package-private coordination hooks must not become public class members.
 void new MemorySessionAdapter().memorySessionCoordination;
+
+// Preserve the original raw class return contract during extraction.
+type RawPendingRecords = Awaited<ReturnType<MemorySessionAdapter['listPendingMemoryRecords']>>;
+const rawPendingRecords = (records: RawPendingRecords): SessionMemoryRecord[] => records;
+void rawPendingRecords;

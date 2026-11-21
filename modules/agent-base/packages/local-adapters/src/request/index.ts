@@ -8,6 +8,7 @@ export {
   SqliteRequestJournalAdapter,
   resolveSqliteRequestJournalTableNames,
 } from './journal/index.js';
+
 /** @internal Package coordination API; excluded from public declarations. */
 export {
   SQLITE_REQUEST_JOURNAL_TABLE_KEYS,

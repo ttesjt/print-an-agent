@@ -7,12 +7,10 @@ import {
   type ApplySessionNavigationRequest,
   type SessionBranchId,
 } from '@print-an-agent/base-session';
-import {
-  createMemorySessionSnapshot,
-  inheritMemoryCompaction,
-  touchMemorySession,
-  type StoredMemorySession,
-} from './session-state.js';
+import { touchMemorySession } from '../state/clock.js';
+import { createMemorySessionSnapshot } from '../state/snapshot.js';
+import type { StoredMemorySession } from '../types/state.js';
+import { inheritMemoryCompaction } from './inherit-compaction.js';
 
 function requireMemoryBranch(session: StoredMemorySession, branchId: SessionBranchId): void {
   if (!session.branches.has(branchId)) {

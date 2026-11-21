@@ -1,9 +1,9 @@
-export { MemorySessionAdapter } from './memory/memory-session-adapter.js';
+export { MemorySessionAdapter } from './memory/index.js';
 
-export type { MemorySessionAdapterOptions } from './memory/memory-session-adapter.js';
+export type { MemorySessionAdapterOptions } from './memory/index.js';
 
 /** @internal Package coordination API; not part of public declarations. */
-export { memorySessionCoordination } from './memory/coordination.js';
+export { memorySessionCoordination } from './memory/index.js';
 
 export { SqliteSessionAdapter } from './sqlite/sqlite-session-adapter.js';
 

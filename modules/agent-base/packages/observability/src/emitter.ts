@@ -7,7 +7,7 @@ import type {
   AgentTraceSinkFailureReporter,
   CreateAgentTraceEmitterOptions,
 } from './types.js';
-import { validateAgentTraceEventDetails } from './validation.js';
+import { snapshotAgentTraceEventDetails } from './validation.js';
 
 const TRACE_IDENTIFIER_MAX_LENGTH = 128;
 const TRACE_ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,127}$/;
@@ -16,8 +16,12 @@ export const NOOP_AGENT_TRACE_SINK: AgentTraceEventSink = Object.freeze({
   record: () => Promise.resolve(),
 });
 
-function validateIdentifier(value: string, name: string): string {
-  if (value.length === 0 || value.length > TRACE_IDENTIFIER_MAX_LENGTH) {
+function validateIdentifier(value: unknown, name: string): string {
+  if (
+    typeof value !== 'string' ||
+    value.length === 0 ||
+    value.length > TRACE_IDENTIFIER_MAX_LENGTH
+  ) {
     throw new AgentObservabilityError(
       'TRACE_CONFIGURATION_INVALID',
       `${name} must contain 1-${TRACE_IDENTIFIER_MAX_LENGTH} characters.`
@@ -70,11 +74,11 @@ class RunScopedAgentTraceEmitter implements AgentTraceEmitter {
   }
 
   async record(details: AgentTraceEventDetails): Promise<void> {
-    validateAgentTraceEventDetails(details);
+    const snapshot = snapshotAgentTraceEventDetails(details);
     const timestamp = this.#initialTimestamp ?? requireTimestamp(this.#clock);
     this.#initialTimestamp = undefined;
     const event = Object.freeze({
-      ...details,
+      ...snapshot,
       schemaVersion: 2 as const,
       agentId: this.agentId,
       agentRunId: this.agentRunId,

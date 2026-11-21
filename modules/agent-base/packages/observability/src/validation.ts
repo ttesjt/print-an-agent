@@ -1,3 +1,4 @@
+import { isProxy } from 'node:util/types';
 import { AgentObservabilityError } from './errors.js';
 import type { AgentTraceEvent, AgentTraceEventDetails } from './types.js';
 
@@ -13,8 +14,32 @@ const ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,127}$/;
 const PROVENANCE_TYPE_MAX_LENGTH = 128;
 const PROVENANCE_TYPE_PATTERN = /^[a-z0-9](?:[a-z0-9._:/-]*[a-z0-9])?$/i;
 
-function isUnknownRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+function snapshotMetadataRecord(value: unknown): Readonly<Record<string, unknown>> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    invalidEvent('Trace metadata must be an object.');
+  }
+  const snapshot: Record<string, unknown> = {};
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (
+      typeof key !== 'string' ||
+      descriptor === undefined ||
+      !descriptor.enumerable ||
+      !('value' in descriptor)
+    ) {
+      invalidEvent('Trace metadata must contain only enumerable string data properties.');
+    }
+    const field: unknown = descriptor.value;
+    Object.defineProperty(snapshot, key, { value: field, enumerable: true });
+  }
+  return Object.freeze(snapshot);
+}
+
+/** Capture caller-owned metadata before injected clocks or queued sink writes can change it. */
+export function snapshotAgentTraceEventDetails(value: unknown): AgentTraceEventDetails {
+  const snapshot = snapshotMetadataRecord(value);
+  validateAgentTraceEventDetails(snapshot);
+  return snapshot;
 }
 
 function invalidEvent(message: string): never {
@@ -357,16 +382,18 @@ function validateDetailsRecord(
 export function validateAgentTraceEventDetails(
   value: unknown
 ): asserts value is AgentTraceEventDetails {
-  if (!isUnknownRecord(value)) invalidEvent('Trace event details must be an object.');
-  validateDetailsRecord(value, false);
+  if (isProxy(value)) invalidEvent('Trace validation does not accept Proxy inputs.');
+  const record = snapshotMetadataRecord(value);
+  validateDetailsRecord(record, false);
 }
 
 export function validateAgentTraceEvent(value: unknown): asserts value is AgentTraceEvent {
-  if (!isUnknownRecord(value)) invalidEvent('Trace event must be an object.');
-  if (value.schemaVersion !== 2) invalidEvent('Trace event schemaVersion is not supported.');
-  requireString(value.agentId, 'Trace agentId');
-  requireString(value.agentRunId, 'Trace agentRunId');
-  requireCount(value.sequence, 'Trace sequence', 1);
-  requireCount(value.timestamp, 'Trace timestamp');
-  validateDetailsRecord(value, true);
+  if (isProxy(value)) invalidEvent('Trace validation does not accept Proxy inputs.');
+  const record = snapshotMetadataRecord(value);
+  if (record.schemaVersion !== 2) invalidEvent('Trace event schemaVersion is not supported.');
+  requireString(record.agentId, 'Trace agentId');
+  requireString(record.agentRunId, 'Trace agentRunId');
+  requireCount(record.sequence, 'Trace sequence', 1);
+  requireCount(record.timestamp, 'Trace timestamp');
+  validateDetailsRecord(record, true);
 }

@@ -35,7 +35,8 @@ through Pi's public boundary without credentials or an external model.
 configuration supports an exact model from Pi `0.82.1`'s builtin catalog or one explicit text-only
 OpenAI-compatible endpoint with bounded context and output tokens. Builtin profiles require an
 opaque credential reference; compatible endpoints may instead be explicitly keyless. API keys are
-resolved once per invocation through the Core credential port. Pi ambient environment/file
+resolved once per invocation through the Core credential port. Resolver-owned credential fields
+are captured once, validated, and copied into a frozen snapshot before use. Pi ambient environment/file
 auth is disabled, and inspection/readiness never returns credential references or secret values.
 Builtin reasoning capability comes from Pi's catalog. Every OpenAI-compatible profile must instead
 declare `supportsReasoning` explicitly because arbitrary endpoints cannot be detected reliably; the

@@ -75,23 +75,27 @@ function sameReference(left: ProviderModelReference, right: ProviderModelReferen
 
 function validateResolvedCredential(value: unknown): ProviderApiKeyCredential | undefined {
   if (value === undefined) return undefined;
+  // Capture resolver-owned fields once; validate the same values that will reach Pi.
+  const snapshot =
+    typeof value === 'object' &&
+    value !== null &&
+    !Object.keys(value).some((key) => key !== 'type' && key !== 'apiKey') &&
+    'type' in value &&
+    'apiKey' in value
+      ? { type: value.type, apiKey: value.apiKey }
+      : undefined;
   if (
-    typeof value !== 'object' ||
-    value === null ||
-    Object.keys(value).some((key) => key !== 'type' && key !== 'apiKey') ||
-    !('type' in value) ||
-    value.type !== 'api-key' ||
-    !('apiKey' in value) ||
-    typeof value.apiKey !== 'string' ||
-    value.apiKey.length === 0 ||
-    value.apiKey.length > MAX_API_KEY_CHARACTERS
+    snapshot?.type !== 'api-key' ||
+    typeof snapshot.apiKey !== 'string' ||
+    snapshot.apiKey.length === 0 ||
+    snapshot.apiKey.length > MAX_API_KEY_CHARACTERS
   ) {
     throw new ModelInvocationError(
       'MODEL_CREDENTIAL_RESOLUTION_FAILED',
       'Provider credential resolver returned an invalid API-key credential.'
     );
   }
-  return Object.freeze({ type: 'api-key', apiKey: value.apiKey });
+  return Object.freeze({ type: 'api-key', apiKey: snapshot.apiKey });
 }
 
 export class PiActorRuntime implements ModelInteractionRuntime {

@@ -12,11 +12,13 @@ interface CompletionServerOptions {
 /** Minimal deterministic OpenAI wire fixture; the adapter still uses the real Pi parser. */
 export async function completionServer(options: CompletionServerOptions = {}) {
   const requests: unknown[] = [];
+  const authorizationHeaders: (string | undefined)[] = [];
   const clientClosed = Promise.withResolvers<void>();
   const server = createServer((request, response) => {
     void (async () => {
       const chunks: Uint8Array[] = [];
       for await (const chunk of request) chunks.push(Buffer.from(chunk));
+      authorizationHeaders.push(request.headers.authorization);
       requests.push(JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown);
       response.writeHead(200, { 'content-type': 'text/event-stream' });
       response.once('close', () => clientClosed.resolve());
@@ -79,6 +81,7 @@ export async function completionServer(options: CompletionServerOptions = {}) {
   return {
     baseUrl: `http://127.0.0.1:${address.port}/v1`,
     requests,
+    authorizationHeaders,
     clientClosed: clientClosed.promise,
     close: () =>
       new Promise<void>((resolve, reject) => {

@@ -16,15 +16,12 @@ import {
   type SessionTurnPage,
 } from '@print-an-agent/base-session';
 import type { DatabaseSync } from 'node:sqlite';
-import {
-  decodeTurn,
-  normalizePersistedBranchId,
-  optionalString,
-  requireNonNegativeInteger,
-  requireString,
-  type SqliteRow,
-} from './session-record-codec.js';
-import { quoteSqliteIdentifier, type SqliteSessionTableNames } from './table-names.js';
+import { optionalString, requireNonNegativeInteger, requireString } from './codecs/columns.js';
+import { normalizePersistedBranchId } from './codecs/identifiers.js';
+import { decodeTurn } from './codecs/turn.js';
+import { quoteSqliteIdentifier } from './table-names.js';
+import type { SqliteRow } from './types/record.js';
+import type { SqliteSessionTableNames } from './types/table-names.js';
 
 const TURN_COLUMNS = `turn_id, status, user_message, assistant_message, failure_code,
   branch_id, parent_turn_id`;

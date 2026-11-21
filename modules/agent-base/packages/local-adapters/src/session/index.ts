@@ -1,40 +1,33 @@
 export { MemorySessionAdapter } from './memory/index.js';
 
-export type { MemorySessionAdapterOptions } from './memory/index.js';
-
-/** @internal Package coordination API; not part of public declarations. */
+/** @internal Package coordination API; excluded from public declarations. */
 export { memorySessionCoordination } from './memory/index.js';
 
-export { SqliteSessionAdapter } from './sqlite/sqlite-session-adapter.js';
-
-export type { SqliteSessionAdapterOptions } from './sqlite/sqlite-session-adapter.js';
-
-/** @internal Package coordination API; not part of public declarations. */
-export {
-  defineSqliteDatabaseConfiguration,
-  runImmediateTransaction,
-  useSqliteDatabase,
-} from './sqlite/database.js';
+export type { MemorySessionAdapterOptions } from './memory/index.js';
 
 export {
   DEFAULT_SQLITE_SESSION_TABLE_NAMES,
+  SqliteSessionAdapter,
   resolveSqliteSessionTableNames,
-} from './sqlite/table-names.js';
+} from './sqlite/index.js';
+
+/** @internal Package coordination API; excluded from public declarations. */
+export {
+  SQLITE_SESSION_TABLE_KEYS,
+  assertSessionSchema,
+  assertSqliteSessionWrite,
+  defineSqliteDatabaseConfiguration,
+  purgeSqliteSession,
+  readSqliteLifecycle,
+  recoverSqliteSession,
+  runImmediateTransaction,
+  useSqliteDatabase,
+} from './sqlite/index.js';
 
 export type {
+  SqliteSessionAdapterOptions,
   SqliteSessionTableName,
   SqliteSessionTableNames,
   SqliteSessionTableNamesInput,
   SqliteSessionTableNamingInput,
-} from './sqlite/table-names.js';
-
-/** @internal Package coordination API; not part of public declarations. */
-export { assertSessionSchema } from './sqlite/schema.js';
-
-/** @internal Package coordination API; not part of public declarations. */
-export {
-  assertSqliteSessionWrite,
-  purgeSqliteSession,
-  readSqliteLifecycle,
-  recoverSqliteSession,
-} from './sqlite/session-lifecycle-storage.js';
+} from './sqlite/index.js';

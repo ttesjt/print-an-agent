@@ -1,29 +1,15 @@
 import { AgentSessionError } from '@print-an-agent/base-session';
-
-export type SqliteSessionTableName = 'schema' | 'sessions' | 'turns' | 'branches' | 'compactions';
-
-export type SqliteSessionTableNamesInput = Readonly<
-  Partial<Record<SqliteSessionTableName, string>>
->;
-
-export interface SqliteSessionTableNamingInput {
-  readonly tablePrefix?: string;
-  readonly tableNames?: SqliteSessionTableNamesInput;
-}
-
-export interface SqliteSessionTableNames {
-  readonly schema: string;
-  readonly sessions: string;
-  readonly turns: string;
-  readonly branches: string;
-  readonly compactions: string;
-}
+import { SQLITE_SESSION_TABLE_KEYS } from './table-keys.js';
+import type {
+  SqliteSessionTableNames,
+  SqliteSessionTableNamingInput,
+} from './types/table-names.js';
 
 const DEFAULT_TABLE_PREFIX = 'agent_';
 
 const MAX_TABLE_NAME_LENGTH = 128;
 
-const TABLE_NAME_KEYS = new Set<string>(['schema', 'sessions', 'turns', 'branches', 'compactions']);
+const TABLE_NAME_KEYS = new Set<string>(SQLITE_SESSION_TABLE_KEYS);
 
 const TABLE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -140,4 +126,8 @@ export function resolveSqliteSessionTableNames(
 
 export function sessionRetirementIndexName(tableNames: SqliteSessionTableNames): string {
   return validateIdentifier(`${tableNames.sessions}_retired_idx`);
+}
+
+export function sessionMemoryTable(names: SqliteSessionTableNames): string {
+  return `${names.sessions}_memory`;
 }

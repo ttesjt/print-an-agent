@@ -7,11 +7,9 @@ import {
   type WriteSessionMemoryRecord,
 } from '@print-an-agent/base-session';
 import type { DatabaseSync } from 'node:sqlite';
-import { quoteSqliteIdentifier as quote, type SqliteSessionTableNames } from './table-names.js';
-
-export function sessionMemoryTable(names: SqliteSessionTableNames): string {
-  return `${names.sessions}_memory`;
-}
+import { MAX_PENDING_SESSION_MEMORY_RECORDS } from '../../limits.js';
+import { quoteSqliteIdentifier as quote, sessionMemoryTable } from '../table-names.js';
+import type { SqliteSessionTableNames } from '../types/table-names.js';
 
 export function sessionHasMemoryBindings(
   db: DatabaseSync,
@@ -25,17 +23,6 @@ export function sessionHasMemoryBindings(
       )
       .get(ref.agentId, ref.sessionId) !== undefined
   );
-}
-
-export function sessionMemoryMigration(names: SqliteSessionTableNames): string {
-  return `CREATE TABLE ${quote(sessionMemoryTable(names))} (
-    agent_id TEXT NOT NULL, session_id TEXT NOT NULL, kind TEXT NOT NULL,
-    id TEXT NOT NULL, revision INTEGER NOT NULL CHECK(revision > 0),
-    settled INTEGER NOT NULL CHECK(settled IN (0,1)), value TEXT NOT NULL CHECK(json_valid(value)),
-    PRIMARY KEY(agent_id, session_id, kind, id),
-    FOREIGN KEY(agent_id,session_id) REFERENCES ${quote(names.sessions)}(agent_id,session_id) ON DELETE CASCADE
-  ) STRICT;
-  CREATE INDEX ${quote(`${names.sessions}_mem_idx`)} ON ${quote(sessionMemoryTable(names))}(agent_id,session_id,settled);`;
 }
 
 export function readSessionMemoryRecord(
@@ -95,7 +82,7 @@ export function pendingSessionMemoryRecords(
 ): readonly SessionMemoryRecord[] {
   const rows = db
     .prepare(
-      `SELECT kind,id FROM ${quote(sessionMemoryTable(names))} WHERE agent_id=? AND session_id=? AND settled=0 ORDER BY kind,id LIMIT 100`
+      `SELECT kind,id FROM ${quote(sessionMemoryTable(names))} WHERE agent_id=? AND session_id=? AND settled=0 ORDER BY kind,id LIMIT ${MAX_PENDING_SESSION_MEMORY_RECORDS}`
     )
     .all(ref.agentId, ref.sessionId);
   return rows.map((row) => {

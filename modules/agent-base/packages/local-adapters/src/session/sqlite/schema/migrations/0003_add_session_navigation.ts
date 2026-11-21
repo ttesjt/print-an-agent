@@ -2,8 +2,8 @@ import {
   quoteSqliteIdentifier,
   sessionActivityIndexName,
   sessionCompactionMigrationTableName,
-  type SqliteSessionTableNames,
-} from '../table-names.js';
+} from '../../table-names.js';
+import type { SqliteSessionTableNames } from '../../types/table-names.js';
 
 export function addSessionNavigationMigration(tableNames: SqliteSessionTableNames): string {
   const compactionStagingTable = sessionCompactionMigrationTableName(tableNames);

@@ -37,8 +37,10 @@ Session presentation commits atomically with the completed assistant turn and br
 keeps display records separately from message snapshots; SQLite stores a nullable presentation
 column on the same turn row inside the completion transaction. No sidecar database or independently
 named presentation table is needed. Existing table-prefix and per-table naming options apply.
-SQLite accepts only its current complete schema; it does not migrate older development layouts or
-silently add missing columns. Presentation reads are opt-in and bounded; history and compaction never
+SQLite Session uses storage schema v5. Initialize mode can upgrade the supported v4 layout by
+adding Session Memory coordination storage; other unsupported versions are rejected. Existing mode
+requires a complete v5 schema and does not upgrade it. Malformed current schemas are rejected rather
+than silently repaired. Presentation reads are opt-in and bounded; history and compaction never
 select this content as model input.
 
 ## Session lifecycle and coordinated persistence

@@ -7,6 +7,7 @@ import {
   type SessionReference,
   type WriteSessionMemoryRecord,
 } from '@print-an-agent/base-session';
+import { MAX_PENDING_SESSION_MEMORY_RECORDS } from '../../limits.js';
 import { advanceMemoryExecution } from '../lifecycle/state.js';
 import type { MemorySessionAuthority } from '../types/lifecycle.js';
 import type { MemorySessionState } from '../types/state.js';
@@ -28,7 +29,9 @@ export function listPendingMemoryCoordinationRecords(
   ref: SessionReference
 ): Promise<SessionMemoryRecord[]> {
   return Promise.resolve().then(() =>
-    [...authority.require(ref).memoryRecords.values()].filter((r) => !r.settled).slice(0, 100)
+    [...authority.require(ref).memoryRecords.values()]
+      .filter((r) => !r.settled)
+      .slice(0, MAX_PENDING_SESSION_MEMORY_RECORDS)
   );
 }
 

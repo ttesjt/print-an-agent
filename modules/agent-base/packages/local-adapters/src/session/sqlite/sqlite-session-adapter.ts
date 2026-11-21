@@ -1,6 +1,9 @@
 import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import type {
   PublishSessionMemoryNavigation,
+  SessionExecutionFence,
+  SessionLifecycleSnapshot,
+  SessionMemoryRecord,
   SessionMemoryRecordKey,
   WriteSessionMemoryRecord,
 } from '@print-an-agent/base-session';
@@ -53,78 +56,63 @@ import {
 import type { ModelMessage } from '@print-an-agent/model-invocation-core';
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
+import { commitSqliteSessionCompaction, readSqliteSessionCompaction } from './compaction.js';
 import {
+  configureDefensiveMode,
   defineSqliteDatabaseConfiguration,
   runImmediateTransaction,
   runReadTransaction,
   useSqliteDatabase,
-  type SqliteDatabaseConfiguration,
 } from './database.js';
-import { assertSessionSchema, configureDefensiveMode, initializeSessionSchema } from './schema.js';
-import {
-  commitSqliteSessionCompaction,
-  loadSqliteSessionContext,
-  readSqliteSessionCompaction,
-} from './session-compaction-storage.js';
+import { loadSqliteSessionContext, loadSqliteSessionHistory } from './history.js';
 import {
   normalizeBranchReference,
   normalizeNavigationRequest,
+  normalizeReference,
   normalizeResolvedReference,
-} from './session-input.js';
+} from './input.js';
 import {
   acquireSqliteExecution,
-  advanceSqliteExecution,
   assertSqliteSessionOpen,
   assertSqliteSessionWrite,
-  purgeSqliteSession,
-  readSqliteLifecycle,
-  recoverSqliteSession,
   releaseSqliteExecution,
-  transitionSqliteSession,
-} from './session-lifecycle-storage.js';
+} from './lifecycle/execution.js';
+import { purgeSqliteSession, recoverSqliteSession } from './lifecycle/maintenance.js';
+import { transitionSqliteSession } from './lifecycle/retirement.js';
+import { advanceSqliteExecution, readSqliteLifecycle } from './lifecycle/state.js';
+import { publishSqliteMemoryNavigation } from './memory-coordination/navigation.js';
+import {
+  listPendingSqliteMemoryRecords,
+  readSqliteMemoryRecord,
+  writeSqliteMemoryRecord,
+} from './memory-coordination/records-operations.js';
 import {
   pendingSessionMemoryRecords,
-  readSessionMemoryRecord,
   sessionHasMemoryBindings,
-  writeSessionMemoryRecord,
-} from './session-memory-storage.js';
-import { renameSqliteSession } from './session-metadata-storage.js';
-import {
-  applySqliteSessionNavigation,
-  loadSqliteSessionSnapshot,
-} from './session-navigation-storage.js';
-import { readSqliteTurnPresentation } from './session-presentation-storage.js';
+} from './memory-coordination/records.js';
+import { renameSqliteSession } from './metadata.js';
+import { applySqliteSessionNavigation } from './navigation/apply.js';
 import {
   inspectSqliteSession,
   listRetiredSqliteSessions,
   listSqliteSessions,
   listSqliteSessionTurns,
-} from './session-query-storage.js';
-import { normalizeReference } from './session-record-codec.js';
-import { createSqliteSession, openSqliteSession } from './session-resolution.js';
+} from './query.js';
+import { createSqliteSession, openSqliteSession } from './resolution.js';
+import { initializeSessionSchema } from './schema/initialize.js';
+import { assertSessionSchema } from './schema/validation.js';
+import { loadSqliteSessionSnapshot } from './snapshot.js';
+import { quoteSqliteIdentifier, resolveSqliteSessionTableNames } from './table-names.js';
+import { readSqliteTurnPresentation } from './turns/presentation.js';
 import {
   beginSqliteSessionTurn,
   completeSqliteSessionTurn,
   failSqliteSessionTurn,
-  loadSqliteSessionHistory,
-} from './session-turn-storage.js';
-import {
-  quoteSqliteIdentifier,
-  resolveSqliteSessionTableNames,
-  type SqliteSessionTableNames,
-  type SqliteSessionTableNamingInput,
-} from './table-names.js';
-
-export interface SqliteSessionAdapterOptions extends SqliteSessionTableNamingInput {
-  readonly databasePath: string;
-  /** Management readers require an existing schema rather than initializing a new table family. */
-  readonly schemaMode?: 'initialize' | 'existing';
-  /** Must issue fresh, never-reused IDs, including across adapter reconstruction. */
-  readonly createSessionId?: () => string;
-  readonly createBranchId?: () => string;
-  readonly clock?: () => number;
-  readonly busyTimeoutMilliseconds?: number;
-}
+} from './turns/storage.js';
+import type { SqliteDatabaseConfiguration } from './types/database.js';
+import type { SqliteSessionMemoryContext } from './types/memory-coordination.js';
+import type { SqliteSessionAdapterOptions } from './types/options.js';
+import type { SqliteSessionTableNames } from './types/table-names.js';
 
 export class SqliteSessionAdapter
   implements
@@ -331,7 +319,7 @@ export class SqliteSessionAdapter
     );
   }
 
-  retireSession(input: SessionLifecycleMutationInput) {
+  retireSession(input: SessionLifecycleMutationInput): Promise<SessionLifecycleSnapshot> {
     return Promise.resolve().then(() =>
       this.#useDatabase('retire session', (db) =>
         transitionSqliteSession(db, input, 'retire', this.#clock, this.#tableNames)
@@ -339,7 +327,7 @@ export class SqliteSessionAdapter
     );
   }
 
-  restoreSession(input: SessionLifecycleMutationInput) {
+  restoreSession(input: SessionLifecycleMutationInput): Promise<SessionLifecycleSnapshot> {
     return Promise.resolve().then(() =>
       this.#useDatabase('restore session', (db) =>
         transitionSqliteSession(db, input, 'restore', this.#clock, this.#tableNames)
@@ -347,7 +335,7 @@ export class SqliteSessionAdapter
     );
   }
 
-  acquireSessionExecution(reference: SessionReference) {
+  acquireSessionExecution(reference: SessionReference): Promise<SessionExecutionLease> {
     return Promise.resolve().then(() =>
       this.#useDatabase('acquire execution', (db) =>
         acquireSqliteExecution(db, normalizeReference(reference), this.#tableNames)
@@ -369,7 +357,7 @@ export class SqliteSessionAdapter
     );
   }
 
-  recoverSessionExecutions(input: RecoverSessionExecutionsInput) {
+  recoverSessionExecutions(input: RecoverSessionExecutionsInput): Promise<SessionExecutionFence> {
     return Promise.resolve().then(() =>
       this.#useDatabase('recover session', (db) =>
         recoverSqliteSession(db, input, this.#clock, this.#tableNames)
@@ -440,138 +428,33 @@ export class SqliteSessionAdapter
     });
   }
 
-  readMemoryRecord(key: SessionMemoryRecordKey) {
-    return Promise.resolve().then(() =>
-      this.#useDatabase('read Memory coordination', (db) => {
-        readSqliteLifecycle(db, key, this.#tableNames);
-        return readSessionMemoryRecord(db, key, this.#tableNames);
-      })
-    );
+  readMemoryRecord(key: SessionMemoryRecordKey): Promise<SessionMemoryRecord | undefined> {
+    return readSqliteMemoryRecord(this.#memoryContext(), key);
   }
 
-  listPendingMemoryRecords(ref: SessionReference) {
-    return Promise.resolve().then(() =>
-      this.#useDatabase('read pending Memory coordination', (db) => {
-        readSqliteLifecycle(db, ref, this.#tableNames);
-        return pendingSessionMemoryRecords(db, ref, this.#tableNames);
-      })
-    );
+  listPendingMemoryRecords(ref: SessionReference): Promise<readonly SessionMemoryRecord[]> {
+    return listPendingSqliteMemoryRecords(this.#memoryContext(), ref);
   }
 
-  writeMemoryRecord(input: WriteSessionMemoryRecord) {
-    return Promise.resolve().then(() =>
-      this.#useDatabase('write Memory coordination', (db) =>
-        runImmediateTransaction(db, () => {
-          if (input.execution !== undefined) assertSqliteSessionWrite(db, input, this.#tableNames);
-          else {
-            const { snapshot, fence } = readSqliteLifecycle(db, input, this.#tableNames);
-            if (
-              snapshot.status !== 'active' ||
-              fence.activeLeaseCount !== 0 ||
-              (fence.state === 'recovering' && input.expectedRevision === null)
-            )
-              throw new AgentSessionError(
-                'SESSION_BUSY',
-                'Memory coordination requires an idle Session or its execution lease.'
-              );
-          }
-          if (input.kind === 'navigation' && input.expectedRevision === null) {
-            const snapshot = loadSqliteSessionSnapshot(db, input, this.#tableNames);
-            if (
-              snapshot?.turns.some((turn) => turn.status === 'active') ||
-              pendingSessionMemoryRecords(db, input, this.#tableNames).length !== 0
-            )
-              throw new AgentSessionError(
-                'SESSION_BUSY',
-                'Memory navigation requires an idle Session.'
-              );
-          }
-          const result = writeSessionMemoryRecord(db, input, this.#tableNames);
-          advanceSqliteExecution(db, input, this.#tableNames);
-          return result;
-        })
-      )
-    );
+  writeMemoryRecord(input: WriteSessionMemoryRecord): Promise<SessionMemoryRecord> {
+    return writeSqliteMemoryRecord(this.#memoryContext(), input);
   }
 
   publishMemoryNavigation(
     input: PublishSessionMemoryNavigation
   ): Promise<AppliedSessionNavigation> {
-    return Promise.resolve().then(() =>
-      this.#useDatabase('publish Memory navigation', (db) =>
-        runImmediateTransaction(db, () => {
-          if (input.execution !== undefined) assertSqliteSessionWrite(db, input, this.#tableNames);
-          const { snapshot, fence } = readSqliteLifecycle(db, input, this.#tableNames);
-          if (
-            snapshot.status !== 'active' ||
-            (input.execution === undefined && fence.activeLeaseCount !== 0) ||
-            loadSqliteSessionSnapshot(db, input, this.#tableNames)?.turns.some(
-              (turn) => turn.status === 'active'
-            )
-          )
-            throw new AgentSessionError(
-              'SESSION_BUSY',
-              'Memory navigation requires an idle Session.'
-            );
-          const intent = readSessionMemoryRecord(
-            db,
-            { ...input, kind: 'navigation', id: input.intentId },
-            this.#tableNames
-          );
-          if (
-            intent === undefined ||
-            intent.settled ||
-            intent.revision !== input.expectedIntentRevision
-          )
-            throw new AgentSessionError(
-              'SESSION_MEMORY_CONFLICT',
-              'Memory navigation intent changed.'
-            );
-          const applied = applySqliteSessionNavigation(
-            db,
-            normalizeNavigationRequest(input),
-            this.#createBranchId,
-            this.#clock,
-            this.#tableNames
-          );
-          if (input.binding !== undefined) {
-            if (input.binding.id !== applied.affectedBranchId)
-              throw new AgentSessionError(
-                'SESSION_MEMORY_INVALID',
-                'Memory binding branch differs.'
-              );
-            writeSessionMemoryRecord(
-              db,
-              {
-                ...input,
-                kind: 'binding',
-                id: input.binding.id,
-                value: input.binding.value,
-                expectedRevision: null,
-                settled: true,
-              },
-              this.#tableNames
-            );
-          }
-          writeSessionMemoryRecord(
-            db,
-            {
-              ...input,
-              kind: 'navigation',
-              id: input.intentId,
-              expectedRevision: intent.revision,
-              settled: true,
-              value: JSON.stringify({ ...(JSON.parse(intent.value) as object), applied }),
-            },
-            this.#tableNames
-          );
-          advanceSqliteExecution(db, input, this.#tableNames);
-          return applied;
-        })
-      )
-    );
+    return publishSqliteMemoryNavigation(this.#memoryContext(), input);
   }
 
+  #memoryContext(): SqliteSessionMemoryContext {
+    return {
+      tableNames: this.#tableNames,
+      clock: this.#clock,
+      createBranchId: this.#createBranchId,
+      useDatabase: <T>(operation: string, action: (database: DatabaseSync) => T): T =>
+        this.#useDatabase(operation, action),
+    };
+  }
   #write<T>(
     request: SessionReference & SessionWriteAuthority,
     operation: string,

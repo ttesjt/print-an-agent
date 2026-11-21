@@ -2,28 +2,19 @@ import {
   AgentSessionError,
   completedLineageForBranch,
   isCompletedAncestor,
-  parseSessionBranchId,
-  toSessionNavigationSnapshot,
-  type AppliedSessionNavigation,
-  type ApplySessionNavigationRequest,
   type SessionBranchId,
   type SessionReference,
   type SessionSnapshot,
 } from '@print-an-agent/base-session';
 import type { DatabaseSync } from 'node:sqlite';
-import { readClock, runImmediateTransaction } from './database.js';
-import {
-  decodeBranch,
-  decodeTurn,
-  normalizePersistedBranchId,
-  normalizePersistedTurnId,
-  requireNonNegativeInteger,
-  requireSession,
-  requireString,
-  type SqliteRow,
-} from './session-record-codec.js';
-import type { SqliteSessionTableNames } from './table-names.js';
+import { decodeBranch } from './codecs/branch.js';
+import { requireNonNegativeInteger, requireString } from './codecs/columns.js';
+import { normalizePersistedBranchId, normalizePersistedTurnId } from './codecs/identifiers.js';
+import { decodeTurn } from './codecs/turn.js';
+import { requireSession } from './records.js';
 import { quoteSqliteIdentifier } from './table-names.js';
+import type { SqliteRow } from './types/record.js';
+import type { SqliteSessionTableNames } from './types/table-names.js';
 
 const TURN_COLUMNS =
   'turn_id, status, user_message, assistant_message, failure_code, branch_id, parent_turn_id';
@@ -204,145 +195,4 @@ export function loadSqliteSessionSnapshot(
   assertTurnLineage(snapshot);
   assertCompactionLineage(database, snapshot, tableNames);
   return snapshot;
-}
-
-function inheritCompaction(
-  database: DatabaseSync,
-  snapshot: SessionSnapshot,
-  sourceBranchId: SessionBranchId,
-  targetBranchId: SessionBranchId,
-  throughTurnId: string,
-  tableNames: SqliteSessionTableNames
-): void {
-  const row = database
-    .prepare(
-      `SELECT revision, through_turn_id, context_message, created_at
-       FROM ${quoteSqliteIdentifier(tableNames.compactions)}
-       WHERE agent_id = ? AND session_id = ? AND branch_id = ?`
-    )
-    .get(snapshot.agentId, snapshot.sessionId, sourceBranchId) as SqliteRow | undefined;
-  if (row === undefined) return;
-  const lineage = completedLineageForBranch(snapshot, sourceBranchId);
-  const boundaryIndex = lineage.findIndex(
-    (turn) => turn.turnId === requireString(row, 'through_turn_id')
-  );
-  const forkIndex = lineage.findIndex((turn) => turn.turnId === throughTurnId);
-  if (boundaryIndex < 0 || forkIndex < boundaryIndex) return;
-  database
-    .prepare(
-      `INSERT INTO ${quoteSqliteIdentifier(tableNames.compactions)}
-        (agent_id, session_id, branch_id, revision, through_turn_id, context_message, created_at)
-       VALUES (?, ?, ?, 1, ?, ?, ?)`
-    )
-    .run(
-      snapshot.agentId,
-      snapshot.sessionId,
-      targetBranchId,
-      requireString(row, 'through_turn_id'),
-      requireString(row, 'context_message'),
-      requireNonNegativeInteger(row, 'created_at')
-    );
-}
-
-export function applySqliteSessionNavigation(
-  database: DatabaseSync,
-  request: ApplySessionNavigationRequest,
-  createBranchId: () => string,
-  clock: () => number,
-  tableNames: SqliteSessionTableNames
-): AppliedSessionNavigation {
-  return runImmediateTransaction(database, () => {
-    const timestamp = readClock(clock);
-    const snapshot = loadSqliteSessionSnapshot(database, request, tableNames);
-    if (request.command.expectedRevision !== snapshot.navigation.revision) {
-      throw new AgentSessionError(
-        'SESSION_NAVIGATION_CONFLICT',
-        `Session navigation expected revision ${request.command.expectedRevision} but found ${snapshot.navigation.revision}.`
-      );
-    }
-    let affectedBranchId: SessionBranchId;
-    let selectedBranchId = snapshot.navigation.selectedBranchId;
-    if (request.command.operation === 'select') {
-      const branchId = request.command.branchId;
-      if (!snapshot.navigation.branches.some((branch) => branch.branchId === branchId)) {
-        throw new AgentSessionError(
-          'SESSION_BRANCH_NOT_FOUND',
-          `Session branch "${branchId}" does not exist.`
-        );
-      }
-      affectedBranchId = branchId;
-      selectedBranchId = affectedBranchId;
-    } else {
-      const sourceBranchId =
-        request.command.operation === 'fork'
-          ? request.command.sourceBranchId
-          : snapshot.navigation.selectedBranchId;
-      if (!isCompletedAncestor(snapshot, sourceBranchId, request.command.throughTurnId)) {
-        throw new AgentSessionError(
-          'SESSION_NAVIGATION_TARGET_INVALID',
-          'Session navigation target must be a completed ancestor of the source branch.'
-        );
-      }
-      affectedBranchId = parseSessionBranchId(request.command.newBranchId ?? createBranchId());
-      if (snapshot.navigation.branches.some((branch) => branch.branchId === affectedBranchId)) {
-        throw new AgentSessionError(
-          'SESSION_BRANCH_ALREADY_EXISTS',
-          `Session branch "${affectedBranchId}" already exists.`
-        );
-      }
-      database
-        .prepare(
-          `INSERT INTO ${quoteSqliteIdentifier(tableNames.branches)}
-            (agent_id, session_id, branch_id, parent_branch_id, forked_from_turn_id, head_turn_id,
-             created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
-        )
-        .run(
-          request.agentId,
-          request.sessionId,
-          affectedBranchId,
-          sourceBranchId,
-          request.command.throughTurnId,
-          request.command.throughTurnId,
-          timestamp
-        );
-      inheritCompaction(
-        database,
-        snapshot,
-        sourceBranchId,
-        affectedBranchId,
-        request.command.throughTurnId,
-        tableNames
-      );
-      if (request.command.operation === 'rewind') selectedBranchId = affectedBranchId;
-    }
-    const update = database
-      .prepare(
-        `UPDATE ${quoteSqliteIdentifier(tableNames.sessions)}
-         SET selected_branch_id = ?, navigation_revision = navigation_revision + 1,
-             updated_at = MAX(updated_at, ?)
-         WHERE agent_id = ? AND session_id = ? AND navigation_revision = ?`
-      )
-      .run(
-        selectedBranchId,
-        timestamp,
-        request.agentId,
-        request.sessionId,
-        request.command.expectedRevision
-      );
-    if (update.changes !== 1) {
-      throw new AgentSessionError(
-        'SESSION_NAVIGATION_CONFLICT',
-        'Session navigation revision changed before commit.'
-      );
-    }
-    const navigation = toSessionNavigationSnapshot(
-      loadSqliteSessionSnapshot(database, request, tableNames)
-    );
-    return Object.freeze({
-      operation: request.command.operation,
-      affectedBranchId,
-      navigation,
-    });
-  });
 }

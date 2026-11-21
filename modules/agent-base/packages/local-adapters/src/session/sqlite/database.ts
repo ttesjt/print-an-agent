@@ -3,15 +3,11 @@ import { lstatSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { runSqliteTransaction, useSqliteConnection } from '../../sqlite/index.js';
+import type { SqliteDatabaseConfiguration } from './types/database.js';
 
 const DEFAULT_BUSY_TIMEOUT_MILLISECONDS = 5_000;
 
 const MAX_BUSY_TIMEOUT_MILLISECONDS = 2_147_483_647;
-
-export interface SqliteDatabaseConfiguration {
-  readonly databasePath: string;
-  readonly busyTimeoutMilliseconds: number;
-}
 
 function normalizeBusyTimeout(value: number | undefined): number {
   const timeout = value ?? DEFAULT_BUSY_TIMEOUT_MILLISECONDS;
@@ -136,4 +132,8 @@ export function readClock(clock: () => number): number {
     );
   }
   return timestamp;
+}
+
+export function configureDefensiveMode(database: DatabaseSync): void {
+  database.enableDefensive(true);
 }

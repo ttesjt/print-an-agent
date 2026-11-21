@@ -17,9 +17,10 @@ const HTTP_EMBEDDING_RECIPE_REF = Object.freeze({
 function bindCredentialResolver(input: unknown): ProviderCredentialResolver | undefined {
   if (input === undefined) return undefined;
   try {
-    if (!isCredentialResolver(input)) throw new Error('Expected a credential resolver');
-    const resolve = input.resolve.bind(input);
-    return { resolve: (request) => resolve(request) };
+    const resolve =
+      typeof input === 'object' && input !== null && 'resolve' in input ? input.resolve : undefined;
+    if (!isCredentialResolverMethod(resolve)) throw new Error('Expected a credential resolver');
+    return { resolve: resolve.bind(input) };
   } catch (cause: unknown) {
     throw new EmbeddingError(
       'EMBEDDING_BINDING_INVALID',
@@ -29,13 +30,10 @@ function bindCredentialResolver(input: unknown): ProviderCredentialResolver | un
   }
 }
 
-function isCredentialResolver(input: unknown): input is ProviderCredentialResolver {
-  return (
-    typeof input === 'object' &&
-    input !== null &&
-    'resolve' in input &&
-    typeof input.resolve === 'function'
-  );
+function isCredentialResolverMethod(
+  value: unknown
+): value is ProviderCredentialResolver['resolve'] {
+  return typeof value === 'function';
 }
 
 function isFetch(input: unknown): input is typeof globalThis.fetch {

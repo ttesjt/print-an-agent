@@ -267,7 +267,9 @@ For authenticated endpoints replace keyless configuration with
 `{ kind: 'credential-reference', credentialRef: 'my-key' }` and supply a borrowed
 `ProviderCredentialResolver` as `credentialResolver`. The adapter calls `resolve({ reference,
 provider, signal })`, validates a nonempty API key, and sets `Authorization: Bearer ...` for that
-request. There is no ambient environment/key discovery. Keyless calls do not invoke a resolver or
+request. Resolver methods are captured once at binding and retain their receiver. Each invocation
+captures credential fields once, validates that snapshot and uses the same values for authentication;
+field-read failures retain their cause under the credential-resolution error. There is no ambient environment/key discovery. Keyless calls do not invoke a resolver or
 send an Authorization header.
 
 An optional borrowed `fetch` function supports host-managed clients and controlled transports; bind

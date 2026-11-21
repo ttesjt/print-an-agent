@@ -1,6 +1,8 @@
+import type { HttpTextEmbeddingConfig } from '../configuration/index.js';
 import {
   EmbeddingError,
   type TextEmbeddingRequest,
+  type TextEmbeddingInput,
   type TextEmbeddingVector,
 } from '@print-an-agent/model-invocation-core';
 
@@ -50,4 +52,25 @@ function invalidResponse(): EmbeddingError {
     'EMBEDDING_RESPONSE_INVALID',
     'Embedding endpoint returned an invalid batch.'
   );
+}
+
+export function validateHttpEmbeddingInputs(inputs: readonly TextEmbeddingInput[]): void {
+  if (inputs.some(({ text }) => text.length === 0)) {
+    throw new EmbeddingError(
+      'EMBEDDING_INPUT_INVALID',
+      'HTTP embedding inputs cannot be empty strings.'
+    );
+  }
+}
+
+export function encodeEmbeddingRequest(
+  options: Pick<HttpTextEmbeddingConfig, 'model' | 'sendDimensions' | 'dimensions'>,
+  inputs: readonly TextEmbeddingInput[]
+): string {
+  return JSON.stringify({
+    model: options.model,
+    input: inputs.map(({ text }) => text),
+    encoding_format: 'float',
+    ...(options.sendDimensions ? { dimensions: options.dimensions } : {}),
+  });
 }

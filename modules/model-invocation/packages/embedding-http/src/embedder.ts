@@ -1,40 +1,17 @@
+import { bindCredentialResolver } from './authentication.js';
 import {
   createTextEmbedder,
   EmbeddingError,
-  type ProviderCredentialResolver,
   type TextEmbeddingCapability,
   type TextEmbeddingRequest,
 } from '@print-an-agent/model-invocation-core';
-import { readConfigRecord, prepareHttpEmbeddingConfig } from './config.js';
-import { requestHttpEmbeddings } from './transport.js';
+import {
+  readConfigRecord,
+  prepareHttpEmbeddingConfig,
+  prepareHttpEmbeddingRepresentation,
+} from './configuration/index.js';
+import { requestHttpEmbeddings } from './http/index.js';
 import type { CreateHttpTextEmbedderOptions } from './types.js';
-
-const HTTP_EMBEDDING_RECIPE_REF = Object.freeze({
-  MODEL_DEFAULT_DIMENSIONS: 'openai-compatible:float:model-default-dimensions',
-  EXPLICIT_DIMENSIONS: 'openai-compatible:float:explicit-dimensions',
-});
-
-function bindCredentialResolver(input: unknown): ProviderCredentialResolver | undefined {
-  if (input === undefined) return undefined;
-  try {
-    const resolve =
-      typeof input === 'object' && input !== null && 'resolve' in input ? input.resolve : undefined;
-    if (!isCredentialResolverMethod(resolve)) throw new Error('Expected a credential resolver');
-    return { resolve: resolve.bind(input) };
-  } catch (cause: unknown) {
-    throw new EmbeddingError(
-      'EMBEDDING_BINDING_INVALID',
-      'Embedding credential resolver is invalid.',
-      { cause }
-    );
-  }
-}
-
-function isCredentialResolverMethod(
-  value: unknown
-): value is ProviderCredentialResolver['resolve'] {
-  return typeof value === 'function';
-}
 
 function isFetch(input: unknown): input is typeof globalThis.fetch {
   return typeof input === 'function';
@@ -59,34 +36,30 @@ export function createHttpTextEmbedder(
       'Embedding fetch implementation is invalid.'
     );
   }
-  if (config.reference.credentialRef !== undefined && resolver === undefined) {
+  if (config.target.reference.credentialRef !== undefined && resolver === undefined) {
     throw new EmbeddingError(
       'EMBEDDING_BINDING_INVALID',
       'Embedding authentication requires a resolver.'
     );
   }
   // Only Core can turn this unchecked adapter configuration into a validated binding.
-  const recipeRef = config.sendDimensions
-    ? HTTP_EMBEDDING_RECIPE_REF.EXPLICIT_DIMENSIONS
-    : HTTP_EMBEDDING_RECIPE_REF.MODEL_DEFAULT_DIMENSIONS;
-  const representation = {
-    modelRef: config.modelRef,
-    dimensions: config.dimensions,
-    preprocessingRef: 'unicode-text:identity',
-    documentRecipeRef: recipeRef,
-    queryRecipeRef: recipeRef,
-    outputTransformRef: 'provider-numbers:identity',
-  };
   const definition = {
-    representation,
+    representation: prepareHttpEmbeddingRepresentation(config),
     limits: config.limits,
     ...(record.invocationPolicy === undefined ? {} : { invocationPolicy: record.invocationPolicy }),
     embed(request: TextEmbeddingRequest) {
       return requestHttpEmbeddings(
-        { config, credentialResolver: resolver, fetch: fetchImplementation },
+        {
+          ...config.target,
+          // Core has returned before any invocation can read its frozen descriptor.
+          dimensions: capability.descriptor.representation.dimensions,
+          credentialResolver: resolver,
+          fetch: fetchImplementation,
+        },
         request
       );
     },
   };
-  return createTextEmbedder(definition);
+  const capability: TextEmbeddingCapability = createTextEmbedder(definition);
+  return capability;
 }

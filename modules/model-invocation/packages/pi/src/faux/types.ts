@@ -1,12 +1,14 @@
-import type { ActorEngine, ActorInvocationConfig } from '@print-an-agent/model-invocation-core';
+import type { PiInvocationKind } from '../types.js';
 import type {
+  ActorEngine,
+  ActorInvocationConfig,
   ModelInteractionRuntime,
   ModelMessage,
   ProviderModelReference,
 } from '@print-an-agent/model-invocation-core';
 
 export interface PiFauxRequestSnapshot {
-  readonly kind: 'agent-loop' | 'direct' | 'stream';
+  readonly kind: PiInvocationKind;
   readonly callIndex: number;
   readonly instructions: string;
   readonly invocationConfig: ActorInvocationConfig;

@@ -6,28 +6,20 @@ import {
   type ApiKeyAuth,
   type AuthContext,
   type Model,
+  type Models,
 } from '@earendil-works/pi-ai';
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy';
 import { builtinModels } from '@earendil-works/pi-ai/providers/all';
-import {
-  ModelInvocationError,
-  defineProviderTransportLivenessPolicy,
-  defineActorEngine,
-  type TokenCounterDescriptor,
-} from '@print-an-agent/model-invocation-core';
-import { createPiActorEngine, PiActorRuntime } from '../runtime/pi-actor-runtime.js';
-import {
-  definePiProviderConfig,
-  type DefinedPiOpenAICompatibleProviderConfig,
-  type DefinedPiProviderConfig,
-} from './pi-provider-config.js';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import type {
-  PiProviderRuntimeInspection,
-  PiProviderRuntimeOptions,
-  PiProviderRuntimeProfile,
-} from './types.js';
+  DefinedPiProviderConfig,
+  DefinedPiOpenAICompatibleProviderConfig,
+} from './types/configuration.js';
 
-const DEFAULT_ACTOR_ENGINE_ID = 'provider';
+interface PiModelBinding {
+  readonly models: Models;
+  readonly model: Model<Api>;
+}
 
 const NO_AMBIENT_AUTH: AuthContext = Object.freeze({
   env: () => Promise.resolve(undefined),
@@ -111,84 +103,8 @@ function createOpenAICompatibleModels(config: DefinedPiOpenAICompatibleProviderC
   return Object.freeze({ models, model });
 }
 
-function resolveModels(config: DefinedPiProviderConfig) {
+export function resolvePiModels(config: DefinedPiProviderConfig): PiModelBinding {
   return config.kind === 'builtin'
     ? createBuiltinModels(config)
     : createOpenAICompatibleModels(config);
-}
-
-function createInspection(
-  config: DefinedPiProviderConfig,
-  model: Model<Api>,
-  actorEngineId: PiProviderRuntimeInspection['actorEngineId'],
-  transportLivenessPolicy: PiProviderRuntimeInspection['transportLivenessPolicy'],
-  textTokenCounter: TokenCounterDescriptor | undefined
-): PiProviderRuntimeInspection {
-  const common = {
-    ...(textTokenCounter === undefined ? {} : { textTokenCounter }),
-    provider: config.reference.provider,
-    model: config.reference.model,
-    baseUrl: model.baseUrl,
-    authentication:
-      config.reference.credentialRef === undefined ? 'keyless' : 'credential-reference',
-    actorEngineId,
-    contextWindowTokens: model.contextWindow,
-    maxOutputTokens: model.maxTokens,
-    supportsReasoning: model.reasoning,
-    transportLivenessPolicy,
-  } as const;
-  return config.kind === 'builtin'
-    ? Object.freeze({ kind: config.kind, ...common })
-    : Object.freeze({
-        kind: config.kind,
-        ...common,
-        compatibility: config.compatibility,
-      });
-}
-
-export function createPiProviderRuntime(
-  options: PiProviderRuntimeOptions
-): PiProviderRuntimeProfile {
-  const config = definePiProviderConfig(options.provider);
-  const transportLivenessPolicy = defineProviderTransportLivenessPolicy(
-    options.transportLivenessPolicy
-  );
-  const { models, model } = resolveModels(config);
-  const runtime = new PiActorRuntime({
-    models,
-    model,
-    modelReference: config.reference,
-    ...(options.credentialResolver === undefined
-      ? {}
-      : { credentialResolver: options.credentialResolver }),
-    transportLivenessPolicy,
-  });
-  const baseEngine = createPiActorEngine(
-    runtime,
-    options.actorEngineId ?? DEFAULT_ACTOR_ENGINE_ID,
-    model.contextWindow
-  );
-  const actorEngine =
-    options.textTokenCounter === undefined
-      ? baseEngine
-      : defineActorEngine({ ...baseEngine, textTokenCounter: options.textTokenCounter });
-  const inspection = createInspection(
-    config,
-    model,
-    actorEngine.id,
-    transportLivenessPolicy,
-    actorEngine.textTokenCounter?.descriptor
-  );
-
-  return Object.freeze({
-    runtime,
-    modelReference: config.reference,
-    actorEngine,
-    inspect: () => inspection,
-    checkReadiness: async (readinessOptions?: Readonly<{ signal?: AbortSignal }>) => {
-      const signal = readinessOptions?.signal ?? new AbortController().signal;
-      const status = await runtime.checkCredential(signal);
-      return Object.freeze({ status, inspection });
-    },
-  });
 }

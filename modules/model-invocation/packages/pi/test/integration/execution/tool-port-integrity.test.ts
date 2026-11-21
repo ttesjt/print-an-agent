@@ -8,8 +8,8 @@ import {
   type ToolExecutionOutcome,
   type ToolObjectSchema,
 } from '@print-an-agent/model-invocation-core';
-import { createPiProviderRuntime } from '../../src/index.js';
-import { completionServer } from '../support/completion-server.js';
+import { createPiProviderRuntime } from '../../../src/index.js';
+import { completionServer } from '../../support/completion-server.js';
 
 function providerActor(baseUrl: string) {
   const profile = createPiProviderRuntime({

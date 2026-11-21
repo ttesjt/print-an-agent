@@ -1,32 +1,11 @@
-import type { AssistantMessage } from '@earendil-works/pi-ai';
+import type { PiToolEventObserver } from '../types.js';
 import type { AgentEvent } from '@earendil-works/pi-agent-core';
-import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
-import type {
-  ModelInteractionEvent,
-  ModelInteractionRequest,
-  AssistantModelMessage,
+import {
+  ModelInvocationError,
+  type ModelInteractionRequest,
 } from '@print-an-agent/model-invocation-core';
-import { toModelMessage } from './pi-message-mapping.js';
-import { readablePiDelta } from './pi-generation-event.js';
-import type { PiToolAdapterState } from './pi-tool-adapter.js';
-
-export type PiObservedToolEvent = Extract<
-  ModelInteractionEvent,
-  { type: 'tool-call-start' | 'tool-call-end' }
->;
-export type PiToolEventObserver = (event: PiObservedToolEvent) => void;
-
-export interface PiRunState {
-  outputCharacters: number;
-  modelTurns: number;
-  turnTextDeltas: string[];
-  readonly toolAdapter: PiToolAdapterState;
-  completedMessage?: AssistantModelMessage;
-  terminalFailure?: AssistantMessage;
-  limitFailure?: ModelInvocationError;
-  modelTurnFailure?: ModelInvocationError;
-  eventSinkFailure?: Error;
-}
+import { toModelMessage, readablePiDelta } from '../../translation/index.js';
+import type { PiInteractionState } from './types.js';
 
 function normalizeEventSinkFailure(error: unknown): Error {
   return error instanceof Error
@@ -42,7 +21,7 @@ async function handleMessageUpdate(
   request: ModelInteractionRequest,
   event: Extract<AgentEvent, { type: 'message_update' }>,
   internalAbort: AbortController,
-  state: PiRunState
+  state: PiInteractionState
 ): Promise<void> {
   const update = event.assistantMessageEvent;
   if (update.type === 'thinking_delta') {
@@ -70,7 +49,7 @@ async function handleMessageUpdate(
 async function handleMessageEnd(
   request: ModelInteractionRequest,
   event: Extract<AgentEvent, { type: 'message_end' }>,
-  state: PiRunState
+  state: PiInteractionState
 ): Promise<void> {
   if (event.message.role !== 'assistant') return;
   state.modelTurns += 1;
@@ -124,7 +103,7 @@ function resultCharacterCount(event: Extract<AgentEvent, { type: 'tool_execution
 async function handleToolEvent(
   request: ModelInteractionRequest,
   event: AgentEvent,
-  state: PiRunState,
+  state: PiInteractionState,
   observeToolEvent: PiToolEventObserver | undefined
 ): Promise<void> {
   if (event.type === 'tool_execution_start') {
@@ -181,7 +160,7 @@ async function emitLifecycleEvent(
 export function createPiEventSink(
   request: ModelInteractionRequest,
   internalAbort: AbortController,
-  state: PiRunState,
+  state: PiInteractionState,
   observeToolEvent?: PiToolEventObserver
 ): (event: AgentEvent) => Promise<void> {
   return async (event) => {
@@ -200,18 +179,4 @@ export function createPiEventSink(
       throw state.eventSinkFailure;
     }
   };
-}
-
-export function throwTerminalFailure(signal: AbortSignal, failure: AssistantMessage): never {
-  const cancelled = failure.stopReason === 'aborted' || signal.aborted;
-  const timedOut = signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError';
-  throw new ModelInvocationError(
-    timedOut
-      ? 'MODEL_INVOCATION_TIMEOUT'
-      : cancelled
-        ? 'MODEL_INVOCATION_CANCELLED'
-        : 'MODEL_PROVIDER_FAILED',
-    failure.errorMessage ??
-      (cancelled ? 'Model invocation was cancelled.' : 'Model provider failed.')
-  );
 }

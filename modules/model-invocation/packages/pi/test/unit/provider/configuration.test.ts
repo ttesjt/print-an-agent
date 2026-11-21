@@ -1,6 +1,6 @@
 import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import { describe, expect, it } from 'vitest';
-import { definePiProviderConfig } from '../../src/index.js';
+import { definePiProviderConfig } from '../../../src/index.js';
 
 function captureModelError(action: () => unknown): ModelInvocationError {
   try {

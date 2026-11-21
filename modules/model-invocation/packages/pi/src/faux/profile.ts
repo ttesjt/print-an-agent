@@ -1,22 +1,13 @@
-import {
-  createModels,
-  fauxProvider,
-  type Context,
-  type StreamOptions,
-} from '@earendil-works/pi-ai';
-import { type ActorInvocationConfig } from '@print-an-agent/model-invocation-core';
+import { invocationConfigFromPiOptions } from '../translation/index.js';
+import { createModels, fauxProvider, type Context } from '@earendil-works/pi-ai';
 import {
   ModelInvocationError,
   DEFAULT_PROVIDER_TRANSPORT_LIVENESS_POLICY,
   defineProviderModelReference,
 } from '@print-an-agent/model-invocation-core';
-import { createPiActorEngine, PiActorRuntime } from '../runtime/pi-actor-runtime.js';
-import {
-  cloneRequestSnapshot,
-  createResponseMessage,
-  toToolResultSnapshot,
-} from './pi-faux-message-mapping.js';
-import { toModelMessage } from '../runtime/pi-message-mapping.js';
+import { createPiActorEngine, PiActorRuntime } from '../execution/index.js';
+import { cloneRequestSnapshot, snapshotFromPiContext } from './snapshots.js';
+import { createResponseMessage } from './responses.js';
 import type {
   PiFauxRequestSnapshot,
   PiFauxRuntimeInspection,
@@ -34,39 +25,6 @@ function validatePositiveNumber(value: number | undefined, name: string): void {
   if (value !== undefined && (!Number.isFinite(value) || value <= 0)) {
     throw new ModelInvocationError('MODEL_REFERENCE_INVALID', `${name} must be positive.`);
   }
-}
-
-function snapshotFromPiContext(
-  context: Context,
-  callIndex: number,
-  kind: PiFauxRequestSnapshot['kind'],
-  invocationConfig: ActorInvocationConfig
-): PiFauxRequestSnapshot {
-  return Object.freeze({
-    kind,
-    callIndex,
-    instructions: context.systemPrompt ?? '',
-    invocationConfig: Object.freeze({ ...invocationConfig }),
-    messages: Object.freeze(
-      context.messages.flatMap((message) => {
-        const normalized = toModelMessage(message);
-        return normalized === undefined ? [] : [normalized];
-      })
-    ),
-    toolResults: Object.freeze(
-      context.messages.flatMap((message) => {
-        const normalized = toToolResultSnapshot(message);
-        return normalized === undefined ? [] : [normalized];
-      })
-    ),
-  });
-}
-
-function invocationConfigFromPiOptions(options: StreamOptions | undefined): ActorInvocationConfig {
-  return Object.freeze({
-    ...(options?.temperature === undefined ? {} : { temperature: options.temperature }),
-    ...(options?.maxTokens === undefined ? {} : { maxOutputTokens: options.maxTokens }),
-  });
 }
 
 export function createPiFauxRuntime(options: PiFauxRuntimeOptions): PiFauxRuntimeProfile {

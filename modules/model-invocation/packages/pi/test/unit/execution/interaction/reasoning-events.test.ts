@@ -1,3 +1,4 @@
+import type { PiInteractionState } from '../../../../src/execution/interaction/types.js';
 import {
   fauxAssistantMessage,
   fauxThinking,
@@ -8,8 +9,8 @@ import type {
   ModelInteractionRequest,
 } from '@print-an-agent/model-invocation-core';
 import { describe, expect, it } from 'vitest';
-import { createPiFauxRuntime } from '../../src/index.js';
-import { createPiEventSink, type PiRunState } from '../../src/runtime/pi-event-adapter.js';
+import { createPiFauxRuntime } from '../../../../src/index.js';
+import { createPiEventSink } from '../../../../src/execution/interaction/events.js';
 
 describe('Pi readable reasoning mapping', () => {
   it('forwards only readable deltas, never signatures, redacted blocks, empty deltas, or end snapshots', async () => {
@@ -30,7 +31,7 @@ describe('Pi readable reasoning mapping', () => {
         return Promise.resolve();
       },
     };
-    const state: PiRunState = {
+    const state: PiInteractionState = {
       outputCharacters: 0,
       modelTurns: 0,
       turnTextDeltas: [],

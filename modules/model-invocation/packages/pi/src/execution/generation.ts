@@ -8,19 +8,20 @@ import type {
 } from '@earendil-works/pi-ai';
 import {
   ModelInvocationError,
+  type ActorDirectResult,
+  type AssistantModelMessage,
   type ActorEngineDirectRequest,
   type ActorEngineStreamingRequest,
   type ProviderTransportLivenessPolicy,
   type ModelGenerationEventSink,
 } from '@print-an-agent/model-invocation-core';
-import { toPiInvocationOptions, normalizeProviderFailure } from './pi-invocation.js';
-import { readablePiDelta } from './pi-generation-event.js';
-import { toModelMessage } from './pi-message-mapping.js';
+import { toPiInvocationOptions, readablePiDelta, toModelMessage } from '../translation/index.js';
+import { normalizeProviderFailure, throwTerminalFailure } from './failures.js';
+
 import {
   createPiProviderTransportLivenessBoundary,
   type PiProviderTransportLivenessBoundary,
-} from './pi-provider-transport-liveness.js';
-import { throwTerminalFailure } from './pi-event-adapter.js';
+} from './transport-liveness.js';
 
 interface PiGenerationOptions {
   readonly models: Models;
@@ -57,7 +58,7 @@ export async function runPiGeneration(
   options: PiGenerationOptions,
   request: ActorEngineDirectRequest,
   streaming?: ActorEngineStreamingRequest
-) {
+): Promise<ActorDirectResult> {
   validatePiGenerationBudgets(request, streaming);
   const controller = new AbortController();
   const signal = AbortSignal.any([request.signal, controller.signal]);
@@ -151,7 +152,7 @@ async function consumeGeneration(
 function normalizeGenerationResponse(
   response: AssistantMessage,
   request: ActorEngineDirectRequest
-) {
+): AssistantModelMessage {
   if (response.stopReason === 'error' || response.stopReason === 'aborted')
     throwTerminalFailure(request.signal, response);
   if (response.stopReason === 'toolUse') {

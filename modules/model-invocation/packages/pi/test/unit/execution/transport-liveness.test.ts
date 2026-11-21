@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createPiProviderTransportLivenessBoundary } from '../../src/runtime/pi-provider-transport-liveness.js';
+import { createPiProviderTransportLivenessBoundary } from '../../../src/execution/transport-liveness.js';
 
 afterEach(() => {
   vi.useRealTimers();

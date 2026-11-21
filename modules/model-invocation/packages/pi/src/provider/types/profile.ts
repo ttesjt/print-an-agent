@@ -4,41 +4,18 @@ import type {
   TokenCounter,
   TextTokenInput,
   TokenCounterDescriptor,
-} from '@print-an-agent/model-invocation-core';
-import type {
   ModelInteractionRuntime,
   ProviderCredentialResolver,
   ProviderId,
   ProviderModelId,
   ProviderModelReference,
-  ProviderModelReferenceInput,
   ProviderTransportLivenessPolicy,
   ProviderTransportLivenessPolicyInput,
 } from '@print-an-agent/model-invocation-core';
-
-export interface PiBuiltinProviderConfigInput {
-  readonly kind: 'builtin';
-  readonly reference: ProviderModelReferenceInput;
-}
-
-export interface PiOpenAICompatibleProviderCompatibility {
-  /** Whether the endpoint accepts OpenAI's developer message role for instructions. */
-  readonly supportsDeveloperRole: boolean;
-}
-
-export interface PiOpenAICompatibleProviderConfigInput {
-  readonly kind: 'openai-compatible';
-  readonly reference: ProviderModelReferenceInput;
-  readonly contextWindowTokens: number;
-  readonly maxOutputTokens: number;
-  /** Declares endpoint capability; it does not request reasoning generation. */
-  readonly supportsReasoning: boolean;
-  readonly compatibility: PiOpenAICompatibleProviderCompatibility;
-}
-
-export type PiProviderConfigInput =
-  | PiBuiltinProviderConfigInput
-  | PiOpenAICompatibleProviderConfigInput;
+import type {
+  PiProviderConfigInput,
+  PiOpenAICompatibleProviderCompatibility,
+} from './configuration.js';
 
 export interface PiProviderRuntimeOptions {
   readonly textTokenCounter?: TokenCounter<TextTokenInput>;

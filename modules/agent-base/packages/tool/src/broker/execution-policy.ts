@@ -1,5 +1,5 @@
-import type { ToolExecutionPolicy } from './contracts.js';
-import { AgentToolError } from './errors.js';
+import { AgentToolError } from '../errors.js';
+import type { ToolExecutionPolicy } from './types/policy.js';
 
 const MAX_TIMEOUT_MILLISECONDS = 2_147_483_647;
 

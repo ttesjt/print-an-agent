@@ -1,67 +1,23 @@
 import type {
-  ToolCallId,
-  ToolDefinition,
-  ToolExecutionPolicy,
-  ToolName,
-  ToolPermissionPolicy,
-  ToolRegistry,
-  ToolRunInspection,
-  ToolRunRecord,
-  ToolRuntime,
-} from '../contracts.js';
-import type {
   ToolCallProposal,
   ToolDescriptor,
-  ToolExecutionOutcome,
   ToolExecutionOptions,
-  ToolSchemaValue,
+  ToolExecutionOutcome,
   ToolObjectSchema,
+  ToolSchemaValue,
 } from '@print-an-agent/model-invocation-core';
-import { AgentToolError, type AgentToolErrorCode } from '../errors.js';
-import { validateToolExecutionPolicy } from '../execution-policy.js';
-import { resolveEffectiveTools } from '../permission-policy.js';
-import { parseToolArguments, parseToolName } from '../schema.js';
+import type { ToolDefinition } from '../definition/index.js';
+import { parseToolArguments, parseToolName } from '../definition/index.js';
+import { AgentToolError } from '../errors.js';
+import { resolveEffectiveTools } from '../permissions/index.js';
+import type { AgentToolErrorCode } from '../types/errors.js';
+import type { ToolCallId, ToolName } from '../types/identity.js';
+import { parseToolCallId, serializedCharacterCount } from './call-input.js';
 import { executeToolHandler } from './execute-tool-handler.js';
-
-const TOOL_CALL_ID_MAX_LENGTH = 128;
-const TOOL_CALL_ID_PATTERN = /^[a-z0-9][a-z0-9._:-]*$/i;
-
-export interface CreateBoundedToolRuntimeOptions {
-  readonly registry: ToolRegistry;
-  readonly permissionPolicy: ToolPermissionPolicy;
-  readonly executionPolicy: ToolExecutionPolicy;
-  readonly signal: AbortSignal;
-  readonly clock?: () => number;
-}
-
-function parseToolCallId(value: unknown): ToolCallId {
-  if (
-    typeof value !== 'string' ||
-    value.length > TOOL_CALL_ID_MAX_LENGTH ||
-    !TOOL_CALL_ID_PATTERN.test(value)
-  ) {
-    throw new AgentToolError(
-      'TOOL_CALL_ID_INVALID',
-      `Tool call ID must contain 1-${TOOL_CALL_ID_MAX_LENGTH} letters, digits, dots, underscores, colons, or hyphens.`
-    );
-  }
-  return value as ToolCallId;
-}
-
-function serializedCharacterCount(value: unknown): number {
-  try {
-    const serialized = JSON.stringify(value);
-    if (serialized === undefined) {
-      throw new AgentToolError('TOOL_ARGUMENTS_INVALID', 'Tool arguments are not JSON-compatible.');
-    }
-    return serialized.length;
-  } catch (cause: unknown) {
-    if (cause instanceof AgentToolError) throw cause;
-    throw new AgentToolError('TOOL_ARGUMENTS_INVALID', 'Tool arguments are not JSON-compatible.', {
-      cause,
-    });
-  }
-}
+import { validateToolExecutionPolicy } from './execution-policy.js';
+import type { ToolRunInspection, ToolRunRecord } from './types/inspection.js';
+import type { ToolExecutionPolicy } from './types/policy.js';
+import type { CreateBoundedToolRuntimeOptions, ToolRuntime } from './types/runtime.js';
 
 function cloneDescriptor(tool: ToolDefinition): ToolDescriptor {
   return Object.freeze({

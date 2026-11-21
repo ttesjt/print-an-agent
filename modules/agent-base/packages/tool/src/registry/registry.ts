@@ -1,5 +1,7 @@
-import type { ToolDefinition, ToolName, ToolRegistry } from './contracts.js';
-import { AgentToolError } from './errors.js';
+import type { ToolDefinition } from '../definition/index.js';
+import { AgentToolError } from '../errors.js';
+import type { ToolName } from '../types/identity.js';
+import type { ToolRegistry } from './types.js';
 
 class ImmutableToolRegistry implements ToolRegistry {
   readonly #tools: readonly ToolDefinition[];

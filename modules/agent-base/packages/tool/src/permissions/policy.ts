@@ -1,12 +1,9 @@
-import type {
-  ToolDefinition,
-  ToolName,
-  ToolPermissionPolicy,
-  ToolPermissionPolicyInput,
-  ToolRegistry,
-} from './contracts.js';
-import { AgentToolError } from './errors.js';
-import { parseToolName } from './schema.js';
+import type { ToolDefinition } from '../definition/index.js';
+import { parseToolName } from '../definition/index.js';
+import { AgentToolError } from '../errors.js';
+import type { ToolRegistry } from '../registry/index.js';
+import type { ToolName } from '../types/identity.js';
+import type { ToolPermissionPolicy, ToolPermissionPolicyInput } from './types.js';
 
 const POLICY_LAYERS = Object.freeze(['responsibility', 'actor', 'product', 'runtime'] as const);
 

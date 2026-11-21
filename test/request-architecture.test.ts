@@ -5,6 +5,8 @@ import ts from 'typescript';
 import { expect, it } from 'vitest';
 import {
   inspectSourceBoundaries,
+  inspectSourceCycles,
+  sourceModuleSpecifiers,
   type SourceBoundary,
   type SourceDependencyRule,
   type SourceModule,
@@ -79,33 +81,10 @@ function modules(directory: string): SourceModule[] {
   });
 }
 const sources = modules(root);
-function specifiers(source: string): string[] {
-  const file = ts.createSourceFile('source.ts', source, ts.ScriptTarget.Latest, true),
-    result: string[] = [];
-  function visit(node: ts.Node): void {
-    if (
-      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
-      node.moduleSpecifier &&
-      ts.isStringLiteralLike(node.moduleSpecifier)
-    )
-      result.push(node.moduleSpecifier.text);
-    if (
-      ts.isImportTypeNode(node) &&
-      ts.isLiteralTypeNode(node.argument) &&
-      ts.isStringLiteralLike(node.argument.literal)
-    )
-      result.push(node.argument.literal.text);
-    if (
-      ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments[0] &&
-      ts.isStringLiteralLike(node.arguments[0])
-    )
-      result.push(node.arguments[0].text);
-    ts.forEachChild(node, visit);
-  }
-  visit(file);
-  return result;
+function specifiers(source: string): readonly string[] {
+  return sourceModuleSpecifiers(
+    ts.createSourceFile('source.ts', source, ts.ScriptTarget.Latest, true)
+  );
 }
 const graph = new Map(
   sources.map((module) => [
@@ -145,20 +124,9 @@ it('keeps independent type modules erased at runtime', () => {
   }
 });
 it('keeps the source module graph acyclic, including type-only dependencies', () => {
-  const visited = new Set<string>(),
-    active = new Set<string>();
-  function visit(file: string): void {
-    expect(active.has(file), file).toBe(false);
-    if (visited.has(file)) return;
-    active.add(file);
-    for (const target of graph.get(file) ?? []) {
-      expect(graph.has(target), `${file}: ${target}`).toBe(true);
-      visit(target);
-    }
-    active.delete(file);
-    visited.add(file);
-  }
-  for (const file of graph.keys()) visit(file);
+  expect(inspectSourceCycles(sources)).toEqual([]);
+  for (const [file, targets] of graph)
+    for (const target of targets) expect(graph.has(target), `${file}: ${target}`).toBe(true);
 });
 it('keeps the complete Sessionless implementation closure free of Session-aware authority', () => {
   const visited = new Set<string>();

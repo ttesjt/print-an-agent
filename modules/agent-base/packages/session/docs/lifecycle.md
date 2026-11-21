@@ -183,12 +183,14 @@ The local adapter and composition suites apply shared observable cases to Memory
   additionally proves Journal reconciliation and continuous admission fencing across partial failure.
 - SQLite-specific rollback fault injection, restart persistence and complete deletion evidence.
 
-Domain unit tests qualify pure decisions, not storage behavior. Storage evidence lives in
-`base-local-adapters/test/integration/session-lifecycle.test.ts`; runtime lease/output/replay,
-cancellation and suspended maintenance writes are covered in
-[Composition runtime lifecycle tests](../../composition/test/integration/runtime/request/session-lifecycle.test.ts). Persistent recovery tests reopen
-SQLite adapters/connections and inject storage failures; they do not certify remote stores or
-exactly-once external side effects. Standalone namespace-based management services remain separate.
+Domain unit tests qualify pure decisions, not storage behavior. Storage evidence lives in the
+[Session lifecycle tests](../../local-adapters/test/integration/session/lifecycle.test.ts) and
+[coordinated persistence tests](../../local-adapters/test/integration/session-persistence/lifecycle.test.ts).
+Runtime lease/output/replay, cancellation and suspended maintenance writes are covered in the
+[Composition runtime lifecycle tests](../../composition/test/integration/runtime/request/session-lifecycle.test.ts).
+Persistent recovery tests reopen SQLite adapters/connections and inject storage failures; they do not
+certify remote stores or exactly-once external side effects. Standalone namespace-based management
+services remain separate.
 
 Lifecycle source separates shared state authority in `src/lifecycle/state/` from execution
 admission, leases, fences, recovery and finalization in `src/lifecycle/execution/`. The enclosing

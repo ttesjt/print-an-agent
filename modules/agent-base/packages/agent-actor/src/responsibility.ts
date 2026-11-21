@@ -14,7 +14,7 @@ import {
   type ActorCapabilityRequirements,
   type ActorInputMediaType,
 } from '@print-an-agent/model-invocation-core';
-import type { ResolvedActor } from './actor.js';
+import type { ResolvedAgentActor } from './actor.js';
 import type {
   ActorDirectRequest,
   ActorDirectResult,
@@ -57,7 +57,7 @@ export interface ResponsibilityDefinition {
 export interface ResolvedResponsibility {
   readonly id: ResponsibilityId;
   readonly catalogRevision: number;
-  readonly actor: ResolvedActor;
+  readonly actor: ResolvedAgentActor;
   readonly candidateIndex: number;
   readonly allowedTools: readonly ToolName[];
   readonly effectiveCandidates: readonly ResponsibilityActorCandidate[];
@@ -277,7 +277,7 @@ export function defineResponsibility(
 export function resolveResponsibility(
   definition: ResponsibilityDefinition,
   catalogRevision: number,
-  actor: ResolvedActor,
+  actor: ResolvedAgentActor,
   candidateIndex: number,
   effectiveCandidates: readonly ResponsibilityActorCandidate[]
 ): ResolvedResponsibility {

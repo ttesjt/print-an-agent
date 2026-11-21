@@ -1,7 +1,7 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import {
   MemorySessionAdapter,
   type SqliteSessionAdapter,

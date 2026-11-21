@@ -1,4 +1,4 @@
-import { AgentActorError } from '@print-an-agent/base-actor';
+import { AgentActorError } from '@print-an-agent/agent-actor';
 import { AgentToolError } from '@print-an-agent/base-tool';
 import {
   ActorError,

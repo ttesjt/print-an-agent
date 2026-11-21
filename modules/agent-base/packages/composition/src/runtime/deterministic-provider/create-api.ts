@@ -1,10 +1,10 @@
 import {
   AgentActorError,
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { createPiFauxRuntime } from '@print-an-agent/model-invocation-pi';
 import { createAgentAPI } from '../agent-api.js';
 import { composeAgent } from '../standard-agent/index.js';
@@ -50,7 +50,7 @@ export function createDeterministicAgentAPI(
   const providerProfile = createPiFauxRuntime(provider);
   const actorCatalog =
     injectedActorCatalog ??
-    createActorCatalog({
+    createAgentActorCatalog({
       actors: [
         {
           ...mainActor,

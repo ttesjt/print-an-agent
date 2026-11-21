@@ -2,7 +2,7 @@ import {
   BUILT_IN_RESPONSIBILITIES,
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
   type ResponsibilityDefinitionInput,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import {
   defineAssistantModelMessage,
   defineEngineDefinedModelExecutionProvenance,

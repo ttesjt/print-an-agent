@@ -1,4 +1,4 @@
-import { BUILT_IN_RESPONSIBILITIES } from '@print-an-agent/base-actor';
+import { BUILT_IN_RESPONSIBILITIES } from '@print-an-agent/agent-actor';
 import { MemorySessionAdapter, SqliteSessionAdapter } from '@print-an-agent/base-local-adapters';
 import { parseSessionId, parseTurnId } from '@print-an-agent/base-session';
 import { createToolRegistry, defineTool } from '@print-an-agent/base-tool';

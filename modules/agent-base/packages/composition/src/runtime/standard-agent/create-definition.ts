@@ -1,4 +1,4 @@
-import { createResponsibilityRouter, MAIN_ACTOR_ID } from '@print-an-agent/base-actor';
+import { createResponsibilityRouter, MAIN_ACTOR_ID } from '@print-an-agent/agent-actor';
 import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import {
   createMemorySessionPersistence,

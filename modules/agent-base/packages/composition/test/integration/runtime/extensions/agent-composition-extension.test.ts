@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import type { AgentOperationDefinitionMap } from '@print-an-agent/base-runtime';
 import {
   bindAgentWorkflow,
@@ -36,7 +36,7 @@ interface ProductRunContext extends BaseAgentRunContext<string, string> {
 function createOptions(): ComposeAgentOptions {
   return {
     identity: { id: 'extended-agent' },
-    actorCatalog: createActorCatalog({
+    actorCatalog: createAgentActorCatalog({
       actors: [{ id: MAIN_ACTOR_ID, engineId: 'unused-test-engine' }],
       engines: [
         {

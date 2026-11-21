@@ -217,7 +217,7 @@ it.each(['request', 'session'])(
     for (const specifier of [
       '@print-an-agent/workflow-core',
       '@print-an-agent/model-invocation-core',
-      '@print-an-agent/base-actor',
+      '@print-an-agent/agent-actor',
     ]) {
       const result = await eslint.lintText(`import '${specifier}';\n`, { filePath });
       expect(

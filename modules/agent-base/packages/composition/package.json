@@ -36,7 +36,7 @@
   "dependencies": {
     "@print-an-agent/context-memory": "workspace:*",
     "@print-an-agent/retrieval-memory": "workspace:*",
-    "@print-an-agent/base-actor": "workspace:*",
+    "@print-an-agent/agent-actor": "workspace:*",
     "@print-an-agent/base-local-adapters": "workspace:*",
     "@print-an-agent/model-invocation-core": "workspace:*",
     "@print-an-agent/base-observability": "workspace:*",

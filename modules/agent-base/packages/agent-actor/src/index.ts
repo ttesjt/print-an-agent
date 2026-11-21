@@ -8,9 +8,13 @@ export {
 } from './identifiers.js';
 export type { ResponsibilityId } from './identifiers.js';
 export { defineAgentActor } from './actor.js';
-export type { ActorDefinition, ActorDefinitionInput, ResolvedActor } from './actor.js';
-export { createActorCatalog } from './catalog.js';
-export type { ActorCatalogPort, CreateActorCatalogOptions } from './catalog.js';
+export type {
+  AgentActorDefinition,
+  AgentActorDefinitionInput,
+  ResolvedAgentActor,
+} from './actor.js';
+export { createAgentActorCatalog } from './catalog.js';
+export type { AgentActorCatalogPort, CreateAgentActorCatalogOptions } from './catalog.js';
 export { defineResponsibility } from './responsibility.js';
 export type {
   ResolvedResponsibility,

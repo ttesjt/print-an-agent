@@ -4,14 +4,14 @@ import {
   defineProviderModelExecutionProvenance,
 } from '@print-an-agent/model-invocation-core';
 import {
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   createResponsibilityRouter,
   parseResponsibilityId,
 } from '../../src/index.js';
 
 it('routes a streaming-only Actor and composes Agent Responsibility instructions', async () => {
-  const actors = createActorCatalog({
+  const actors = createAgentActorCatalog({
     actors: [{ id: 'main', engineId: 'engine', instructions: 'Actor' }],
     engines: [
       {

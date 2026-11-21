@@ -11,6 +11,7 @@ import {
 } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { ESLint } from 'eslint';
 import { describe, expect, it } from 'vitest';
 
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -20,6 +21,7 @@ const moduleRules = Object.freeze({
     packagePrefix: '@print-an-agent/model-invocation-',
     forbiddenPrefixes: [
       '@print-an-agent/base-',
+      '@print-an-agent/agent-actor',
       '@print-an-agent/workbench-',
       '@print-an-agent/self-learn-',
       '@print-an-agent/ui-',
@@ -30,6 +32,7 @@ const moduleRules = Object.freeze({
     packagePrefix: '@print-an-agent/workflow-',
     forbiddenPrefixes: [
       '@print-an-agent/base-',
+      '@print-an-agent/agent-actor',
       '@print-an-agent/model-invocation-',
       '@print-an-agent/workbench-',
       '@print-an-agent/self-learn-',
@@ -38,7 +41,11 @@ const moduleRules = Object.freeze({
   },
   'model-workbench': {
     packagePrefix: '@print-an-agent/workbench-',
-    forbiddenPrefixes: ['@print-an-agent/base-', '@print-an-agent/self-learn-'],
+    forbiddenPrefixes: [
+      '@print-an-agent/base-',
+      '@print-an-agent/agent-actor',
+      '@print-an-agent/self-learn-',
+    ],
   },
   'agent-base': {
     packagePrefix: '@print-an-agent/base-',
@@ -252,11 +259,24 @@ function reachablePublicDeclarations(entryPoint: string): readonly string[] {
   return Object.freeze([...visited]);
 }
 
+const agentBasePackageNames: ReadonlySet<string> = new Set(
+  packageManifests('agent-base').flatMap((manifest) =>
+    manifest.name === undefined ? [] : [manifest.name]
+  )
+);
+
+function isAgentBaseSpecifier(specifier: string): boolean {
+  return (
+    specifier.startsWith('@print-an-agent/base-') ||
+    agentBasePackageNames.has(specifier.split('/').slice(0, 2).join('/'))
+  );
+}
+
 /** Public paths come from their owner manifests; subpaths are not inherently private. */
 const agentBasePublicEntries: ReadonlySet<string> = new Set(
   packageManifests('agent-base').flatMap((manifest) => {
     const name = manifest.name;
-    if (!name?.startsWith('@print-an-agent/base-')) return [];
+    if (name === undefined) return [];
     return Object.keys(manifest.exports ?? {})
       .filter((entry) => (entry === '.' || entry.startsWith('./')) && !entry.includes('*'))
       .map((entry) => (entry === '.' ? name : `${name}${entry.slice(1)}`));
@@ -264,6 +284,33 @@ const agentBasePublicEntries: ReadonlySet<string> = new Set(
 );
 
 describe('module architecture', () => {
+  it.each([
+    'modules/model-invocation/packages/core/src/index.ts',
+    'modules/workflow/packages/core/src/index.ts',
+    'modules/agent-memory/packages/context-memory/src/index.ts',
+    'modules/agent-memory/tests/qualification/examples/project-memory.ts',
+    'modules/model-workbench/packages/control-plane/src/index.ts',
+    'modules/agent-ui/packages/contracts/src/index.ts',
+    'modules/agent-base/packages/composition/src/resource-registry/index.ts',
+    'modules/agent-base/tests/integration/test/resource-registry/examples/service-provisioning/service.ts',
+  ])('preserves Agent-domain import restrictions after renaming: %s', async (filePath) => {
+    const results = await new ESLint({ cwd: repositoryRoot }).lintText(
+      "import { defineAgentActor } from '@print-an-agent/agent-actor';\nvoid defineAgentActor;\n",
+      { filePath: join(repositoryRoot, filePath) }
+    );
+    expect(results.flatMap((result) => result.messages)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ ruleId: 'no-restricted-imports' })])
+    );
+  });
+
+  it('allows Request to consume the renamed Agent Actor public entry', async () => {
+    const results = await new ESLint({ cwd: repositoryRoot }).lintText(
+      "import { defineAgentActor } from '@print-an-agent/agent-actor';\nvoid defineAgentActor;\n",
+      { filePath: join(repositoryRoot, 'modules/agent-base/packages/request/src/index.ts') }
+    );
+    expect(results.flatMap((result) => result.messages)).toEqual([]);
+  });
+
   it('keeps Sessionless request implementation free of Agent owners and concrete persistence', () => {
     const requestRoot = join(repositoryRoot, 'modules/agent-base/packages/request/src');
     const files = typeScriptFiles(join(requestRoot, 'sessionless'));
@@ -330,7 +377,10 @@ describe('module architecture', () => {
     it(`${moduleName} packages use their ownership prefix`, () => {
       for (const manifest of packageManifests(moduleName)) {
         expect(manifest.name, 'Every workspace package must declare a name').toBeDefined();
-        expect(manifest.name?.startsWith(rule.packagePrefix)).toBe(true);
+        expect(
+          manifest.name?.startsWith(rule.packagePrefix) ||
+            (moduleName === 'agent-base' && manifest.name === '@print-an-agent/agent-actor')
+        ).toBe(true);
       }
     });
 
@@ -448,7 +498,7 @@ describe('module architecture', () => {
       readFileSync(join(cliRoot, 'package.json'), 'utf8')
     ) as PackageManifest;
     const agentBaseRuntimeDependencies = Object.keys(manifest.dependencies ?? {}).filter((name) =>
-      name.startsWith('@print-an-agent/base-')
+      isAgentBaseSpecifier(name)
     );
 
     expect(agentBaseRuntimeDependencies).toEqual(['@print-an-agent/base-standalone-agent']);
@@ -489,10 +539,7 @@ describe('module architecture', () => {
 
     for (const sourceFile of typeScriptFiles(modulesRoot)) {
       for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
-        if (
-          specifier.startsWith('@print-an-agent/base-') &&
-          !agentBasePublicEntries.has(specifier)
-        ) {
+        if (isAgentBaseSpecifier(specifier) && !agentBasePublicEntries.has(specifier)) {
           deepImports.push(`${normalize(relative(repositoryRoot, sourceFile))}: ${specifier}`);
         }
       }
@@ -502,6 +549,10 @@ describe('module architecture', () => {
   });
 
   it.each([
+    ['@print-an-agent/agent-actor', true],
+    ['@print-an-agent/agent-actor/src/index.js', false],
+    ['@print-an-agent/agent-actor/catalog.js', false],
+    ['@print-an-agent/base-actor', false],
     ['@print-an-agent/base-identity-config', true],
     ['@print-an-agent/base-identity-config/identity', true],
     ['@print-an-agent/base-identity-config/config', true],
@@ -514,6 +565,14 @@ describe('module architecture', () => {
     ['@print-an-agent/base-identity-config/dist/index.js', false],
   ] as const)('recognizes declared public entry %s = %s', (specifier, allowed) => {
     expect(agentBasePublicEntries.has(specifier)).toBe(allowed);
+  });
+
+  it('recognizes renamed Agent packages and their private paths by module ownership', () => {
+    expect(agentBasePackageNames.has('@print-an-agent/agent-actor')).toBe(true);
+    expect(agentBasePackageNames.has('@print-an-agent/base-actor')).toBe(false);
+    expect(isAgentBaseSpecifier('@print-an-agent/agent-actor')).toBe(true);
+    expect(isAgentBaseSpecifier('@print-an-agent/agent-actor/catalog.js')).toBe(true);
+    expect(isAgentBaseSpecifier('@print-an-agent/model-invocation-core')).toBe(false);
   });
 
   it('keeps reusable Agent UI packages independent from domain runtimes', () => {
@@ -529,6 +588,7 @@ describe('module architecture', () => {
         expect(
           [
             '@print-an-agent/base-',
+            '@print-an-agent/agent-actor',
             '@print-an-agent/workbench-',
             '@print-an-agent/self-learn-',
           ].some((prefix) => dependency.startsWith(prefix)),
@@ -539,7 +599,7 @@ describe('module architecture', () => {
       for (const sourceFile of typeScriptFiles(join(packageRoot, 'src'))) {
         const source = readFileSync(sourceFile, 'utf8');
         expect(source, `${normalize(sourceFile)} must consume UI-owned contracts`).not.toMatch(
-          /@print-an-agent\/(?:base-|workbench-|self-learn-)/u
+          /@print-an-agent\/(?:base-|agent-actor(?:\/|$)|workbench-|self-learn-)/u
         );
       }
     }
@@ -558,7 +618,7 @@ describe('module architecture', () => {
       for (const specifier of moduleSpecifiers(source)) {
         if (!isNode) {
           expect(specifier, `${normalize(file)} must remain browser-safe`).not.toMatch(
-            /^(?:node:|@print-an-agent\/base-|@earendil-works\/pi-)/u
+            /^(?:node:|@print-an-agent\/(?:base-|agent-actor(?:\/|$))|@earendil-works\/pi-)/u
           );
           if (specifier.startsWith('.')) {
             const resolvedImport = resolve(dirname(file), specifier);
@@ -572,7 +632,7 @@ describe('module architecture', () => {
             expect(normalize(relativeImport)).not.toMatch(/^node\//u);
           }
         }
-        if (specifier.startsWith('@print-an-agent/base-'))
+        if (isAgentBaseSpecifier(specifier))
           expect(agentBasePublicEntries.has(specifier), `${normalize(file)}: ${specifier}`).toBe(
             true
           );
@@ -706,9 +766,12 @@ describe('module architecture', () => {
     ]);
     expect(
       declaredDependencies(galleryManifest).filter((dependency) =>
-        ['@print-an-agent/base-', '@print-an-agent/workbench-', '@print-an-agent/self-learn-'].some(
-          (prefix) => dependency.startsWith(prefix)
-        )
+        [
+          '@print-an-agent/base-',
+          '@print-an-agent/agent-actor',
+          '@print-an-agent/workbench-',
+          '@print-an-agent/self-learn-',
+        ].some((prefix) => dependency.startsWith(prefix))
       )
     ).toEqual([]);
 
@@ -747,6 +810,7 @@ describe('module architecture', () => {
         imports.filter((specifier) =>
           [
             '@print-an-agent/base-',
+            '@print-an-agent/agent-actor',
             '@print-an-agent/workbench-',
             '@print-an-agent/self-learn-',
           ].some((prefix) => specifier.startsWith(prefix))
@@ -1219,9 +1283,13 @@ describe('module architecture', () => {
     for (const sourceFile of typeScriptFiles(join(consumerRoot, 'test'))) {
       for (const specifier of moduleSpecifiers(readFileSync(sourceFile, 'utf8'))) {
         if (!specifier.startsWith('@print-an-agent/')) continue;
-        expect(specifier).toMatch(
-          /^@print-an-agent\/(?:(?:base-|model-invocation-)[^/]+|base-composition\/resource-registry|base-identity-config\/(?:identity|config)|context-memory(?:-sqlite)?|retrieval-memory(?:-sqlite)?|workflow-core(?:\/bundle)?)$/
-        );
+        expect(
+          agentBasePublicEntries.has(specifier) ||
+            /^@print-an-agent\/(?:model-invocation-[^/]+|context-memory(?:-sqlite)?|retrieval-memory(?:-sqlite)?|workflow-core(?:\/bundle)?)$/.test(
+              specifier
+            ),
+          `${normalize(sourceFile)} must use a declared public package entry: ${specifier}`
+        ).toBe(true);
       }
       expect(normalize(sourceFile)).not.toContain(`${normalize('/src/')}`);
     }

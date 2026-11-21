@@ -1,4 +1,4 @@
-import { defineAgentActor } from '@print-an-agent/base-actor';
+import { defineAgentActor } from '@print-an-agent/agent-actor';
 import {
   defineActorInvocationPolicy,
   type ActorInvocationConfig,

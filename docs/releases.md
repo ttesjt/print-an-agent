@@ -17,7 +17,7 @@ Session do not depend on it; consumers that bind Workflows to Agent Operations i
 The four release entries and their production closure contain exactly these ten packages:
 
 - `@print-an-agent/base-request`
-- `@print-an-agent/base-actor`
+- `@print-an-agent/agent-actor`
 - `@print-an-agent/base-identity-config`
 - `@print-an-agent/base-observability`
 - `@print-an-agent/base-runtime`

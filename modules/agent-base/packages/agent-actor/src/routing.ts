@@ -1,5 +1,5 @@
 import { satisfiesActorRequirements } from '@print-an-agent/model-invocation-core';
-import type { ActorCatalogPort } from './catalog.js';
+import type { AgentActorCatalogPort } from './catalog.js';
 import { AgentActorError } from './errors.js';
 import { MAIN_ACTOR_ID, type ResponsibilityId } from './identifiers.js';
 import type { ActorId } from '@print-an-agent/model-invocation-core';
@@ -25,13 +25,13 @@ export interface CreateResponsibilityCatalogOptions {
 
 export interface ResponsibilityRouter {
   readonly mainActorId: ActorId;
-  readonly actorCatalog: ActorCatalogPort;
+  readonly actorCatalog: AgentActorCatalogPort;
   readonly responsibilityCatalog: ResponsibilityCatalogPort;
   resolve(responsibilityId: ResponsibilityId): Promise<ResolvedResponsibility>;
 }
 
 export interface CreateResponsibilityRouterOptions {
-  readonly actorCatalog: ActorCatalogPort;
+  readonly actorCatalog: AgentActorCatalogPort;
   readonly responsibilityCatalog: ResponsibilityCatalogPort;
   readonly mainActorId?: ActorId;
 }
@@ -124,7 +124,7 @@ function effectiveCandidates(
 
 class DefaultResponsibilityRouter implements ResponsibilityRouter {
   readonly mainActorId: ActorId;
-  readonly actorCatalog: ActorCatalogPort;
+  readonly actorCatalog: AgentActorCatalogPort;
   readonly responsibilityCatalog: ResponsibilityCatalogPort;
 
   constructor(options: CreateResponsibilityRouterOptions) {

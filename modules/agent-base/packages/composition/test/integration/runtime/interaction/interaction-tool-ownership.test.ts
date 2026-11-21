@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import {
   createToolRegistry,
   defineTool,
@@ -22,7 +22,7 @@ function fixture(
   execute: (request: ToolExecutionRequest<unknown>) => Promise<{ text: string }>
 ) {
   return interactionAgent(interact, {
-    actorCatalog: createActorCatalog({
+    actorCatalog: createAgentActorCatalog({
       actors: [{ id: MAIN_ACTOR_ID, engineId: 'fixture', allowedTools: ['work'] }],
       engines: [
         {

@@ -7,19 +7,19 @@ import {
 import { parseToolName, type ToolName } from '@print-an-agent/base-tool';
 import { AgentActorError } from './errors.js';
 
-export interface ActorDefinitionInput extends ModelActorDefinitionInput {
+export interface AgentActorDefinitionInput extends ModelActorDefinitionInput {
   readonly allowedTools?: readonly string[];
 }
-export interface ActorDefinition extends ModelActorDefinition {
+export interface AgentActorDefinition extends ModelActorDefinition {
   readonly allowedTools: readonly ToolName[];
 }
-export interface ResolvedActor extends ResolvedModelActor {
+export interface ResolvedAgentActor extends ResolvedModelActor {
   readonly catalogRevision: number;
   readonly allowedTools: readonly ToolName[];
 }
 
 /** Agent-owned permission policy layered over the independent Actor definition. */
-export function defineAgentActor(input: ActorDefinitionInput): ActorDefinition {
+export function defineAgentActor(input: AgentActorDefinitionInput): AgentActorDefinition {
   if (typeof input !== 'object' || input === null) {
     throw new AgentActorError(
       'ACTOR_DEFINITION_INVALID',

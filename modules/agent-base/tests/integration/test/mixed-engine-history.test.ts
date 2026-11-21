@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { composeAgent, createDeterministicAgentAPI } from '@print-an-agent/base-composition';
 import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
 import {
@@ -54,7 +54,7 @@ describe('mixed Engine history', () => {
       identity: { id: 'mixed-history-agent' },
       session,
       createRunId: () => 'custom-run-2',
-      actorCatalog: createActorCatalog({
+      actorCatalog: createAgentActorCatalog({
         actors: [{ id: MAIN_ACTOR_ID, engineId: 'custom-engine' }],
         engines: [
           {

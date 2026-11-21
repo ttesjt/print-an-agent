@@ -78,7 +78,7 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@24.12.4)(happy-dom@20.14.5)(yaml@2.9.0)
 
-  modules/agent-base/packages/actor:
+  modules/agent-base/packages/agent-actor:
     dependencies:
       '@print-an-agent/base-tool':
         specifier: workspace:*
@@ -102,9 +102,9 @@ importers:
 
   modules/agent-base/packages/composition:
     dependencies:
-      '@print-an-agent/base-actor':
+      '@print-an-agent/agent-actor':
         specifier: workspace:*
-        version: link:../actor
+        version: link:../agent-actor
       '@print-an-agent/base-identity-config':
         specifier: workspace:*
         version: link:../identity-config
@@ -191,9 +191,9 @@ importers:
         specifier: workspace:*
         version: link:../../../model-invocation/packages/core
     devDependencies:
-      '@print-an-agent/base-actor':
+      '@print-an-agent/agent-actor':
         specifier: workspace:*
-        version: link:../actor
+        version: link:../agent-actor
       '@print-an-agent/base-runtime':
         specifier: workspace:*
         version: link:../runtime
@@ -230,9 +230,9 @@ importers:
 
   modules/agent-base/packages/request:
     dependencies:
-      '@print-an-agent/base-actor':
+      '@print-an-agent/agent-actor':
         specifier: workspace:*
-        version: link:../actor
+        version: link:../agent-actor
       '@print-an-agent/base-identity-config':
         specifier: workspace:*
         version: link:../identity-config
@@ -292,9 +292,9 @@ importers:
 
   modules/agent-base/packages/session:
     dependencies:
-      '@print-an-agent/base-actor':
+      '@print-an-agent/agent-actor':
         specifier: workspace:*
-        version: link:../actor
+        version: link:../agent-actor
       '@print-an-agent/base-identity-config':
         specifier: workspace:*
         version: link:../identity-config
@@ -323,9 +323,9 @@ importers:
 
   modules/agent-base/packages/standalone-agent:
     dependencies:
-      '@print-an-agent/base-actor':
+      '@print-an-agent/agent-actor':
         specifier: workspace:*
-        version: link:../actor
+        version: link:../agent-actor
       '@print-an-agent/base-composition':
         specifier: workspace:*
         version: link:../composition
@@ -397,9 +397,9 @@ importers:
 
   modules/agent-base/tests/integration:
     devDependencies:
-      '@print-an-agent/base-actor':
+      '@print-an-agent/agent-actor':
         specifier: workspace:*
-        version: link:../../packages/actor
+        version: link:../../packages/agent-actor
       '@print-an-agent/base-composition':
         specifier: workspace:*
         version: link:../../packages/composition
@@ -608,9 +608,9 @@ importers:
 
   modules/agent-ui/apps/agent-web:
     dependencies:
-      '@print-an-agent/base-actor':
+      '@print-an-agent/agent-actor':
         specifier: workspace:*
-        version: link:../../../agent-base/packages/actor
+        version: link:../../../agent-base/packages/agent-actor
       '@print-an-agent/base-composition':
         specifier: workspace:*
         version: link:../../../agent-base/packages/composition

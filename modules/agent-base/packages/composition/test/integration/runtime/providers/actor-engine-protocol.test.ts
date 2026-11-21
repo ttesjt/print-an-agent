@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import {
   MemoryAgentTraceAdapter,
   MemoryOutputSink,
@@ -45,7 +45,7 @@ describe('composed Agent Engine protocol', () => {
     const journal = new MemoryRequestJournalAdapter(() => 1);
     const output = new MemoryOutputSink();
     const trace = new MemoryAgentTraceAdapter({ maxEvents: 128 });
-    const actorCatalog = createActorCatalog({
+    const actorCatalog = createAgentActorCatalog({
       actors: [{ id: MAIN_ACTOR_ID, engineId: 'invalid-event-order-engine' }],
       engines: [
         {

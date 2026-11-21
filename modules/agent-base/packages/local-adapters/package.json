@@ -36,7 +36,7 @@
     "@print-an-agent/base-identity-config": "workspace:*"
   },
   "devDependencies": {
-    "@print-an-agent/base-actor": "workspace:*",
+    "@print-an-agent/agent-actor": "workspace:*",
     "@print-an-agent/base-tool": "workspace:*",
     "@print-an-agent/base-runtime": "workspace:*",
     "@types/node": "catalog:",

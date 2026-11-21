@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   createResponsibilityRouter,
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
@@ -39,7 +39,7 @@ function interactionRequest(instructions = 'Step instructions') {
 describe('Responsibility routing', () => {
   it('defaults an unconfigured registered Responsibility to main', async () => {
     const calls = inspection();
-    const actors = createActorCatalog({
+    const actors = createAgentActorCatalog({
       actors: [{ id: 'main', engineId: 'main-engine' }],
       engines: [fakeEngine('main-engine', calls)],
     });
@@ -60,7 +60,7 @@ describe('Responsibility routing', () => {
   });
 
   it('treats explicit empty and all-disabled lists as unavailable without hidden fallback', async () => {
-    const actors = createActorCatalog({
+    const actors = createAgentActorCatalog({
       actors: [{ id: 'main', engineId: 'engine' }],
       engines: [fakeEngine('engine', inspection())],
     });
@@ -84,7 +84,7 @@ describe('Responsibility routing', () => {
   });
 
   it('selects the first enabled compatible Actor in configured order', async () => {
-    const actors = createActorCatalog({
+    const actors = createAgentActorCatalog({
       actors: [
         { id: 'main', engineId: 'main-engine' },
         { id: 'disabled', engineId: 'disabled-engine' },
@@ -152,7 +152,7 @@ describe('Responsibility routing', () => {
   });
 
   it('fails unknown Responsibilities and missing enabled Actors', async () => {
-    const actors = createActorCatalog({
+    const actors = createAgentActorCatalog({
       actors: [{ id: 'main', engineId: 'engine' }],
       engines: [fakeEngine('engine', inspection())],
     });
@@ -208,7 +208,7 @@ describe('Responsibility routing', () => {
 
   it('composes Actor, Responsibility, and Step instructions in stable order', async () => {
     const calls = inspection();
-    const actors = createActorCatalog({
+    const actors = createAgentActorCatalog({
       actors: [{ id: 'main', engineId: 'engine', instructions: 'Actor instructions' }],
       engines: [fakeEngine('engine', calls)],
     });
@@ -234,7 +234,7 @@ describe('Responsibility routing', () => {
   it('never retries a second candidate after selected Actor failure', async () => {
     const primaryCalls = inspection();
     const secondaryCalls = inspection();
-    const actors = createActorCatalog({
+    const actors = createAgentActorCatalog({
       actors: [
         { id: 'main', engineId: 'primary' },
         { id: 'secondary', engineId: 'secondary' },
@@ -267,7 +267,7 @@ describe('Responsibility routing', () => {
 
   it('passes cancellation unchanged and returns immutable routing metadata', async () => {
     const calls = inspection();
-    const actors = createActorCatalog({
+    const actors = createAgentActorCatalog({
       revision: 3,
       actors: [{ id: 'main', engineId: 'engine', allowedTools: ['search'] }],
       engines: [fakeEngine('engine', calls)],

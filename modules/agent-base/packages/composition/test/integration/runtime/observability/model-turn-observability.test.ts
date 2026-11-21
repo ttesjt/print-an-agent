@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { MemoryAgentTraceAdapter } from '@print-an-agent/base-local-adapters';
 import { DEFAULT_REQUEST_POLICY } from '@print-an-agent/base-request';
 import {
@@ -39,7 +39,7 @@ function createCustomAgent(
   interact: ActorInteractionHandler,
   maxModelTurns = DEFAULT_REQUEST_POLICY.maxModelTurns
 ) {
-  const actorCatalog = createActorCatalog({
+  const actorCatalog = createAgentActorCatalog({
     actors: [{ id: MAIN_ACTOR_ID, engineId: 'custom-engine' }],
     engines: [
       {

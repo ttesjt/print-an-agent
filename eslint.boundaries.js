@@ -3,6 +3,12 @@ const productionSource = [
   'modules/*/templates/*/*/src/**/*.{ts,tsx}',
 ];
 
+const agentBaseImportPatterns = [
+  '@print-an-agent/base-*',
+  '@print-an-agent/agent-actor',
+  '@print-an-agent/agent-actor/**',
+];
+
 const publicImportRestrictions = [
   {
     group: ['@print-an-agent/*/src', '@print-an-agent/*/src/**'],
@@ -24,7 +30,7 @@ function moduleRestrictions(forbiddenGroups) {
 const workflowDomainRestrictions = [
   {
     group: [
-      '@print-an-agent/base-*',
+      ...agentBaseImportPatterns,
       '@print-an-agent/model-invocation-*',
       '@print-an-agent/workbench-*',
       '@print-an-agent/self-learn-*',
@@ -48,7 +54,7 @@ const workflowCoreRestrictions = [
 const modelInvocationDomainRestrictions = [
   {
     group: [
-      '@print-an-agent/base-*',
+      ...agentBaseImportPatterns,
       '@print-an-agent/workbench-*',
       '@print-an-agent/self-learn-*',
       '@print-an-agent/ui-*',
@@ -63,7 +69,7 @@ const modelInvocationDomainRestrictions = [
 const memoryDomainRestrictions = [
   {
     group: [
-      '@print-an-agent/base-*',
+      ...agentBaseImportPatterns,
       '@print-an-agent/self-learn-*',
       '@print-an-agent/workbench-*',
       '@print-an-agent/ui-*',
@@ -79,7 +85,7 @@ const memoryDomainRestrictions = [
 const registryQualificationRestrictions = [
   {
     regex:
-      '^@print-an-agent/(?:base-(?!composition/resource-registry$)|self-learn-|workbench-|ui-|model-invocation-pi(?:/|$))|^@earendil-works/pi-',
+      '^@print-an-agent/(?:base-(?!composition/resource-registry$)|agent-actor(?:/|$)|self-learn-|workbench-|ui-|model-invocation-pi(?:/|$))|^@earendil-works/pi-',
     message: 'Registry examples consume the public Composition subpath, not Agent/product APIs.',
   },
 ];
@@ -118,7 +124,7 @@ export const boundaryConfigs = Object.freeze([
     rules: moduleRestrictions([
       {
         group: [
-          '@print-an-agent/base-*',
+          ...agentBaseImportPatterns,
           '@print-an-agent/self-learn-*',
           '@print-an-agent/workbench-*',
           '@print-an-agent/ui-*',
@@ -214,7 +220,7 @@ export const boundaryConfigs = Object.freeze([
     ],
     rules: moduleRestrictions([
       {
-        group: ['@print-an-agent/base-*', '@print-an-agent/self-learn-*'],
+        group: [...agentBaseImportPatterns, '@print-an-agent/self-learn-*'],
         message: 'Model Workbench must remain independent of Agent Base and Self-Learn Agent.',
       },
     ]),
@@ -231,7 +237,7 @@ export const boundaryConfigs = Object.freeze([
     rules: moduleRestrictions([
       {
         group: [
-          '@print-an-agent/base-*',
+          ...agentBaseImportPatterns,
           '@print-an-agent/model-invocation-*',
           '@print-an-agent/workbench-*',
           '@print-an-agent/self-learn-*',
@@ -251,7 +257,7 @@ export const boundaryConfigs = Object.freeze([
   },
   {
     files: [
-      'modules/agent-base/packages/{runtime,request,session,actor,identity-config,tool}/src/**/*.ts',
+      'modules/agent-base/packages/{runtime,request,session,agent-actor,identity-config,tool}/src/**/*.ts',
     ],
     rules: moduleRestrictions([
       {

@@ -1,4 +1,4 @@
-import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@print-an-agent/base-actor';
+import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@print-an-agent/agent-actor';
 import { defineToolPermissionPolicy } from '@print-an-agent/base-tool';
 import { buildRequestTools } from '../../preparation/index.js';
 import { requireValue } from '../../state-access.js';

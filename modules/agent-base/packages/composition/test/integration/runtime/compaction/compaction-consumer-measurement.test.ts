@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
 import { DEFAULT_SESSION_COMPACTION_POLICY } from '@print-an-agent/base-session';
@@ -47,7 +47,7 @@ async function fixture(
   const complete = vi.fn(() =>
     Promise.resolve({ message: compactionMessage(outputs.shift() ?? 'ok') })
   );
-  const actorCatalog = createActorCatalog({
+  const actorCatalog = createAgentActorCatalog({
     actors: [
       { id: 'main', engineId: 'writer' },
       { id: 'reader', engineId: 'reader' },

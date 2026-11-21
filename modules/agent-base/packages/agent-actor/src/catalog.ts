@@ -5,23 +5,25 @@ import {
 } from '@print-an-agent/model-invocation-core';
 import {
   defineAgentActor,
-  type ActorDefinition,
-  type ActorDefinitionInput,
-  type ResolvedActor,
+  type AgentActorDefinition,
+  type AgentActorDefinitionInput,
+  type ResolvedAgentActor,
 } from './actor.js';
 
-export interface ActorCatalogPort {
+export interface AgentActorCatalogPort {
   readonly revision: number;
-  resolve(actorId: ActorId): Promise<ResolvedActor>;
-  list(): readonly ActorDefinition[];
+  resolve(actorId: ActorId): Promise<ResolvedAgentActor>;
+  list(): readonly AgentActorDefinition[];
 }
-export interface CreateActorCatalogOptions {
+export interface CreateAgentActorCatalogOptions {
   readonly revision?: number;
-  readonly actors: readonly ActorDefinitionInput[];
+  readonly actors: readonly AgentActorDefinitionInput[];
   readonly engines: readonly ActorEngineInput[];
 }
 
-export function createActorCatalog(options: CreateActorCatalogOptions): ActorCatalogPort {
+export function createAgentActorCatalog(
+  options: CreateAgentActorCatalogOptions
+): AgentActorCatalogPort {
   const actors = options.actors.map(defineAgentActor);
   const definitions = new Map(actors.map((actor) => [actor.id, actor]));
   const catalog = createModelActorCatalog({
@@ -32,7 +34,7 @@ export function createActorCatalog(options: CreateActorCatalogOptions): ActorCat
   return Object.freeze({
     revision: catalog.revision,
     list: () => Object.freeze([...definitions.values()]),
-    async resolve(actorId: ActorId): Promise<ResolvedActor> {
+    async resolve(actorId: ActorId): Promise<ResolvedAgentActor> {
       const actor = await catalog.resolve(actorId);
       return Object.freeze({
         ...actor,

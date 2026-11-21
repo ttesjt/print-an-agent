@@ -1,9 +1,9 @@
 import type {
-  ActorCatalogPort,
-  ActorDefinitionInput,
+  AgentActorCatalogPort,
+  AgentActorDefinitionInput,
   ResponsibilityCatalogPort,
   ResponsibilityDefinitionInput,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import type { ActorId } from '@print-an-agent/model-invocation-core';
 import type { AgentAPI } from '../../agent-api.js';
 import type { ComposeAgentOptions } from '../../standard-agent/index.js';
@@ -17,10 +17,10 @@ export interface CreateDeterministicAgentAPIOptions extends Omit<
   'actorCatalog' | 'responsibilityCatalog' | 'mainActorId' | 'requestWorkflow'
 > {
   readonly provider: DeterministicProviderRuntimeOptions;
-  readonly actorCatalog?: ActorCatalogPort;
+  readonly actorCatalog?: AgentActorCatalogPort;
   readonly responsibilityCatalog?: ResponsibilityCatalogPort;
   readonly mainActorId?: ActorId;
-  readonly mainActor?: Omit<ActorDefinitionInput, 'id' | 'engineId'>;
+  readonly mainActor?: Omit<AgentActorDefinitionInput, 'id' | 'engineId'>;
   readonly responsibilities?: readonly ResponsibilityDefinitionInput[];
 }
 

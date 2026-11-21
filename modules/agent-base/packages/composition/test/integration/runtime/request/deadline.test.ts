@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { MemoryAgentTraceAdapter } from '@print-an-agent/base-local-adapters';
 import { AgentRequestError } from '@print-an-agent/base-request';
 import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
@@ -13,7 +13,7 @@ import { TEST_COMPACTION_TOKEN_COUNTER } from '../../../support/runtime/compacti
 
 it('applies the assembled request timeout and reports it distinctly', async () => {
   const trace = new MemoryAgentTraceAdapter({ maxEvents: 128 });
-  const actorCatalog = createActorCatalog({
+  const actorCatalog = createAgentActorCatalog({
     actors: [{ id: MAIN_ACTOR_ID, engineId: 'waiting-engine' }],
     engines: [
       {

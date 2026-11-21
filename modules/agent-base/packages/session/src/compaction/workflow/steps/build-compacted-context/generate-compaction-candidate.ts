@@ -1,4 +1,4 @@
-import { AgentActorError } from '@print-an-agent/base-actor';
+import { AgentActorError } from '@print-an-agent/agent-actor';
 import { ActorError, ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import { AgentSessionError } from '../../../../errors.js';
 import { SESSION_COMPACTION_REJECTION_REASON } from '../../../rejection-reasons.js';

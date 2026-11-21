@@ -65,6 +65,11 @@ Apply the [monorepo standards](standards/monorepo-standards.md) alongside these 
   `catalog:` for dependencies covered by the shared catalog, and explicit pins where the owning
   package requires one. For example, the [Pi adapter](../modules/model-invocation/packages/pi/package.json)
   owns exact Pi SDK versions.
+- Agent Base packages normally use the `@print-an-agent/base-*` family.
+  `@print-an-agent/agent-actor`, owned by `modules/agent-base/packages/agent-actor`, names the
+  Agent-specific permission extension and Responsibility routing over Model Invocation's generic
+  Actor. Module ownership and public-entry checks include this name explicitly; its naming does
+  not change dependency direction or move the package into Model Invocation.
 - Regenerate `pnpm-lock.yaml` deliberately when dependencies change, then verify the result with a
   frozen install. The Workbench Python workspace uses uv and has a separate lockfile.
 - Build the dependency chain before running a consumer that imports compiled entries. See

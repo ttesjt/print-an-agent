@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
   MAIN_ACTOR_ID,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { type ActorEngineInteractionRequest } from '@print-an-agent/model-invocation-core';
 import { composeAgent, createAgentAPI } from '@print-an-agent/base-composition';
 import { MemoryAgentTraceAdapter, MemoryOutputSink } from '@print-an-agent/base-local-adapters';
@@ -69,7 +69,7 @@ async function interact(request: ActorEngineInteractionRequest) {
 }
 
 function createConsumerAgent(interaction: typeof interact = interact) {
-  const actorCatalog = createActorCatalog({
+  const actorCatalog = createAgentActorCatalog({
     engines: [
       {
         id: 'consumer-engine',

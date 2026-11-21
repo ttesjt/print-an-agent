@@ -1,3 +1,4 @@
+import { fakeEngine, type FakeEngineInspection } from '../../support/fixtures.js';
 import { expect, it } from 'vitest';
 import {
   defineAssistantModelMessage,
@@ -8,7 +9,7 @@ import {
   createResponsibilityCatalog,
   createResponsibilityRouter,
   parseResponsibilityId,
-} from '../../src/index.js';
+} from '../../../src/index.js';
 
 it('routes a streaming-only Actor and composes Agent Responsibility instructions', async () => {
   const actors = createAgentActorCatalog({
@@ -72,4 +73,38 @@ it('routes a streaming-only Actor and composes Agent Responsibility instructions
       emit: () => Promise.resolve(),
     })
   ).resolves.toMatchObject({ message: { text: 'answer' } });
+});
+
+it('delegates direct invocation with Actor/Responsibility/caller instructions and independent revisions', async () => {
+  const calls: FakeEngineInspection = { interactionRequests: [], directRequests: [] };
+  const actorCatalog = createAgentActorCatalog({
+    revision: 3,
+    actors: [{ id: 'main', engineId: 'engine', instructions: 'Actor', allowedTools: ['search'] }],
+    engines: [fakeEngine('engine', calls)],
+  });
+  const responsibilityCatalog = createResponsibilityCatalog({
+    revision: 7,
+    responsibilities: [
+      {
+        id: 'answer',
+        instructions: 'Responsibility',
+        allowedTools: ['edit'],
+        requiredCapabilities: { invocationMode: 'direct' },
+      },
+    ],
+  });
+  const resolved = await createResponsibilityRouter({
+    actorCatalog,
+    responsibilityCatalog,
+  }).resolve(parseResponsibilityId('answer'));
+  const signal = new AbortController().signal;
+  await expect(
+    resolved.complete({ instructions: 'Caller', messages: [], signal, maxOutputCharacters: 100 })
+  ).resolves.toMatchObject({ message: { text: 'engine:direct' } });
+  expect(calls.directRequests[0]?.instructions).toBe('Actor\n\nResponsibility\n\nCaller');
+  expect(calls.directRequests[0]?.signal).toBe(signal);
+  expect(resolved.catalogRevision).toBe(7);
+  expect(resolved.actor.catalogRevision).toBe(3);
+  expect(resolved.allowedTools).toEqual(['edit']);
+  expect(resolved.actor.allowedTools).toEqual(['search']);
 });

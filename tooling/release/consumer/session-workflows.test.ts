@@ -37,6 +37,9 @@ import {
   createTokenCounter,
   defineAssistantModelMessage,
   TEXT_TOKEN_INPUT_CONTRACT,
+  validateActorCapabilityRequirements,
+  type ActorCapabilityRequirementsIssue,
+  type ActorCapabilityRequirementsValidation,
   type ActorEngineInput,
 } from '@print-an-agent/model-invocation-core';
 import { createPiFauxRuntime } from '@print-an-agent/model-invocation-pi';
@@ -52,11 +55,29 @@ test('packed Agent Actor exposes its renamed API and rejects old or private pack
   for (const specifier of [
     '@print-an-agent/agent-actor/src/index.js',
     '@print-an-agent/agent-actor/catalog.js',
+    '@print-an-agent/agent-actor/actors',
+    '@print-an-agent/agent-actor/responsibilities',
+    '@print-an-agent/agent-actor/dist/actors/index.js',
+    '@print-an-agent/agent-actor/dist/responsibilities/definition.js',
   ]) {
     await assert.rejects(import(specifier), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
   }
   const previousPackage = '@print-an-agent/base-actor';
   await assert.rejects(import(previousPackage), { code: 'ERR_MODULE_NOT_FOUND' });
+});
+
+test('packed Core validates technical requirements without an Agent role or error policy', () => {
+  const result: ActorCapabilityRequirementsValidation = validateActorCapabilityRequirements({
+    invocationMode: 'direct',
+    interaction: { streamable: true },
+  });
+  if (result.valid) throw new Error('Expected an incompatible interaction requirement.');
+  const issue: ActorCapabilityRequirementsIssue = result.issue;
+  assert.equal(issue, 'interaction-invalid');
+  assert.deepEqual(validateActorCapabilityRequirements({ invocationMode: 'direct' }), {
+    valid: true,
+    value: { invocationMode: 'direct' },
+  });
 });
 
 function routing(engine: ActorEngineInput) {

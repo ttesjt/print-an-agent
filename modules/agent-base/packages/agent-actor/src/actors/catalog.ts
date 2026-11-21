@@ -1,25 +1,10 @@
 import {
   createActorCatalog as createModelActorCatalog,
   type ActorId,
-  type ActorEngineInput,
 } from '@print-an-agent/model-invocation-core';
-import {
-  defineAgentActor,
-  type AgentActorDefinition,
-  type AgentActorDefinitionInput,
-  type ResolvedAgentActor,
-} from './actor.js';
-
-export interface AgentActorCatalogPort {
-  readonly revision: number;
-  resolve(actorId: ActorId): Promise<ResolvedAgentActor>;
-  list(): readonly AgentActorDefinition[];
-}
-export interface CreateAgentActorCatalogOptions {
-  readonly revision?: number;
-  readonly actors: readonly AgentActorDefinitionInput[];
-  readonly engines: readonly ActorEngineInput[];
-}
+import { defineAgentActor } from './definition.js';
+import type { AgentActorCatalogPort, CreateAgentActorCatalogOptions } from './types/catalog.js';
+import type { ResolvedAgentActor } from './types/definition.js';
 
 export function createAgentActorCatalog(
   options: CreateAgentActorCatalogOptions

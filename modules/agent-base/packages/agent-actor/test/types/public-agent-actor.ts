@@ -1,6 +1,8 @@
 import {
   createAgentActorCatalog,
   defineAgentActor,
+  parseResponsibilityId,
+  type ResponsibilityId,
   type AgentActorCatalogPort,
   type AgentActorDefinition,
   type AgentActorDefinitionInput,
@@ -33,4 +35,12 @@ export function checkAgentActorPublicTypes(
   void coreCatalog;
   void coreResolved;
   void defineActor(coreInput);
+  const responsibilityId: ResponsibilityId = parseResponsibilityId('answer');
+  void responsibilityId;
+  // @ts-expect-error Responsibility identity retains its own brand after moving type ownership.
+  const unvalidated: ResponsibilityId = 'answer';
+  // @ts-expect-error Actor and Responsibility identity remain independent branded contracts.
+  const actorAsResponsibility: ResponsibilityId = definition.id;
+  void unvalidated;
+  void actorAsResponsibility;
 }

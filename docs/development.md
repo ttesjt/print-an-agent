@@ -124,11 +124,9 @@ who releases an acquired resource still require review, even when the checks pas
 
 ### Declared source-feature boundaries
 
-The shared `tooling/architecture/source-boundaries.ts` scanner and cycle checker, and
-`tooling/architecture/type-modules.ts` runtime-erasure checker are qualified by
-`test/source-boundaries.test.ts` and `test/type-modules.test.ts`. Composition, Runtime and Workflow
-reuse the type checker. These opt-in checks inspect supplied literal modules; TypeScript owns
-resolution and type correctness.
+Agent Actor declares its Actors/Responsibilities entries, shared error contracts and one-way
+dependencies in `test/agent-actor-source-boundaries.test.ts`, also run by
+`pnpm test:agent-actor-qualification`.
 
 `tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session, Composition, Runtime, Request, Tool, Standalone and Local Adapters
 declare their entries, shared ancestor contracts/capabilities and dependency directions in
@@ -174,6 +172,12 @@ Session v4-to-v5 upgrade versus existing mode without schema initialization. Sha
 Memory and SQLite. Actual Base consumers typecheck through compiled package entries; declaration
 emission additionally qualifies portable inferred persistence results. The root public declaration
 graph check continues to reject native SQLite type leaks.
+
+`tooling/architecture/type-modules.ts` provides the shared runtime-erasure check used by Agent Actor,
+Composition, Runtime and Workflow. It inspects their supplied `types.ts`/`types/` modules with the
+repository's ESM/verbatim-import settings. `test/type-modules.test.ts` checks accepted branded/type
+contracts and rejected runtime declarations/imports. Type correctness remains the compiler's job;
+this opt-in check does not classify ownership or apply to unregistered packages automatically.
 
 The check scans all opted-in production `.ts` sources, including type-only imports, re-exports,
 import types and literal dynamic imports. It checks every enclosing boundary, explicitly shared

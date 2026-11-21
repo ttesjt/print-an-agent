@@ -39,7 +39,7 @@ describe('local persistence public boundary', () => {
 
   it.each([
     ['session/memory/memory-session-adapter.d.ts', 'MemorySessionAdapter'],
-    ['request/memory-request-journal-adapter.d.ts', 'MemoryRequestJournalAdapter'],
+    ['request/journal/memory/memory-request-journal-adapter.d.ts', 'MemoryRequestJournalAdapter'],
   ])('omits internal coordination imports and methods from %s', (path, className) => {
     const declaration = readFileSync(
       new URL(`../../../packages/local-adapters/dist/${path}`, import.meta.url),

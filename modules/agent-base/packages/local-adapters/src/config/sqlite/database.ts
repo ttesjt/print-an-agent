@@ -1,15 +1,13 @@
+import { AgentConfigError } from '@print-an-agent/base-identity-config/config';
 import { lstatSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
-import { AgentConfigError } from '@print-an-agent/base-identity-config/config';
+import type { DatabaseSync } from 'node:sqlite';
+import { runSqliteTransaction, useSqliteConnection } from '../../sqlite/index.js';
+import type { ConfigDatabaseConfiguration } from './types/database.js';
 
 const DEFAULT_BUSY_TIMEOUT_MILLISECONDS = 5_000;
-const MAX_BUSY_TIMEOUT_MILLISECONDS = 2_147_483_647;
 
-export interface ConfigDatabaseConfiguration {
-  readonly databasePath: string;
-  readonly busyTimeoutMilliseconds: number;
-}
+const MAX_BUSY_TIMEOUT_MILLISECONDS = 2_147_483_647;
 
 function normalizeBusyTimeout(value: number | undefined): number {
   const timeout = value ?? DEFAULT_BUSY_TIMEOUT_MILLISECONDS;
@@ -66,72 +64,34 @@ export function useConfigDatabase<T>(
   operation: string,
   action: (database: DatabaseSync) => T
 ): T {
-  let database: DatabaseSync | undefined;
-  let outcome:
-    | Readonly<{ status: 'success'; value: T }>
-    | Readonly<{ status: 'failure'; error: unknown }>;
-  try {
-    database = new DatabaseSync(configuration.databasePath, {
-      allowExtension: false,
-      enableForeignKeyConstraints: true,
-    });
-    database.exec(`
-      PRAGMA foreign_keys = ON;
-      PRAGMA journal_mode = WAL;
-      PRAGMA synchronous = FULL;
-      PRAGMA busy_timeout = ${configuration.busyTimeoutMilliseconds};
-    `);
-    outcome = { status: 'success', value: action(database) };
-  } catch (cause: unknown) {
-    outcome = { status: 'failure', error: cause };
-  }
-
-  let closeError: AgentConfigError | undefined;
-  try {
-    if (database?.isOpen === true) database.close();
-  } catch (cause: unknown) {
-    closeError = new AgentConfigError(
-      'CONFIG_STORAGE_FAILED',
-      `Closing SQLite Config operation "${operation}" failed.`,
-      { cause }
-    );
-  }
-  if (outcome.status === 'failure') {
-    const operationError =
-      outcome.error instanceof AgentConfigError
-        ? outcome.error
+  return useSqliteConnection(configuration, action, {
+    operation: (cause) =>
+      cause instanceof AgentConfigError
+        ? cause
         : new AgentConfigError(
             'CONFIG_STORAGE_FAILED',
             `SQLite Config operation "${operation}" failed.`,
-            { cause: outcome.error }
-          );
-    if (closeError !== undefined) {
-      throw new AggregateError(
+            { cause }
+          ),
+    close: (cause) =>
+      new AgentConfigError(
+        'CONFIG_STORAGE_FAILED',
+        `Closing SQLite Config operation "${operation}" failed.`,
+        { cause }
+      ),
+    combine: (operationError, closeError) =>
+      new AggregateError(
         [operationError, closeError],
         `SQLite Config operation "${operation}" and cleanup both failed.`
-      );
-    }
-    throw operationError;
-  }
-  if (closeError !== undefined) throw closeError;
-  return outcome.value;
+      ),
+  });
 }
 
 export function runConfigTransaction<T>(database: DatabaseSync, action: () => T): T {
-  database.exec('BEGIN IMMEDIATE');
-  try {
-    const result = action();
-    database.exec('COMMIT');
-    return result;
-  } catch (cause: unknown) {
-    try {
-      database.exec('ROLLBACK');
-    } catch (rollbackCause: unknown) {
-      throw new AggregateError(
-        [cause, rollbackCause],
-        'SQLite Config transaction rollback failed.'
-      );
-    }
-    throw cause;
-  }
+  return runSqliteTransaction(database, action, {
+    begin: 'BEGIN IMMEDIATE',
+    existing: 'start',
+    rollbackFailure: (cause, rollbackCause) =>
+      new AggregateError([cause, rollbackCause], 'SQLite Config transaction rollback failed.'),
+  });
 }

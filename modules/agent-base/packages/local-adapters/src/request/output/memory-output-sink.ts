@@ -7,26 +7,7 @@ import {
   type OutputStreamEvent,
 } from '@print-an-agent/base-request';
 import { defineAssistantModelMessage } from '@print-an-agent/model-invocation-core';
-
-export type MemoryOutputSnapshot =
-  | Readonly<{ status: 'pending'; events: readonly OutputStreamEvent[] }>
-  | Readonly<{
-      status: 'open';
-      openEvent: OutputOpenEvent;
-      events: readonly OutputStreamEvent[];
-    }>
-  | Readonly<{
-      status: 'closed';
-      openEvent: OutputOpenEvent;
-      events: readonly OutputStreamEvent[];
-      response: AgentResponse;
-    }>
-  | Readonly<{
-      status: 'failed';
-      openEvent?: OutputOpenEvent;
-      events: readonly OutputStreamEvent[];
-      failure: OutputFailure;
-    }>;
+import type { MemoryOutputSnapshot } from './types.js';
 
 export class MemoryOutputSink implements OutputSink {
   #openEvent: OutputOpenEvent | undefined;

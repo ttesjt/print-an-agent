@@ -1,17 +1,16 @@
-import type { DatabaseSync } from 'node:sqlite';
-import { quoteSqliteIdentifier } from './table-names.js';
 import {
   AgentSessionError,
   completedLineageForBranch,
   isCompletedAncestor,
   parseSessionBranchId,
   toSessionNavigationSnapshot,
+  type AppliedSessionNavigation,
+  type ApplySessionNavigationRequest,
   type SessionBranchId,
   type SessionReference,
   type SessionSnapshot,
-  type AppliedSessionNavigation,
-  type ApplySessionNavigationRequest,
 } from '@print-an-agent/base-session';
+import type { DatabaseSync } from 'node:sqlite';
 import { readClock, runImmediateTransaction } from './database.js';
 import {
   decodeBranch,
@@ -24,6 +23,7 @@ import {
   type SqliteRow,
 } from './session-record-codec.js';
 import type { SqliteSessionTableNames } from './table-names.js';
+import { quoteSqliteIdentifier } from './table-names.js';
 
 const TURN_COLUMNS =
   'turn_id, status, user_message, assistant_message, failure_code, branch_id, parent_turn_id';

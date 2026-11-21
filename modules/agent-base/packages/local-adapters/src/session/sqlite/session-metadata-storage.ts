@@ -1,12 +1,10 @@
-import type { DatabaseSync } from 'node:sqlite';
-
 import {
   AgentSessionError,
   normalizeRenameSessionInput,
   type RenameSessionInput,
   type SessionInspection,
 } from '@print-an-agent/base-session';
-
+import type { DatabaseSync } from 'node:sqlite';
 import { readClock, runImmediateTransaction } from './database.js';
 import { inspectSqliteSession } from './session-query-storage.js';
 import { requireNonNegativeInteger, type SqliteRow } from './session-record-codec.js';

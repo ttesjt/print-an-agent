@@ -20,8 +20,11 @@ export interface SqliteSessionTableNames {
 }
 
 const DEFAULT_TABLE_PREFIX = 'agent_';
+
 const MAX_TABLE_NAME_LENGTH = 128;
+
 const TABLE_NAME_KEYS = new Set<string>(['schema', 'sessions', 'turns', 'branches', 'compactions']);
+
 const TABLE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export const DEFAULT_SQLITE_SESSION_TABLE_NAMES: SqliteSessionTableNames = Object.freeze({

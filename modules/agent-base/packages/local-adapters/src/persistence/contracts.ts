@@ -1,15 +1,15 @@
 import type { InspectableRequestJournalPort } from '@print-an-agent/base-request';
 import type {
   NavigableCompactableSessionPort,
-  SessionMetadataPort,
-  SessionPresentationPort,
-  SessionLifecycleQueryPort,
-  SessionLifecyclePort,
-  SessionExecutionPort,
   PurgeSessionInput,
   RecoverSessionExecutionsInput,
   SessionExecutionFence,
+  SessionExecutionPort,
+  SessionLifecyclePort,
+  SessionLifecycleQueryPort,
   SessionMemoryNavigationPort,
+  SessionMetadataPort,
+  SessionPresentationPort,
 } from '@print-an-agent/base-session';
 
 export type LocalLifecycleSessionPort = NavigableCompactableSessionPort &

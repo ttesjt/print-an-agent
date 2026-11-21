@@ -1,11 +1,7 @@
-import type { DatabaseSync } from 'node:sqlite';
-import type { ModelMessage } from '@print-an-agent/model-invocation-core';
-import { quoteSqliteIdentifier } from './table-names.js';
 import {
   AgentSessionError,
-  defineSessionTurnPresentation,
-  type SessionTurnPresentation,
   completedLineageBeforeTurn,
+  defineSessionTurnPresentation,
   parseSessionFailureCode,
   type ActiveSessionTurn,
   type BeginSessionTurnRequest,
@@ -15,7 +11,10 @@ import {
   type FailedSessionTurn,
   type LoadSessionHistoryRequest,
   type SessionTurn,
+  type SessionTurnPresentation,
 } from '@print-an-agent/base-session';
+import type { ModelMessage } from '@print-an-agent/model-invocation-core';
+import type { DatabaseSync } from 'node:sqlite';
 import { readClock, runImmediateTransaction } from './database.js';
 import {
   decodeAssistantMessage,
@@ -32,6 +31,7 @@ import {
   type SqliteRow,
 } from './session-record-codec.js';
 import type { SqliteSessionTableNames } from './table-names.js';
+import { quoteSqliteIdentifier } from './table-names.js';
 
 export function beginSqliteSessionTurn(
   database: DatabaseSync,

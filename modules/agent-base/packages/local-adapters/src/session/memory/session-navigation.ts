@@ -3,9 +3,9 @@ import {
   isCompletedAncestor,
   parseSessionBranchId,
   toSessionNavigationSnapshot,
-  type SessionBranchId,
   type AppliedSessionNavigation,
   type ApplySessionNavigationRequest,
+  type SessionBranchId,
 } from '@print-an-agent/base-session';
 import {
   createMemorySessionSnapshot,

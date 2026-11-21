@@ -1,27 +1,27 @@
-import { randomUUID } from 'node:crypto';
 import {
   AgentSessionError,
   assertSessionExecutionAllowed,
   assertSessionExecutionLease,
   assertSessionPurgeAllowed,
   assertSessionRecoveryRevision,
-  normalizeSessionReference,
-  normalizeSessionExecutionLease,
-  normalizeSessionLifecycleMutationInput,
   normalizePurgeSessionInput,
   normalizeRecoverSessionExecutionsInput,
+  normalizeSessionExecutionLease,
+  normalizeSessionLifecycleMutationInput,
+  normalizeSessionReference,
   parseSessionExecutionId,
-  retireSessionState,
   restoreSessionState,
-  type SessionReference,
-  type SessionWriteAuthority,
-  type SessionExecutionLease,
-  type SessionExecutionFence,
-  type SessionLifecycleSnapshot,
-  type SessionLifecycleMutationInput,
+  retireSessionState,
   type PurgeSessionInput,
   type RecoverSessionExecutionsInput,
+  type SessionExecutionFence,
+  type SessionExecutionLease,
+  type SessionLifecycleMutationInput,
+  type SessionLifecycleSnapshot,
+  type SessionReference,
+  type SessionWriteAuthority,
 } from '@print-an-agent/base-session';
+import { randomUUID } from 'node:crypto';
 import { memorySessionKey, readMemoryClock, type StoredMemorySession } from './session-state.js';
 
 export function memoryLifecycleSnapshot(session: StoredMemorySession): SessionLifecycleSnapshot {

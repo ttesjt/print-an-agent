@@ -1,5 +1,5 @@
 import { quoteSqliteIdentifier } from '../table-names.js';
-import type { SqliteAgentConfigTableNames } from '../table-names.js';
+import type { SqliteAgentConfigTableNames } from '../types/table-names.js';
 
 export function createConfigStoreMigration(tableNames: SqliteAgentConfigTableNames): string {
   return `

@@ -1,28 +1,28 @@
 import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import {
-  defineAssistantModelMessage,
-  type ContextModelMessage,
-  type ModelMessage,
-} from '@print-an-agent/model-invocation-core';
-import {
   AgentSessionError,
   MAX_SESSION_COMPACTION_CHARACTERS,
   completedLineageForBranch,
   type ActiveSessionTurn,
   type CompletedSessionTurn,
   type ResolvedSessionReference,
-  type SessionCompaction,
   type SessionBranchId,
   type SessionBranchSnapshot,
+  type SessionCompaction,
+  type SessionExecutionId,
+  type SessionExecutionLease,
   type SessionId,
+  type SessionLifecycleState,
   type SessionSnapshot,
   type SessionTurn,
   type SessionTurnPresentation,
   type TurnId,
-  type SessionLifecycleState,
-  type SessionExecutionId,
-  type SessionExecutionLease,
 } from '@print-an-agent/base-session';
+import {
+  defineAssistantModelMessage,
+  type ContextModelMessage,
+  type ModelMessage,
+} from '@print-an-agent/model-invocation-core';
 
 export interface StoredMemoryBranch {
   readonly branchId: SessionBranchId;
@@ -58,8 +58,11 @@ export function memorySessionKey(agentId: AgentId, sessionId: SessionId): string
 }
 
 export function cloneMemoryTurn(turn: ActiveSessionTurn): ActiveSessionTurn;
+
 export function cloneMemoryTurn(turn: CompletedSessionTurn): CompletedSessionTurn;
+
 export function cloneMemoryTurn(turn: SessionTurn): SessionTurn;
+
 export function cloneMemoryTurn(turn: SessionTurn): SessionTurn {
   if (turn.status === 'completed') {
     return Object.freeze({

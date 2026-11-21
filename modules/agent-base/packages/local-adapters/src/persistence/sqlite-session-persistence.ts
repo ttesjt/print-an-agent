@@ -4,32 +4,26 @@ import {
   normalizePurgeSessionInput,
   normalizeRecoverSessionExecutionsInput,
 } from '@print-an-agent/base-session';
-import { SqliteSessionAdapter } from '../session/sqlite/sqlite-session-adapter.js';
-import { SqliteRequestJournalAdapter } from '../request/sqlite/sqlite-request-journal-adapter.js';
 import {
-  defineSqliteDatabaseConfiguration,
-  useSqliteDatabase,
-  runImmediateTransaction,
-} from '../session/sqlite/database.js';
-import {
-  resolveSqliteSessionTableNames,
-  type SqliteSessionTableNamingInput,
-} from '../session/sqlite/table-names.js';
-import {
-  resolveSqliteRequestJournalTableNames,
-  type SqliteRequestJournalTableNamingInput,
-} from '../request/sqlite/table-names.js';
-import { assertSessionSchema } from '../session/sqlite/schema.js';
-import { assertRequestJournalSchema } from '../request/sqlite/schema.js';
-import {
-  readSqliteLifecycle,
-  purgeSqliteSession,
-  recoverSqliteSession,
-} from '../session/sqlite/session-lifecycle-storage.js';
-import {
+  assertRequestJournalSchema,
   purgeSqliteSessionRequests,
   recoverSqliteSessionRequests,
-} from '../request/sqlite/journal-maintenance.js';
+  resolveSqliteRequestJournalTableNames,
+  SqliteRequestJournalAdapter,
+  type SqliteRequestJournalTableNamingInput,
+} from '../request/index.js';
+import {
+  assertSessionSchema,
+  defineSqliteDatabaseConfiguration,
+  purgeSqliteSession,
+  readSqliteLifecycle,
+  recoverSqliteSession,
+  resolveSqliteSessionTableNames,
+  runImmediateTransaction,
+  SqliteSessionAdapter,
+  useSqliteDatabase,
+  type SqliteSessionTableNamingInput,
+} from '../session/index.js';
 import type { CoordinatedSessionPersistence } from './contracts.js';
 
 export interface SqliteSessionPersistenceOptions {

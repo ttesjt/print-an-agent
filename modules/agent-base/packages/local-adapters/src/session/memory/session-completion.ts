@@ -1,10 +1,10 @@
-import { defineAssistantModelMessage } from '@print-an-agent/model-invocation-core';
 import {
   AgentSessionError,
   type CompleteSessionTurnRequest,
   type CompletedSessionTurn,
   type SessionTurnPresentation,
 } from '@print-an-agent/base-session';
+import { defineAssistantModelMessage } from '@print-an-agent/model-invocation-core';
 import {
   cloneMemoryTurn,
   readMemoryClock,

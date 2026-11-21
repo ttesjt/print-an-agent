@@ -4,19 +4,11 @@ import {
   type AgentTraceEvent,
   type AgentTraceEventSink,
 } from '@print-an-agent/base-observability';
-
-export interface MemoryAgentTraceAdapterOptions {
-  readonly maxEvents: number;
-}
-
-export interface AgentTraceInspectionOptions {
-  readonly agentRunId?: string;
-}
-
-export interface AgentTraceSnapshot {
-  readonly events: readonly AgentTraceEvent[];
-  readonly droppedEvents: number;
-}
+import type {
+  AgentTraceInspectionOptions,
+  AgentTraceSnapshot,
+  MemoryAgentTraceAdapterOptions,
+} from './types.js';
 
 const MAX_MEMORY_TRACE_EVENTS = 100_000;
 

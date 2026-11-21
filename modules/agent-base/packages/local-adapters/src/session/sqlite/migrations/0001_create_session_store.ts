@@ -1,5 +1,5 @@
-import { quoteSqliteIdentifier, sessionRetirementIndexName } from '../table-names.js';
 import type { SqliteSessionTableNames } from '../table-names.js';
+import { quoteSqliteIdentifier, sessionRetirementIndexName } from '../table-names.js';
 
 export function createSessionStoreMigration(tableNames: SqliteSessionTableNames): string {
   return `

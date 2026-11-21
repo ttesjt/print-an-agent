@@ -1,67 +1,33 @@
 import {
   AgentIdentityError,
   defineAgentIdentity,
-  defineAgentIdentitySnapshot,
   isAgentIdentityStatus,
   parseAgentId,
   type AgentId,
   type AgentIdentityCatalogPort,
   type AgentIdentitySnapshot,
   type CreateAgentIdentityRequest,
-  type TransitionAgentIdentityRequest,
   type RenameAgentIdentityRequest,
+  type TransitionAgentIdentityRequest,
 } from '@print-an-agent/base-identity-config/identity';
-import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
+import type { DatabaseSync } from 'node:sqlite';
 import {
   defineIdentityDatabaseConfiguration,
   readIdentityClock,
   runIdentityTransaction,
   useIdentityDatabase,
-  type IdentityDatabaseConfiguration,
 } from './database.js';
+import { decodeSnapshot } from './record-codec.js';
 import {
   assertIdentitySchema,
   configureIdentityDefensiveMode,
   initializeIdentitySchema,
 } from './schema.js';
-import {
-  quoteSqliteIdentifier,
-  resolveSqliteAgentIdentityTableNames,
-  type SqliteAgentIdentityTableNames,
-  type SqliteAgentIdentityTableNamingInput,
-} from './table-names.js';
-
-export interface SqliteAgentIdentityCatalogAdapterOptions extends SqliteAgentIdentityTableNamingInput {
-  readonly databasePath: string;
-  readonly clock?: () => number;
-  readonly busyTimeoutMilliseconds?: number;
-}
-
-type SqliteRow = Record<string, SQLOutputValue>;
-
-function requireRowString(row: SqliteRow, column: string): string {
-  const value = row[column];
-  if (typeof value !== 'string') {
-    throw new AgentIdentityError(
-      'AGENT_IDENTITY_ADAPTER_RESULT_INVALID',
-      `SQLite Identity column "${column}" must be a string.`
-    );
-  }
-  return value;
-}
-
-function decodeSnapshot(row: SqliteRow): AgentIdentitySnapshot {
-  return defineAgentIdentitySnapshot({
-    identity: {
-      id: requireRowString(row, 'agent_id'),
-      displayName: requireRowString(row, 'display_name'),
-    },
-    status: requireRowString(row, 'status'),
-    revision: row.revision,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  });
-}
+import { quoteSqliteIdentifier, resolveSqliteAgentIdentityTableNames } from './table-names.js';
+import type { IdentityDatabaseConfiguration } from './types/database.js';
+import type { SqliteAgentIdentityCatalogAdapterOptions } from './types/options.js';
+import type { SqliteRow } from './types/record.js';
+import type { SqliteAgentIdentityTableNames } from './types/table-names.js';
 
 export class SqliteAgentIdentityCatalogAdapter implements AgentIdentityCatalogPort {
   readonly #configuration: IdentityDatabaseConfiguration;

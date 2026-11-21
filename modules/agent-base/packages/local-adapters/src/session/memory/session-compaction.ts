@@ -5,11 +5,11 @@ import {
   type SessionCompaction,
 } from '@print-an-agent/base-session';
 import {
+  cloneMemoryCompaction,
   createMemorySessionSnapshot,
-  validateMemoryContext,
   readMemoryClock,
   touchMemorySession,
-  cloneMemoryCompaction,
+  validateMemoryContext,
   type StoredMemorySession,
 } from './session-state.js';
 

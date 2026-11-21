@@ -3,17 +3,14 @@ import {
   normalizePurgeSessionInput,
   normalizeRecoverSessionExecutionsInput,
 } from '@print-an-agent/base-session';
+import { memoryJournalCoordination, MemoryRequestJournalAdapter } from '../request/index.js';
 import {
   MemorySessionAdapter,
-  type MemorySessionAdapterOptions,
-} from '../session/memory/memory-session-adapter.js';
-import { MemoryRequestJournalAdapter } from '../request/memory-request-journal-adapter.js';
-import {
   memorySessionCoordination,
-  memoryJournalCoordination,
-  MemoryPersistenceQueue,
-} from './memory-coordination.js';
+  type MemorySessionAdapterOptions,
+} from '../session/index.js';
 import type { CoordinatedSessionPersistence, LocalLifecycleSessionPort } from './contracts.js';
+import { MemoryPersistenceQueue } from './memory-coordination.js';
 
 export function createMemorySessionPersistence(
   options: MemorySessionAdapterOptions = {}

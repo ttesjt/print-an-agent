@@ -1,4 +1,3 @@
-import type { DatabaseSync } from 'node:sqlite';
 import {
   decideMemoryRecord,
   memoryRecordKey,
@@ -7,11 +6,13 @@ import {
   type SessionReference,
   type WriteSessionMemoryRecord,
 } from '@print-an-agent/base-session';
+import type { DatabaseSync } from 'node:sqlite';
 import { quoteSqliteIdentifier as quote, type SqliteSessionTableNames } from './table-names.js';
 
 export function sessionMemoryTable(names: SqliteSessionTableNames): string {
   return `${names.sessions}_memory`;
 }
+
 export function sessionHasMemoryBindings(
   db: DatabaseSync,
   ref: SessionReference,
@@ -25,6 +26,7 @@ export function sessionHasMemoryBindings(
       .get(ref.agentId, ref.sessionId) !== undefined
   );
 }
+
 export function sessionMemoryMigration(names: SqliteSessionTableNames): string {
   return `CREATE TABLE ${quote(sessionMemoryTable(names))} (
     agent_id TEXT NOT NULL, session_id TEXT NOT NULL, kind TEXT NOT NULL,
@@ -64,6 +66,7 @@ export function readSessionMemoryRecord(
   });
   return Object.freeze({ ...parsed, revision: row.revision });
 }
+
 export function writeSessionMemoryRecord(
   db: DatabaseSync,
   input: WriteSessionMemoryRecord,
@@ -84,6 +87,7 @@ export function writeSessionMemoryRecord(
   );
   return next;
 }
+
 export function pendingSessionMemoryRecords(
   db: DatabaseSync,
   ref: SessionReference,

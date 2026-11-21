@@ -1,17 +1,16 @@
-import type { DatabaseSync } from 'node:sqlite';
-import type { ModelMessage } from '@print-an-agent/model-invocation-core';
-import { quoteSqliteIdentifier } from './table-names.js';
 import {
   AgentSessionError,
   completedLineageBeforeTurn,
   completedLineageForBranch,
-  type LoadSessionHistoryRequest,
   type CommitSessionCompactionRequest,
-  type SessionCompaction,
+  type LoadSessionHistoryRequest,
   type SessionBranchReference,
+  type SessionCompaction,
   type SessionContextSnapshot,
   type SessionTurn,
 } from '@print-an-agent/base-session';
+import type { ModelMessage } from '@print-an-agent/model-invocation-core';
+import type { DatabaseSync } from 'node:sqlite';
 import { readClock, runImmediateTransaction } from './database.js';
 import { decodeContextMessage, encodeContextMessage } from './message-codec.js';
 import { loadSqliteSessionSnapshot } from './session-navigation-storage.js';
@@ -22,6 +21,7 @@ import {
   type SqliteRow,
 } from './session-record-codec.js';
 import type { SqliteSessionTableNames } from './table-names.js';
+import { quoteSqliteIdentifier } from './table-names.js';
 
 function requirePositiveInteger(row: SqliteRow, column: string): number {
   const value = requireNonNegativeInteger(row, column, 'SQLite Session compaction');

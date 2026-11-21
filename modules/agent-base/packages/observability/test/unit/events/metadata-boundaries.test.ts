@@ -5,7 +5,7 @@ import {
   validateAgentTraceEvent,
   validateAgentTraceEventDetails,
   type AgentTraceEvent,
-} from '../../src/index.js';
+} from '../../../src/index.js';
 
 const envelope = {
   schemaVersion: 2,
@@ -15,19 +15,50 @@ const envelope = {
   timestamp: 1,
 } as const;
 
-describe('Trace input boundaries', () => {
-  it.each([undefined, null, 42, {}, [], '', 'x'.repeat(129)])(
-    'rejects invalid emitter identifiers with a configuration error: %j',
-    (value) => {
-      for (const key of ['agentId', 'agentRunId']) {
-        expect(() =>
-          Reflect.apply(createAgentTraceEmitter, undefined, [
-            { agentId: 'agent', agentRunId: 'run', [key]: value },
-          ])
-        ).toThrowError(AgentObservabilityError);
-      }
-    }
-  );
+describe('Trace metadata boundaries', () => {
+  describe.each([
+    {
+      name: 'event details',
+      validate: (value: unknown) => validateAgentTraceEventDetails(value),
+      fields: { type: 'agent-run-started', operationName: 'test' },
+    },
+    {
+      name: 'persisted event',
+      validate: (value: unknown) => validateAgentTraceEvent(value),
+      fields: { ...envelope, type: 'agent-run-started', operationName: 'test' },
+    },
+  ])('$name assertion boundary', ({ validate, fields }) => {
+    it('rejects Proxy inputs without executing caller traps', () => {
+      let trapCalls = 0;
+      const value = new Proxy(fields, {
+        get(target, key, receiver): unknown {
+          trapCalls += 1;
+          return key === 'operationName' ? undefined : Reflect.get(target, key, receiver);
+        },
+        ownKeys(target) {
+          trapCalls += 1;
+          return Reflect.ownKeys(target);
+        },
+        getOwnPropertyDescriptor(target, key) {
+          trapCalls += 1;
+          return Reflect.getOwnPropertyDescriptor(target, key);
+        },
+      });
+
+      expect(() => validate(value)).toThrowError(AgentObservabilityError);
+      expect(trapCalls).toBe(0);
+    });
+
+    it('rejects transparent Proxy inputs', () => {
+      expect(() => validate(new Proxy(fields, {}))).toThrowError(AgentObservabilityError);
+    });
+
+    it('rejects revoked Proxy inputs with a trace validation error', () => {
+      const { proxy, revoke } = Proxy.revocable(fields, {});
+      revoke();
+      expect(() => validate(proxy)).toThrowError(AgentObservabilityError);
+    });
+  });
 
   it.each(['symbol', 'hidden', 'accessor'] as const)(
     'rejects %s properties at emission and persisted-event validation boundaries',
@@ -105,5 +136,58 @@ describe('Trace input boundaries', () => {
     expect(events[1]).not.toHaveProperty('extra');
     expect(events.every(Object.isFrozen)).toBe(true);
     for (const event of events) expect(() => validateAgentTraceEvent(event)).not.toThrow();
+  });
+
+  it('delivers the validated snapshot when emission receives a Proxy', async () => {
+    const events: AgentTraceEvent[] = [];
+    const trace = createAgentTraceEmitter({
+      agentId: 'agent',
+      agentRunId: 'run',
+      clock: () => 1,
+      sink: {
+        record: (event) => {
+          events.push(event);
+          return Promise.resolve();
+        },
+      },
+    });
+    let reads = 0;
+    const details = new Proxy(
+      { type: 'agent-run-started' as const, operationName: 'snapshot value' },
+      {
+        get(): undefined {
+          reads += 1;
+          return undefined;
+        },
+      }
+    );
+
+    await trace.record(details);
+    expect(events[0]).toMatchObject({ operationName: 'snapshot value', sequence: 1 });
+    expect(reads).toBe(0);
+    expect(() => validateAgentTraceEvent(events[0])).not.toThrow();
+  });
+
+  it('rejects unknown event fields before they reach a sink', async () => {
+    const events: AgentTraceEvent[] = [];
+    const trace = createAgentTraceEmitter({
+      agentId: 'assistant',
+      agentRunId: 'request-1',
+      sink: {
+        record: (event) => {
+          events.push(event);
+          return Promise.resolve();
+        },
+      },
+      clock: () => 1,
+    });
+    const record = trace.record.bind(trace);
+
+    await expect(
+      Reflect.apply(record, undefined, [
+        { type: 'agent-run-started', operationName: 'test', privateMessage: 'must not persist' },
+      ])
+    ).rejects.toMatchObject({ code: 'TRACE_EVENT_INVALID' });
+    expect(events).toEqual([]);
   });
 });

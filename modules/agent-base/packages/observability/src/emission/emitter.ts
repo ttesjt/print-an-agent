@@ -1,16 +1,14 @@
-import { AgentObservabilityError } from './errors.js';
+import { AgentObservabilityError } from '../errors.js';
 import type {
   AgentTraceEmitter,
-  AgentTraceEvent,
-  AgentTraceEventDetails,
   AgentTraceEventSink,
   AgentTraceSinkFailureReporter,
-  CreateAgentTraceEmitterOptions,
-} from './types.js';
-import { snapshotAgentTraceEventDetails } from './validation.js';
+} from './types/ports.js';
+import { snapshotAgentTraceEventDetails, TRACE_SCHEMA_VERSION } from '../events/index.js';
+import type { AgentTraceEvent, AgentTraceEventDetails } from '../events/index.js';
+import type { CreateAgentTraceEmitterOptions } from './types/options.js';
 
-const TRACE_IDENTIFIER_MAX_LENGTH = 128;
-const TRACE_ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,127}$/;
+const EMITTER_IDENTIFIER_MAX_LENGTH = 128;
 
 export const NOOP_AGENT_TRACE_SINK: AgentTraceEventSink = Object.freeze({
   record: () => Promise.resolve(),
@@ -20,11 +18,11 @@ function validateIdentifier(value: unknown, name: string): string {
   if (
     typeof value !== 'string' ||
     value.length === 0 ||
-    value.length > TRACE_IDENTIFIER_MAX_LENGTH
+    value.length > EMITTER_IDENTIFIER_MAX_LENGTH
   ) {
     throw new AgentObservabilityError(
       'TRACE_CONFIGURATION_INVALID',
-      `${name} must contain 1-${TRACE_IDENTIFIER_MAX_LENGTH} characters.`
+      `${name} must contain 1-${EMITTER_IDENTIFIER_MAX_LENGTH} characters.`
     );
   }
   return value;
@@ -79,7 +77,7 @@ class RunScopedAgentTraceEmitter implements AgentTraceEmitter {
     this.#initialTimestamp = undefined;
     const event = Object.freeze({
       ...snapshot,
-      schemaVersion: 2 as const,
+      schemaVersion: TRACE_SCHEMA_VERSION,
       agentId: this.agentId,
       agentRunId: this.agentRunId,
       sequence: (this.#sequence += 1),
@@ -101,15 +99,4 @@ export function createAgentTraceEmitter(
   options: CreateAgentTraceEmitterOptions
 ): AgentTraceEmitter {
   return new RunScopedAgentTraceEmitter(options);
-}
-
-export function traceErrorCode(error: unknown): string {
-  if (error instanceof AggregateError && error.cause !== undefined) {
-    return traceErrorCode(error.cause);
-  }
-  if (typeof error === 'object' && error !== null && 'code' in error) {
-    const code: unknown = error.code;
-    if (typeof code === 'string' && TRACE_ERROR_CODE_PATTERN.test(code)) return code;
-  }
-  return 'UNEXPECTED_ERROR';
 }

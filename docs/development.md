@@ -128,6 +128,13 @@ Agent Actor declares its Actors/Responsibilities entries, shared error contracts
 dependencies in `test/agent-actor-source-boundaries.test.ts`, also run by
 `pnpm test:agent-actor-qualification`.
 
+Model Invocation Core declares its four capability entries, nested Actor/Model/Text entries and
+shared foundations in `test/model-invocation-core-source-boundaries.test.ts`, also run by
+`pnpm test:model-invocation-qualification`.
+
+Observability declares its event protocol and emission entries, shared errors and one-way dependency
+in `test/observability-source-boundaries.test.ts`.
+
 `tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session, Composition, Runtime, Request, Tool, Standalone and Local Adapters
 declare their entries, shared ancestor contracts/capabilities and dependency directions in
 `test/session-architecture.test.ts`, `test/composition-architecture.test.ts`,
@@ -174,8 +181,8 @@ emission additionally qualifies portable inferred persistence results. The root 
 graph check continues to reject native SQLite type leaks.
 
 `tooling/architecture/type-modules.ts` provides the shared runtime-erasure check used by Agent Actor,
-Composition, Runtime and Workflow. It inspects their supplied `types.ts`/`types/` modules with the
-repository's ESM/verbatim-import settings. `test/type-modules.test.ts` checks accepted branded/type
+Composition, Runtime, Workflow, Observability and Model Invocation Core. It inspects their supplied `types.ts`/`types/`
+modules with the repository's ESM/verbatim-import settings. `test/type-modules.test.ts` checks accepted branded/type
 contracts and rejected runtime declarations/imports. Type correctness remains the compiler's job;
 this opt-in check does not classify ownership or apply to unregistered packages automatically.
 
@@ -186,7 +193,3 @@ exports. File entries are allowed for shared responsibility modules. Dependency 
 explicitly declared shared capabilities and feature dependencies in each package. It does not
 resolve computed import paths, package aliases, custom loaders or runtime resource ownership;
 those still need review. Compiler checks remain responsible for symbol existence and types.
-
-Model Invocation Core declares its capability and nested feature entries in
-`test/model-invocation-core-source-boundaries.test.ts`, also included in
-`pnpm test:model-invocation-qualification`.

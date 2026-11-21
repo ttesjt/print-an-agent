@@ -2,13 +2,90 @@ import { describe, expect, it } from 'vitest';
 import {
   AgentObservabilityError,
   createAgentTraceEmitter,
-  validateAgentTraceEvent,
   type AgentTraceEvent,
-  type AgentTraceEventSink,
-  type AgentTraceSinkFailure,
-} from '../../src/index.js';
+  validateAgentTraceEvent,
+  validateAgentTraceEventDetails,
+} from '../../../src/index.js';
+import { TRACE_EVENT_EXAMPLES } from '../../fixtures/trace-events.js';
 
-describe('Agent trace emitter', () => {
+const envelope = {
+  schemaVersion: 2,
+  agentId: 'agent',
+  agentRunId: 'run',
+  sequence: 1,
+  timestamp: 0,
+};
+
+describe('Trace event protocol', () => {
+  it.each(TRACE_EVENT_EXAMPLES)(
+    'accepts complete $type metadata and its persisted envelope',
+    (details) => {
+      expect(() => validateAgentTraceEventDetails(details)).not.toThrow();
+      expect(() => validateAgentTraceEvent({ ...envelope, ...details })).not.toThrow();
+    }
+  );
+
+  it.each(TRACE_EVENT_EXAMPLES)('rejects missing, null and unknown fields in $type', (details) => {
+    for (const key of Object.keys(details)) {
+      if (key !== 'parentRunId') {
+        const incomplete: Record<string, unknown> = { ...details };
+        delete incomplete[key];
+        expect(() => validateAgentTraceEventDetails(incomplete)).toThrowError(
+          AgentObservabilityError
+        );
+        expect(() => validateAgentTraceEvent({ ...envelope, ...incomplete })).toThrowError(
+          AgentObservabilityError
+        );
+      }
+      const invalid = { ...details, [key]: null };
+      expect(() => validateAgentTraceEventDetails(invalid)).toThrowError(AgentObservabilityError);
+      expect(() => validateAgentTraceEvent({ ...envelope, ...invalid })).toThrowError(
+        AgentObservabilityError
+      );
+    }
+    expect(() => validateAgentTraceEventDetails({ ...details, extra: 'private' })).toThrowError(
+      AgentObservabilityError
+    );
+    expect(() =>
+      validateAgentTraceEvent({ ...envelope, ...details, extra: 'private' })
+    ).toThrowError(AgentObservabilityError);
+  });
+
+  it.each([null, undefined, [], 'event', 42, { type: 'unknown' }])(
+    'rejects non-event inputs: %j',
+    (value) => {
+      expect(() => validateAgentTraceEventDetails(value)).toThrowError(AgentObservabilityError);
+      expect(() => validateAgentTraceEvent(value)).toThrowError(AgentObservabilityError);
+    }
+  );
+
+  it('rejects explicitly undefined optional fields and invalid persisted envelopes', () => {
+    const details = { type: 'agent-run-started', operationName: 'test' };
+    expect(() =>
+      validateAgentTraceEventDetails({ ...details, parentRunId: undefined })
+    ).toThrowError(AgentObservabilityError);
+    for (const [key, invalid] of [
+      ['schemaVersion', 1],
+      ['agentId', ''],
+      ['agentRunId', 'x'.repeat(257)],
+      ['sequence', 0],
+      ['sequence', 1.5],
+      ['timestamp', -1],
+      ['timestamp', Number.MAX_SAFE_INTEGER + 1],
+    ] as const) {
+      expect(() =>
+        validateAgentTraceEvent({ ...envelope, ...details, [key]: invalid })
+      ).toThrowError(AgentObservabilityError);
+    }
+    for (const key of Object.keys(envelope)) {
+      const incomplete: Record<string, unknown> = { ...envelope, ...details };
+      delete incomplete[key];
+      expect(() => validateAgentTraceEvent(incomplete)).toThrowError(AgentObservabilityError);
+    }
+  });
+});
+
+describe('Trace event protocol regressions', () => {
   it('requires full Workflow identity for skipped events at emitter and persistence boundaries', async () => {
     const trace = createAgentTraceEmitter({ agentId: 'agent', agentRunId: 'run' });
     const details = { type: 'workflow-run-skipped', workflowName: 'conditional' } as const;
@@ -31,138 +108,6 @@ describe('Agent trace emitter', () => {
     expect(() =>
       validateAgentTraceEvent({ ...envelope, ...details, workflowRunId: 'workflow-run' })
     ).not.toThrow();
-  });
-  it('adds deterministic immutable correlation envelopes and per-run sequences', async () => {
-    const events: AgentTraceEvent[] = [];
-    const sink: AgentTraceEventSink = {
-      record: (event) => {
-        events.push(event);
-        return Promise.resolve();
-      },
-    };
-    let timestamp = 9;
-    const trace = createAgentTraceEmitter({
-      agentId: 'assistant',
-      agentRunId: 'request-1',
-      sink,
-      clock: () => (timestamp += 1),
-    });
-
-    await trace.record({ type: 'agent-run-started', operationName: 'test' });
-    await trace.record({ type: 'agent-run-completed', operationName: 'test' });
-
-    expect(events).toEqual([
-      {
-        schemaVersion: 2,
-        agentId: 'assistant',
-        agentRunId: 'request-1',
-        sequence: 1,
-        timestamp: 10,
-        type: 'agent-run-started',
-        operationName: 'test',
-      },
-      {
-        schemaVersion: 2,
-        agentId: 'assistant',
-        agentRunId: 'request-1',
-        sequence: 2,
-        timestamp: 11,
-        type: 'agent-run-completed',
-        operationName: 'test',
-      },
-    ]);
-    expect(events.every(Object.isFrozen)).toBe(true);
-  });
-
-  it('serializes concurrent writes without sharing sequence state between runs', async () => {
-    const calls: string[] = [];
-    const sink: AgentTraceEventSink = {
-      record: async (event) => {
-        calls.push(`start:${event.agentRunId}:${event.sequence}`);
-        await Promise.resolve();
-        calls.push(`end:${event.agentRunId}:${event.sequence}`);
-      },
-    };
-    const first = createAgentTraceEmitter({
-      agentId: 'assistant',
-      agentRunId: 'first',
-      sink,
-      clock: () => 1,
-    });
-    const second = createAgentTraceEmitter({
-      agentId: 'assistant',
-      agentRunId: 'second',
-      sink,
-      clock: () => 1,
-    });
-
-    await Promise.all([
-      first.record({ type: 'agent-run-started', operationName: 'test' }),
-      first.record({ type: 'agent-run-completed', operationName: 'test' }),
-      second.record({ type: 'agent-run-started', operationName: 'test' }),
-    ]);
-
-    expect(calls.indexOf('end:first:1')).toBeLessThan(calls.indexOf('start:first:2'));
-    expect(calls).toContain('start:second:1');
-  });
-
-  it('isolates sink and failure-reporter failures from execution', async () => {
-    const sinkFailure = new Error('sink unavailable');
-    const failures: AgentTraceSinkFailure[] = [];
-    const trace = createAgentTraceEmitter({
-      agentId: 'assistant',
-      agentRunId: 'request-1',
-      sink: { record: () => Promise.reject(sinkFailure) },
-      onSinkFailure: (failure) => {
-        failures.push(failure);
-        return Promise.reject(new Error('reporter unavailable'));
-      },
-      clock: () => 1,
-    });
-
-    await expect(
-      trace.record({ type: 'agent-run-started', operationName: 'test' })
-    ).resolves.toBeUndefined();
-    expect(failures).toHaveLength(1);
-    const failure = failures[0];
-    expect(failure?.cause).toBe(sinkFailure);
-    expect(failure?.event.type).toBe('agent-run-started');
-  });
-
-  it('fails fast for invalid identifiers and timestamps', () => {
-    expect(() => createAgentTraceEmitter({ agentId: '', agentRunId: 'request-1' })).toThrowError(
-      AgentObservabilityError
-    );
-    expect(() =>
-      createAgentTraceEmitter({
-        agentId: 'assistant',
-        agentRunId: 'request-1',
-        clock: () => -1,
-      })
-    ).toThrowError(AgentObservabilityError);
-  });
-
-  it('rejects unknown event fields before they reach a sink', async () => {
-    const events: AgentTraceEvent[] = [];
-    const trace = createAgentTraceEmitter({
-      agentId: 'assistant',
-      agentRunId: 'request-1',
-      sink: {
-        record: (event) => {
-          events.push(event);
-          return Promise.resolve();
-        },
-      },
-      clock: () => 1,
-    });
-    const record = trace.record.bind(trace);
-
-    await expect(
-      Reflect.apply(record, undefined, [
-        { type: 'agent-run-started', operationName: 'test', privateMessage: 'must not persist' },
-      ])
-    ).rejects.toMatchObject({ code: 'TRACE_EVENT_INVALID' });
-    expect(events).toEqual([]);
   });
 
   it('accepts closed provenance summaries and rejects opaque evidence or contradictory fields', async () => {

@@ -5,21 +5,23 @@ import {
   supportsSessionExecution,
 } from '@print-an-agent/base-session';
 import { defineToolPermissionPolicy } from '@print-an-agent/base-tool';
-import { buildRequestTools } from '../preparation/tools.js';
 import { SKIP_STEP, type StepOverrides } from '@print-an-agent/workflow-core';
-import type { OutputSink, ValidatedAgentRequest } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
-import { createRequestFingerprint } from '../replay/fingerprint.js';
-import { parseRequestIdempotencyKey } from '../replay/identifiers.js';
-import { RequestReplayFailedError } from '../replay/replay-error.js';
-import type { RequestJournalClaim } from '../replay/contracts.js';
-import type { RequestStepName } from '../workflow/names.js';
-import type { DefaultRequestWorkflowContext } from './context.js';
-import { requireValue } from '../preparation/state-value.js';
-import { resolveRequestInstructions } from '../preparation/instructions.js';
-import { validateRequestMessage } from '../preparation/message.js';
-import { buildInteractionRequest } from '../preparation/interaction-request.js';
-import { createInteractionStepOverrides } from '../interaction/steps.js';
+import {
+  buildInteractionRequest,
+  buildRequestTools,
+  resolveRequestInstructions,
+  validateRequestMessage,
+} from '../preparation/index.js';
+import type { RequestJournalClaim } from '../replay/index.js';
+import {
+  createRequestFingerprint,
+  parseRequestIdempotencyKey,
+  RequestReplayFailedError,
+} from '../replay/index.js';
+import { requireValue } from '../state-access.js';
+import type { RequestStepName } from '../workflow/index.js';
+import { createInteractionStepOverrides } from './interaction/steps.js';
 import {
   countOutputCharacters,
   traceActorResolved,
@@ -29,7 +31,10 @@ import {
   traceReplayResolved,
   traceSessionResolved,
   traceToolsResolved,
-} from './observability.js';
+} from './tracing.js';
+import type { ValidatedAgentRequest } from './types/input.js';
+import type { OutputSink } from './types/output.js';
+import type { DefaultRequestWorkflowContext } from './types/workflow.js';
 
 function isOutputSink(value: unknown): value is OutputSink {
   if (typeof value !== 'object' || value === null) return false;

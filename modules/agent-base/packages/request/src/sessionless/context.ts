@@ -1,8 +1,8 @@
-import { validateRequestMessage } from '../preparation/message.js';
-import { requireValue } from '../preparation/state-value.js';
+import { validateRequestMessage } from '../preparation/index.js';
+import { requireValue } from '../state-access.js';
+import type { SessionlessGenerationContext, SessionlessGenerationState } from './contracts.js';
 import { validateSessionlessOutputSink } from './output.js';
 import { closedRecord, prepareSessionlessMessages } from './validation.js';
-import type { SessionlessGenerationContext, SessionlessGenerationState } from './contracts.js';
 
 type InputContext = Pick<SessionlessGenerationContext, 'resources' | 'signal' | 'workflowRunId'> & {
   readonly state: Pick<SessionlessGenerationState, 'input' | 'request'>;

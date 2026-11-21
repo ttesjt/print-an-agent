@@ -1,6 +1,6 @@
 import { AgentRequestError } from '../errors.js';
-import { defineRequestJournalFailure } from './identifiers.js';
 import type { RequestJournalFailure } from './contracts.js';
+import { defineRequestJournalFailure } from './identifiers.js';
 
 export class RequestReplayFailedError extends AgentRequestError {
   readonly originalFailure: RequestJournalFailure;

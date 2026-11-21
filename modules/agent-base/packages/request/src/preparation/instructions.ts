@@ -1,15 +1,6 @@
 import { AgentRequestError } from '../errors.js';
-import { requireValue } from './state-value.js';
-
-export interface InstructionsStepContext<TRequest> {
-  readonly state: { request?: TRequest; instructions?: string };
-  readonly resources: {
-    readonly instructionContributors: readonly ((context: {
-      readonly request: TRequest;
-    }) => string | Promise<string>)[];
-    readonly policy: { readonly maxInstructionsCharacters: number };
-  };
-}
+import { requireValue } from '../state-access.js';
+import type { InstructionsStepContext } from './types/instructions.js';
 
 /** Composes caller instructions only. Actor and Responsibility instructions remain their owners'. */
 export async function resolveRequestInstructions<TRequest>(

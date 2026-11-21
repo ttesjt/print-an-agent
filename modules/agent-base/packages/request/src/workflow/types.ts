@@ -1,6 +1,6 @@
 import type { WorkflowContext, WorkflowDefinition } from '@print-an-agent/workflow-core';
+import type { RequestInteractionState } from '../interaction/index.js';
 import type { RequestStepName } from './names.js';
-import type { RequestInteractionState } from '../interaction/state.js';
 
 export interface RequestWorkflowStateView<O = unknown> {
   readonly interaction?: Pick<RequestInteractionState, 'currentEvent'>;

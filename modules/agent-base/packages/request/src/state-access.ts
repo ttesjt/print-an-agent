@@ -1,4 +1,4 @@
-import { AgentRequestError } from '../errors.js';
+import { AgentRequestError } from './errors.js';
 
 export function requireValue<T>(value: T | undefined, name: string): T {
   if (value === undefined) {

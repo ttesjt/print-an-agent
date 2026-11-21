@@ -1,5 +1,5 @@
 import type { SessionReference, SessionWriteAuthority } from '@print-an-agent/base-session';
-import type { AgentResponse } from '../contracts.js';
+import type { AgentResponse } from '../session-aware/types/output.js';
 
 declare const requestIdempotencyKeyBrand: unique symbol;
 declare const requestFingerprintBrand: unique symbol;

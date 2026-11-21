@@ -1,4 +1,4 @@
-import type { RequestWorkflowInput, RequestWorkflowState } from './context.js';
+import type { RequestWorkflowInput, RequestWorkflowState } from './types/workflow.js';
 
 /** Select known input fields; never retain an execution context or copy caller-owned extras. */
 export function createDefaultRequestState(input: RequestWorkflowInput): RequestWorkflowState {

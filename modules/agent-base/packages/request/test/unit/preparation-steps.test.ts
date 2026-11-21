@@ -3,17 +3,17 @@ import type { Step } from '@print-an-agent/workflow-core';
 import {
   resolveRequestInstructions,
   type InstructionsStepContext,
-} from '../../src/preparation/instructions.js';
+} from '../../src/preparation/index.js';
 import {
   buildInteractionRequest,
   type InteractionRequestContext,
-} from '../../src/preparation/interaction-request.js';
+} from '../../src/preparation/index.js';
 import { validateRequestMessage } from '../../src/preparation/message.js';
 import {
   deliverReasoningDelta,
   deliverTextDelta,
   type DeltaDeliveryContext,
-} from '../../src/delivery/steps.js';
+} from '../../src/output/index.js';
 
 describe('narrow request Steps', () => {
   it('shares the same instruction Step across independent minimum Contexts', async () => {

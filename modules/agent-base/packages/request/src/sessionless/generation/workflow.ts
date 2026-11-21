@@ -1,31 +1,31 @@
 import {
-  Workflow,
   SKIP_STEP,
   STEP_CARDINALITY,
+  Workflow,
   mergeStepOverrides,
   type Step,
   type StepDefinition,
   type StepDefinitions,
 } from '@print-an-agent/workflow-core';
 import { AgentRequestError } from '../../errors.js';
-import { executeSessionlessRequest } from '../execution.js';
-import { sessionlessLifecycle } from '../lifecycle.js';
-import { requireCompletedSessionlessResponse } from '../output.js';
-import { dispatchRequestDelta } from '../../delivery/dispatch.js';
-import { closedRecord } from '../validation.js';
-import { bindGenerationResources } from '../resources.js';
-import {
-  generationPreparationSteps,
-  invokeCompletion,
-  invokeGenerationStream,
-  resolveGenerationTarget,
-} from './steps.js';
+import { dispatchRequestDelta } from '../../output/index.js';
 import type {
   SessionlessGenerationContext,
   SessionlessGenerationState,
   SessionlessGenerationWorkflowOptions,
   SessionlessRequestStepName,
 } from '../contracts.js';
+import { executeSessionlessRequest } from '../execution.js';
+import { sessionlessLifecycle } from '../lifecycle.js';
+import { requireCompletedSessionlessResponse } from '../output.js';
+import { bindGenerationResources } from '../resources.js';
+import { closedRecord } from '../validation.js';
+import {
+  generationPreparationSteps,
+  invokeCompletion,
+  invokeGenerationStream,
+  resolveGenerationTarget,
+} from './steps.js';
 
 function sequence(...names: SessionlessRequestStepName[]): Step<SessionlessGenerationContext> {
   return async (context) => {

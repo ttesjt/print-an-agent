@@ -1,13 +1,13 @@
 import type {
-  ModelInteractionEvent,
-  AssistantModelMessage,
-} from '@print-an-agent/model-invocation-core';
-import { traceErrorCode } from '@print-an-agent/base-observability';
-import type {
   OutputPublicationStage,
   RequestReplayTraceStatus,
 } from '@print-an-agent/base-observability';
-import type { DefaultRequestWorkflowContext } from './context.js';
+import { traceErrorCode } from '@print-an-agent/base-observability';
+import type {
+  AssistantModelMessage,
+  ModelInteractionEvent,
+} from '@print-an-agent/model-invocation-core';
+import type { DefaultRequestWorkflowContext } from './types/workflow.js';
 
 function workflowReference(context: DefaultRequestWorkflowContext) {
   return {

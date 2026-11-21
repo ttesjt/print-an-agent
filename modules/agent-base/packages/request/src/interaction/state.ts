@@ -1,24 +1,10 @@
-import type {
-  ModelInteractionEvent,
-  ModelInteractionEventSink,
-  ModelInteractionResult,
-} from '@print-an-agent/model-invocation-core';
-import type { DefaultRequestWorkflowContext } from '../default/context.js';
+import type { ModelInteractionEvent } from '@print-an-agent/model-invocation-core';
 import { AgentRequestError } from '../errors.js';
+import type { RequestInteractionState } from './types.js';
 
-/** Shared interaction state; currentEvent is available only during its awaited dispatch. */
-export interface RequestInteractionState {
-  readonly signal: AbortSignal;
-  readonly emit: ModelInteractionEventSink;
-  /** Stop ingress/cancel delivery without releasing already accepted work. */
-  readonly stop: (cause: unknown) => unknown;
-  readonly currentEvent: ModelInteractionEvent | undefined;
-  result: ModelInteractionResult | undefined;
-}
-
-export function requireInteraction(
-  context: DefaultRequestWorkflowContext
-): RequestInteractionState {
+export function requireInteraction(context: {
+  readonly state: { readonly interaction?: RequestInteractionState };
+}): RequestInteractionState {
   if (context.state.interaction === undefined) {
     throw new AgentRequestError(
       'REQUEST_INTERACTION_STATE_INVALID',

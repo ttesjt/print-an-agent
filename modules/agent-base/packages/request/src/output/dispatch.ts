@@ -1,5 +1,5 @@
-import { requireValue } from '../preparation/state-value.js';
-import type { RequestInteractionState } from '../interaction/state.js';
+import type { RequestInteractionState } from '../interaction/index.js';
+import { requireValue } from '../state-access.js';
 
 /** Generation and Interaction share only their normalized presentation events. */
 export async function dispatchRequestDelta(context: {

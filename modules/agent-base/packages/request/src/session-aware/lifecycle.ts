@@ -1,12 +1,11 @@
 import { AgentActorError } from '@print-an-agent/base-actor';
-import { ActorError } from '@print-an-agent/model-invocation-core';
-import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
-import { AgentToolError } from '@print-an-agent/base-tool';
 import { AgentSessionError, supportsSessionExecution } from '@print-an-agent/base-session';
-import type { OutputFailure } from '../contracts.js';
+import { AgentToolError } from '@print-an-agent/base-tool';
+import { ActorError, ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import { AgentRequestError } from '../errors.js';
-import { RequestReplayFailedError } from '../replay/replay-error.js';
-import type { DefaultRequestWorkflowContext } from './context.js';
+import type { OutputFailure } from '../output/index.js';
+import { RequestReplayFailedError } from '../replay/index.js';
+import type { DefaultRequestWorkflowContext } from './types/workflow.js';
 
 function failureFrom(error: unknown): OutputFailure {
   if (error instanceof RequestReplayFailedError) return error.originalFailure;

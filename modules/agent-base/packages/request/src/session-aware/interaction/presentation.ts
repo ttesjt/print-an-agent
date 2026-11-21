@@ -1,24 +1,13 @@
-import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import {
   AgentSessionError,
   defineSessionTurnPresentation,
-  supportsSessionPresentation,
-  MAX_SESSION_PRESENTATION_CHARACTERS,
   MAX_SESSION_PRESENTATION_BLOCKS,
+  MAX_SESSION_PRESENTATION_CHARACTERS,
+  supportsSessionPresentation,
 } from '@print-an-agent/base-session';
-import type { DefaultRequestWorkflowContext } from '../default/context.js';
-import { requireInteractionEvent } from './state.js';
-
-export interface CapturedReasoningBlock {
-  readonly modelTurnIndex: number;
-  readonly chunks: string[];
-}
-
-/** Mutable Run-local buffer; only buildTurnPresentation creates the durable value. */
-export interface CapturedReasoningPresentation {
-  readonly blocks: CapturedReasoningBlock[];
-  characterCount: number;
-}
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
+import { requireInteractionEvent } from '../../interaction/state.js';
+import type { DefaultRequestWorkflowContext } from '../types/workflow.js';
 
 export function captureReasoningPresentation(
   context: DefaultRequestWorkflowContext

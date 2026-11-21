@@ -1,40 +1,42 @@
 import {
-  Workflow,
-  STEP_CARDINALITY,
   SKIP_STEP,
+  STEP_CARDINALITY,
+  Workflow,
   mergeStepOverrides,
   type Step,
   type StepDefinitions,
 } from '@print-an-agent/workflow-core';
 import { AgentRequestError } from '../../errors.js';
-import { resolveRequestInstructions } from '../../preparation/instructions.js';
-import { buildRequestTools } from '../../preparation/tools.js';
-import { deliverTextDelta, deliverReasoningDelta } from '../../delivery/steps.js';
-import { dispatchRequestDelta } from '../../delivery/dispatch.js';
-import { createInteractionEventAccounting } from '../../interaction/budgets.js';
+import { createInteractionEventAccounting } from '../../interaction/index.js';
+import {
+  deliverReasoningDelta,
+  deliverTextDelta,
+  dispatchRequestDelta,
+} from '../../output/index.js';
+import { buildRequestTools, resolveRequestInstructions } from '../../preparation/index.js';
 import { validateSessionlessRequest } from '../context.js';
 import { executeSessionlessRequest } from '../execution.js';
 import { sessionlessLifecycle } from '../lifecycle.js';
 import {
-  openSessionlessOutput,
   completeSessionlessResponse,
+  openSessionlessOutput,
   requireCompletedSessionlessResponse,
 } from '../output.js';
 import { closedRecord } from '../validation.js';
-import { bindInteractionResources } from './resources.js';
-import {
-  resolveInteractionTarget,
-  buildSessionlessInteractionContext,
-  invokeSessionlessInteraction,
-  buildInteractionResponse,
-  closeSessionlessTools,
-} from './steps.js';
 import type {
   SessionlessInteractionContext,
   SessionlessInteractionState,
   SessionlessInteractionStepName,
   SessionlessInteractionWorkflowOptions,
 } from './contracts.js';
+import { bindInteractionResources } from './resources.js';
+import {
+  buildInteractionResponse,
+  buildSessionlessInteractionContext,
+  closeSessionlessTools,
+  invokeSessionlessInteraction,
+  resolveInteractionTarget,
+} from './steps.js';
 
 export function createInteractionWorkflow(options: SessionlessInteractionWorkflowOptions) {
   closedRecord(

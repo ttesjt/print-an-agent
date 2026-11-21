@@ -1,8 +1,8 @@
 import { requireInteractionCapability } from '@print-an-agent/model-invocation-core';
 import { AgentRequestError } from '../../errors.js';
-import { requireValue } from '../../preparation/state-value.js';
-import { buildInteractionRequest } from '../../preparation/interaction-request.js';
-import { invokeRequestInteraction } from '../../interaction/invoke.js';
+import { invokeRequestInteraction } from '../../interaction/index.js';
+import { buildInteractionRequest } from '../../preparation/index.js';
+import { requireValue } from '../../state-access.js';
 import { prepareSessionlessContext } from '../context.js';
 import type { SessionlessInteractionContext } from './contracts.js';
 

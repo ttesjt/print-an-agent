@@ -5,8 +5,8 @@ import type {
   ResolvedActor,
 } from '@print-an-agent/model-invocation-core';
 import type { WorkflowContext, WorkflowDefinition } from '@print-an-agent/workflow-core';
-import type { OutputFailure, OutputStreamEvent } from '../contracts.js';
-import type { RequestInteractionState } from '../interaction/state.js';
+import type { RequestInteractionState } from '../interaction/index.js';
+import type { OutputFailure, OutputStreamEvent } from '../output/index.js';
 
 export interface SessionlessRequestInput {
   readonly message: string;

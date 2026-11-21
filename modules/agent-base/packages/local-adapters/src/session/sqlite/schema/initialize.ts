@@ -8,12 +8,11 @@ import { addSessionNavigationMigration } from './migrations/0003_add_session_nav
 import { addSessionMetadataMigration } from './migrations/0004_add_session_metadata.js';
 import { sessionMemoryMigration } from './migrations/0005_add_session_memory_records.js';
 import { assertSessionSchema } from './validation.js';
-
 import {
-  SESSION_SCHEMA_COMPONENT,
+  assertKnownSchemaVersion,
   CURRENT_SESSION_SCHEMA_VERSION,
   readSchemaVersion,
-  assertKnownSchemaVersion,
+  SESSION_SCHEMA_COMPONENT,
 } from './version.js';
 
 export function initializeSessionSchema(

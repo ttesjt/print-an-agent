@@ -316,7 +316,9 @@ Standalone package, while Pi-backed Engine implementations remain in `@print-an-
 
 SQLite physical names belong to concrete adapter construction. Each adapter independently owns its
 typed prefix/override input, identifier validation and quoting, table keys, migrations, SQL,
-lifecycle, and error mapping; no generic SQLite naming contract sits below them. Neutral defaults use
+lifecycle, and error mapping; no generic SQLite naming contract sits below them. Shared connection
+and synchronous transaction mechanics stay inside the local-adapters package, with domain-owned
+error translation and explicit transaction nesting decisions. Neutral defaults use
 `agent_`. Standalone TypeScript profiles may forward one host policy and validate cross-domain
 collisions, but Agent configuration, managed manifests, Workflow Context, and runtime requests never
 carry table names.

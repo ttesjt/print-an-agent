@@ -86,15 +86,16 @@ export type {
   SqliteSessionTableNamingInput,
 } from './session/index.js';
 
-export { createMemorySessionPersistence } from './persistence/index.js';
+export { createMemorySessionPersistence } from './session-persistence/index.js';
 
 export {
   createSqliteSessionPersistence,
   type SqliteSessionPersistenceOptions,
-} from './persistence/index.js';
+} from './session-persistence/index.js';
 
 export type {
   CoordinatedSessionMaintenance,
   CoordinatedSessionPersistence,
-  LocalLifecycleSessionPort,
-} from './persistence/index.js';
+} from './session-persistence/index.js';
+
+export type { LocalLifecycleSessionPort } from './session/index.js';

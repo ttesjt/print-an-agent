@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
 import * as adapters from '../../src/index.js';
+
 it('preserves the deliberate local adapter runtime API', () => {
   expect(Object.keys(adapters).sort()).toEqual([
     'DEFAULT_SQLITE_AGENT_CONFIG_TABLE_NAMES',

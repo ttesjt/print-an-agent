@@ -25,7 +25,7 @@
     "typecheck": "pnpm run build && tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
+    "format": "prettier --write . --ignore-path ../../../../.prettierignore",
     "format:check": "prettier --check . --ignore-path ../../../../.prettierignore"
   },
   "dependencies": {

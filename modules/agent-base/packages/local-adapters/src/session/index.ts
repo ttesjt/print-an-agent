@@ -31,3 +31,5 @@ export type {
   SqliteSessionTableNamesInput,
   SqliteSessionTableNamingInput,
 } from './sqlite/index.js';
+
+export type { LocalLifecycleSessionPort } from './types/ports.js';

@@ -125,11 +125,11 @@ The shared `tooling/architecture/source-boundaries.ts` scanner and cycle checker
 reuse the type checker. These opt-in checks inspect supplied literal modules; TypeScript owns
 resolution and type correctness.
 
-`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session, Composition, Runtime, Request and Standalone
+`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session, Composition, Runtime, Request, Standalone and Local Adapters
 declare their entries, shared ancestor contracts/capabilities and dependency directions in
 `test/session-architecture.test.ts`, `test/composition-architecture.test.ts`,
-`test/runtime-architecture.test.ts`, `test/request-architecture.test.ts` and
-`test/standalone-architecture.test.ts`. Composition and Runtime also check
+`test/runtime-architecture.test.ts`, `test/request-architecture.test.ts`,
+`test/standalone-architecture.test.ts` and `test/local-adapters-architecture.test.ts`. Composition and Runtime also check
 their own dependency declarations and runtime erasure of type modules. Workflow Core declares its
 boundaries in `test/workflow-source-boundaries.test.ts`. `test/source-boundaries.test.ts` qualifies
 the shared checker with accepted and rejected imports. All run in `pnpm test:architecture`, and
@@ -155,6 +155,15 @@ names and exercise Profile lifecycle, namespace publication, real SQLite reopen 
 resource selection. Public-package consumers in Base integration tests, CLI and Agent Web exercise
 the compiled API; consumer declaration emission checks portable inferred types. Standalone is a
 private workspace package and is outside the npm release artifact verification scope.
+
+Local Adapters declares domain entries, Memory/SQLite backend entries, Request Output/Journal
+boundaries and the Session-persistence composition layer. It checks one-way dependencies, independent
+type erasure and literal source cycles, including type-only edges. Package tests check exact runtime
+exports, omitted private coordination methods, real SQLite lifecycle/transactions and the supported
+Session v4-to-v5 upgrade versus existing mode without schema initialization. Shared contract suites run against both
+Memory and SQLite. Actual Base consumers typecheck through compiled package entries; declaration
+emission additionally qualifies portable inferred persistence results. The root public declaration
+graph check continues to reject native SQLite type leaks.
 
 The check scans all opted-in production `.ts` sources, including type-only imports, re-exports,
 import types and literal dynamic imports. It checks every enclosing boundary, explicitly shared

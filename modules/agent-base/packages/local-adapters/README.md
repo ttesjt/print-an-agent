@@ -43,6 +43,115 @@ requires a complete v5 schema and does not upgrade it. Malformed current schemas
 than silently repaired. Presentation reads are opt-in and bounded; history and compaction never
 select this content as model input.
 
+## Source organization
+
+The npm API is the deliberate named exports in `src/index.ts`; the package still exposes only its
+root entry. Internal feature entries compose the implementations below.
+
+```text
+src/
+  index.ts                           # Public classes, factories, options and naming contracts
+  sqlite/                            # Shared synchronous connection/transaction mechanics
+    index.ts
+    connection.ts
+    transaction.ts
+    types.ts
+  identity/
+    index.ts
+    memory/                          # Catalog Adapter, entry and pure options
+    sqlite/                          # Adapter, record codec, domain DB policy and schema
+      types/
+      migrations/
+  config/
+    index.ts
+    memory/                          # In-process Config document Adapter
+    sqlite/                          # Adapter, value codec/limits, domain DB policy and schema
+      types/
+      migrations/
+  session/
+    index.ts
+    limits.ts                        # Shared pending coordination read bound
+    types/ports.ts                   # Local Session capability set
+    memory/
+      index.ts
+      memory-session-adapter.ts      # One state owner and Port delegation
+      coordination.ts                # Package-private checkpoint/execution hooks
+      resolution.ts
+      history.ts
+      query.ts
+      metadata.ts
+      compaction.ts
+      state/                         # Owned state construction, lookup, cloning and snapshots
+      turns/                         # Mutations, completion and presentation
+      navigation/                    # Branch commands and safe compaction inheritance
+      lifecycle/                     # Authority, execution, retirement and maintenance
+      memory-coordination/           # Records and atomic navigation publication
+      types/
+    sqlite/
+      index.ts
+      sqlite-session-adapter.ts      # Port boundary, normalization and write transactions
+      database.ts
+      table-names.ts
+      input.ts
+      resolution.ts
+      snapshot.ts                    # Aggregate read and persisted lineage validation
+      records.ts
+      query.ts
+      metadata.ts
+      compaction.ts
+      history.ts
+      codecs/                        # Row values, identifiers, messages and domain records
+      turns/
+      navigation/
+      lifecycle/
+      memory-coordination/
+      schema/                        # Version, initialization, validation and numbered DDL
+      types/
+  request/
+    index.ts
+    output/                          # Memory OutputSink and snapshot contract
+    journal/
+      index.ts
+      reference.ts                   # Logical reference normalization
+      ownership.ts                   # Terminal-write request ownership
+      memory/                        # Adapter and package-private coordination hook
+      sqlite/                        # Adapter, entry codec, records, maintenance and schema
+        types/
+        migrations/
+  session-persistence/
+    index.ts
+    types/ports.ts                   # Composite result and cross-domain maintenance scope
+    memory/                          # Assembly and one shared execution queue
+    sqlite/                          # Assembly, options and same-database maintenance
+  observability/
+    index.ts
+    memory-agent-trace-adapter.ts
+    types.ts
+```
+
+Each domain/backend feature has a named entry. Responsibility folders such as `state`, `codecs`,
+`turns` and `schema` remain inside their owner. Independent interfaces and aliases use the owner's
+`types.ts` or `types/<concept>.ts`; controlled table keys and their derived union remain together.
+
+Session and Journal own their Memory coordination hooks. `session-persistence` consumes those hooks
+through internal feature APIs; the adapters do not depend back on the composite factory. SQLite
+Journal consumes Session's execution-fence capability through the Session entry. Public package
+declarations omit internal coordination exports and symbol methods using the existing `stripInternal`
+build boundary.
+
+The common SQLite capability owns one connection's synchronous work and cleanup, and explicit
+transaction start/join mechanics. Domain wrappers retain path/timeout validation, schema, table naming,
+clock validation, error identity and diagnostic mapping. Session joins an existing transaction when
+requested; the other domain wrappers keep their existing fresh-transaction behavior. No table naming
+or domain schema policy moves into the common capability.
+
+Contract tests share Session fixtures and separate query, Turn, compaction and navigation suites;
+both Memory and SQLite run the same suites. Lifecycle and cross-domain persistence qualification
+remain separate. The root architecture gate checks declared internal entries, dependency direction,
+type erasure and literal source cycles. See
+[verification coverage](../../../../docs/development.md#declared-source-feature-boundaries)
+for the static check's limits.
+
 ## Session lifecycle and coordinated persistence
 
 Memory and SQLite Session adapters implement independent lifecycle/query/execution capabilities:

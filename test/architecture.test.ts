@@ -927,9 +927,10 @@ describe('module architecture', () => {
       'standalone-agent',
       'src'
     );
-    const bootstrap = readFileSync(join(sourceRoot, 'create-standalone-agent.ts'), 'utf8');
+    const bootstrap = readFileSync(join(sourceRoot, 'bootstrap', 'agent.ts'), 'utf8');
     const specifiers = moduleSpecifiers(bootstrap);
-    expect(specifiers).toContain('./profiles/setup.js');
+    expect(specifiers).toContain('../setup/index.js');
+    expect(specifiers.some((specifier) => specifier.includes('/profiles/'))).toBe(false);
     expect(specifiers).not.toContain('./profiles/memory.js');
     expect(specifiers).not.toContain('./profiles/shared-sqlite.js');
     expect(specifiers).not.toContain('@print-an-agent/base-local-adapters');
@@ -962,9 +963,28 @@ describe('module architecture', () => {
       .map(normalize);
     expect(composeAgentOwners).toEqual([materializer]);
 
-    const resourcesRoot = join(sourceRoot, 'resources');
     for (const sourceFile of typeScriptFiles(sourceRoot)) {
-      if (isPathWithin(sourceFile, resourcesRoot)) continue;
+      if (sourceFile === join(sourceRoot, 'profiles', 'memory', 'types', 'acquisition.ts')) {
+        // The Profile recipe exposes a concrete persistence contract without selecting adapters.
+        const output = ts.transpileModule(readFileSync(sourceFile, 'utf8'), {
+          compilerOptions: {
+            module: ts.ModuleKind.ESNext,
+            verbatimModuleSyntax: true,
+            removeComments: true,
+          },
+        }).outputText;
+        expect(output.replace(/export\s*\{\s*\};?/gu, '').trim(), sourceFile).toBe('');
+        continue;
+      }
+      if (
+        isPathWithin(sourceFile, join(sourceRoot, 'resources')) ||
+        isPathWithin(sourceFile, join(sourceRoot, 'agent-memory', 'provisioning')) ||
+        isPathWithin(sourceFile, join(sourceRoot, 'sqlite')) ||
+        ['memory', 'directory', 'shared-sqlite'].some((profile) =>
+          isPathWithin(sourceFile, join(sourceRoot, 'profiles', profile, 'resources'))
+        )
+      )
+        continue;
       expect(
         moduleSpecifiers(readFileSync(sourceFile, 'utf8')).some(
           (specifier) => specifier === '@print-an-agent/base-local-adapters'

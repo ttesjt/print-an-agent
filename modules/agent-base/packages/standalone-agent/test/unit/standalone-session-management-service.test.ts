@@ -4,7 +4,7 @@ import {
   defineSessionLifecycleSnapshot,
 } from '@print-an-agent/base-session';
 import { describe, expect, it, vi } from 'vitest';
-import { projectStandaloneSessionManagementService } from '../../src/services/session-management-service.js';
+import { projectStandaloneSessionManagementService } from '../../src/service-projections/session-management.js';
 
 const SNAPSHOT = defineSessionLifecycleSnapshot({
   agentId: 'agent-one',

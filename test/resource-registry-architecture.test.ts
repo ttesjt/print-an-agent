@@ -184,7 +184,7 @@ it.each([
 it.each([
   'modules/agent-base/packages/composition/src/management/services/agent-management.ts',
   'modules/agent-base/packages/composition/src/runtime/index.ts',
-  'modules/agent-base/packages/standalone-agent/src/services/management-service.ts',
+  'modules/agent-base/packages/standalone-agent/src/service-projections/agent-management.ts',
   'modules/agent-base/packages/standalone-agent/src/runtime/materialize-standalone-agent.ts',
   'modules/agent-base/tests/integration/test/resource-registry/examples/service-provisioning/service.ts',
   'modules/agent-base/tests/integration/test/resource-registry/examples/service-provisioning/workflow.ts',
@@ -243,7 +243,7 @@ it.each([
     '@print-an-agent/self-learn-application',
   ],
   [
-    'modules/agent-base/packages/standalone-agent/src/services/management-service.ts',
+    'modules/agent-base/packages/standalone-agent/src/service-projections/agent-management.ts',
     '@print-an-agent/workbench-control-plane',
   ],
 ])('preserves independent-consumer/product boundaries at %s for %s', async (file, specifier) => {

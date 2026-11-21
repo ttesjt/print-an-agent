@@ -6,15 +6,15 @@ export {
   encodeStandaloneAgentManifest,
 } from './configuration/index.js';
 
-export { createStandaloneAgent, openStandaloneAgent } from './create-standalone-agent.js';
+export { createStandaloneAgent, openStandaloneAgent } from './bootstrap/index.js';
 
 export { createStandaloneProviderService } from './provider/index.js';
 
 export type { StandaloneProviderService } from './provider/index.js';
 
-export type { StandaloneAgentManagementService } from './services/management-service.js';
+export type { StandaloneAgentManagementService } from './service-projections/index.js';
 
-export type { StandaloneAgentRuntimeService } from './services/runtime-service.js';
+export type { StandaloneAgentRuntimeService } from './service-projections/index.js';
 
 export type {
   StandaloneListRetiredSessionsInput,
@@ -23,83 +23,96 @@ export type {
   StandalonePurgeSessionInput,
   StandaloneRecoverSessionExecutionsInput,
   StandaloneSessionLifecycleMutationInput,
-  StandaloneSessionManagementService,
-  StandaloneSessionReferenceInput,
-  projectStandaloneSessionManagementService,
-} from './services/session-management-service.js';
+} from './service-projections/index.js';
 
-export { projectStandaloneSessionNavigationService } from './services/session-navigation-service.js';
+export type { StandaloneSessionReferenceInput } from './service-projections/index.js';
+
+export type {
+  StandaloneSessionManagementService,
+  projectStandaloneSessionManagementService,
+} from './service-projections/index.js';
+
+export { projectStandaloneSessionNavigationService } from './service-projections/index.js';
 
 export type {
   StandaloneForkSessionBranchInput,
   StandaloneRewindSessionBranchInput,
   StandaloneSelectSessionBranchInput,
   StandaloneSessionNavigationReferenceInput,
-  StandaloneSessionNavigationService,
-} from './services/session-navigation-service.js';
+} from './service-projections/index.js';
+
+export type { StandaloneSessionNavigationService } from './service-projections/index.js';
+
+export { createStandaloneDirectoryDefinition } from './profiles/index.js';
 
 export {
-  createStandaloneDirectoryDefinition,
   createStandaloneDirectoryManagementService,
   createStandaloneDirectoryRuntimeService,
   createStandaloneDirectorySessionNavigationService,
   createStandaloneDirectorySessionService,
-  createStandaloneDirectorySetup,
-} from './profiles/directory.js';
+} from './profiles/index.js';
 
-export type { StandaloneDirectoryDefinition } from './profiles/directory.js';
+export { createStandaloneDirectorySetup } from './profiles/index.js';
 
-export { createStandaloneMemorySetup } from './profiles/memory.js';
+export type { StandaloneDirectoryDefinition } from './profiles/index.js';
 
-export type { StandaloneMemoryDefinition, StandaloneMemorySetup } from './profiles/memory.js';
+export { createStandaloneMemorySetup } from './profiles/index.js';
+
+export type { StandaloneMemoryDefinition, StandaloneMemorySetup } from './profiles/index.js';
 
 export type { MemoryAgentResourceNamespace } from './resources/memory/provisioner.js';
 
-export type { FilesystemAgentResourceNamespace } from './resources/filesystem/types.js';
+export type { FilesystemAgentResourceNamespace } from './profiles/index.js';
 
-export type { SharedSqliteAgentResourceNamespace } from './resources/shared-sqlite/types.js';
+export type { SharedSqliteAgentResourceNamespace } from './profiles/index.js';
 
-export type { StandaloneSetup } from './profiles/setup.js';
+export type { StandaloneSetup } from './setup/index.js';
 
 export type {
   MemoryAuthorityFactory,
   MemorySessionPersistenceFactory,
 } from './resources/memory/contracts.js';
 
+export { createSharedSqliteStandaloneDefinition } from './profiles/index.js';
+
 export {
-  createSharedSqliteStandaloneDefinition,
   createSharedSqliteStandaloneManagementService,
   createSharedSqliteStandaloneRuntimeService,
   createSharedSqliteStandaloneSessionNavigationService,
   createSharedSqliteStandaloneSessionService,
-  createSharedSqliteStandaloneSetup,
-} from './profiles/shared-sqlite.js';
+} from './profiles/index.js';
 
-export type { SharedSqliteStandaloneDefinition } from './profiles/shared-sqlite.js';
+export { createSharedSqliteStandaloneSetup } from './profiles/index.js';
+
+export type { SharedSqliteStandaloneDefinition } from './profiles/index.js';
 
 export {
   DEFAULT_SQLITE_MANAGED_NAMESPACE_TABLE_NAMES,
   resolveSqliteManagedNamespaceTableNames,
-} from './resources/shared-sqlite/table-names.js';
+} from './profiles/index.js';
+
+export type { SqliteManagedNamespaceTableName } from './profiles/index.js';
 
 export type {
-  SqliteManagedNamespaceTableName,
   SqliteManagedNamespaceTableNames,
   SqliteManagedNamespaceTableNamesInput,
   SqliteManagedNamespaceTableNamingInput,
-} from './resources/shared-sqlite/table-names.js';
+} from './profiles/index.js';
 
 export type {
   ResolvedStandaloneManagedSqliteTableNames,
   ResolvedStandaloneRuntimeSqliteTableNames,
-  ResolvedStandaloneSharedSqliteTableNames,
   StandaloneManagedSqliteTableNamesInput,
   StandaloneManagedSqliteTableNamingInput,
   StandaloneRuntimeSqliteTableNamesInput,
   StandaloneRuntimeSqliteTableNamingInput,
+} from './sqlite/index.js';
+
+export type {
+  ResolvedStandaloneSharedSqliteTableNames,
   StandaloneSharedSqliteTableNamesInput,
   StandaloneSharedSqliteTableNamingInput,
-} from './resources/sqlite-table-naming.js';
+} from './profiles/index.js';
 
 export { AgentBaseStandaloneError } from './errors.js';
 
@@ -143,12 +156,16 @@ export type {
   CreateSharedSqliteStandaloneNavigationServiceOptions,
   CreateSharedSqliteStandaloneProfileOptions,
   CreateSharedSqliteStandaloneSessionServiceOptions,
+} from './profiles/index.js';
+
+export type {
   CreateStandaloneDirectoryManagementServiceOptions,
   CreateStandaloneDirectoryNavigationServiceOptions,
   CreateStandaloneDirectoryProfileOptions,
   CreateStandaloneDirectorySessionServiceOptions,
-  CreateStandaloneMemoryProfileOptions,
-} from './types.js';
+} from './profiles/index.js';
+
+export type { CreateStandaloneMemoryProfileOptions } from './types.js';
 
 export type {
   StandaloneCredentialRuntimeOptions,

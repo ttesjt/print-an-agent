@@ -2,7 +2,7 @@ import { hasSessionMemoryCleanupFailure } from '@print-an-agent/base-composition
 import { ResourceCleanupError } from '@print-an-agent/base-composition/resource-registry';
 import type { RequestContextMemory } from '@print-an-agent/base-request';
 import { AgentBaseStandaloneError } from '../../errors.js';
-import type { StandaloneSetupCloseOptions } from '../../profiles/setup.js';
+import type { StandaloneSetupCloseOptions } from '../../setup/index.js';
 
 /** Host/Profile owner of borrowed runtime use, distinct from Registry acquisition lifetime. */
 export class RuntimeMemoryLifetime {

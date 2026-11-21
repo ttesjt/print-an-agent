@@ -268,7 +268,7 @@ export const boundaryConfigs = Object.freeze([
     files: [
       'modules/agent-base/packages/composition/src/{management,runtime,sessionless}/**/*.ts',
       'modules/agent-base/packages/composition/src/index.ts',
-      'modules/agent-base/packages/standalone-agent/src/{runtime,services,workflows,steps}/**/*.ts',
+      'modules/agent-base/packages/standalone-agent/src/{runtime,provider,bootstrap,setup,service-projections,workflows,steps}/**/*.ts',
     ],
     rules: moduleRestrictions([
       {

@@ -1,11 +1,4 @@
-import {
-  defineManagedAgentComposition,
-  type SessionManagedAgentCompositionDefinition,
-  type SessionManagementPorts,
-  type SessionNavigationCapability,
-  type SessionNavigationPorts,
-} from '@print-an-agent/base-composition';
-import type { StandaloneAgentConfig } from '../configuration/index.js';
+import { defineManagedAgentComposition } from '@print-an-agent/base-composition';
 import { STANDALONE_AGENT_CONFIG_CODEC } from '../configuration/index.js';
 import { AgentBaseStandaloneError } from '../errors.js';
 import type { StandaloneMemoryManagementOptions } from '../resources/agent-memory/contracts.js';
@@ -18,23 +11,14 @@ import {
   createMemoryStandaloneResourceProvisioner,
   type MemoryAgentResourceNamespace,
 } from '../resources/memory/provisioner.js';
-import type { StandaloneRawAgent } from '../runtime/index.js';
 import {
   assertStandaloneRuntimeOptions,
   materializeStandaloneAgentRuntime,
-  type StandaloneRuntimePorts,
 } from '../runtime/index.js';
+import type { StandaloneSessionDefinition, StandaloneSetup } from '../setup/index.js';
 import type { CreateStandaloneMemoryProfileOptions } from '../types.js';
-import type { StandaloneSetup } from './setup.js';
 
-export type StandaloneMemoryDefinition = SessionManagedAgentCompositionDefinition<
-  StandaloneAgentConfig,
-  MemoryAgentResourceNamespace,
-  StandaloneRuntimePorts,
-  StandaloneRawAgent,
-  SessionManagementPorts
-> &
-  SessionNavigationCapability<MemoryAgentResourceNamespace, SessionNavigationPorts>;
+export type StandaloneMemoryDefinition = StandaloneSessionDefinition<MemoryAgentResourceNamespace>;
 
 export interface StandaloneMemorySetup extends StandaloneSetup<MemoryAgentResourceNamespace> {
   readonly definition: MemoryManagedStandaloneDefinition<MemoryAgentResourceNamespace>;

@@ -1,7 +1,8 @@
+import type { ProviderModelReference } from '@print-an-agent/model-invocation-core';
+import type { PreparedHttpEmbeddingConfig } from './types.js';
 import {
   defineProviderModelReference,
   EmbeddingError,
-  type ProviderModelReference,
 } from '@print-an-agent/model-invocation-core';
 
 /** Adapter config is a data-only closed record, never an executable provider extension bag. */
@@ -28,17 +29,6 @@ export function readConfigRecord(value: unknown, keys: readonly string[]): Recor
       cause,
     });
   }
-}
-
-/** Target validation is complete; representation/limits still cross Core's validation boundary. */
-export interface PreparedHttpEmbeddingConfig {
-  readonly reference: ProviderModelReference;
-  readonly endpoint: string;
-  readonly modelRef: unknown;
-  readonly dimensions: unknown;
-  readonly limits: unknown;
-  readonly maxResponseBytes: number;
-  readonly sendDimensions: boolean;
 }
 
 export function prepareHttpEmbeddingConfig(config: unknown): PreparedHttpEmbeddingConfig {
@@ -80,12 +70,13 @@ export function prepareHttpEmbeddingConfig(config: unknown): PreparedHttpEmbeddi
     });
   }
   return Object.freeze({
-    reference,
-    endpoint: record.endpoint,
-    modelRef: record.modelRef,
-    dimensions: record.dimensions,
+    target: Object.freeze({
+      reference,
+      endpoint: record.endpoint,
+      maxResponseBytes: record.maxResponseBytes,
+      sendDimensions: record.sendDimensions,
+    }),
+    representation: Object.freeze({ modelRef: record.modelRef, dimensions: record.dimensions }),
     limits: record.limits,
-    maxResponseBytes: record.maxResponseBytes,
-    sendDimensions: record.sendDimensions,
   });
 }

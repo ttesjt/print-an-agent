@@ -1,6 +1,6 @@
 export { createHttpTextEmbedder } from './embedder.js';
+export type { CreateHttpTextEmbedderOptions } from './types.js';
 export type {
-  CreateHttpTextEmbedderOptions,
   HttpEmbeddingAuthentication,
   HttpTextEmbeddingConfig,
-} from './types.js';
+} from './configuration/index.js';

@@ -18,10 +18,10 @@
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "test": "vitest run --passWithNoTests",
+    "test": "pnpm run build && vitest run",
     "typecheck": "pnpm run build && tsc --noEmit",
     "lint": "eslint .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check . --ignore-path ../../../../.prettierignore"
   },
   "dependencies": {
     "@print-an-agent/model-invocation-core": "workspace:*"

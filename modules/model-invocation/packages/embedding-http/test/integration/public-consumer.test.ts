@@ -2,7 +2,8 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
-import { embeddingServer, wireResponse } from '../support/server.js';
+import { embeddingServer } from '../support/server.js';
+import { wireResponse } from '../support/wire-response.js';
 
 const execute = promisify(execFile);
 

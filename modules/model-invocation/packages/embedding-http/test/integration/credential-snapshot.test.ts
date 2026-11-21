@@ -4,7 +4,9 @@ import {
   type ProviderCredentialResolver,
 } from '@print-an-agent/model-invocation-core';
 import { createHttpTextEmbedder } from '../../src/index.js';
-import { embeddingServer, httpConfig, wireResponse } from '../support/server.js';
+import { embeddingServer } from '../support/server.js';
+import { httpConfig } from '../support/configuration.js';
+import { wireResponse } from '../support/wire-response.js';
 
 const request = (signal = new AbortController().signal) => ({
   task: EMBEDDING_TASK.QUERY,

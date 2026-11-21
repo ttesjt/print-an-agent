@@ -1,7 +1,9 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { EMBEDDING_TASK } from '@print-an-agent/model-invocation-core';
 import { createHttpTextEmbedder } from '../../src/index.js';
-import { embeddingServer, httpConfig, readRequest, wireResponse } from '../support/server.js';
+import { embeddingServer, readRequest } from '../support/server.js';
+import { httpConfig } from '../support/configuration.js';
+import { wireResponse } from '../support/wire-response.js';
 
 const closeServers: Array<() => Promise<void>> = [];
 afterEach(async () => {

@@ -1,5 +1,6 @@
 import {
   ModelInvocationError,
+  EmbeddingError,
   type ProviderApiKeyCredential,
   type ProviderCredentialResolver,
   type ProviderModelReference,
@@ -34,13 +35,12 @@ function snapshotCredential(value: unknown): ProviderApiKeyCredential {
   return Object.freeze({ type: 'api-key', apiKey: snapshot.apiKey });
 }
 
-export async function resolveEmbeddingHeaders(
+export async function resolveEmbeddingAuthorization(
   reference: ProviderModelReference,
   resolver: ProviderCredentialResolver | undefined,
   signal: AbortSignal
-): Promise<Readonly<Record<string, string>>> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (reference.credentialRef === undefined) return Object.freeze(headers);
+): Promise<string | undefined> {
+  if (reference.credentialRef === undefined) return undefined;
   signal.throwIfAborted();
   if (resolver === undefined) {
     throw new ModelInvocationError(
@@ -70,6 +70,27 @@ export async function resolveEmbeddingHeaders(
       'Embedding credential is unavailable.'
     );
   }
-  headers.Authorization = `Bearer ${snapshotCredential(credential).apiKey}`;
-  return Object.freeze(headers);
+  return `Bearer ${snapshotCredential(credential).apiKey}`;
+}
+
+export function bindCredentialResolver(input: unknown): ProviderCredentialResolver | undefined {
+  if (input === undefined) return undefined;
+  try {
+    const resolve =
+      typeof input === 'object' && input !== null && 'resolve' in input ? input.resolve : undefined;
+    if (!isCredentialResolverMethod(resolve)) throw new Error('Expected a credential resolver');
+    return { resolve: resolve.bind(input) };
+  } catch (cause: unknown) {
+    throw new EmbeddingError(
+      'EMBEDDING_BINDING_INVALID',
+      'Embedding credential resolver is invalid.',
+      { cause }
+    );
+  }
+}
+
+function isCredentialResolverMethod(
+  value: unknown
+): value is ProviderCredentialResolver['resolve'] {
+  return typeof value === 'function';
 }

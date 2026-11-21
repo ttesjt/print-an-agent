@@ -1,7 +1,8 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { EMBEDDING_TASK } from '@print-an-agent/model-invocation-core';
-import { createHttpTextEmbedder } from '../../src/index.js';
-import { httpConfig, wireResponse } from '../support/server.js';
+import { createHttpTextEmbedder } from '../../../src/index.js';
+import { httpConfig } from '../../support/configuration.js';
+import { wireResponse } from '../../support/wire-response.js';
 
 afterEach(() => vi.useRealTimers());
 

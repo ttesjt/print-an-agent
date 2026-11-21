@@ -137,6 +137,11 @@ modules and one-way dependencies in `test/pi-source-boundaries.test.ts`, also in
 qualification. It checks baseline public symbols and that reachable compiled public declarations
 do not expose Pi/TypeBox SDK types.
 
+HTTP Embedding declares its Configuration/HTTP entries, shared Authentication file entry and dependency
+directions in `test/embedding-http-source-boundaries.test.ts`, also included in Model Invocation
+qualification. It checks the public inventory, pure type erasure, HTTP's erased dependency on
+Configuration and Core-facing compiled public declarations.
+
 Observability declares its event protocol and emission entries, shared errors and one-way dependency
 in `test/observability-source-boundaries.test.ts`.
 
@@ -186,7 +191,7 @@ emission additionally qualifies portable inferred persistence results. The root 
 graph check continues to reject native SQLite type leaks.
 
 `tooling/architecture/type-modules.ts` provides the shared runtime-erasure check used by Agent Actor,
-Composition, Runtime, Workflow, Observability, Model Invocation Core and Pi. It inspects their supplied `types.ts`/`types/`
+Composition, Runtime, Workflow, Observability, Model Invocation Core, Pi and HTTP Embedding. It inspects their supplied `types.ts`/`types/`
 modules with the repository's ESM/verbatim-import settings. `test/type-modules.test.ts` checks accepted branded/type
 contracts and rejected runtime declarations/imports. Type correctness remains the compiler's job;
 this opt-in check does not classify ownership or apply to unregistered packages automatically.

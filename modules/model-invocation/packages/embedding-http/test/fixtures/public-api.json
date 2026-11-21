@@ -1,0 +1,9 @@
+{
+  "names": [
+    "CreateHttpTextEmbedderOptions",
+    "HttpEmbeddingAuthentication",
+    "HttpTextEmbeddingConfig",
+    "createHttpTextEmbedder"
+  ],
+  "runtime": ["createHttpTextEmbedder"]
+}

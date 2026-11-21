@@ -1,33 +1,31 @@
 export { AgentActorError } from './errors.js';
-export type { AgentActorErrorCode } from './errors.js';
-export {
-  FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
-  MAIN_ACTOR_ID,
-  SESSION_COMPACTION_RESPONSIBILITY_ID,
-  parseResponsibilityId,
-} from './identifiers.js';
-export type { ResponsibilityId } from './identifiers.js';
-export { defineAgentActor } from './actor.js';
+export type { AgentActorErrorCode } from './types.js';
+export { defineAgentActor, createAgentActorCatalog, MAIN_ACTOR_ID } from './actors/index.js';
 export type {
   AgentActorDefinition,
   AgentActorDefinitionInput,
   ResolvedAgentActor,
-} from './actor.js';
-export { createAgentActorCatalog } from './catalog.js';
-export type { AgentActorCatalogPort, CreateAgentActorCatalogOptions } from './catalog.js';
-export { defineResponsibility } from './responsibility.js';
+  AgentActorCatalogPort,
+  CreateAgentActorCatalogOptions,
+} from './actors/index.js';
+export {
+  defineResponsibility,
+  createResponsibilityCatalog,
+  createResponsibilityRouter,
+  parseResponsibilityId,
+  FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
+  SESSION_COMPACTION_RESPONSIBILITY_ID,
+  BUILT_IN_RESPONSIBILITIES,
+} from './responsibilities/index.js';
 export type {
-  ResolvedResponsibility,
+  ResponsibilityId,
   ResponsibilityActorCandidate,
   ResponsibilityActorCandidateInput,
   ResponsibilityDefinition,
   ResponsibilityDefinitionInput,
-} from './responsibility.js';
-export { createResponsibilityCatalog, createResponsibilityRouter } from './routing.js';
-export type {
-  CreateResponsibilityCatalogOptions,
-  CreateResponsibilityRouterOptions,
+  ResolvedResponsibility,
   ResponsibilityCatalogPort,
+  CreateResponsibilityCatalogOptions,
   ResponsibilityRouter,
-} from './routing.js';
-export { BUILT_IN_RESPONSIBILITIES } from './built-ins.js';
+  CreateResponsibilityRouterOptions,
+} from './responsibilities/index.js';

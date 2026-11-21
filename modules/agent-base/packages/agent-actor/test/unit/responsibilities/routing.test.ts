@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { parseActorId } from '@print-an-agent/model-invocation-core';
 import {
   createAgentActorCatalog,
   createResponsibilityCatalog,
@@ -6,8 +7,12 @@ import {
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
   MAIN_ACTOR_ID,
   parseResponsibilityId,
-} from '../../src/index.js';
-import { EMPTY_TOOL_RUNTIME, fakeEngine, type FakeEngineInspection } from '../support/fixtures.js';
+} from '../../../src/index.js';
+import {
+  EMPTY_TOOL_RUNTIME,
+  fakeEngine,
+  type FakeEngineInspection,
+} from '../../support/fixtures.js';
 
 function inspection(): FakeEngineInspection {
   return { interactionRequests: [], directRequests: [] };
@@ -292,4 +297,51 @@ describe('Responsibility routing', () => {
     expect(resolved.allowedTools).toEqual(['search']);
     expect(Object.isFrozen(resolved.effectiveCandidates)).toBe(true);
   });
+});
+
+it('requires main before resolving a Responsibility even with an explicit candidate', async () => {
+  const actorCatalog = createAgentActorCatalog({
+    actors: [{ id: 'secondary', engineId: 'engine' }],
+    engines: [fakeEngine('engine', inspection())],
+  });
+  let reads = 0;
+  const responsibilityCatalog = {
+    revision: 1,
+    list: () => [],
+    resolve: () => {
+      reads += 1;
+      return Promise.resolve({
+        id: parseResponsibilityId('answer'),
+        actors: [{ actorId: parseActorId('secondary'), enabled: true }],
+        allowedTools: [],
+        requiredCapabilities: { invocationMode: 'direct' as const },
+      });
+    },
+  };
+  await expect(
+    createResponsibilityRouter({ actorCatalog, responsibilityCatalog }).resolve(
+      parseResponsibilityId('answer')
+    )
+  ).rejects.toMatchObject({ code: 'ACTOR_NOT_FOUND' });
+  expect(reads).toBe(0);
+});
+
+it('rejects an enabled list with no technically compatible Actor', async () => {
+  const actorCatalog = createAgentActorCatalog({
+    actors: [{ id: 'main', engineId: 'engine', capabilityLimits: { invocationModes: ['direct'] } }],
+    engines: [fakeEngine('engine', inspection())],
+  });
+  const responsibilityCatalog = createResponsibilityCatalog({
+    responsibilities: [
+      {
+        id: 'interactive',
+        requiredCapabilities: { invocationMode: 'interaction' },
+      },
+    ],
+  });
+  await expect(
+    createResponsibilityRouter({ actorCatalog, responsibilityCatalog }).resolve(
+      parseResponsibilityId('interactive')
+    )
+  ).rejects.toMatchObject({ code: 'RESPONSIBILITY_CAPABILITY_UNAVAILABLE' });
 });

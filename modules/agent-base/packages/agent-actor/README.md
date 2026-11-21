@@ -1,77 +1,83 @@
 # `@print-an-agent/agent-actor`
 
 Agent-specific Actor permissions and Responsibility routing over
-`@print-an-agent/model-invocation-core`.
+`@print-an-agent/model-invocation-core`. Workflow and Step retain execution-planning authority.
 
-An Actor is a named callable LLM participant backed by a replaceable Engine. A Responsibility is a
-registered semantic reason for an LLM call with an ordered configurable Actor candidate list.
-Workflow and Step remain the execution-planning authority.
+## Public contract and ownership
 
-The independent invocation module owns Actor/Engine definitions, technical capabilities, messages,
-invocation deadlines and Engine protocol integrity. This package adds Agent-owned tool permissions
-and Responsibility selection. `defineAgentActor()` and the Agent Actor catalog compose those
-permissions with the same underlying Actor; they do not create another invocation implementation.
+The package exposes one root entry with deliberate named exports. `defineAgentActor()` extends a
+Core Actor definition with `allowedTools`. `createAgentActorCatalog()` delegates binding and
+invocation to Core, while preserving those permissions and a required catalog revision in
+`ResolvedAgentActor`. Core binding/protocol errors retain their Core identities; Agent-owned input
+and routing failures use `AgentActorError`.
 
-`AgentActorDefinitionInput`, `AgentActorDefinition` and `ResolvedAgentActor` describe this extension.
-`createAgentActorCatalog()` accepts `CreateAgentActorCatalogOptions` and returns an
-`AgentActorCatalogPort`. Generic `ActorDefinition`, `ResolvedActor` and `createActorCatalog()` remain
-owned by Model Invocation Core. Responsibility selection and tool permission declarations are the
-Agent-specific additions; invocation modes and Engine protocols retain their Core implementation.
+Generic Engine/Actor capabilities, invocation configuration and deadlines, cancellation, token
+measurement, and event/result protocol integrity belong to
+[Model Invocation](../../../model-invocation/README.md). Its
+[Core contract](../../../model-invocation/packages/core/README.md) also owns technical requirement
+validation. Responsibility definition maps Core's closed requirement diagnostics to its existing
+Agent-specific error codes and messages.
 
-The package contains no provider SDK and has no knowledge of Model Workbench or product runtimes.
+Actor and Responsibility Tool lists default to empty and remain independent declarations. Request
+composition supplies them to Agent Base Tool alongside product/runtime permissions; Tool owns the
+final permission intersection, budgets and execution. This package selects no provider or storage.
 
-Every Engine, including a product-supplied custom Engine, must declare a closed technical capability
-profile. Actors can narrow those claims but cannot widen them. Technical capability is separate from
-Tool permission; omitted Actor and Responsibility Tool lists deny access.
+## Responsibilities
 
-Interaction-capable Engines declare `interaction.streamable`; direct-only Engines carry no
-streamability field. The declaration is a routing promise that the interaction handler can emit
-incremental events, not a call-time switch. Direct completion is currently buffered.
+A Responsibility registers a purpose, instructions, required technical capabilities and optional
+ordered Actor candidates. The built-ins are `foreground-interaction` and `session-compaction`.
+The configured main Actor must resolve before the Responsibility is read, even when an explicit
+candidate list is present. Omitted candidates select the main Actor; an empty or all-disabled list
+is unavailable. Selection chooses the first enabled compatible Actor. Missing enabled Actors and
+Core errors propagate; invocation failure does not retry later candidates.
 
-Single-generation Streaming is an independent Core capability with invocation mode `stream`.
-A Responsibility may select it explicitly; its optional `stream()` projection retains Responsibility
-instruction composition. Existing Completion/Interaction Engines need no additional method.
+Selected invocations delegate to the same Core Actor. Instruction order is Actor, Responsibility,
+then caller. Direct, interaction and optional streaming projection retain their Core capability and
+cancellation boundaries. Responsibility and Actor catalog revisions are independent immutable
+snapshots. Durable catalogs and automatic failover remain outside this package.
 
-Each Actor owns an independent `invocationPolicy`. Its `timeoutMilliseconds` is either a supported
-positive integer or `NO_ACTOR_INVOCATION_TIMEOUT`; omission and the standard default both mean no
-automatic deadline. The policy applies to both interaction and direct invocation and is deliberately
-separate from provider configuration and generation `invocationConfig`. A configured deadline
-creates one child cancellation boundary, passes the Engine one effective `AbortSignal`, never aborts
-its parent, and maps only its own expiry to `ACTOR_INVOCATION_TIMEOUT`. Parent cancellation and
-authoritative Engine protocol failures retain their original identity. Cancellation is cooperative:
-an Engine that ignores its signal may continue work, while the Actor waits for settlement and then
-still reports its expired deadline.
+## Source ownership
 
-Interaction tools borrow the Request-owned runtime and its budgets. Each call additionally inherits
-the current Actor invocation signal, including cancellation from its invoking Step. Engines may
-supply a narrower signal through `tools.execute(proposal, { signal })`, but cannot remove inherited
-cancellation. Custom Tool runtimes must honor this per-call signal and settle active handlers before
-reporting cancellation; the Actor wrapper does not close or take ownership of the runtime.
+```text
+src/
+  index.ts                        # Package aggregate; no additional npm subpaths
+  errors.ts                       # Shared runtime error class
+  types.ts                        # Shared error-code group
+  actors/
+    index.ts                      # Agent Actor feature API
+    definition.ts                 # Core definition plus Agent permissions
+    catalog.ts                    # Core catalog delegation and permission projection
+    defaults.ts                   # Coordinated main-Actor default
+    types/                        # Definition/resolved and catalog contracts
+  responsibilities/
+    index.ts                      # Responsibility feature API
+    identifiers.ts                # Responsibility ID validation
+    built-ins.ts                  # Built-in IDs and definitions
+    definition.ts                 # Input normalization and domain diagnostics
+    catalog.ts                    # Immutable definitions and catalog revision
+    routing.ts                    # Main preflight and ordered candidate selection
+    invocation.ts                 # Selected-Actor instruction/call projection
+    types/                        # Definition/identity, catalog and routing contracts
+```
 
-The resolved Actor boundary enforces `maxModelTurns` for every Engine by counting normalized
-`turn-start` events. A terminal-only Engine consumes the provable minimum of one model turn. Custom
-Engines are trusted executable infrastructure and must emit `turn-start` before each real model
-invocation; hidden calls cannot be discovered by a generic framework boundary. Provider adapters may
-also stop proactively before another invocation to avoid unnecessary cost.
+Responsibilities consume Actors through `actors/index.ts`; Actors remain independent of
+Responsibilities. Children consume the explicitly shared error modules, and those modules never
+depend on a child. Independent types/interfaces stay in their owner's `types/`; the single shared
+error-code group uses `types.ts`. Local implementation state stays with its algorithm.
 
-The Engine emitter closes when its invocation settles. The boundary observes each returned emit
-Promise, preserves the first protocol or downstream failure, and drains outstanding pre-terminal
-delivery before validating and publishing the terminal/result pair. Catching a rejected emit cannot
-turn that interaction into success. Late emission fails with `ACTOR_ENGINE_PROTOCOL_INVALID` and
-never reaches downstream. Delivery scheduling and capacity belong to the consuming workflow; the
-Actor boundary does not add a second event queue. Engines should await emit for backpressure and
-must honor cancellation. On Engine failure the boundary closes emission immediately; the consumer
-owns draining already-started delivery before disposing its resources.
+## Verification
 
-The built-in Responsibilities are `foreground-interaction` and `session-compaction`. A registered
-Responsibility with no candidate list resolves to the required `main` Actor. An explicit list is
-authoritative: disabled candidates are filtered and the first enabled compatible Actor is selected.
-Current routing performs no automatic retry on later candidates after invocation failure.
+Run `pnpm test:agent-actor-qualification` from the repository root. It prepares dependencies and
+checks types, lint, formatting, tests and declared source boundaries. Core-only definition tests
+live in Core; Agent Actor tests cover permissions, catalogs and Responsibilities. Integration tests
+consume compiled public exports and verify delegation to Core.
 
-Instruction order is stable: Actor instructions, then Responsibility instructions, then the calling
-Step/request instructions. Catalog revisions and resolved routing metadata are immutable snapshots.
-Durable catalogs, automatic failover, rich media request values, tokenizer-backed context checks, and
-durable Task/work-item lifecycle are deferred.
+Test/watch/coverage commands prepare this package's initial build. During watch development run
+`pnpm dev` alongside `pnpm test:watch` to rebuild the public output consumed by integration tests.
+The shared source-boundary checker covers literal imports/re-exports, including type edges and
+ancestor/shared entries. The shared type-module checker verifies runtime erasure. Computed module
+paths and semantic ownership still require review. Independent tarball consumers run through
+`pnpm release:prepare` and `pnpm release:verify`.
 
 ## Naming migration
 

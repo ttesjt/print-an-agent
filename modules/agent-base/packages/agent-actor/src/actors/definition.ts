@@ -1,22 +1,7 @@
-import {
-  defineActor as defineModelActor,
-  type ActorDefinition as ModelActorDefinition,
-  type ActorDefinitionInput as ModelActorDefinitionInput,
-  type ResolvedActor as ResolvedModelActor,
-} from '@print-an-agent/model-invocation-core';
-import { parseToolName, type ToolName } from '@print-an-agent/base-tool';
-import { AgentActorError } from './errors.js';
-
-export interface AgentActorDefinitionInput extends ModelActorDefinitionInput {
-  readonly allowedTools?: readonly string[];
-}
-export interface AgentActorDefinition extends ModelActorDefinition {
-  readonly allowedTools: readonly ToolName[];
-}
-export interface ResolvedAgentActor extends ResolvedModelActor {
-  readonly catalogRevision: number;
-  readonly allowedTools: readonly ToolName[];
-}
+import { defineActor as defineModelActor } from '@print-an-agent/model-invocation-core';
+import { parseToolName } from '@print-an-agent/base-tool';
+import { AgentActorError } from '../errors.js';
+import type { AgentActorDefinition, AgentActorDefinitionInput } from './types/definition.js';
 
 /** Agent-owned permission policy layered over the independent Actor definition. */
 export function defineAgentActor(input: AgentActorDefinitionInput): AgentActorDefinition {

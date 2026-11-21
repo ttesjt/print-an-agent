@@ -1,8 +1,9 @@
-import {
-  FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
-  SESSION_COMPACTION_RESPONSIBILITY_ID,
-} from './identifiers.js';
-import type { ResponsibilityDefinitionInput } from './responsibility.js';
+import { parseResponsibilityId } from './identifiers.js';
+import type { ResponsibilityDefinitionInput } from './types/definition.js';
+
+export const FOREGROUND_INTERACTION_RESPONSIBILITY_ID =
+  parseResponsibilityId('foreground-interaction');
+export const SESSION_COMPACTION_RESPONSIBILITY_ID = parseResponsibilityId('session-compaction');
 
 export const BUILT_IN_RESPONSIBILITIES: readonly ResponsibilityDefinitionInput[] = Object.freeze([
   Object.freeze({

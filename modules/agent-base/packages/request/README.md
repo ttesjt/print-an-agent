@@ -297,11 +297,19 @@ than history/context APIs; replay remains answer-only and does not recapture or 
 
 ## Source layout
 
-- Root files own stable request contracts, errors, and policy.
+The package root and feature entries use deliberate named exports. Cross-feature consumers use
+the owning entry; reusable Step Contexts retain their narrow contracts. Type-only Step catalog
+exports remain type-only at the package root.
+
+- Root files own the public entry, common errors and required-state access. `policy/` owns
+  Request limits and validation; `output/` owns shared stream events and delta delivery.
+- Independent public Context contracts live in their feature type modules. Session-aware input,
+  response, channel and presentation types live in `session-aware/types/`.
 - `workflow/` owns the generic Workflow shape, names, types, and fail-fast Step definitions.
-- `default/` owns the official assembled profile's Context, concrete Step overrides, and failure
+- `session-aware/` owns the official assembled profile's Context, concrete Step overrides, and failure
   lifecycle.
-- `interaction/` owns interaction scope, bounded event delivery, and its concrete Step implementations.
+- `interaction/` owns shared event delivery, budgets, Actor invocation and Tool joining.
+  Session-aware Steps and presentation live in `session-aware/interaction/`.
 - `replay/` owns Request Journal contracts, identity/fingerprint rules, and response wire validation.
 
 Concrete local OutputSink and Request Journal implementations are intentionally owned by

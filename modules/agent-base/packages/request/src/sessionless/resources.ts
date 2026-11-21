@@ -1,9 +1,9 @@
 import { AgentRequestError } from '../errors.js';
-import { closedRecord, defineSessionlessGenerationPolicy } from './validation.js';
 import type {
   BoundSessionlessGenerationResources,
   SessionlessGenerationResources,
 } from './contracts.js';
+import { closedRecord, defineSessionlessGenerationPolicy } from './validation.js';
 
 export function bindGenerationResources(
   input: SessionlessGenerationResources

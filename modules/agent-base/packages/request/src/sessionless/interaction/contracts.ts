@@ -1,11 +1,4 @@
 import type {
-  ActorDirectResult,
-  ActorInteractionRequest,
-  InteractionCapability,
-  ModelMessage,
-  UserModelMessage,
-} from '@print-an-agent/model-invocation-core';
-import type {
   ToolExecutionPolicy,
   ToolPermissionPolicy,
   ToolPermissionPolicyInput,
@@ -13,6 +6,13 @@ import type {
   ToolRunInspection,
   ToolRuntime,
 } from '@print-an-agent/base-tool';
+import type {
+  ActorDirectResult,
+  ActorInteractionRequest,
+  InteractionCapability,
+  ModelMessage,
+  UserModelMessage,
+} from '@print-an-agent/model-invocation-core';
 import type { WorkflowContext, WorkflowDefinition } from '@print-an-agent/workflow-core';
 import type {
   BoundSessionlessGenerationResources,

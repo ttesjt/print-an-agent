@@ -1,26 +1,6 @@
-import type {
-  ActorInteractionRequest,
-  ModelInteractionEvent,
-  ModelMessage,
-  UserModelMessage,
-  InteractionTools,
-} from '@print-an-agent/model-invocation-core';
-import { requireValue } from './state-value.js';
-
-export interface InteractionRequestContext {
-  readonly signal: AbortSignal;
-  readonly state: {
-    instructions?: string;
-    history?: readonly ModelMessage[];
-    userMessage?: UserModelMessage;
-    tools?: InteractionTools;
-    modelRequest?: ActorInteractionRequest;
-    interaction?: { readonly emit: ActorInteractionRequest['emit'] };
-  };
-  readonly resources: {
-    readonly policy: Pick<ActorInteractionRequest, 'maxModelTurns' | 'maxOutputCharacters'>;
-  };
-}
+import type { ModelInteractionEvent } from '@print-an-agent/model-invocation-core';
+import { requireValue } from '../state-access.js';
+import type { InteractionRequestContext } from './types/interaction-request.js';
 
 /** Material acquisition is a separate phase; this Step only assembles the formal request. */
 export function buildInteractionRequest(context: InteractionRequestContext): Promise<void> {

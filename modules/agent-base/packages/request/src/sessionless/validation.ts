@@ -1,6 +1,6 @@
 import { defineModelMessage, type ModelMessage } from '@print-an-agent/model-invocation-core';
 import { AgentRequestError } from '../errors.js';
-import { DEFAULT_REQUEST_POLICY } from '../policy.js';
+import { DEFAULT_REQUEST_POLICY } from '../policy/index.js';
 import type { SessionlessGenerationPolicy } from './contracts.js';
 
 export const DEFAULT_SESSIONLESS_GENERATION_POLICY: SessionlessGenerationPolicy = Object.freeze({

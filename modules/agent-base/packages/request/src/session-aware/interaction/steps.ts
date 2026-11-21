@@ -1,35 +1,32 @@
-import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import {
   AgentSessionError,
   defineSessionTurnPresentation,
   supportsSessionPresentation,
 } from '@print-an-agent/base-session';
+import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import { type StepOverrides } from '@print-an-agent/workflow-core';
-import { invokeRequestInteraction } from './invoke.js';
-import { createInteractionEventAccounting } from './budgets.js';
-import type { DefaultRequestWorkflowContext } from '../default/context.js';
-import { requireValue } from '../preparation/state-value.js';
+import { AgentRequestError } from '../../errors.js';
+import { createInteractionEventAccounting } from '../../interaction/budgets.js';
+import { InteractionEventDelivery } from '../../interaction/event-delivery.js';
+import { invokeRequestInteraction } from '../../interaction/invoke.js';
+import { requireInteraction, requireInteractionEvent } from '../../interaction/state.js';
+import { type RequestInteractionState } from '../../interaction/types.js';
 import {
-  deliverTextDelta as writeTextDelta,
   deliverReasoningDelta as writeReasoningDelta,
-} from '../delivery/steps.js';
+  deliverTextDelta as writeTextDelta,
+} from '../../output/index.js';
+import { requireValue } from '../../state-access.js';
+import type { RequestStepName } from '../../workflow/index.js';
 import {
   traceAgentLoopCompleted,
-  traceModelInteractionEvent,
   traceAgentLoopFailed,
   traceAgentLoopStarted,
+  traceModelInteractionEvent,
   traceOutputFailed,
   traceOutputStarted,
-} from '../default/observability.js';
-import { AgentRequestError } from '../errors.js';
-import type { RequestStepName } from '../workflow/names.js';
-import { InteractionEventDelivery } from './event-delivery.js';
+} from '../tracing.js';
+import type { DefaultRequestWorkflowContext } from '../types/workflow.js';
 import { buildTurnPresentation, captureReasoningPresentation } from './presentation.js';
-import {
-  requireInteraction,
-  requireInteractionEvent,
-  type RequestInteractionState,
-} from './state.js';
 
 async function runAgentInteraction(context: DefaultRequestWorkflowContext): Promise<void> {
   const accountEvent = createInteractionEventAccounting(context);

@@ -6,7 +6,7 @@ import {
   validateToolExecutionPolicy,
 } from '@print-an-agent/base-tool';
 import { AgentRequestError } from '../../errors.js';
-import { DEFAULT_REQUEST_POLICY } from '../../policy.js';
+import { DEFAULT_REQUEST_POLICY } from '../../policy/index.js';
 import { bindGenerationResources } from '../resources.js';
 import { closedRecord, defineSessionlessGenerationPolicy } from '../validation.js';
 import type {

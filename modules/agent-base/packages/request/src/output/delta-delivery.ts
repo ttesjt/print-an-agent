@@ -1,16 +1,6 @@
-import type { ModelInteractionEvent } from '@print-an-agent/model-invocation-core';
-import type { OutputStreamEvent } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
-import { requireValue } from '../preparation/state-value.js';
-
-export interface DeltaDeliveryContext {
-  readonly state: {
-    readonly interaction?: { readonly currentEvent: ModelInteractionEvent | undefined };
-    readonly request?: {
-      readonly outputSink?: { readonly write: (event: OutputStreamEvent) => Promise<void> };
-    };
-  };
-}
+import { requireValue } from '../state-access.js';
+import type { DeltaDeliveryContext, OutputStreamEvent } from './types.js';
 
 async function deliverDelta(context: DeltaDeliveryContext, type: OutputStreamEvent['type']) {
   const event = context.state.interaction?.currentEvent;

@@ -1,7 +1,7 @@
-import { createGenerationWorkflow } from './generation/workflow.js';
-import { createInteractionWorkflow } from './interaction/workflow.js';
 import type { SessionlessGenerationWorkflowOptions } from './contracts.js';
-import type { SessionlessInteractionWorkflowOptions } from './interaction/contracts.js';
+import { createGenerationWorkflow } from './generation/index.js';
+import type { SessionlessInteractionWorkflowOptions } from './interaction/index.js';
+import { createInteractionWorkflow } from './interaction/index.js';
 import { closedRecord } from './validation.js';
 
 export type SessionlessRequestWorkflowOptions =

@@ -1,0 +1,41 @@
+import * as request from '../../src/index.js';
+import { expect, it } from 'vitest';
+
+it('preserves the deliberate package runtime API', () => {
+  expect(Object.keys(request).sort()).toEqual([
+    'AgentRequestError',
+    'DEFAULT_REQUEST_POLICY',
+    'DEFAULT_SESSIONLESS_GENERATION_POLICY',
+    'DEFAULT_SESSIONLESS_INTERACTION_POLICY',
+    'NO_REQUEST_TIMEOUT',
+    'REQUEST_EXECUTION_INTERRUPTED',
+    'REQUEST_STEP_NAMES',
+    'REQUEST_WORKFLOW_NAME',
+    'RequestReplayFailedError',
+    'RequestStepNotImplementedError',
+    'buildInteractionRequest',
+    'buildRequestTools',
+    'createDefaultRequestState',
+    'createDefaultRequestStepOverrides',
+    'createRequestFingerprint',
+    'createRequestStepDefinitions',
+    'createRequestWorkflow',
+    'createSessionlessRequestWorkflow',
+    'decodeAgentResponse',
+    'defineRequestJournalFailure',
+    'defineSessionlessGenerationPolicy',
+    'defineSessionlessInteractionPolicy',
+    'deliverReasoningDelta',
+    'deliverTextDelta',
+    'encodeAgentResponse',
+    'failRequest',
+    'invokeRequestInteraction',
+    'parseRequestFingerprint',
+    'parseRequestIdempotencyKey',
+    'parseRequestJournalRequestId',
+    'releaseRequestExecution',
+    'requireInteractionEvent',
+    'resolveRequestInstructions',
+    'validateRequestPolicy',
+  ]);
+});

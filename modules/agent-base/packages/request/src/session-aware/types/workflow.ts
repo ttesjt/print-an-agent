@@ -1,54 +1,27 @@
-import type { ResolvedResponsibility, ResponsibilityRouter } from '@print-an-agent/base-actor';
-import type { ActorInteractionRequest } from '@print-an-agent/model-invocation-core';
-import type { ModelMessage, UserModelMessage } from '@print-an-agent/model-invocation-core';
+import type { ResolvedResponsibility } from '@print-an-agent/base-actor';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
+import type { AgentTraceEmitter } from '@print-an-agent/base-observability';
 import type {
   ActiveSessionTurn,
   ResolvedSessionReference,
-  SessionPort,
   SessionTurnPresentation,
   SessionWriteAuthority,
 } from '@print-an-agent/base-session';
+import type { ToolPermissionPolicy, ToolRuntime } from '@print-an-agent/base-tool';
 import type {
-  ToolExecutionPolicy,
-  ToolName,
-  ToolRegistry,
-  ToolRuntime,
-  ToolPermissionPolicy,
-} from '@print-an-agent/base-tool';
-import type { AgentId } from '@print-an-agent/base-identity-config/identity';
-import type { AgentTraceEmitter } from '@print-an-agent/base-observability';
+  ActorInteractionRequest,
+  ModelMessage,
+  UserModelMessage,
+} from '@print-an-agent/model-invocation-core';
 import type { WorkflowContext } from '@print-an-agent/workflow-core';
-import type { RequestStepName } from '../workflow/names.js';
-import type { RequestInteractionState } from '../interaction/state.js';
-import type { RequestContextMemory, RequestMemoryRun } from '../context-memory/contracts.js';
-import type { CapturedReasoningPresentation } from '../interaction/presentation.js';
-import type {
-  AgentRequestInput,
-  AgentResponse,
-  InstructionContributor,
-  OutputSink,
-  RequestPolicy,
-  ValidatedAgentRequest,
-} from '../contracts.js';
-import type {
-  ActiveRequestJournalEntry,
-  RequestJournalEntry,
-  RequestJournalPort,
-} from '../replay/contracts.js';
-
-export interface RequestRuntimeResources {
-  readonly contextMemory?: RequestContextMemory;
-  readonly session: SessionPort;
-  readonly requestJournal: RequestJournalPort;
-  readonly responsibilities: ResponsibilityRouter;
-  readonly instructionContributors: readonly InstructionContributor[];
-  readonly toolRegistry: ToolRegistry;
-  readonly productToolAllowList: readonly ToolName[];
-  readonly runtimeToolAllowList: readonly ToolName[];
-  readonly toolExecutionPolicy: ToolExecutionPolicy;
-  readonly createOutputSink: () => OutputSink;
-  readonly clock: () => number;
-}
+import type { RequestInteractionState } from '../../interaction/index.js';
+import type { RequestPolicy } from '../../policy/types.js';
+import type { ActiveRequestJournalEntry, RequestJournalEntry } from '../../replay/index.js';
+import type { RequestStepName } from '../../workflow/index.js';
+import type { AgentRequestInput, ValidatedAgentRequest } from './input.js';
+import type { RequestMemoryRun } from './memory.js';
+import type { AgentResponse } from './output.js';
+import type { CapturedReasoningPresentation } from './presentation.js';
 
 /** Business input and optional invocation-local tracing; execution is supplied by Core. */
 export interface RequestWorkflowInput {
@@ -90,3 +63,5 @@ export interface RequestWorkflowState extends RequestWorkflowInput {
   outputCharacterCount?: number;
   replayedOutput?: boolean;
 }
+
+import type { RequestRuntimeResources } from './resources.js';

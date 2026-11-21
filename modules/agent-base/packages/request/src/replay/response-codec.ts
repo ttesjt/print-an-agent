@@ -1,7 +1,3 @@
-import {
-  defineAssistantModelMessage,
-  type AssistantModelMessage,
-} from '@print-an-agent/model-invocation-core';
 import { parseSessionBranchId, parseSessionId } from '@print-an-agent/base-session';
 import {
   parseToolName,
@@ -10,12 +6,14 @@ import {
   type ToolRunRecord,
 } from '@print-an-agent/base-tool';
 import {
+  defineAssistantModelMessage,
+  type AssistantModelMessage,
   type ToolDescriptor,
   type ToolObjectSchema,
   type ToolValueSchema,
 } from '@print-an-agent/model-invocation-core';
-import type { AgentResponse } from '../contracts.js';
 import { AgentRequestError } from '../errors.js';
+import type { AgentResponse } from '../session-aware/types/output.js';
 import { parseRequestJournalRequestId } from './identifiers.js';
 
 const RESPONSE_SCHEMA_VERSION = 1;

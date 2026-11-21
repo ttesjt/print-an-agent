@@ -1,15 +1,18 @@
-import { AgentRequestError } from '../errors.js';
+import { AgentActorError } from '@print-an-agent/base-actor';
+import { AgentToolError } from '@print-an-agent/base-tool';
 import {
   ActorError,
   ModelInvocationError,
   type ActorDirectResult,
 } from '@print-an-agent/model-invocation-core';
-import { AgentToolError } from '@print-an-agent/base-tool';
-import { AgentActorError } from '@print-an-agent/base-actor';
-import type { OutputFailure } from '../contracts.js';
-import type { SessionlessOutputOutcome, SessionlessOutputSink } from './contracts.js';
-import type { SessionlessValidatedRequest } from './contracts.js';
-import { requireValue } from '../preparation/state-value.js';
+import { AgentRequestError } from '../errors.js';
+import type { OutputFailure } from '../output/index.js';
+import { requireValue } from '../state-access.js';
+import type {
+  SessionlessOutputOutcome,
+  SessionlessOutputSink,
+  SessionlessValidatedRequest,
+} from './contracts.js';
 
 export async function openSessionlessOutput(context: {
   readonly workflowRunId: string;

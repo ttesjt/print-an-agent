@@ -1,16 +1,8 @@
-import type {
-  ActorInteractionRequest,
-  InteractionCapability,
-} from '@print-an-agent/model-invocation-core';
+import type { InteractionCapability } from '@print-an-agent/model-invocation-core';
 import { composeExecutionSignal } from '@print-an-agent/workflow-core';
-import { requireValue } from '../preparation/state-value.js';
-import type { RequestInteractionState } from './state.js';
+import { requireValue } from '../state-access.js';
 import { InteractionToolExecution } from './tool-execution.js';
-
-export interface InteractionInvocationContext {
-  readonly signal: AbortSignal;
-  readonly state: { modelRequest?: ActorInteractionRequest; interaction?: RequestInteractionState };
-}
+import type { InteractionInvocationContext } from './types.js';
 
 /** Both request profiles retain the same invocation signal and borrowed-tool ownership semantics. */
 export async function invokeRequestInteraction(

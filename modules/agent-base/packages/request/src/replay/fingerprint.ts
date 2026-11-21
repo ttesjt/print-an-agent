@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { AgentRequestError } from '../errors.js';
-import { parseRequestFingerprint } from './identifiers.js';
 import type { RequestFingerprint } from './contracts.js';
+import { parseRequestFingerprint } from './identifiers.js';
 
 const REQUEST_FINGERPRINT_SCHEMA_VERSION = 1;
 const REQUEST_FINGERPRINT_FORMAT = 'request-v1';

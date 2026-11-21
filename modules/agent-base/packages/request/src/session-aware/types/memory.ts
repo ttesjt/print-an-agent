@@ -1,8 +1,8 @@
 import type {
   ActiveSessionTurn,
   ResolvedSessionReference,
-  SessionWriteAuthority,
   SessionMemoryVersion,
+  SessionWriteAuthority,
 } from '@print-an-agent/base-session';
 import type { ToolDefinition } from '@print-an-agent/base-tool';
 

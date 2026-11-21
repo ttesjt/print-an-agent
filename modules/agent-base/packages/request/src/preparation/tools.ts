@@ -1,28 +1,6 @@
-import {
-  createBoundedToolRuntime,
-  createToolRegistry,
-  type ToolExecutionPolicy,
-  type ToolPermissionPolicy,
-  type ToolRegistry,
-  type ToolRuntime,
-} from '@print-an-agent/base-tool';
-import { requireValue } from './state-value.js';
-
-export interface ToolPreparationContext {
-  readonly signal: AbortSignal;
-  readonly state: {
-    tools?: ToolRuntime;
-    toolPermissionPolicy?: ToolPermissionPolicy;
-    contextMemory?: {
-      readonly tools: readonly import('@print-an-agent/base-tool').ToolDefinition[];
-    };
-  };
-  readonly resources: {
-    readonly toolRegistry: ToolRegistry;
-    readonly toolExecutionPolicy: ToolExecutionPolicy;
-    readonly clock: () => number;
-  };
-}
+import { createBoundedToolRuntime, createToolRegistry } from '@print-an-agent/base-tool';
+import { requireValue } from '../state-access.js';
+import type { ToolPreparationContext } from './types/tools.js';
 
 export function buildRequestTools(context: ToolPreparationContext): Promise<void> {
   context.state.tools = createBoundedToolRuntime({

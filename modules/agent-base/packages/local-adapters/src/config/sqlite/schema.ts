@@ -1,13 +1,16 @@
-import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
-import { quoteSqliteIdentifier } from './table-names.js';
 import { AgentConfigError } from '@print-an-agent/base-identity-config/config';
+import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { runConfigTransaction } from './database.js';
 import { createConfigStoreMigration } from './migrations/0001_create_config_store.js';
-import type { SqliteAgentConfigTableNames } from './table-names.js';
+import { quoteSqliteIdentifier } from './table-names.js';
+import type { SqliteAgentConfigTableNames } from './types/table-names.js';
 
 const CONFIG_SCHEMA_COMPONENT = 'config';
+
 const CURRENT_CONFIG_STORAGE_SCHEMA_VERSION = 1;
+
 const SCHEMA_COLUMNS = Object.freeze(['component', 'version']);
+
 const CONFIG_COLUMNS = Object.freeze(['agent_id', 'schema_version', 'revision', 'value_json']);
 
 type SqliteRow = Record<string, SQLOutputValue>;

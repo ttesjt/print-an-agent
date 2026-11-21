@@ -1,6 +1,4 @@
 import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
-import { quoteSqliteIdentifier } from './table-names.js';
-import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import {
   AgentSessionError,
   parseSessionBranchId,
@@ -12,8 +10,10 @@ import {
   type SessionTurn,
   type TurnId,
 } from '@print-an-agent/base-session';
+import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { decodeAssistantMessage, decodeUserMessage } from './message-codec.js';
 import type { SqliteSessionTableNames } from './table-names.js';
+import { quoteSqliteIdentifier } from './table-names.js';
 
 export type SqliteRow = Record<string, SQLOutputValue>;
 

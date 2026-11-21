@@ -1,24 +1,16 @@
 import { AgentConfigError } from '@print-an-agent/base-identity-config/config';
-
-export type SqliteAgentConfigTableName = 'schema' | 'configs';
-
-export type SqliteAgentConfigTableNamesInput = Readonly<
-  Partial<Record<SqliteAgentConfigTableName, string>>
->;
-
-export interface SqliteAgentConfigTableNamingInput {
-  readonly tablePrefix?: string;
-  readonly tableNames?: SqliteAgentConfigTableNamesInput;
-}
-
-export interface SqliteAgentConfigTableNames {
-  readonly schema: string;
-  readonly configs: string;
-}
+import { SQLITE_AGENT_CONFIG_TABLE_KEYS } from './table-keys.js';
+import type {
+  SqliteAgentConfigTableNames,
+  SqliteAgentConfigTableNamingInput,
+} from './types/table-names.js';
 
 const DEFAULT_TABLE_PREFIX = 'agent_';
+
 const MAX_TABLE_NAME_LENGTH = 128;
-const TABLE_NAME_KEYS = new Set<string>(['schema', 'configs']);
+
+const TABLE_NAME_KEYS = new Set<string>(SQLITE_AGENT_CONFIG_TABLE_KEYS);
+
 const TABLE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export const DEFAULT_SQLITE_AGENT_CONFIG_TABLE_NAMES: SqliteAgentConfigTableNames = Object.freeze({

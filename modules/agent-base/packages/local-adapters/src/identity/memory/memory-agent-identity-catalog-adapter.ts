@@ -8,13 +8,10 @@ import {
   type AgentIdentityCatalogPort,
   type AgentIdentitySnapshot,
   type CreateAgentIdentityRequest,
-  type TransitionAgentIdentityRequest,
   type RenameAgentIdentityRequest,
+  type TransitionAgentIdentityRequest,
 } from '@print-an-agent/base-identity-config/identity';
-
-export interface MemoryAgentIdentityCatalogAdapterOptions {
-  readonly clock?: () => number;
-}
+import type { MemoryAgentIdentityCatalogAdapterOptions } from './types.js';
 
 function readClock(clock: () => number): number {
   const timestamp = clock();

@@ -1,13 +1,13 @@
-import type { DatabaseSync } from 'node:sqlite';
 import {
   AgentSessionError,
   defineSessionTurnPresentation,
-  parseSessionBranchId,
-  MAX_SESSION_PRESENTATION_CHARACTERS,
   MAX_SESSION_PRESENTATION_BLOCKS,
-  type SessionTurnPresentationReference,
+  MAX_SESSION_PRESENTATION_CHARACTERS,
+  parseSessionBranchId,
   type SessionTurnPresentationRecord,
+  type SessionTurnPresentationReference,
 } from '@print-an-agent/base-session';
+import type { DatabaseSync } from 'node:sqlite';
 import { quoteSqliteIdentifier, type SqliteSessionTableNames } from './table-names.js';
 
 export function readSqliteTurnPresentation(

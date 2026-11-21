@@ -1,114 +1,29 @@
-import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config/identity';
-import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import {
   AgentConfigError,
-  normalizeConfigValue,
-  type AgentConfigSnapshot,
   type AgentConfigReadAdapter,
+  type AgentConfigSnapshot,
   type AgentConfigWriteAdapter,
   type AgentConfigWriteRequest,
-  type ConfigValue,
 } from '@print-an-agent/base-identity-config/config';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config/identity';
+import type { DatabaseSync } from 'node:sqlite';
 import {
   defineConfigDatabaseConfiguration,
   runConfigTransaction,
   useConfigDatabase,
-  type ConfigDatabaseConfiguration,
 } from './database.js';
 import {
   assertConfigSchema,
   configureConfigDefensiveMode,
   initializeConfigSchema,
 } from './schema.js';
-import {
-  quoteSqliteIdentifier,
-  resolveSqliteAgentConfigTableNames,
-  type SqliteAgentConfigTableNames,
-  type SqliteAgentConfigTableNamingInput,
-} from './table-names.js';
-
-const DEFAULT_MAX_VALUE_BYTES = 1_048_576;
-const MAX_VALUE_BYTES_LIMIT = 16_777_216;
-
-export interface SqliteAgentConfigAdapterOptions extends SqliteAgentConfigTableNamingInput {
-  readonly databasePath: string;
-  readonly busyTimeoutMilliseconds?: number;
-  readonly maxValueBytes?: number;
-}
-
-type SqliteRow = Record<string, SQLOutputValue>;
-
-function validateMaxValueBytes(value: number | undefined): number {
-  const limit = value ?? DEFAULT_MAX_VALUE_BYTES;
-  if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_VALUE_BYTES_LIMIT) {
-    throw new AgentConfigError(
-      'CONFIG_CONFIGURATION_INVALID',
-      `SQLite Config maxValueBytes must be between 1 and ${MAX_VALUE_BYTES_LIMIT}.`
-    );
-  }
-  return limit;
-}
-
-function requirePositiveInteger(row: SqliteRow, column: string): number {
-  const value = row[column];
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
-    throw new AgentConfigError(
-      'CONFIG_ADAPTER_RESULT_INVALID',
-      `SQLite Config column "${column}" must be a positive safe integer.`
-    );
-  }
-  return value;
-}
-
-function requireString(row: SqliteRow, column: string): string {
-  const value = row[column];
-  if (typeof value !== 'string') {
-    throw new AgentConfigError(
-      'CONFIG_ADAPTER_RESULT_INVALID',
-      `SQLite Config column "${column}" must be a string.`
-    );
-  }
-  return value;
-}
-
-function encodeValue(value: ConfigValue, maxValueBytes: number): string {
-  const encoded = JSON.stringify(normalizeConfigValue(value));
-  if (Buffer.byteLength(encoded, 'utf8') > maxValueBytes) {
-    throw new AgentConfigError(
-      'CONFIG_SIZE_LIMIT_EXCEEDED',
-      `Encoded Agent config exceeds the ${maxValueBytes}-byte storage limit.`
-    );
-  }
-  return encoded;
-}
-
-function decodeSnapshot(row: SqliteRow, maxValueBytes: number): AgentConfigSnapshot {
-  const encoded = requireString(row, 'value_json');
-  if (Buffer.byteLength(encoded, 'utf8') > maxValueBytes) {
-    throw new AgentConfigError(
-      'CONFIG_SIZE_LIMIT_EXCEEDED',
-      `Stored Agent config exceeds the ${maxValueBytes}-byte storage limit.`
-    );
-  }
-  let value: unknown;
-  try {
-    value = JSON.parse(encoded) as unknown;
-  } catch (cause: unknown) {
-    throw new AgentConfigError(
-      'CONFIG_ADAPTER_RESULT_INVALID',
-      'Stored Agent config is not JSON.',
-      {
-        cause,
-      }
-    );
-  }
-  return Object.freeze({
-    agentId: parseAgentId(requireString(row, 'agent_id')),
-    schemaVersion: requirePositiveInteger(row, 'schema_version'),
-    revision: requirePositiveInteger(row, 'revision'),
-    value: normalizeConfigValue(value),
-  });
-}
+import { quoteSqliteIdentifier, resolveSqliteAgentConfigTableNames } from './table-names.js';
+import type { ConfigDatabaseConfiguration } from './types/database.js';
+import type { SqliteAgentConfigAdapterOptions } from './types/options.js';
+import type { SqliteRow } from './types/record.js';
+import type { SqliteAgentConfigTableNames } from './types/table-names.js';
+import { decodeSnapshot, encodeValue } from './value-codec.js';
+import { validateMaxValueBytes } from './value-limits.js';
 
 export class SqliteAgentConfigAdapter implements AgentConfigReadAdapter, AgentConfigWriteAdapter {
   readonly #configuration: ConfigDatabaseConfiguration;

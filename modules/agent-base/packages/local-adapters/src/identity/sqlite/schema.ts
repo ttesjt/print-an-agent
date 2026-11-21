@@ -1,13 +1,16 @@
-import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
-import { quoteSqliteIdentifier } from './table-names.js';
 import { AgentIdentityError } from '@print-an-agent/base-identity-config/identity';
+import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { runIdentityTransaction } from './database.js';
 import { createIdentityCatalogMigration } from './migrations/0001_create_identity_catalog.js';
-import type { SqliteAgentIdentityTableNames } from './table-names.js';
+import { quoteSqliteIdentifier } from './table-names.js';
+import type { SqliteAgentIdentityTableNames } from './types/table-names.js';
 
 const IDENTITY_SCHEMA_COMPONENT = 'identity';
+
 const CURRENT_IDENTITY_SCHEMA_VERSION = 1;
+
 const SCHEMA_COLUMNS = Object.freeze(['component', 'version']);
+
 const IDENTITY_COLUMNS = Object.freeze([
   'agent_id',
   'display_name',

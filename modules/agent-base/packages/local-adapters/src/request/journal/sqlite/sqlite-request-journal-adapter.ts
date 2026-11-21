@@ -1,17 +1,9 @@
-import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
-import {
-  parseSessionId,
-  type SessionReference,
-  type SessionWriteAuthority,
-} from '@print-an-agent/base-session';
-import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import {
   AgentRequestError,
   decodeAgentResponse,
   defineRequestJournalFailure,
   encodeAgentResponse,
   parseRequestFingerprint,
-  parseRequestIdempotencyKey,
   parseRequestJournalRequestId,
   type ActiveRequestJournalEntry,
   type ClaimRequestJournalRequest,
@@ -23,196 +15,33 @@ import {
   type RequestJournalEntry,
   type RequestJournalReference,
 } from '@print-an-agent/base-request';
+import type { SessionReference, SessionWriteAuthority } from '@print-an-agent/base-session';
+import type { DatabaseSync } from 'node:sqlite';
+import {
+  assertSqliteSessionWrite,
+  resolveSqliteSessionTableNames,
+  type SqliteSessionTableNames,
+} from '../../../session/index.js';
+import { requireJournalOwner } from '../ownership.js';
+import { normalizeJournalReference } from '../reference.js';
 import {
   defineRequestJournalDatabaseConfiguration,
   readJournalClock,
   runImmediateTransaction,
   useRequestJournalDatabase,
-  type RequestJournalDatabaseConfiguration,
 } from './database.js';
+import { decodeEntry } from './entry-codec.js';
+import { purgeSqliteSessionRequests, recoverSqliteSessionRequests } from './journal-maintenance.js';
+import { requireEntry, selectEntry } from './records.js';
 import {
   assertRequestJournalSchema,
   configureRequestJournalDefensiveMode,
   initializeRequestJournalSchema,
 } from './schema.js';
-import {
-  quoteSqliteIdentifier,
-  resolveSqliteRequestJournalTableNames,
-  type SqliteRequestJournalTableNames,
-  type SqliteRequestJournalTableNamingInput,
-} from './table-names.js';
-import { assertSqliteSessionWrite } from '../../session/sqlite/session-lifecycle-storage.js';
-import {
-  resolveSqliteSessionTableNames,
-  type SqliteSessionTableNamingInput,
-  type SqliteSessionTableNames,
-} from '../../session/sqlite/table-names.js';
-import { purgeSqliteSessionRequests, recoverSqliteSessionRequests } from './journal-maintenance.js';
-
-export interface SqliteRequestJournalAdapterOptions extends SqliteRequestJournalTableNamingInput {
-  readonly databasePath: string;
-  /** Management readers require an existing schema rather than initializing a new table family. */
-  readonly schemaMode?: 'initialize' | 'existing';
-  readonly clock?: () => number;
-  readonly busyTimeoutMilliseconds?: number;
-  /** Same-database execution fence; normally selected by the coordinated persistence factory. */
-  readonly sessionExecution?: SqliteSessionTableNamingInput;
-}
-
-type SqliteRow = Record<string, SQLOutputValue>;
-
-function requireString(row: SqliteRow, column: string): string {
-  const value = row[column];
-  if (typeof value !== 'string') {
-    throw new AgentRequestError(
-      'REQUEST_REPLAY_RECORD_INVALID',
-      `SQLite Request Journal column "${column}" must be a string.`
-    );
-  }
-  return value;
-}
-
-function requireTimestamp(row: SqliteRow, column: string): number {
-  const value = row[column];
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
-    throw new AgentRequestError(
-      'REQUEST_REPLAY_RECORD_INVALID',
-      `SQLite Request Journal column "${column}" must be a non-negative safe integer.`
-    );
-  }
-  return value;
-}
-
-function normalizeReference(reference: RequestJournalReference): RequestJournalReference {
-  return Object.freeze({
-    agentId: parseAgentId(reference.agentId),
-    sessionId: parseSessionId(reference.sessionId),
-    idempotencyKey: parseRequestIdempotencyKey(reference.idempotencyKey),
-  });
-}
-
-function decodeEntry(row: SqliteRow): RequestJournalEntry {
-  let reference: RequestJournalReference;
-  try {
-    reference = Object.freeze({
-      agentId: parseAgentId(requireString(row, 'agent_id')),
-      sessionId: parseSessionId(requireString(row, 'session_id')),
-      idempotencyKey: parseRequestIdempotencyKey(requireString(row, 'idempotency_key')),
-    });
-  } catch (cause: unknown) {
-    if (cause instanceof AgentRequestError && cause.code === 'REQUEST_REPLAY_RECORD_INVALID') {
-      throw cause;
-    }
-    throw new AgentRequestError(
-      'REQUEST_REPLAY_RECORD_INVALID',
-      'SQLite Request Journal record contains an invalid namespace.',
-      { cause }
-    );
-  }
-  let fingerprint;
-  let requestId;
-  try {
-    fingerprint = parseRequestFingerprint(requireString(row, 'fingerprint'));
-    requestId = parseRequestJournalRequestId(requireString(row, 'request_id'));
-  } catch (cause: unknown) {
-    throw new AgentRequestError(
-      'REQUEST_REPLAY_RECORD_INVALID',
-      'SQLite Request Journal record contains invalid request authority.',
-      { cause }
-    );
-  }
-  const startedAt = requireTimestamp(row, 'started_at');
-  const status = requireString(row, 'status');
-  if (status === 'active') {
-    return Object.freeze({ ...reference, status, fingerprint, requestId, startedAt });
-  }
-  const finishedAt = requireTimestamp(row, 'finished_at');
-  if (status === 'completed') {
-    const response = decodeAgentResponse(requireString(row, 'response_json'));
-    if (response.requestId !== requestId || response.sessionId !== reference.sessionId) {
-      throw new AgentRequestError(
-        'REQUEST_REPLAY_RECORD_INVALID',
-        'SQLite Request Journal response contradicts its request authority.'
-      );
-    }
-    return Object.freeze({
-      ...reference,
-      status,
-      fingerprint,
-      requestId,
-      startedAt,
-      response,
-      finishedAt,
-    });
-  }
-  if (status === 'failed') {
-    let failure;
-    try {
-      failure = defineRequestJournalFailure({
-        code: requireString(row, 'failure_code'),
-        message: requireString(row, 'failure_message'),
-      });
-    } catch (cause: unknown) {
-      throw new AgentRequestError(
-        'REQUEST_REPLAY_RECORD_INVALID',
-        'SQLite Request Journal record contains an invalid failure.',
-        { cause }
-      );
-    }
-    return Object.freeze({
-      ...reference,
-      status,
-      fingerprint,
-      requestId,
-      startedAt,
-      failure,
-      finishedAt,
-    });
-  }
-  throw new AgentRequestError(
-    'REQUEST_REPLAY_RECORD_INVALID',
-    `SQLite Request Journal record contains unsupported status "${status}".`
-  );
-}
-
-function selectEntry(
-  database: DatabaseSync,
-  reference: RequestJournalReference,
-  tableNames: SqliteRequestJournalTableNames
-): SqliteRow | undefined {
-  return database
-    .prepare(
-      `SELECT agent_id, session_id, idempotency_key, fingerprint, request_id, status,
-              response_json, failure_code, failure_message, started_at, finished_at
-       FROM ${quoteSqliteIdentifier(tableNames.entries)}
-       WHERE agent_id = ? AND session_id = ? AND idempotency_key = ?`
-    )
-    .get(reference.agentId, reference.sessionId, reference.idempotencyKey) as SqliteRow | undefined;
-}
-
-function requireEntry(
-  database: DatabaseSync,
-  reference: RequestJournalReference,
-  tableNames: SqliteRequestJournalTableNames
-): RequestJournalEntry {
-  const row = selectEntry(database, reference, tableNames);
-  if (row === undefined) {
-    throw new AgentRequestError(
-      'REQUEST_REPLAY_NOT_FOUND',
-      `Request Journal entry "${reference.idempotencyKey}" does not exist.`
-    );
-  }
-  return decodeEntry(row);
-}
-
-function requireOwner(entry: RequestJournalEntry, requestId: string): void {
-  if (entry.requestId !== requestId) {
-    throw new AgentRequestError(
-      'REQUEST_REPLAY_STATE_INVALID',
-      `Request Journal entry is owned by request "${entry.requestId}", not "${requestId}".`
-    );
-  }
-}
+import { quoteSqliteIdentifier, resolveSqliteRequestJournalTableNames } from './table-names.js';
+import type { RequestJournalDatabaseConfiguration } from './types/database.js';
+import type { SqliteRequestJournalAdapterOptions } from './types/options.js';
+import type { SqliteRequestJournalTableNames } from './types/table-names.js';
 
 export class SqliteRequestJournalAdapter implements InspectableRequestJournalPort {
   readonly #configuration: RequestJournalDatabaseConfiguration;
@@ -250,7 +79,7 @@ export class SqliteRequestJournalAdapter implements InspectableRequestJournalPor
 
   claim(request: ClaimRequestJournalRequest): Promise<RequestJournalClaim> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(request);
+      const reference = normalizeJournalReference(request);
       const fingerprint = parseRequestFingerprint(request.fingerprint);
       const requestId = parseRequestJournalRequestId(request.requestId);
       const startedAt = readJournalClock(this.#clock);
@@ -298,7 +127,7 @@ export class SqliteRequestJournalAdapter implements InspectableRequestJournalPor
 
   complete(request: CompleteRequestJournalRequest): Promise<CompletedRequestJournalEntry> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(request);
+      const reference = normalizeJournalReference(request);
       const requestId = parseRequestJournalRequestId(request.requestId);
       const responseJson = encodeAgentResponse(request.response);
       const response = decodeAgentResponse(responseJson);
@@ -313,7 +142,7 @@ export class SqliteRequestJournalAdapter implements InspectableRequestJournalPor
         runImmediateTransaction(database, () => {
           this.#assertExecution(database, request);
           const entry = requireEntry(database, reference, this.#tableNames);
-          requireOwner(entry, requestId);
+          requireJournalOwner(entry, requestId);
           if (entry.status !== 'active') {
             throw new AgentRequestError(
               'REQUEST_REPLAY_STATE_INVALID',
@@ -354,7 +183,7 @@ export class SqliteRequestJournalAdapter implements InspectableRequestJournalPor
 
   fail(request: FailRequestJournalRequest): Promise<RequestJournalEntry> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(request);
+      const reference = normalizeJournalReference(request);
       const requestId = parseRequestJournalRequestId(request.requestId);
       const failure = defineRequestJournalFailure(request.failure);
       const finishedAt = readJournalClock(this.#clock);
@@ -362,7 +191,7 @@ export class SqliteRequestJournalAdapter implements InspectableRequestJournalPor
         runImmediateTransaction(database, () => {
           this.#assertExecution(database, request);
           const entry = requireEntry(database, reference, this.#tableNames);
-          requireOwner(entry, requestId);
+          requireJournalOwner(entry, requestId);
           if (entry.status !== 'active') return entry;
           const result = database
             .prepare(
@@ -394,7 +223,7 @@ export class SqliteRequestJournalAdapter implements InspectableRequestJournalPor
 
   inspect(referenceInput: RequestJournalReference): Promise<RequestJournalEntry | undefined> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(referenceInput);
+      const reference = normalizeJournalReference(referenceInput);
       return this.#useDatabase('inspect request', (database) => {
         const row = selectEntry(database, reference, this.#tableNames);
         return row === undefined ? undefined : decodeEntry(row);

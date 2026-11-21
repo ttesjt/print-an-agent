@@ -1,14 +1,16 @@
-import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
-import { quoteSqliteIdentifier } from './table-names.js';
 import { AgentRequestError } from '@print-an-agent/base-request';
+import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { runImmediateTransaction } from './database.js';
 import { createRequestJournalMigration } from './migrations/0001_create_request_journal.js';
-import type { SqliteRequestJournalTableNames } from './table-names.js';
+import { quoteSqliteIdentifier } from './table-names.js';
+import type { SqliteRequestJournalTableNames } from './types/table-names.js';
 
 const REQUEST_JOURNAL_SCHEMA_COMPONENT = 'request_journal';
+
 const CURRENT_REQUEST_JOURNAL_SCHEMA_VERSION = 1;
 
 const SCHEMA_COLUMNS = Object.freeze(['component', 'version']);
+
 const ENTRY_COLUMNS = Object.freeze([
   'agent_id',
   'session_id',

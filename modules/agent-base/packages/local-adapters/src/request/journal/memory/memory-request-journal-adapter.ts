@@ -1,17 +1,10 @@
-import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
-import {
-  parseSessionId,
-  normalizeSessionReference,
-  type SessionReference,
-  type SessionWriteAuthority,
-} from '@print-an-agent/base-session';
 import {
   AgentRequestError,
+  REQUEST_EXECUTION_INTERRUPTED,
   decodeAgentResponse,
   defineRequestJournalFailure,
   encodeAgentResponse,
   parseRequestFingerprint,
-  parseRequestIdempotencyKey,
   parseRequestJournalRequestId,
   type ActiveRequestJournalEntry,
   type ClaimRequestJournalRequest,
@@ -22,20 +15,19 @@ import {
   type RequestJournalClaim,
   type RequestJournalEntry,
   type RequestJournalReference,
-  REQUEST_EXECUTION_INTERRUPTED,
 } from '@print-an-agent/base-request';
-import { memoryJournalCoordination } from '../persistence/memory-coordination.js';
+import {
+  normalizeSessionReference,
+  type SessionReference,
+  type SessionWriteAuthority,
+} from '@print-an-agent/base-session';
+import { requireJournalOwner } from '../ownership.js';
+import { normalizeJournalReference } from '../reference.js';
+import { memoryJournalCoordination } from './coordination.js';
+import type { MemoryJournalCoordination } from './types.js';
 
 function journalKey(reference: RequestJournalReference): string {
   return `${reference.agentId}\u0000${reference.sessionId}\u0000${reference.idempotencyKey}`;
-}
-
-function normalizeReference(reference: RequestJournalReference): RequestJournalReference {
-  return Object.freeze({
-    agentId: parseAgentId(reference.agentId),
-    sessionId: parseSessionId(reference.sessionId),
-    idempotencyKey: parseRequestIdempotencyKey(reference.idempotencyKey),
-  });
 }
 
 function readClock(clock: () => number): number {
@@ -50,8 +42,11 @@ function readClock(clock: () => number): number {
 }
 
 function cloneEntry(entry: ActiveRequestJournalEntry): ActiveRequestJournalEntry;
+
 function cloneEntry(entry: CompletedRequestJournalEntry): CompletedRequestJournalEntry;
+
 function cloneEntry(entry: RequestJournalEntry): RequestJournalEntry;
+
 function cloneEntry(entry: RequestJournalEntry): RequestJournalEntry {
   if (entry.status === 'completed') {
     return Object.freeze({
@@ -71,7 +66,7 @@ export class MemoryRequestJournalAdapter implements InspectableRequestJournalPor
   #assertExecution: ((request: SessionReference & SessionWriteAuthority) => void) | undefined;
 
   /** @internal Coordination authority belongs only to the local persistence factory. */
-  [memoryJournalCoordination]() {
+  [memoryJournalCoordination](): MemoryJournalCoordination {
     return {
       bindExecution: (guard: (request: SessionReference & SessionWriteAuthority) => void) => {
         if (this.#assertExecution !== undefined)
@@ -101,7 +96,7 @@ export class MemoryRequestJournalAdapter implements InspectableRequestJournalPor
   claim(request: ClaimRequestJournalRequest): Promise<RequestJournalClaim> {
     return Promise.resolve().then(() => {
       this.#assertExecution?.(request);
-      const reference = normalizeReference(request);
+      const reference = normalizeJournalReference(request);
       const fingerprint = parseRequestFingerprint(request.fingerprint);
       const requestId = parseRequestJournalRequestId(request.requestId);
       const key = journalKey(reference);
@@ -131,11 +126,11 @@ export class MemoryRequestJournalAdapter implements InspectableRequestJournalPor
   complete(request: CompleteRequestJournalRequest): Promise<CompletedRequestJournalEntry> {
     return Promise.resolve().then(() => {
       this.#assertExecution?.(request);
-      const reference = normalizeReference(request);
+      const reference = normalizeJournalReference(request);
       const requestId = parseRequestJournalRequestId(request.requestId);
       const response = decodeAgentResponse(encodeAgentResponse(request.response));
       const entry = this.#requireEntry(reference);
-      this.#requireOwner(entry, requestId);
+      requireJournalOwner(entry, requestId);
       if (entry.status !== 'active') {
         throw new AgentRequestError(
           'REQUEST_REPLAY_STATE_INVALID',
@@ -162,11 +157,11 @@ export class MemoryRequestJournalAdapter implements InspectableRequestJournalPor
   fail(request: FailRequestJournalRequest): Promise<RequestJournalEntry> {
     return Promise.resolve().then(() => {
       this.#assertExecution?.(request);
-      const reference = normalizeReference(request);
+      const reference = normalizeJournalReference(request);
       const requestId = parseRequestJournalRequestId(request.requestId);
       const failure = defineRequestJournalFailure(request.failure);
       const entry = this.#requireEntry(reference);
-      this.#requireOwner(entry, requestId);
+      requireJournalOwner(entry, requestId);
       if (entry.status !== 'active') return cloneEntry(entry);
 
       const failed: RequestJournalEntry = Object.freeze({
@@ -182,7 +177,7 @@ export class MemoryRequestJournalAdapter implements InspectableRequestJournalPor
 
   inspect(referenceInput: RequestJournalReference): Promise<RequestJournalEntry | undefined> {
     return Promise.resolve().then(() => {
-      const reference = normalizeReference(referenceInput);
+      const reference = normalizeJournalReference(referenceInput);
       const entry = this.#entries.get(journalKey(reference));
       return entry === undefined ? undefined : cloneEntry(entry);
     });
@@ -234,14 +229,5 @@ export class MemoryRequestJournalAdapter implements InspectableRequestJournalPor
       );
     }
     return entry;
-  }
-
-  #requireOwner(entry: RequestJournalEntry, requestId: string): void {
-    if (entry.requestId !== requestId) {
-      throw new AgentRequestError(
-        'REQUEST_REPLAY_STATE_INVALID',
-        `Request Journal entry is owned by request "${entry.requestId}", not "${requestId}".`
-      );
-    }
   }
 }

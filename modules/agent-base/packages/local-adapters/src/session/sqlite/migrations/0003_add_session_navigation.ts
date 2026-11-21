@@ -1,5 +1,6 @@
-import { quoteSqliteIdentifier, sessionActivityIndexName } from '../table-names.js';
 import {
+  quoteSqliteIdentifier,
+  sessionActivityIndexName,
   sessionCompactionMigrationTableName,
   type SqliteSessionTableNames,
 } from '../table-names.js';

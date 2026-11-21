@@ -1,108 +1,113 @@
-import { randomUUID } from 'node:crypto';
+import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import type {
+  PublishSessionMemoryNavigation,
   SessionMemoryRecordKey,
   WriteSessionMemoryRecord,
-  PublishSessionMemoryNavigation,
 } from '@print-an-agent/base-session';
 import {
-  readSessionMemoryRecord,
-  writeSessionMemoryRecord,
-  pendingSessionMemoryRecords,
-  sessionHasMemoryBindings,
-} from './session-memory-storage.js';
-import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
-import type { DatabaseSync } from 'node:sqlite';
-import type { ModelMessage } from '@print-an-agent/model-invocation-core';
-import {
+  AgentSessionError,
+  defineSessionTurnPresentation,
   parseSessionId,
   parseTurnId,
-  defineSessionTurnPresentation,
-  type SessionPresentationPort,
-  type CompleteSessionTurnWithPresentationRequest,
-  type SessionTurnPresentationReference,
-  type SessionTurnPresentationRecord,
-  type CommitSessionCompactionRequest,
-  type CompactableSessionPort,
+  type ActiveSessionTurn,
   type AppliedSessionNavigation,
   type ApplySessionNavigationRequest,
-  type ActiveSessionTurn,
   type BeginSessionTurnRequest,
-  type CompleteSessionTurnRequest,
+  type CommitSessionCompactionRequest,
+  type CompactableSessionPort,
   type CompletedSessionTurn,
+  type CompleteSessionTurnRequest,
+  type CompleteSessionTurnWithPresentationRequest,
   type FailSessionTurnRequest,
   type InspectableSessionPort,
-  type LoadSessionHistoryRequest,
-  type NavigableSessionPort,
-  type ResolveSessionRequest,
-  type ResolvedSessionReference,
-  type SessionCompaction,
-  type SessionBranchReference,
-  type SessionContextSnapshot,
-  type SessionReference,
-  type SessionSnapshot,
-  type SessionInspection,
-  type SessionMetadataPort,
-  type SessionQueryPort,
-  type SessionTurnPage,
+  type ListRetiredSessionsInput,
   type ListSessionsInput,
   type ListSessionTurnsInput,
-  type SessionTurn,
-  type RenameSessionInput,
-  type SessionWriteAuthority,
-  type SessionExecutionLease,
-  type SessionLifecycleMutationInput,
+  type LoadSessionHistoryRequest,
+  type NavigableSessionPort,
   type PurgeSessionInput,
   type RecoverSessionExecutionsInput,
+  type RenameSessionInput,
+  type ResolvedSessionReference,
+  type ResolveSessionRequest,
+  type RetiredSessionListPage,
+  type SessionBranchReference,
+  type SessionCompaction,
+  type SessionContextSnapshot,
+  type SessionExecutionLease,
+  type SessionInspection,
   type SessionLifecycleInspection,
   type SessionLifecycleListPage,
-  type ListRetiredSessionsInput,
-  type RetiredSessionListPage,
-  AgentSessionError,
+  type SessionLifecycleMutationInput,
+  type SessionMetadataPort,
+  type SessionPresentationPort,
+  type SessionQueryPort,
+  type SessionReference,
+  type SessionSnapshot,
+  type SessionTurn,
+  type SessionTurnPage,
+  type SessionTurnPresentationRecord,
+  type SessionTurnPresentationReference,
+  type SessionWriteAuthority,
 } from '@print-an-agent/base-session';
+import type { ModelMessage } from '@print-an-agent/model-invocation-core';
+import { randomUUID } from 'node:crypto';
+import type { DatabaseSync } from 'node:sqlite';
 import {
   defineSqliteDatabaseConfiguration,
-  useSqliteDatabase,
   runImmediateTransaction,
   runReadTransaction,
+  useSqliteDatabase,
   type SqliteDatabaseConfiguration,
 } from './database.js';
+import { assertSessionSchema, configureDefensiveMode, initializeSessionSchema } from './schema.js';
 import {
   commitSqliteSessionCompaction,
   loadSqliteSessionContext,
   readSqliteSessionCompaction,
 } from './session-compaction-storage.js';
 import {
+  normalizeBranchReference,
+  normalizeNavigationRequest,
+  normalizeResolvedReference,
+} from './session-input.js';
+import {
+  acquireSqliteExecution,
+  advanceSqliteExecution,
+  assertSqliteSessionOpen,
+  assertSqliteSessionWrite,
+  purgeSqliteSession,
+  readSqliteLifecycle,
+  recoverSqliteSession,
+  releaseSqliteExecution,
+  transitionSqliteSession,
+} from './session-lifecycle-storage.js';
+import {
+  pendingSessionMemoryRecords,
+  readSessionMemoryRecord,
+  sessionHasMemoryBindings,
+  writeSessionMemoryRecord,
+} from './session-memory-storage.js';
+import { renameSqliteSession } from './session-metadata-storage.js';
+import {
   applySqliteSessionNavigation,
   loadSqliteSessionSnapshot,
 } from './session-navigation-storage.js';
-import { createSqliteSession, openSqliteSession } from './session-resolution.js';
+import { readSqliteTurnPresentation } from './session-presentation-storage.js';
+import {
+  inspectSqliteSession,
+  listRetiredSqliteSessions,
+  listSqliteSessions,
+  listSqliteSessionTurns,
+} from './session-query-storage.js';
 import { normalizeReference } from './session-record-codec.js';
+import { createSqliteSession, openSqliteSession } from './session-resolution.js';
 import {
   beginSqliteSessionTurn,
   completeSqliteSessionTurn,
   failSqliteSessionTurn,
   loadSqliteSessionHistory,
 } from './session-turn-storage.js';
-import {
-  inspectSqliteSession,
-  listSqliteSessions,
-  listSqliteSessionTurns,
-  listRetiredSqliteSessions,
-} from './session-query-storage.js';
-import { renameSqliteSession } from './session-metadata-storage.js';
-import {
-  readSqliteLifecycle,
-  assertSqliteSessionOpen,
-  assertSqliteSessionWrite,
-  advanceSqliteExecution,
-  acquireSqliteExecution,
-  releaseSqliteExecution,
-  transitionSqliteSession,
-  purgeSqliteSession,
-  recoverSqliteSession,
-} from './session-lifecycle-storage.js';
-import { readSqliteTurnPresentation } from './session-presentation-storage.js';
-import { assertSessionSchema, configureDefensiveMode, initializeSessionSchema } from './schema.js';
 import {
   quoteSqliteIdentifier,
   resolveSqliteSessionTableNames,
@@ -120,12 +125,6 @@ export interface SqliteSessionAdapterOptions extends SqliteSessionTableNamingInp
   readonly clock?: () => number;
   readonly busyTimeoutMilliseconds?: number;
 }
-
-import {
-  normalizeResolvedReference,
-  normalizeBranchReference,
-  normalizeNavigationRequest,
-} from './session-input.js';
 
 export class SqliteSessionAdapter
   implements

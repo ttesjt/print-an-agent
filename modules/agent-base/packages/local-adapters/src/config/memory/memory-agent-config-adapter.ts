@@ -1,12 +1,12 @@
-import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   AgentConfigError,
   normalizeConfigValue,
-  type AgentConfigSnapshot,
   type AgentConfigReadAdapter,
+  type AgentConfigSnapshot,
   type AgentConfigWriteAdapter,
   type AgentConfigWriteRequest,
 } from '@print-an-agent/base-identity-config/config';
+import type { AgentId } from '@print-an-agent/base-identity-config/identity';
 
 function cloneSnapshot(snapshot: AgentConfigSnapshot): AgentConfigSnapshot {
   return Object.freeze({

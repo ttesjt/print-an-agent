@@ -1,11 +1,9 @@
-import type { DatabaseSync } from 'node:sqlite';
 import { REQUEST_EXECUTION_INTERRUPTED } from '@print-an-agent/base-request';
 import { normalizeSessionReference, type SessionReference } from '@print-an-agent/base-session';
-import {
-  quoteSqliteIdentifier as quote,
-  type SqliteRequestJournalTableNames,
-} from './table-names.js';
+import type { DatabaseSync } from 'node:sqlite';
 import { readJournalClock } from './database.js';
+import { quoteSqliteIdentifier as quote } from './table-names.js';
+import type { SqliteRequestJournalTableNames } from './types/table-names.js';
 
 export function purgeSqliteSessionRequests(
   db: DatabaseSync,

@@ -1,28 +1,27 @@
 import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   AgentSessionError,
+  defineSessionLifecycleSnapshot,
+  normalizeListRetiredSessionsInput,
   normalizeListSessionsInput,
   normalizeListSessionTurnsInput,
   parseSessionId,
+  type ListRetiredSessionsInput,
   type ListSessionsInput,
   type ListSessionTurnsInput,
+  type RetiredSessionListPage,
+  type SessionLifecycleListPage,
+  type SessionLifecycleSummary,
   type SessionReference,
   type SessionTurnPage,
-  type SessionLifecycleSummary,
-  type SessionLifecycleListPage,
-  type ListRetiredSessionsInput,
-  type RetiredSessionListPage,
-  normalizeListRetiredSessionsInput,
-  defineSessionLifecycleSnapshot,
 } from '@print-an-agent/base-session';
 import type { DatabaseSync } from 'node:sqlite';
-
 import {
   decodeTurn,
   normalizePersistedBranchId,
+  optionalString,
   requireNonNegativeInteger,
   requireString,
-  optionalString,
   type SqliteRow,
 } from './session-record-codec.js';
 import { quoteSqliteIdentifier, type SqliteSessionTableNames } from './table-names.js';

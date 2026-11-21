@@ -1,22 +1,24 @@
-import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
-import {
-  quoteSqliteIdentifier,
-  sessionActivityIndexName,
-  sessionRetirementIndexName,
-} from './table-names.js';
 import { AgentSessionError } from '@print-an-agent/base-session';
+import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { runImmediateTransaction } from './database.js';
 import { createSessionStoreMigration } from './migrations/0001_create_session_store.js';
 import { addSessionCompactionMigration } from './migrations/0002_add_session_compaction.js';
 import { addSessionNavigationMigration } from './migrations/0003_add_session_navigation.js';
 import { addSessionMetadataMigration } from './migrations/0004_add_session_metadata.js';
-import type { SqliteSessionTableNames } from './table-names.js';
 import { sessionMemoryMigration, sessionMemoryTable } from './session-memory-storage.js';
+import type { SqliteSessionTableNames } from './table-names.js';
+import {
+  quoteSqliteIdentifier,
+  sessionActivityIndexName,
+  sessionRetirementIndexName,
+} from './table-names.js';
 
 const SESSION_SCHEMA_COMPONENT = 'session';
+
 const CURRENT_SESSION_SCHEMA_VERSION = 5;
 
 const SCHEMA_COLUMNS = Object.freeze(['component', 'version']);
+
 const SESSION_COLUMNS = Object.freeze([
   'agent_id',
   'session_id',
@@ -34,6 +36,7 @@ const SESSION_COLUMNS = Object.freeze([
   'metadata_revision',
   'metadata_updated_at',
 ]);
+
 const TURN_COLUMNS = Object.freeze([
   'agent_id',
   'session_id',
@@ -49,6 +52,7 @@ const TURN_COLUMNS = Object.freeze([
   'branch_id',
   'parent_turn_id',
 ]);
+
 const BRANCH_COLUMNS = Object.freeze([
   'agent_id',
   'session_id',
@@ -58,6 +62,7 @@ const BRANCH_COLUMNS = Object.freeze([
   'head_turn_id',
   'created_at',
 ]);
+
 const COMPACTION_COLUMNS = Object.freeze([
   'agent_id',
   'session_id',

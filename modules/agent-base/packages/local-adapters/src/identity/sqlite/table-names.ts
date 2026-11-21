@@ -1,24 +1,16 @@
 import { AgentIdentityError } from '@print-an-agent/base-identity-config/identity';
-
-export type SqliteAgentIdentityTableName = 'schema' | 'identities';
-
-export type SqliteAgentIdentityTableNamesInput = Readonly<
-  Partial<Record<SqliteAgentIdentityTableName, string>>
->;
-
-export interface SqliteAgentIdentityTableNamingInput {
-  readonly tablePrefix?: string;
-  readonly tableNames?: SqliteAgentIdentityTableNamesInput;
-}
-
-export interface SqliteAgentIdentityTableNames {
-  readonly schema: string;
-  readonly identities: string;
-}
+import { SQLITE_AGENT_IDENTITY_TABLE_KEYS } from './table-keys.js';
+import type {
+  SqliteAgentIdentityTableNames,
+  SqliteAgentIdentityTableNamingInput,
+} from './types/table-names.js';
 
 const DEFAULT_TABLE_PREFIX = 'agent_';
+
 const MAX_TABLE_NAME_LENGTH = 128;
-const TABLE_NAME_KEYS = new Set<string>(['schema', 'identities']);
+
+const TABLE_NAME_KEYS = new Set<string>(SQLITE_AGENT_IDENTITY_TABLE_KEYS);
+
 const TABLE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export const DEFAULT_SQLITE_AGENT_IDENTITY_TABLE_NAMES: SqliteAgentIdentityTableNames =

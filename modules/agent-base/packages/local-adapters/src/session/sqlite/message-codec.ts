@@ -1,13 +1,15 @@
+import { AgentSessionError, MAX_SESSION_COMPACTION_CHARACTERS } from '@print-an-agent/base-session';
 import {
   defineAssistantModelMessage,
   type AssistantModelMessage,
   type ContextModelMessage,
   type UserModelMessage,
 } from '@print-an-agent/model-invocation-core';
-import { AgentSessionError, MAX_SESSION_COMPACTION_CHARACTERS } from '@print-an-agent/base-session';
 
 const MESSAGE_SCHEMA_VERSION = 1;
+
 const USER_MESSAGE_KEYS = Object.freeze(['role', 'schemaVersion', 'text', 'timestamp']);
+
 const ASSISTANT_MESSAGE_KEYS = Object.freeze([
   'provenance',
   'role',
@@ -17,6 +19,7 @@ const ASSISTANT_MESSAGE_KEYS = Object.freeze([
   'timestamp',
   'usage',
 ]);
+
 const CONTEXT_MESSAGE_KEYS = USER_MESSAGE_KEYS;
 
 type UnknownRecord = Record<string, unknown>;

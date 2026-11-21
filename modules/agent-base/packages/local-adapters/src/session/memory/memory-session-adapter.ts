@@ -1,26 +1,14 @@
-import { randomUUID } from 'node:crypto';
-import {
-  decideMemoryRecord,
-  memoryRecordKey,
-  type SessionMemoryRecordKey,
-  type WriteSessionMemoryRecord,
-  type PublishSessionMemoryNavigation,
-} from '@print-an-agent/base-session';
 import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
-import { type ModelMessage } from '@print-an-agent/model-invocation-core';
 import {
   AgentSessionError,
-  defineSessionTurnPresentation,
-  type SessionPresentationPort,
-  type SessionTurnPresentation,
-  type SessionTurnPresentationReference,
-  type SessionTurnPresentationRecord,
-  type CompleteSessionTurnWithPresentationRequest,
   DEFAULT_SESSION_BRANCH_ID,
   completedLineageBeforeTurn,
+  decideMemoryRecord,
+  defineSessionTurnPresentation,
+  memoryRecordKey,
+  normalizeRenameSessionInput,
   parseSessionFailureCode,
   parseSessionId,
-  normalizeRenameSessionInput,
   type ActiveSessionTurn,
   type AppliedSessionNavigation,
   type ApplySessionNavigationRequest,
@@ -28,37 +16,62 @@ import {
   type CommitSessionCompactionRequest,
   type CompactableSessionPort,
   type CompleteSessionTurnRequest,
+  type CompleteSessionTurnWithPresentationRequest,
   type CompletedSessionTurn,
   type FailSessionTurnRequest,
   type InspectableSessionPort,
+  type ListRetiredSessionsInput,
+  type ListSessionTurnsInput,
+  type ListSessionsInput,
   type LoadSessionHistoryRequest,
   type NavigableSessionPort,
-  type ResolveSessionRequest,
-  type ResolvedSessionReference,
-  type SessionCompaction,
-  type SessionBranchId,
-  type SessionBranchReference,
-  type SessionContextSnapshot,
-  type SessionReference,
-  type SessionSnapshot,
-  type SessionInspection,
-  type SessionMetadataPort,
-  type SessionQueryPort,
-  type SessionTurnPage,
-  type ListSessionsInput,
-  type ListSessionTurnsInput,
-  type SessionTurn,
-  type RenameSessionInput,
-  type TurnId,
-  type SessionLifecycleMutationInput,
+  type PublishSessionMemoryNavigation,
   type PurgeSessionInput,
   type RecoverSessionExecutionsInput,
-  type SessionExecutionLease,
-  type SessionLifecycleListPage,
-  type SessionLifecycleInspection,
-  type ListRetiredSessionsInput,
+  type RenameSessionInput,
+  type ResolveSessionRequest,
+  type ResolvedSessionReference,
   type RetiredSessionListPage,
+  type SessionBranchId,
+  type SessionBranchReference,
+  type SessionCompaction,
+  type SessionContextSnapshot,
+  type SessionExecutionLease,
+  type SessionInspection,
+  type SessionLifecycleInspection,
+  type SessionLifecycleListPage,
+  type SessionLifecycleMutationInput,
+  type SessionMemoryRecordKey,
+  type SessionMetadataPort,
+  type SessionPresentationPort,
+  type SessionQueryPort,
+  type SessionReference,
+  type SessionSnapshot,
+  type SessionTurn,
+  type SessionTurnPage,
+  type SessionTurnPresentation,
+  type SessionTurnPresentationRecord,
+  type SessionTurnPresentationReference,
+  type TurnId,
+  type WriteSessionMemoryRecord,
 } from '@print-an-agent/base-session';
+import type { ModelMessage } from '@print-an-agent/model-invocation-core';
+import { randomUUID } from 'node:crypto';
+import { memorySessionCoordination } from './coordination.js';
+import { commitMemorySessionCompaction } from './session-compaction.js';
+import { completeMemorySessionTurn } from './session-completion.js';
+import {
+  MemorySessionLifecycle,
+  advanceMemoryExecution,
+  memoryExecutionFence,
+} from './session-lifecycle.js';
+import { applyMemorySessionNavigation } from './session-navigation.js';
+import {
+  inspectMemorySession,
+  listMemorySessionTurns,
+  listMemorySessions,
+  listRetiredMemorySessions,
+} from './session-query.js';
 import {
   cloneMemoryCompaction,
   cloneMemoryContext,
@@ -72,21 +85,6 @@ import {
   type StoredMemoryBranch,
   type StoredMemorySession,
 } from './session-state.js';
-import { completeMemorySessionTurn } from './session-completion.js';
-import { commitMemorySessionCompaction } from './session-compaction.js';
-import {
-  MemorySessionLifecycle,
-  advanceMemoryExecution,
-  memoryExecutionFence,
-} from './session-lifecycle.js';
-import { memorySessionCoordination } from '../../persistence/memory-coordination.js';
-import { applyMemorySessionNavigation } from './session-navigation.js';
-import {
-  inspectMemorySession,
-  listMemorySessions,
-  listMemorySessionTurns,
-  listRetiredMemorySessions,
-} from './session-query.js';
 
 export interface MemorySessionAdapterOptions {
   /** Must issue fresh, never-reused IDs, including across restarts of the owning application. */

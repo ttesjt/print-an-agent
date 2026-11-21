@@ -1,24 +1,16 @@
 import { AgentRequestError } from '@print-an-agent/base-request';
-
-export type SqliteRequestJournalTableName = 'schema' | 'entries';
-
-export type SqliteRequestJournalTableNamesInput = Readonly<
-  Partial<Record<SqliteRequestJournalTableName, string>>
->;
-
-export interface SqliteRequestJournalTableNamingInput {
-  readonly tablePrefix?: string;
-  readonly tableNames?: SqliteRequestJournalTableNamesInput;
-}
-
-export interface SqliteRequestJournalTableNames {
-  readonly schema: string;
-  readonly entries: string;
-}
+import { SQLITE_REQUEST_JOURNAL_TABLE_KEYS } from './table-keys.js';
+import type {
+  SqliteRequestJournalTableNames,
+  SqliteRequestJournalTableNamingInput,
+} from './types/table-names.js';
 
 const DEFAULT_TABLE_PREFIX = 'agent_';
+
 const MAX_TABLE_NAME_LENGTH = 128;
-const TABLE_NAME_KEYS = new Set<string>(['schema', 'entries']);
+
+const TABLE_NAME_KEYS = new Set<string>(SQLITE_REQUEST_JOURNAL_TABLE_KEYS);
+
 const TABLE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export const DEFAULT_SQLITE_REQUEST_JOURNAL_TABLE_NAMES: SqliteRequestJournalTableNames =

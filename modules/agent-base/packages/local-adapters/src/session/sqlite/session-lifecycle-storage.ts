@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-import type { DatabaseSync } from 'node:sqlite';
 import {
   AgentSessionError,
   assertSessionExecutionAllowed,
@@ -8,20 +6,22 @@ import {
   assertSessionRecoveryRevision,
   defineSessionExecutionFence,
   defineSessionLifecycleSnapshot,
-  normalizeSessionExecutionLease,
-  normalizeSessionLifecycleMutationInput,
   normalizePurgeSessionInput,
   normalizeRecoverSessionExecutionsInput,
+  normalizeSessionExecutionLease,
+  normalizeSessionLifecycleMutationInput,
   parseSessionExecutionId,
-  retireSessionState,
   restoreSessionState,
-  type SessionReference,
-  type SessionWriteAuthority,
-  type SessionExecutionLease,
-  type SessionLifecycleMutationInput,
+  retireSessionState,
   type PurgeSessionInput,
   type RecoverSessionExecutionsInput,
+  type SessionExecutionLease,
+  type SessionLifecycleMutationInput,
+  type SessionReference,
+  type SessionWriteAuthority,
 } from '@print-an-agent/base-session';
+import { randomUUID } from 'node:crypto';
+import type { DatabaseSync } from 'node:sqlite';
 import { readClock, runImmediateTransaction } from './database.js';
 import { sessionMemoryTable } from './session-memory-storage.js';
 import { requireString } from './session-record-codec.js';

@@ -1,10 +1,10 @@
-import type { DatabaseSync } from 'node:sqlite';
 import {
   AgentSessionError,
   DEFAULT_SESSION_BRANCH_ID,
   type ResolvedSessionReference,
   type SessionReference,
 } from '@print-an-agent/base-session';
+import type { DatabaseSync } from 'node:sqlite';
 import { readClock, runImmediateTransaction } from './database.js';
 import { loadSqliteSessionSnapshot } from './session-navigation-storage.js';
 import { quoteSqliteIdentifier, type SqliteSessionTableNames } from './table-names.js';

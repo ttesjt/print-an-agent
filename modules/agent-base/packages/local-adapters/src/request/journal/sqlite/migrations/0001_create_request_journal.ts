@@ -1,5 +1,5 @@
 import { quoteSqliteIdentifier } from '../table-names.js';
-import type { SqliteRequestJournalTableNames } from '../table-names.js';
+import type { SqliteRequestJournalTableNames } from '../types/table-names.js';
 
 export function createRequestJournalMigration(tableNames: SqliteRequestJournalTableNames): string {
   return `

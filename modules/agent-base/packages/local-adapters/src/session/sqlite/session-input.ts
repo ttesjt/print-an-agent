@@ -1,11 +1,11 @@
 import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import {
-  parseSessionId,
   parseSessionBranchId,
+  parseSessionId,
   parseTurnId,
+  type ApplySessionNavigationRequest,
   type BeginSessionTurnRequest,
   type SessionBranchReference,
-  type ApplySessionNavigationRequest,
 } from '@print-an-agent/base-session';
 import { normalizeReference } from './session-record-codec.js';
 

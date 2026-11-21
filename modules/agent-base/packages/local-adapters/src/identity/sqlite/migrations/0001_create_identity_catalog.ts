@@ -1,5 +1,5 @@
 import { quoteSqliteIdentifier } from '../table-names.js';
-import type { SqliteAgentIdentityTableNames } from '../table-names.js';
+import type { SqliteAgentIdentityTableNames } from '../types/table-names.js';
 
 export function createIdentityCatalogMigration(tableNames: SqliteAgentIdentityTableNames): string {
   return `

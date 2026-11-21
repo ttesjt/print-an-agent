@@ -32,6 +32,18 @@ Engine contract yourself. Core validates result provenance and event protocols, 
 cancellation, and supports optional invocation deadlines and token measurement. It does not own
 credentials, persistence, or tool authorization.
 
+## Capability selection requirements
+
+`validateActorCapabilityRequirements()` normalizes the Core-owned technical requirements used
+by `satisfiesActorRequirements()`. A valid result contains a detached, frozen `value`; a rejected
+result contains a closed `issue` value. The validator owns supported modes/media, interaction
+streamability, required flags and minimum context tokens. It selects no Actor or application role.
+
+Callers choose how to report those diagnostics. Agent Base maps them to Responsibility errors;
+independent consumers can use the result directly. Exceptions raised during caller-value access or
+collection normalization propagate. The small result types stay with their validator and derive
+issue choices from its controlled runtime definitions.
+
 This package is ESM and requires Node.js 24.15 or later within Node.js 24. See the repository's
 [Model Invocation guide](https://github.com/ttesjt/print-an-agent/tree/main/modules/model-invocation)
 for the complete contract. Licensed under MIT; see `LICENSE` in the package.

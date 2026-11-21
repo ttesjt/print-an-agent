@@ -20,6 +20,11 @@ export {
   satisfiesActorRequirements,
 } from './actor/capabilities.js';
 export type * from './actor/capabilities.js';
+export { validateActorCapabilityRequirements } from './actor/capability-requirements.js';
+export type {
+  ActorCapabilityRequirementsIssue,
+  ActorCapabilityRequirementsValidation,
+} from './actor/capability-requirements.js';
 export { defineActorEngine, defineActorInvocationConfig } from './actor/engine.js';
 export type * from './actor/engine.js';
 export {

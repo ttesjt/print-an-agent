@@ -1,26 +1,32 @@
-import { randomUUID } from 'node:crypto';
-import { join } from 'node:path';
-import { withStandaloneMemoryManagement } from '../resources/agent-memory/setup.js';
-import type { StandaloneMemoryManagementOptions } from '../resources/agent-memory/contracts.js';
 import {
   createAgentManagementService,
   createAgentRuntimeService,
   createSessionManagementService,
   createSessionNavigationService,
   defineManagedAgentComposition,
-  type SessionNavigationCapability,
-  type SessionNavigationPorts,
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
+  type SessionNavigationCapability,
+  type SessionNavigationPorts,
 } from '@print-an-agent/base-composition';
-import { STANDALONE_AGENT_CONFIG_CODEC } from '../config.js';
+import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
+import type { StandaloneAgentConfig } from '../configuration/index.js';
+import { STANDALONE_AGENT_CONFIG_CODEC } from '../configuration/index.js';
+import type { StandaloneMemoryManagementOptions } from '../resources/agent-memory/contracts.js';
+import { withStandaloneMemoryManagement } from '../resources/agent-memory/setup.js';
 import { createFilesystemStandaloneManifestProjection } from '../resources/filesystem/manifest-projection.js';
 import { createFilesystemAgentResourceNamespaceAdapter } from '../resources/filesystem/namespace-adapter.js';
 import { createFilesystemStandalonePortFactories } from '../resources/filesystem/port-factory.js';
 import type { FilesystemAgentResourceNamespace } from '../resources/filesystem/types.js';
-import { resolveStandaloneManagedSqliteTableNames } from '../resources/sqlite-table-naming.js';
-import { assertStandaloneRuntimeOptions } from '../runtime-policies.js';
 import { reopenableStandaloneSetup } from '../resources/reopenable-setup.js';
+import { resolveStandaloneManagedSqliteTableNames } from '../resources/sqlite-table-naming.js';
+import type { StandaloneRawAgent } from '../runtime/index.js';
+import {
+  assertStandaloneRuntimeOptions,
+  materializeStandaloneAgentRuntime,
+  type StandaloneRuntimePorts,
+} from '../runtime/index.js';
 import {
   projectStandaloneAgentManagementService,
   type StandaloneAgentManagementService,
@@ -37,17 +43,11 @@ import {
   projectStandaloneSessionNavigationService,
   type StandaloneSessionNavigationService,
 } from '../services/session-navigation-service.js';
-import {
-  materializeStandaloneAgentRuntime,
-  type StandaloneRuntimePorts,
-} from '../runtime/materialize-standalone-agent.js';
 import type {
-  CreateStandaloneDirectoryProfileOptions,
   CreateStandaloneDirectoryManagementServiceOptions,
-  CreateStandaloneDirectorySessionServiceOptions,
   CreateStandaloneDirectoryNavigationServiceOptions,
-  StandaloneAgentConfig,
-  StandaloneRawAgent,
+  CreateStandaloneDirectoryProfileOptions,
+  CreateStandaloneDirectorySessionServiceOptions,
 } from '../types.js';
 
 export type StandaloneDirectoryDefinition = SessionManagedAgentCompositionDefinition<

@@ -1,12 +1,15 @@
+import { validateMemoryIdentifier } from '@print-an-agent/base-composition';
 import {
-  ResourceToken,
   ResourceCleanupError,
+  ResourceToken,
   compileResourceBlueprint,
   defineResourceProvider,
   type ResourceAcquisition,
 } from '@print-an-agent/base-composition/resource-registry';
 import { ContextMemoryError, type MemoryStore } from '@print-an-agent/context-memory';
 import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
+import type { TextEmbeddingCapability } from '@print-an-agent/model-invocation-core';
+import { createTiktokenTextCounter } from '@print-an-agent/model-invocation-token-counters';
 import {
   RetrievalMemoryError,
   createCodepointChunker,
@@ -14,9 +17,6 @@ import {
   type RetrievalChunker,
 } from '@print-an-agent/retrieval-memory';
 import { openSqliteRetrievalBackend } from '@print-an-agent/retrieval-memory-sqlite';
-import type { TextEmbeddingCapability } from '@print-an-agent/model-invocation-core';
-import { createTiktokenTextCounter } from '@print-an-agent/model-invocation-token-counters';
-import { validateMemoryIdentifier } from '@print-an-agent/base-composition';
 import type {
   AgentMemoryStorageBinding,
   MemoryTextCounter,
@@ -25,7 +25,9 @@ import type {
 
 export const DEFAULT_MEMORY_MEASUREMENT_REF = createTiktokenTextCounter({ encoding: 'o200k_base' })
   .descriptor.measurementRef;
+
 const describe = (key: string) => ({ key, descriptor: key });
+
 function hasMethods(value: unknown, methods: readonly string[]): boolean {
   return (
     value !== null &&
@@ -33,6 +35,7 @@ function hasMethods(value: unknown, methods: readonly string[]): boolean {
     methods.every((name) => name in value && typeof Reflect.get(value, name) === 'function')
   );
 }
+
 async function acquire<T>(
   factory: () => ResourceAcquisition<T> | Promise<ResourceAcquisition<T>>
 ): Promise<ResourceAcquisition<T>> {
@@ -47,6 +50,7 @@ async function acquire<T>(
     throw cause;
   }
 }
+
 function defaultCounter(ref: string): ResourceAcquisition<MemoryTextCounter> {
   if (ref !== DEFAULT_MEMORY_MEASUREMENT_REF)
     throw new ContextMemoryError('TOKENIZER_UNAVAILABLE', 'Requested counter is not installed.');
@@ -177,4 +181,5 @@ export function memoryManagementRecipe(
     chunker,
   };
 }
+
 export type MemoryManagementRecipe = ReturnType<typeof memoryManagementRecipe>;

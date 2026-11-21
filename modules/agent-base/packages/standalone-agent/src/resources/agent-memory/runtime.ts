@@ -1,11 +1,15 @@
+import type {
+  ManagedAgentNamespace,
+  RuntimeMemorySessionPort,
+} from '@print-an-agent/base-composition';
 import {
   createSessionContextMemory,
   type ContextMemoryWorkflows,
   type SessionContextMemoryService,
 } from '@print-an-agent/base-composition';
 import {
-  supportsSessionMemoryNavigation,
   supportsSessionExecution,
+  supportsSessionMemoryNavigation,
 } from '@print-an-agent/base-session';
 import {
   createVersionedContextMemoryBundle,
@@ -13,12 +17,10 @@ import {
   MemoryMeter,
   supportsMemoryHistory,
 } from '@print-an-agent/context-memory';
-import type { ManagedAgentNamespace } from '@print-an-agent/base-composition';
-import type { RuntimeMemorySessionPort } from '@print-an-agent/base-composition';
-import type { StandaloneMemoryManagementOptions } from './contracts.js';
-import type { MemoryAllocationResolver } from './context.js';
-import { DEFAULT_MEMORY_MEASUREMENT_REF } from './recipe.js';
 import { AgentBaseStandaloneError } from '../../errors.js';
+import type { MemoryAllocationResolver } from './context.js';
+import type { StandaloneMemoryManagementOptions } from './contracts.js';
+import { DEFAULT_MEMORY_MEASUREMENT_REF } from './recipe.js';
 import type { RuntimeMemoryLifetime } from './runtime-lifetime.js';
 
 export function runtimeMemorySession(value: object): asserts value is RuntimeMemorySessionPort {

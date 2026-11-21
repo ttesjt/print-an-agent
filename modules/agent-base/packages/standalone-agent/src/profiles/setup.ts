@@ -1,7 +1,7 @@
 import type { ManagedAgentCompositionDefinition } from '@print-an-agent/base-composition';
-import type { StandaloneAgentConfig, StandaloneRawAgent } from '../types.js';
-import type { StandaloneRuntimePorts } from '../runtime/materialize-standalone-agent.js';
+import type { StandaloneAgentConfig } from '../configuration/index.js';
 import { AgentBaseStandaloneError } from '../errors.js';
+import type { StandaloneRawAgent, StandaloneRuntimePorts } from '../runtime/index.js';
 
 /** Composition lifetime only; business admission/cancellation/join remain the caller's responsibility. */
 export interface StandaloneSetup<TNamespace> {

@@ -4,20 +4,26 @@ import {
   createSessionManagementService,
   createSessionNavigationService,
   defineManagedAgentComposition,
-  type SessionNavigationCapability,
-  type SessionNavigationPorts,
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
+  type SessionNavigationCapability,
+  type SessionNavigationPorts,
 } from '@print-an-agent/base-composition';
-import { withStandaloneMemoryManagement } from '../resources/agent-memory/setup.js';
+import type { StandaloneAgentConfig } from '../configuration/index.js';
+import { STANDALONE_AGENT_CONFIG_CODEC } from '../configuration/index.js';
 import type { StandaloneMemoryManagementOptions } from '../resources/agent-memory/contracts.js';
-import { STANDALONE_AGENT_CONFIG_CODEC } from '../config.js';
-import { resolveStandaloneSharedSqliteTableNames } from '../resources/sqlite-table-naming.js';
+import { withStandaloneMemoryManagement } from '../resources/agent-memory/setup.js';
+import { reopenableStandaloneSetup } from '../resources/reopenable-setup.js';
 import { createSharedSqliteAgentResourceNamespaceAdapter } from '../resources/shared-sqlite/namespace-adapter.js';
 import { createSharedSqliteStandalonePortFactories } from '../resources/shared-sqlite/port-factory.js';
 import type { SharedSqliteAgentResourceNamespace } from '../resources/shared-sqlite/types.js';
-import { assertStandaloneRuntimeOptions } from '../runtime-policies.js';
-import { reopenableStandaloneSetup } from '../resources/reopenable-setup.js';
+import { resolveStandaloneSharedSqliteTableNames } from '../resources/sqlite-table-naming.js';
+import type { StandaloneRawAgent } from '../runtime/index.js';
+import {
+  assertStandaloneRuntimeOptions,
+  materializeStandaloneAgentRuntime,
+  type StandaloneRuntimePorts,
+} from '../runtime/index.js';
 import {
   projectStandaloneAgentManagementService,
   type StandaloneAgentManagementService,
@@ -34,17 +40,11 @@ import {
   projectStandaloneSessionNavigationService,
   type StandaloneSessionNavigationService,
 } from '../services/session-navigation-service.js';
-import {
-  materializeStandaloneAgentRuntime,
-  type StandaloneRuntimePorts,
-} from '../runtime/materialize-standalone-agent.js';
 import type {
-  CreateSharedSqliteStandaloneProfileOptions,
   CreateSharedSqliteStandaloneManagementServiceOptions,
-  CreateSharedSqliteStandaloneSessionServiceOptions,
   CreateSharedSqliteStandaloneNavigationServiceOptions,
-  StandaloneAgentConfig,
-  StandaloneRawAgent,
+  CreateSharedSqliteStandaloneProfileOptions,
+  CreateSharedSqliteStandaloneSessionServiceOptions,
 } from '../types.js';
 
 export type SharedSqliteStandaloneDefinition = SessionManagedAgentCompositionDefinition<

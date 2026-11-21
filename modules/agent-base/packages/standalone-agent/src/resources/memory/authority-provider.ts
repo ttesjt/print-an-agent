@@ -1,14 +1,14 @@
 import type { ManagedAgentAuthorityPorts } from '@print-an-agent/base-composition';
 import {
-  MemoryAgentConfigAdapter,
-  MemoryAgentIdentityCatalogAdapter,
-} from '@print-an-agent/base-local-adapters';
-import {
   defineResourceProvider,
   ResourceToken,
 } from '@print-an-agent/base-composition/resource-registry';
+import {
+  MemoryAgentConfigAdapter,
+  MemoryAgentIdentityCatalogAdapter,
+} from '@print-an-agent/base-local-adapters';
 import type { CreateStandaloneMemoryProfileOptions } from '../../types.js';
-import { parseAllocationBinding, describeAllocation } from './allocation-binding.js';
+import { describeAllocation, parseAllocationBinding } from './allocation-binding.js';
 
 function isAuthority(value: unknown): value is ManagedAgentAuthorityPorts {
   if (

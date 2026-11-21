@@ -1,29 +1,35 @@
-import { lstatSync, mkdirSync } from 'node:fs';
-import { dirname, isAbsolute, resolve } from 'node:path';
-import { DatabaseSync, type SQLOutputValue } from 'node:sqlite';
 import {
   ManagedAgentNamespaceError,
   type ManagedAgentNamespacePort,
   type StagedManagedAgentNamespace,
 } from '@print-an-agent/base-composition';
 import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config/identity';
+import { lstatSync, mkdirSync } from 'node:fs';
+import { dirname, isAbsolute, resolve } from 'node:path';
+import { DatabaseSync, type SQLOutputValue } from 'node:sqlite';
 import { AgentBaseStandaloneError } from '../../errors.js';
-import type { SharedSqliteAgentResourceNamespace } from './types.js';
 import {
   quoteSqliteIdentifier,
   resolveSqliteManagedNamespaceTableNames,
   type SqliteManagedNamespaceTableNames,
   type SqliteManagedNamespaceTableNamingInput,
 } from './table-names.js';
+import type { SharedSqliteAgentResourceNamespace } from './types.js';
 
 const SCHEMA_COMPONENT = 'managed_namespace';
+
 const CURRENT_SCHEMA_VERSION = 1;
+
 const DEFAULT_BUSY_TIMEOUT_MILLISECONDS = 5_000;
+
 const MAX_BUSY_TIMEOUT_MILLISECONDS = 2_147_483_647;
+
 const SCHEMA_COLUMNS = Object.freeze(['component', 'version']);
+
 const NAMESPACE_COLUMNS = Object.freeze(['agent_id', 'state']);
 
 type SqliteRow = Record<string, SQLOutputValue>;
+
 type NamespaceState = 'pending' | 'published';
 
 interface SharedSqliteConfiguration {

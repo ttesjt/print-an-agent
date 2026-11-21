@@ -1,43 +1,18 @@
 import {
-  composeAgent,
-  createProviderRuntime,
-  CONTEXT_MEMORY_TOOL_NAMES,
-} from '@print-an-agent/base-composition';
-import {
   BUILT_IN_RESPONSIBILITIES,
   MAIN_ACTOR_ID,
   createActorCatalog,
   createResponsibilityCatalog,
 } from '@print-an-agent/base-actor';
-import type { AgentIdentity } from '@print-an-agent/base-identity-config/identity';
-import type { RequestJournalPort, RequestContextMemory } from '@print-an-agent/base-request';
-import type { CompactableSessionPort } from '@print-an-agent/base-session';
-import { createStandaloneCredentialResolver } from '../credential-resolver.js';
+import { CONTEXT_MEMORY_TOOL_NAMES, composeAgent } from '@print-an-agent/base-composition';
 import { AgentBaseStandaloneError } from '../errors.js';
-import { resolveStandaloneTextTokenCounter } from './token-counter.js';
+import { createStandaloneProviderRuntime } from '../provider/index.js';
 import {
   resolveStandaloneRequestPolicy,
   resolveStandaloneSessionCompactionPolicy,
-} from '../runtime-policies.js';
-import type {
-  StandaloneRawAgent,
-  StandaloneAgentConfig,
-  StandaloneRuntimeOptions,
-} from '../types.js';
-
-export interface StandaloneRuntimePorts {
-  readonly session: CompactableSessionPort;
-  readonly requestJournal: RequestJournalPort;
-  readonly contextMemory?: RequestContextMemory;
-  readonly contextMemoryToolAllowList?: readonly string[];
-}
-
-export interface StandaloneRuntimeMaterializationInput {
-  readonly identity: AgentIdentity;
-  readonly config: StandaloneAgentConfig;
-  readonly ports: StandaloneRuntimePorts;
-  readonly options: StandaloneRuntimeOptions;
-}
+} from './policies.js';
+import type { StandaloneRawAgent } from './types/agent.js';
+import type { StandaloneRuntimeMaterializationInput } from './types/ports.js';
 
 /** Pure runtime assembly over explicitly provisioned, complete persistence Ports. */
 export function materializeStandaloneAgentRuntime(
@@ -48,18 +23,7 @@ export function materializeStandaloneAgentRuntime(
       'Standalone materialization requires complete persistence Ports.'
     );
   }
-  const credentialResolver =
-    input.config.credential === undefined
-      ? undefined
-      : createStandaloneCredentialResolver(input.config.credential, input.options);
-
-  const textTokenCounter = resolveStandaloneTextTokenCounter(input.config.provider, input.options);
-  const provider = createProviderRuntime({
-    ...(textTokenCounter === undefined ? {} : { textTokenCounter }),
-    config: input.config.provider.config,
-    transportLivenessPolicy: input.config.provider.transportLivenessPolicy,
-    ...(credentialResolver === undefined ? {} : { credentialResolver }),
-  });
+  const provider = createStandaloneProviderRuntime(input.config, input.options);
   return composeAgent({
     identity: input.identity,
     actorCatalog: createActorCatalog({

@@ -1,7 +1,7 @@
 import type {
+  ResourceCallOptions,
   ResourceRegistry,
   ResourceRequest,
-  ResourceCallOptions,
 } from '@print-an-agent/base-composition/resource-registry';
 import { ResourceCleanupError } from '@print-an-agent/base-composition/resource-registry';
 import { ContextMemoryError } from '@print-an-agent/context-memory';

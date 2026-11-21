@@ -1,6 +1,3 @@
-import { lstatSync, mkdirSync } from 'node:fs';
-import { lstat, mkdir, readdir, rename, rm } from 'node:fs/promises';
-import { isAbsolute, join, resolve } from 'node:path';
 import {
   ManagedAgentNamespaceError,
   type ManagedAgentNamespace,
@@ -12,11 +9,16 @@ import {
   parseAgentId,
   type AgentId,
 } from '@print-an-agent/base-identity-config/identity';
+import { lstatSync, mkdirSync } from 'node:fs';
+import { lstat, mkdir, readdir, rename, rm } from 'node:fs/promises';
+import { isAbsolute, join, resolve } from 'node:path';
 import { AgentBaseStandaloneError } from '../../errors.js';
 import type { FilesystemAgentResourceNamespace } from './types.js';
 
 const DATABASE_FILE_NAME = 'agent.sqlite';
+
 const MANIFEST_FILE_NAME = 'agent.json';
+
 const TEMPORARY_ID_PATTERN = /^[a-zA-Z0-9-]{1,128}$/;
 
 function storageError(message: string, cause?: unknown): AgentBaseStandaloneError {

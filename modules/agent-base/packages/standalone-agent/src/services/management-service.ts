@@ -1,16 +1,16 @@
 import type {
   AgentManagementService,
   ImportManagedAgentConfigRequest,
-  ManagementOperationOptions,
   ManagedAgentCommitResult,
   ManagedAgentSnapshot,
+  ManagementOperationOptions,
 } from '@print-an-agent/base-composition';
 import {
   parseAgentId,
   type AgentIdentityInput,
 } from '@print-an-agent/base-identity-config/identity';
-import { defineStandaloneAgentConfig } from '../config.js';
-import type { StandaloneAgentConfig, StandaloneAgentConfigInput } from '../types.js';
+import type { StandaloneAgentConfig, StandaloneAgentConfigInput } from '../configuration/index.js';
+import { defineStandaloneAgentConfig } from '../configuration/index.js';
 
 export interface StandaloneAgentManagementService {
   create(

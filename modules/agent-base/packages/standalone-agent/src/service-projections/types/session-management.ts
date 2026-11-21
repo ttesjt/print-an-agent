@@ -1,4 +1,46 @@
+import type { ManagementOperationOptions } from '@print-an-agent/base-composition';
+import type {
+  RetiredSessionListPage,
+  SessionExecutionFence,
+  SessionLifecycleInspection,
+  SessionLifecycleListPage,
+  SessionLifecycleSnapshot,
+  SessionTurnPage,
+} from '@print-an-agent/base-session';
 import type { StandaloneSessionReferenceInput } from './session-reference.js';
+
+/** String/JSON boundary projection of the generic, branded Session management Service. */
+export interface StandaloneSessionManagementService {
+  list(
+    input: StandaloneListSessionsInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleListPage>;
+  listRetired(
+    input: StandaloneListRetiredSessionsInput,
+    options?: ManagementOperationOptions
+  ): Promise<RetiredSessionListPage>;
+  inspect(
+    input: StandaloneSessionReferenceInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleInspection | undefined>;
+  listTurns(
+    input: StandaloneListSessionTurnsInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionTurnPage | undefined>;
+  retire(
+    input: StandaloneSessionLifecycleMutationInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleSnapshot>;
+  restore(
+    input: StandaloneSessionLifecycleMutationInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionLifecycleSnapshot>;
+  purge(input: StandalonePurgeSessionInput, options?: ManagementOperationOptions): Promise<void>;
+  recover(
+    input: StandaloneRecoverSessionExecutionsInput,
+    options?: ManagementOperationOptions
+  ): Promise<SessionExecutionFence>;
+}
 
 export interface StandaloneListSessionsInput {
   readonly agentId: string;

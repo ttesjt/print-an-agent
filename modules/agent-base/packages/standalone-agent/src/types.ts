@@ -1,13 +1,9 @@
-import type {
-  MemoryAuthorityFactory,
-  MemorySessionPersistenceFactory,
-} from './resources/memory/contracts.js';
-import type { StandaloneRuntimeOptions } from './runtime/index.js';
-
-export interface CreateStandaloneMemoryProfileOptions extends StandaloneRuntimeOptions {
-  readonly clock?: () => number;
-  /** Allocation authority is prepared before stage returns; never supplied by a business Run. */
-  readonly acquireAuthority?: MemoryAuthorityFactory;
-  /** Profile recipe, fixed at setup construction. Each allocation owns its acquisition. */
-  readonly acquireSessionPersistence?: MemorySessionPersistenceFactory;
-}
+export type AgentBaseStandaloneErrorCode =
+  | 'STANDALONE_CONFIG_INVALID'
+  | 'STANDALONE_ROOT_INVALID'
+  | 'STANDALONE_AGENT_ALREADY_EXISTS'
+  | 'STANDALONE_AGENT_NOT_FOUND'
+  | 'STANDALONE_AGENT_DISABLED'
+  | 'STANDALONE_AGENT_STORAGE_INVALID'
+  | 'STANDALONE_MEMORY_BUSY'
+  | 'STANDALONE_AGENT_STORAGE_FAILED';

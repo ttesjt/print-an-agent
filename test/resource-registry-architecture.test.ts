@@ -203,7 +203,7 @@ it.each([
 });
 
 it.each([
-  'modules/agent-base/packages/standalone-agent/src/resources/memory/provisioner.ts',
+  'modules/agent-base/packages/standalone-agent/src/profiles/memory/resources/provisioner.ts',
   'modules/agent-base/tests/integration/test/resource-registry/examples/service-provisioning/profile.ts',
 ])('allows a Profile resource-resolution Service to use Registry at %s', async (file) => {
   const results = await eslint.lintText(

@@ -1,5 +1,9 @@
-import type { StandaloneMemoryManagementOptions } from '../../resources/agent-memory/contracts.js';
-import { withStandaloneMemoryManagement } from '../../resources/agent-memory/setup.js';
+import type { SharedSqliteAgentResourceNamespace } from './types/namespace.js';
+import type {
+  StandaloneMemoryManagementOptions,
+  MemorySetupExtension,
+} from '../../agent-memory/index.js';
+import { withStandaloneMemoryManagement } from '../../agent-memory/index.js';
 import { reopenableStandaloneSetup } from '../../setup/index.js';
 import { createSharedSqliteStandaloneDefinition } from './create-definition.js';
 import type { CreateSharedSqliteStandaloneProfileOptions } from './types/options.js';
@@ -7,7 +11,7 @@ import type { CreateSharedSqliteStandaloneProfileOptions } from './types/options
 export function createSharedSqliteStandaloneSetup(
   options: CreateSharedSqliteStandaloneProfileOptions,
   memory?: StandaloneMemoryManagementOptions
-) {
+): MemorySetupExtension<SharedSqliteAgentResourceNamespace> {
   return withStandaloneMemoryManagement(
     reopenableStandaloneSetup(createSharedSqliteStandaloneDefinition(options)),
     memory,

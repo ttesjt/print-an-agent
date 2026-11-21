@@ -5,12 +5,8 @@ import { parseProvider } from './fields/provider.js';
 import { parseStandaloneRequestExecution } from './fields/request.js';
 import { parseStandaloneSessionCompactionExecution } from './fields/session-compaction.js';
 import type { StandaloneAgentConfig } from './types/agent.js';
-import {
-  assertExactKeys,
-  readOptionalDataField,
-  requireRecord,
-  type UnknownRecord,
-} from './validation.js';
+import type { UnknownRecord } from './types/validation.js';
+import { assertExactKeys, readOptionalDataField, requireRecord } from './validation.js';
 
 const AGENT_CONFIG_KEYS = Object.freeze([
   'provider',

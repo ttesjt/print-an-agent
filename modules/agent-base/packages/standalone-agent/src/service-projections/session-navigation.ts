@@ -1,10 +1,4 @@
-import type {
-  SessionBranchForkOutcome,
-  SessionBranchRewindOutcome,
-  SessionBranchSelectionOutcome,
-  SessionNavigationInspectionOutcome,
-  SessionNavigationService,
-} from '@print-an-agent/base-composition';
+import type { SessionNavigationService } from '@print-an-agent/base-composition';
 import {
   parseSessionBranchId,
   parseTurnId,
@@ -16,27 +10,8 @@ import type {
   StandaloneRewindSessionBranchInput,
   StandaloneSelectSessionBranchInput,
   StandaloneSessionNavigationReferenceInput,
+  StandaloneSessionNavigationService,
 } from './types/session-navigation.js';
-
-/** String-input projection of the generic out-of-band Session navigation Service. */
-export interface StandaloneSessionNavigationService {
-  inspect(
-    input: StandaloneSessionNavigationReferenceInput,
-    options?: SessionNavigationOperationOptions
-  ): Promise<SessionNavigationInspectionOutcome>;
-  select(
-    input: StandaloneSelectSessionBranchInput,
-    options?: SessionNavigationOperationOptions
-  ): Promise<SessionBranchSelectionOutcome>;
-  fork(
-    input: StandaloneForkSessionBranchInput,
-    options?: SessionNavigationOperationOptions
-  ): Promise<SessionBranchForkOutcome>;
-  rewind(
-    input: StandaloneRewindSessionBranchInput,
-    options?: SessionNavigationOperationOptions
-  ): Promise<SessionBranchRewindOutcome>;
-}
 
 /** Projects branded generic Session navigation onto a Standalone host/JSON boundary. */
 export function projectStandaloneSessionNavigationService(

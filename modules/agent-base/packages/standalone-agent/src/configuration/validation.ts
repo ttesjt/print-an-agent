@@ -1,6 +1,5 @@
 import { AgentBaseStandaloneError } from '../errors.js';
-
-export type UnknownRecord = Readonly<Record<string, unknown>>;
+import type { UnknownRecord } from './types/validation.js';
 
 function isUnknownRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

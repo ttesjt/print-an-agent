@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { type SqliteManagedNamespaceTableNames } from '../../types/namespace-tables.js';
+import type { SqliteManagedNamespaceTableNames } from '../../types/namespace-tables.js';
 import { quoteSqliteIdentifier } from '../table-names.js';
 import { storageError } from './errors.js';
 import { runTransaction } from './transaction.js';

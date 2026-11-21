@@ -1,45 +1,57 @@
+export { createStandaloneMemorySetup } from './memory/index.js';
+
+export type {
+  CreateStandaloneMemoryProfileOptions,
+  MemoryAgentResourceNamespace,
+  MemoryAuthorityFactory,
+  MemorySessionPersistenceFactory,
+  StandaloneMemoryDefinition,
+  StandaloneMemorySetup,
+} from './memory/index.js';
+
 export {
   createStandaloneDirectoryDefinition,
-  createStandaloneDirectorySetup,
   createStandaloneDirectoryManagementService,
   createStandaloneDirectoryRuntimeService,
   createStandaloneDirectorySessionNavigationService,
   createStandaloneDirectorySessionService,
+  createStandaloneDirectorySetup,
 } from './directory/index.js';
+
 export type {
-  StandaloneDirectoryDefinition,
   CreateStandaloneDirectoryManagementServiceOptions,
   CreateStandaloneDirectoryNavigationServiceOptions,
   CreateStandaloneDirectoryProfileOptions,
   CreateStandaloneDirectorySessionServiceOptions,
   FilesystemAgentResourceNamespace,
+  StandaloneDirectoryDefinition,
 } from './directory/index.js';
+
 export {
+  DEFAULT_SQLITE_MANAGED_NAMESPACE_TABLE_NAMES,
+  SQLITE_MANAGED_NAMESPACE_TABLE_KEYS,
   createSharedSqliteStandaloneDefinition,
-  createSharedSqliteStandaloneSetup,
   createSharedSqliteStandaloneManagementService,
   createSharedSqliteStandaloneRuntimeService,
   createSharedSqliteStandaloneSessionNavigationService,
   createSharedSqliteStandaloneSessionService,
-  SQLITE_MANAGED_NAMESPACE_TABLE_KEYS,
-  DEFAULT_SQLITE_MANAGED_NAMESPACE_TABLE_NAMES,
+  createSharedSqliteStandaloneSetup,
   quoteSqliteIdentifier,
   resolveSqliteManagedNamespaceTableNames,
 } from './shared-sqlite/index.js';
+
 export type {
-  SharedSqliteStandaloneDefinition,
   CreateSharedSqliteStandaloneManagementServiceOptions,
   CreateSharedSqliteStandaloneNavigationServiceOptions,
   CreateSharedSqliteStandaloneProfileOptions,
   CreateSharedSqliteStandaloneSessionServiceOptions,
-  SharedSqliteAgentResourceNamespace,
   ResolvedStandaloneSharedSqliteTableNames,
-  StandaloneSharedSqliteTableNamesInput,
-  StandaloneSharedSqliteTableNamingInput,
+  SharedSqliteAgentResourceNamespace,
+  SharedSqliteStandaloneDefinition,
+  SqliteManagedNamespaceTableName,
   SqliteManagedNamespaceTableNames,
   SqliteManagedNamespaceTableNamesInput,
   SqliteManagedNamespaceTableNamingInput,
-  SqliteManagedNamespaceTableName,
+  StandaloneSharedSqliteTableNamesInput,
+  StandaloneSharedSqliteTableNamingInput,
 } from './shared-sqlite/index.js';
-export { createStandaloneMemorySetup } from './memory.js';
-export type { StandaloneMemoryDefinition, StandaloneMemorySetup } from './memory.js';

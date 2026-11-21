@@ -4,6 +4,23 @@ Memory management is separate from a chat runtime. A disabled Agent can still be
 does not create a document/space. Enabling management does not inject prompts, install tools,
 run post-turn observation, or alter Session lifecycle.
 
+## Implementation ownership
+
+`src/agent-memory/index.ts` is the internal integration entry used by all three profiles.
+`extend-setup.ts` composes capabilities over the original canonical Definition; it does not replace
+its authority or raw Agent materializer. `options.ts` snapshots host options. `allocation-owner.ts`
+owns one Resource Scope per published allocation, validates allocation identity on resolution, and
+joins Scope cleanup with the original Profile's `close()`. Repeated close keeps its original result
+while forwarding drain-to-abort escalation; busy runtime use leaves resources owned and open.
+
+`provisioning/recipe.ts` declares lazy root acquisitions. `context/resources.ts` separates state-only
+and measured selection; `retrieval/resources.ts` separates state, indexed and writable selection.
+Their sibling `provisioning.ts` files bind those resources to domain operations. State/receipt/replay
+paths do not resolve counters or model capabilities; Retrieval search does not resolve a chunker.
+`runtime/extend-definition.ts` installs Runtime/Session capabilities only when explicitly enabled;
+`runtime/lifetime.ts` tracks borrowed business use independently of acquisition initialization.
+Pure integration contracts live in the owning `types.ts` or `types/` scope.
+
 ## Caller-owned setup
 
 All three setup factories accept an optional second argument:

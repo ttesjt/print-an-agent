@@ -11,6 +11,63 @@ the Standard runtime materializer. Generic Agent lifecycle, runtime opening, out
 management, and Session navigation belong to `@print-an-agent/base-composition`; Standalone consumes those
 services rather than reimplementing them.
 
+## Source organization
+
+The npm API remains the named exports in `src/index.ts`; internal feature entries do not add npm
+subpaths. Each profile chooses resources once through its canonical Definition. Narrow Services
+reuse that Definition's factories; they do not assemble another resource recipe.
+
+```text
+src/
+  index.ts                       # Stable named package API
+  errors.ts, types.ts             # Shared Standalone error and error-code vocabulary
+  configuration/                 # Managed/Bootstrap/Manifest parsing and canonical codec
+    fields/                      # Provider, credential, Identity and execution field rules
+    types/                       # Configuration-owned pure types
+  provider/                      # Shared Provider assembly, credentials, counters and readiness
+  runtime/                       # Runtime wiring validation and the single raw Agent materializer
+    types/                       # Options, typed Ports and raw Agent result
+  setup/                         # Common Setup lifetime and package-level Session capability types
+    types/
+  bootstrap/                     # Create/open through caller-owned Setup and generic Services
+  service-projections/           # String/JSON host boundaries for generic branded Services
+    types/
+  sqlite/                        # Shared per-operation Port factories and table naming rules
+    types/
+  profiles/
+    memory/                      # Ephemeral allocation-backed Definition and Setup owner
+      resources/                 # Blueprint, acquisition providers and allocation provisioner
+      types/
+    directory/                   # Canonical Definition, Setup and narrow Service factories
+      resources/                 # Atomic directory publication and Manifest projection
+      types/
+    shared-sqlite/               # Canonical Definition, Setup and narrow Service factories
+      resources/
+        namespace/               # Namespace schema, database boundary and transaction rules
+      types/
+  agent-memory/                  # Optional Context/Retrieval product integration
+    extend-setup.ts              # Compose management and optional runtime capabilities
+    options.ts                   # Snapshot caller-owned executable options
+    allocation-owner.ts          # Published-allocation Scope owner and joined close
+    provisioning/                # Lazy resource recipe and cleanup-error translation
+    context/                     # State-only/measured selection and operation provisioning
+    retrieval/                   # State/indexed/writable selection and operation provisioning
+    runtime/                     # Runtime/Session installation and borrowed-use lifetime
+    types/                       # Acquisition, allocation, storage and integration contracts
+```
+
+Every feature has an explicit `index.ts`. Responsibility folders such as `fields`, `types`,
+`resources`, and the Context/Retrieval/Runtime groups inside `agent-memory` stay within their owning
+feature; they do not require additional public barrels. Pure interfaces and type aliases follow
+[the placement convention](../../../../docs/standards/code-standards.md#type-and-interface-placement):
+`types.ts` for one cohesive group, or `types/<concept>.ts` for several groups. Runtime-owned derived
+types remain beside their authoritative values.
+
+Configuration and Provider capabilities do not depend on profiles. The shared SQLite layer knows
+no profile namespace schema. Profiles compose those shared capabilities, common Setup, Service
+projections and optional Agent Memory through their named entries. The Memory Profile's ephemeral
+Session persistence and optional Agent Memory provisioning have separate owners and lifetimes.
+
 ## Config vocabulary
 
 `StandaloneAgentConfig` is the authoritative managed Config. It contains provider, credential binding,

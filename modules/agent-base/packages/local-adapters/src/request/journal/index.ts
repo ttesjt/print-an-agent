@@ -1,4 +1,5 @@
 export { MemoryRequestJournalAdapter } from './memory/index.js';
+
 /** @internal Package coordination API; excluded from public declarations. */
 export { memoryJournalCoordination } from './memory/index.js';
 
@@ -7,6 +8,7 @@ export {
   SqliteRequestJournalAdapter,
   resolveSqliteRequestJournalTableNames,
 } from './sqlite/index.js';
+
 /** @internal Package coordination API; excluded from public declarations. */
 export {
   SQLITE_REQUEST_JOURNAL_TABLE_KEYS,

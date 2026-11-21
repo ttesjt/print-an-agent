@@ -14,7 +14,9 @@ import {
   type SessionReference,
   type SessionTurnPage,
 } from '@print-an-agent/base-session';
-import { cloneMemoryTurn, memorySessionKey, type StoredMemorySession } from './session-state.js';
+import { cloneMemoryTurn } from './state/cloning.js';
+import { memorySessionKey } from './state/lookup.js';
+import type { StoredMemorySession } from './types/state.js';
 
 function summarize(session: StoredMemorySession): SessionLifecycleSummary {
   return Object.freeze({

@@ -1,10 +1,7 @@
 import { Buffer } from 'node:buffer';
-import {
-  EMBEDDING_TASK,
-  type TextEmbeddingDescriptor,
-  type TextEmbeddingInput,
-  type TextEmbeddingRequest,
-} from './contracts.js';
+import { EMBEDDING_TASK } from './tasks.js';
+import { type TextEmbeddingDescriptor } from './types/descriptor.js';
+import { type TextEmbeddingInput, type TextEmbeddingRequest } from './types/invocation.js';
 import { EmbeddingError } from './errors.js';
 import {
   readEmbeddingArray,

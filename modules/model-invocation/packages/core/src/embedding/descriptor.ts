@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
+import { EMBEDDING_TASK } from './tasks.js';
 import {
-  EMBEDDING_TASK,
   type TextEmbeddingDescriptor,
   type TextEmbeddingLimits,
   type TextEmbeddingRepresentation,
-} from './contracts.js';
+} from './types/descriptor.js';
 import { readEmbeddingRecord, readEmbeddingReference, readPositiveInteger } from './validation.js';
 
 const REPRESENTATION_KEYS = Object.freeze([

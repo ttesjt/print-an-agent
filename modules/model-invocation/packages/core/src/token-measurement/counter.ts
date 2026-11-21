@@ -3,9 +3,8 @@ import type {
   TokenCounter,
   TokenCounterDefinition,
   TokenCounterDescriptor,
-  TokenInputContract,
-  TokenMeasurementInput,
-} from './contracts.js';
+} from './types/counter.js';
+import type { TokenInputContract, TokenMeasurementInput } from './types/input.js';
 import { hasMeasurementErrorCode, TokenMeasurementError } from './errors.js';
 import { bindTokenMeasurement } from './result.js';
 import {

@@ -1,33 +1,89 @@
-export * from './model/index.js';
-export type * from './model/tools.js';
-export { ActorError } from './actor/errors.js';
-export type { ActorErrorCode } from './actor/errors.js';
-export { parseActorId, parseActorEngineId } from './actor/identifiers.js';
-export type { ActorId, ActorEngineId } from './actor/identifiers.js';
 export {
+  ModelInvocationError,
+  defineEngineDefinedModelExecutionProvenance,
+  defineModelExecutionProvenance,
+  defineProviderModelExecutionProvenance,
+  MODEL_EXECUTION_PROVENANCE_LIMITS,
+  parseModelExecutionProvenanceType,
+  defineAssistantModelMessage,
+  defineModelMessage,
+  defineModelInteractionEvent,
+  defineModelGenerationEvent,
+  defineProviderModelReference,
+  DEFAULT_PROVIDER_TRANSPORT_LIVENESS_POLICY,
+  defineProviderTransportLivenessPolicy,
+  MAX_PROVIDER_TRANSPORT_TIMEOUT_MILLISECONDS,
+  NO_PROVIDER_TRANSPORT_TIMEOUT,
+} from './model/index.js';
+export type {
+  ModelInvocationErrorCode,
+  ModelToolProtocolErrorCode,
+  ProviderTransportLivenessPolicy,
+  ProviderTransportLivenessPolicyInput,
+  ProviderTransportTimeoutMilliseconds,
+  ProviderId,
+  ProviderModelId,
+  ProviderCredentialReference,
+  ModelExecutionProvenanceType,
+  ModelExecutionEvidenceValue,
+  ModelExecutionEvidence,
+  ProviderModelReferenceInput,
+  ProviderModelReference,
+  ProviderApiKeyCredential,
+  ProviderCredentialResolutionRequest,
+  ProviderCredentialResolver,
+  ModelUsage,
+  UserModelMessage,
+  ProviderModelExecutionProvenance,
+  EngineDefinedModelExecutionProvenance,
+  ModelExecutionProvenance,
+  AssistantModelMessage,
+  ContextModelMessage,
+  ModelMessage,
+  ExecutionTargetCapabilities,
+  ResolvedExecutionTarget,
+  TextDeltaEvent,
+  ReasoningDeltaEvent,
+  AssistantCompleteEvent,
+  ModelGenerationEvent,
+  ModelGenerationEventSink,
+  ModelInteractionEvent,
+  ModelInteractionEventSink,
+  ModelInteractionRequest,
+  ModelInteractionResult,
+  ModelInteractionRuntime,
+  ToolStringSchema,
+  ToolNumberSchema,
+  ToolIntegerSchema,
+  ToolBooleanSchema,
+  ToolNullSchema,
+  ToolArraySchema,
+  ToolObjectSchema,
+  ToolValueSchema,
+  ToolSchemaValue,
+  ToolDescriptor,
+  ToolCallProposal,
+  ToolExecutionOutcome,
+  ToolExecutionOptions,
+  InteractionTools,
+} from './model/index.js';
+export {
+  ActorError,
+  parseActorId,
+  parseActorEngineId,
   DEFAULT_ACTOR_INVOCATION_POLICY,
   MAX_ACTOR_INVOCATION_TIMEOUT_MILLISECONDS,
   NO_ACTOR_INVOCATION_TIMEOUT,
   defineActorInvocationPolicy,
-} from './actor/invocation-policy.js';
-export type * from './actor/invocation-policy.js';
-export {
   ACTOR_INPUT_MEDIA_TYPES,
   ACTOR_INVOCATION_MODES,
   defineActorCapabilityLimits,
   defineActorEngineCapabilities,
   narrowActorCapabilities,
   satisfiesActorRequirements,
-} from './actor/capabilities.js';
-export type * from './actor/capabilities.js';
-export { validateActorCapabilityRequirements } from './actor/capability-requirements.js';
-export type {
-  ActorCapabilityRequirementsIssue,
-  ActorCapabilityRequirementsValidation,
-} from './actor/capability-requirements.js';
-export { defineActorEngine, defineActorInvocationConfig } from './actor/engine.js';
-export type * from './actor/engine.js';
-export {
+  validateActorCapabilityRequirements,
+  defineActorEngine,
+  defineActorInvocationConfig,
   defineActor,
   resolveActor,
   createActor,
@@ -35,16 +91,65 @@ export {
   requireInteractionCapability,
   requireStreamingCapability,
   requireActorTextTokenCounter,
-} from './actor/actor.js';
-export type * from './actor/actor.js';
-export { createActorCatalog } from './actor/catalog.js';
-export type * from './actor/catalog.js';
-export { composeActorInstructions, parseActorInstructions } from './actor/instructions.js';
+  createActorCatalog,
+  composeActorInstructions,
+  parseActorInstructions,
+} from './actor/index.js';
+export type {
+  ActorErrorCode,
+  ActorId,
+  ActorEngineId,
+  ActorInvocationTimeoutMilliseconds,
+  ActorInvocationPolicyInput,
+  ActorInvocationPolicy,
+  ActorInvocationMode,
+  ActorInputMediaType,
+  ActorInteractionCapabilities,
+  ActorEngineCapabilitiesInput,
+  ActorEngineCapabilities,
+  ActorInteractionCapabilityLimits,
+  ActorCapabilityLimits,
+  ActorInteractionCapabilityRequirements,
+  ActorCapabilityRequirements,
+  ActorCapabilityRequirementsIssue,
+  ActorCapabilityRequirementsValidation,
+  ActorInvocationConfig,
+  ActorInteractionRequest,
+  ActorDirectRequest,
+  ActorDirectResult,
+  ActorStreamingRequest,
+  ActorEngineStreamingRequest,
+  ActorStreamingHandler,
+  ActorEngineInteractionRequest,
+  ActorEngineDirectRequest,
+  ActorInteractionHandler,
+  ActorDirectHandler,
+  ActorEngineInput,
+  ActorEngine,
+  ActorDefinitionInput,
+  ActorDefinition,
+  ResolvedActor,
+  CompletionCapability,
+  InteractionCapability,
+  StreamingCapability,
+  CreateActorOptions,
+  ActorCatalogPort,
+  CreateActorCatalogOptions,
+  parseCatalogRevision,
+} from './actor/index.js';
 export {
   TOKEN_INPUT_KIND,
   TOKEN_MEASUREMENT_ACCURACY,
   TOKEN_MEASUREMENT_SCOPE,
-} from './token-measurement/contracts.js';
+  TokenMeasurementError,
+  createTokenCounter,
+  bindTextTokenCounter,
+  parseTokenMeasurementReference,
+  parseTextTokenInput,
+  TEXT_TOKEN_INPUT_CONTRACT,
+  parseTokenMeasurement,
+  requireTokenMeasurement,
+} from './token-measurement/index.js';
 export type {
   TextTokenInput,
   TokenCounter,
@@ -57,20 +162,15 @@ export type {
   TokenMeasurementInput,
   TokenMeasurementRequirements,
   TokenMeasurementScope,
-} from './token-measurement/contracts.js';
-export { TokenMeasurementError } from './token-measurement/errors.js';
-export type { TokenMeasurementErrorCode } from './token-measurement/errors.js';
-export { createTokenCounter } from './token-measurement/counter.js';
-export { bindTextTokenCounter } from './token-measurement/text-counter-binding.js';
-export { parseMeasurementReference as parseTokenMeasurementReference } from './token-measurement/validation.js';
-export { parseTextTokenInput, TEXT_TOKEN_INPUT_CONTRACT } from './token-measurement/text-input.js';
-export { parseTokenMeasurement } from './token-measurement/result.js';
-export { requireTokenMeasurement } from './token-measurement/requirements.js';
+  TokenMeasurementErrorCode,
+} from './token-measurement/index.js';
 export {
   EMBEDDING_TASK,
   MAX_EMBEDDING_TIMEOUT_MILLISECONDS,
   NO_EMBEDDING_TIMEOUT,
-} from './embedding/contracts.js';
+  EmbeddingError,
+  createTextEmbedder,
+} from './embedding/index.js';
 export type {
   EmbeddingTask,
   TextEmbedderDefinition,
@@ -83,7 +183,5 @@ export type {
   TextEmbeddingRequest,
   TextEmbeddingResult,
   TextEmbeddingVector,
-} from './embedding/contracts.js';
-export { EmbeddingError } from './embedding/errors.js';
-export type { EmbeddingErrorCode } from './embedding/errors.js';
-export { createTextEmbedder } from './embedding/embedder.js';
+  EmbeddingErrorCode,
+} from './embedding/index.js';

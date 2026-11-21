@@ -2,11 +2,12 @@ import type {
   TextEmbedderDefinition,
   TextEmbeddingCapability,
   TextEmbeddingRequest,
-} from './contracts.js';
+} from './types/invocation.js';
 import { createTextEmbeddingDescriptor } from './descriptor.js';
 import { EmbeddingError } from './errors.js';
 import { parseTextEmbeddingRequest } from './input.js';
-import { parseEmbeddingInvocationPolicy, runEmbeddingInvocation } from './invocation.js';
+import { parseEmbeddingInvocationPolicy } from './invocation-policy.js';
+import { runEmbeddingInvocation } from './invocation.js';
 import { normalizeTextEmbeddingResult } from './result.js';
 import { readEmbeddingRecord } from './validation.js';
 

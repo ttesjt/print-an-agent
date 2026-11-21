@@ -3,7 +3,7 @@ import {
   TOKEN_MEASUREMENT_SCOPE,
   type TokenMeasurementAccuracy,
   type TokenMeasurementScope,
-} from './contracts.js';
+} from './options.js';
 import {
   hasMeasurementErrorCode,
   TokenMeasurementError,

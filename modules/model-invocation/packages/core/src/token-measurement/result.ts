@@ -1,4 +1,5 @@
-import type { TokenCounterDescriptor, TokenCountResult, TokenMeasurement } from './contracts.js';
+import type { TokenCounterDescriptor } from './types/counter.js';
+import type { TokenCountResult, TokenMeasurement } from './types/measurement.js';
 import { TokenMeasurementError } from './errors.js';
 import {
   parseMeasurementAccuracy,

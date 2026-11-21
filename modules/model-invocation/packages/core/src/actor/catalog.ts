@@ -1,25 +1,11 @@
-import {
-  defineActor,
-  resolveActor,
-  type ActorDefinition,
-  type ActorDefinitionInput,
-  type ResolvedActor,
-} from './actor.js';
-import { defineActorEngine, type ActorEngine, type ActorEngineInput } from './engine.js';
+import { defineActor } from './definition.js';
+import { resolveActor } from './binding.js';
+import { defineActorEngine } from './engine.js';
 import { ActorError } from './errors.js';
+import type { ActorDefinition, ResolvedActor } from './types/definition.js';
+import type { ActorEngine } from './types/engine.js';
+import type { ActorCatalogPort, CreateActorCatalogOptions } from './types/catalog.js';
 import type { ActorId } from './identifiers.js';
-
-export interface ActorCatalogPort {
-  readonly revision: number;
-  resolve(actorId: ActorId): Promise<ResolvedActor>;
-  list(): readonly ActorDefinition[];
-}
-
-export interface CreateActorCatalogOptions {
-  readonly revision?: number;
-  readonly actors: readonly ActorDefinitionInput[];
-  readonly engines: readonly ActorEngineInput[];
-}
 
 function parseCatalogRevision(value: number | undefined, label: string): number {
   const revision = value ?? 1;

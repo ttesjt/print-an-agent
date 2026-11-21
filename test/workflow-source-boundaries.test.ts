@@ -1,8 +1,8 @@
+import { inspectTypeModules } from '../tooling/architecture/type-modules.js';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, posix, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
-import ts from 'typescript';
 import {
   inspectSourceBoundaries,
   type SourceBoundary,
@@ -186,22 +186,6 @@ it.each([
   expect(inspect(path, source).some((violation) => violation.rule === rule)).toBe(true);
 });
 
-it('keeps independently owned type modules compile-time only', () => {
-  const modules = readModules(sourceRoot).filter(
-    (module) => module.path.includes('/types/') || module.path.endsWith('/types.ts')
-  );
-  expect(modules.length).toBeGreaterThan(0);
-  for (const module of modules) {
-    const source = ts.createSourceFile(module.path, module.source, ts.ScriptTarget.Latest, true);
-    for (const statement of source.statements) {
-      const pure =
-        ts.isInterfaceDeclaration(statement) ||
-        ts.isTypeAliasDeclaration(statement) ||
-        (ts.isImportDeclaration(statement) && statement.importClause?.isTypeOnly === true) ||
-        (ts.isExportDeclaration(statement) && statement.isTypeOnly) ||
-        (ts.isVariableStatement(statement) &&
-          statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.DeclareKeyword));
-      expect(Boolean(pure), `${module.path}: ${statement.getText(source)}`).toBe(true);
-    }
-  }
+it('keeps type responsibility modules erased at runtime', () => {
+  expect(inspectTypeModules(readModules(sourceRoot))).toEqual([]);
 });

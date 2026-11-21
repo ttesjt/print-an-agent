@@ -1,8 +1,57 @@
 import { expect, it } from 'vitest';
 import {
   inspectSourceBoundaries,
+  inspectSourceCycles,
   type SourceBoundary,
 } from '../tooling/architecture/source-boundaries.js';
+
+it('accepts an acyclic source graph with shared dependencies', () => {
+  expect(
+    inspectSourceCycles([
+      { path: 'a.ts', source: "import type { B } from './b.js'; export { C } from './c.js';" },
+      { path: 'b.ts', source: "type C = import('./c.js').C;" },
+      { path: 'c.ts', source: 'export interface C {}' },
+    ])
+  ).toEqual([]);
+});
+
+it.each([
+  "import type { B } from '../peer/b.js';",
+  "export type { B } from '../peer/b.js';",
+  "type B = import('../peer/b.js').B;",
+  "void import('../peer/b.js');",
+])('detects cycles through literal source edges: %s', (source) => {
+  expect(
+    inspectSourceCycles([
+      { path: 'feature/a.ts', source },
+      { path: 'peer/b.ts', source: "import type { A } from '../feature/a.js';" },
+    ])
+  ).toEqual([['feature/a.ts', 'peer/b.ts', 'feature/a.ts']]);
+});
+
+it('detects a self cycle', () => {
+  expect(inspectSourceCycles([{ path: 'a.ts', source: "import './a.js';" }])).toEqual([
+    ['a.ts', 'a.ts'],
+  ]);
+});
+
+it('limits source cycles to supplied relative literal modules', () => {
+  expect(
+    inspectSourceCycles([
+      {
+        path: 'a.ts',
+        source: `
+      const target = './a.js';
+      void import(target);
+      import 'external';
+      import '../outside.js';
+      import './missing.js';
+      const text = "import './a.js';";
+    `,
+      },
+    ])
+  ).toEqual([]);
+});
 
 const boundaries: readonly SourceBoundary[] = [
   { directory: '', entries: ['index.ts'], sharedEntries: ['contracts.ts'] },
@@ -106,3 +155,35 @@ it.each(["export type * from './contracts.js';", "export * as contracts from './
     );
   }
 );
+
+it('accepts an acyclic graph with shared dependencies and ignores unsupplied/external/computed imports', () => {
+  expect(
+    inspectSourceCycles([
+      {
+        path: 'a.ts',
+        source:
+          "import type { B } from './b.js'; export { C } from './c.js'; import 'external'; import '../outside.js'; import './missing.js'; const path = './a.js'; void import(path);",
+      },
+      { path: 'b.ts', source: "type C = import('./c.js').C;" },
+      { path: 'c.ts', source: 'export interface C {}' },
+    ])
+  ).toEqual([]);
+});
+it.each([
+  "import type { B } from '../peer/b.js';",
+  "export type { B } from '../peer/b.js';",
+  "type B = import('../peer/b.js').B;",
+  "void import('../peer/b.js');",
+])('detects source cycles through supported literal edges: %s', (source) => {
+  expect(
+    inspectSourceCycles([
+      { path: 'feature/a.ts', source },
+      { path: 'peer/b.ts', source: "import type { A } from '../feature/a.js';" },
+    ])
+  ).toEqual([['feature/a.ts', 'peer/b.ts', 'feature/a.ts']]);
+});
+it('detects a self cycle', () => {
+  expect(inspectSourceCycles([{ path: 'a.ts', source: "import './a.js';" }])).toEqual([
+    ['a.ts', 'a.ts'],
+  ]);
+});

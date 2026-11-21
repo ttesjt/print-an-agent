@@ -1,8 +1,8 @@
+import { inspectTypeModules } from '../tooling/architecture/type-modules.js';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, posix, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
-import ts from 'typescript';
 import {
   inspectSourceBoundaries,
   type SourceBoundary,
@@ -183,15 +183,5 @@ it.each([
   );
 });
 it('keeps type responsibility modules erased at runtime', () => {
-  for (const module of sources.filter((module) => /(^|\/)types(\/|\.ts$)/.test(module.path))) {
-    const output = ts.transpileModule(module.source, {
-      compilerOptions: {
-        module: ts.ModuleKind.ESNext,
-        target: ts.ScriptTarget.ESNext,
-        verbatimModuleSyntax: true,
-        removeComments: true,
-      },
-    }).outputText;
-    expect(output.replace(/export\s*\{\s*\};?/g, '').trim(), module.path).toBe('');
-  }
+  expect(inspectTypeModules(sources)).toEqual([]);
 });

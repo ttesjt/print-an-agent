@@ -2,7 +2,7 @@ import { requireInteractionCapability } from '../../src/index.js';
 import type { ModelInteractionEventSink } from '../../src/index.js';
 import { describe, expect, it } from 'vitest';
 import { createActorCatalog, parseActorId } from '../../src/index.js';
-import { EMPTY_TOOL_RUNTIME } from '../support/fixtures.js';
+import { EMPTY_TOOL_RUNTIME } from '../support/actor.js';
 
 describe('Actor failure delivery ownership', () => {
   it.each(['complete', 'fail'] as const)(

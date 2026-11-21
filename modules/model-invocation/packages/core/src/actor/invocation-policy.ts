@@ -1,7 +1,8 @@
+import { MAX_TIMER_DELAY_MILLISECONDS } from '../timer-limits.js';
 import { ActorError } from './errors.js';
 
 export const NO_ACTOR_INVOCATION_TIMEOUT = null;
-export const MAX_ACTOR_INVOCATION_TIMEOUT_MILLISECONDS = 2_147_483_647;
+export const MAX_ACTOR_INVOCATION_TIMEOUT_MILLISECONDS = MAX_TIMER_DELAY_MILLISECONDS;
 
 export type ActorInvocationTimeoutMilliseconds = number | null;
 

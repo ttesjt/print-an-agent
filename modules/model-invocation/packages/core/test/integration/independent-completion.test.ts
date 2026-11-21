@@ -5,7 +5,7 @@ import {
   requireCompletionCapability,
   requireInteractionCapability,
 } from '../../src/index.js';
-import { assistantMessage } from '../support/fixtures.js';
+import { assistantMessage } from '../support/model.js';
 
 const capabilities = {
   invocationModes: ['direct'] as const,

@@ -8,7 +8,7 @@ import {
   requireCompletionCapability,
   type ActorEngineInput,
 } from '../../src/index.js';
-import { assistantMessage } from '../support/fixtures.js';
+import { assistantMessage } from '../support/model.js';
 import {
   textCounterDefinition,
   textInput,

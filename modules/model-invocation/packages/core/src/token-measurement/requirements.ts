@@ -1,4 +1,4 @@
-import type { TokenMeasurement, TokenMeasurementRequirements } from './contracts.js';
+import type { TokenMeasurement, TokenMeasurementRequirements } from './types/measurement.js';
 import { TokenMeasurementError } from './errors.js';
 import { parseTokenMeasurement } from './result.js';
 import {

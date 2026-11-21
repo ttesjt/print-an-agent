@@ -177,3 +177,7 @@ exports. File entries are allowed for shared responsibility modules. Dependency 
 explicitly declared shared capabilities and feature dependencies in each package. It does not
 resolve computed import paths, package aliases, custom loaders or runtime resource ownership;
 those still need review. Compiler checks remain responsible for symbol existence and types.
+
+Model Invocation Core declares its capability and nested feature entries in
+`test/model-invocation-core-source-boundaries.test.ts`, also included in
+`pnpm test:model-invocation-qualification`.

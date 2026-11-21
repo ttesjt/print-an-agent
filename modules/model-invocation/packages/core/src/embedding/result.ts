@@ -1,9 +1,9 @@
+import type { TextEmbeddingDescriptor } from './types/descriptor.js';
 import type {
-  TextEmbeddingDescriptor,
   TextEmbeddingRequest,
   TextEmbeddingResult,
   TextEmbeddingVector,
-} from './contracts.js';
+} from './types/invocation.js';
 import { EmbeddingError } from './errors.js';
 import { readEmbeddingArray, readEmbeddingRecord, readEmbeddingReference } from './validation.js';
 

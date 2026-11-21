@@ -9,3 +9,7 @@ export class AgentObservabilityError extends Error {
     this.code = code;
   }
 }
+
+export function invalidTraceEvent(message: string): never {
+  throw new AgentObservabilityError('TRACE_EVENT_INVALID', message);
+}

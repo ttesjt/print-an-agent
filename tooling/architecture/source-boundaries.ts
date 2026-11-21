@@ -44,7 +44,7 @@ function owner(file: string, boundaries: readonly SourceBoundary[]): SourceBound
 }
 
 /** Inspect literal ESM imports, re-exports, import types and dynamic imports, including type edges. */
-function moduleSpecifiers(source: ts.SourceFile): readonly string[] {
+export function sourceModuleSpecifiers(source: ts.SourceFile): readonly string[] {
   const specifiers = new Set<string>();
   function visit(node: ts.Node): void {
     if (
@@ -69,6 +69,14 @@ function moduleSpecifiers(source: ts.SourceFile): readonly string[] {
   return [...specifiers];
 }
 
+function relativeSourceTarget(file: string, specifier: string): string | undefined {
+  if (!specifier.startsWith('.')) return undefined;
+  const target = posix
+    .normalize(posix.join(posix.dirname(file), specifier))
+    .replace(/\.js$/u, '.ts');
+  return target.startsWith('../') ? undefined : target;
+}
+
 /** Opt-in source checks. Computed imports, custom loaders and runtime ownership need review. */
 export function inspectSourceBoundaries(
   modules: readonly SourceModule[],
@@ -86,12 +94,9 @@ export function inspectSourceBoundaries(
       )
         violations.push({ file: module.path, target: statement.getText(source), rule: 'wildcard' });
     }
-    for (const specifier of moduleSpecifiers(source)) {
-      if (!specifier.startsWith('.')) continue;
-      const target = posix
-        .normalize(posix.join(posix.dirname(module.path), specifier))
-        .replace(/\.js$/u, '.ts');
-      if (target.startsWith('../')) continue;
+    for (const specifier of sourceModuleSpecifiers(source)) {
+      const target = relativeSourceTarget(module.path, specifier);
+      if (target === undefined) continue;
       const targetOwner = owner(target, boundaries);
       for (const boundary of boundaries) {
         if (contains(boundary.directory, module.path) || !contains(boundary.directory, target))
@@ -123,4 +128,41 @@ export function inspectSourceBoundaries(
     }
   }
   return violations;
+}
+
+/** Inspect relative literal source edges, including type imports. Resolution remains compiler-owned. */
+export function inspectSourceCycles(
+  modules: readonly SourceModule[]
+): readonly (readonly string[])[] {
+  const paths = new Set(modules.map((module) => module.path));
+  const graph = new Map(
+    modules.map((module) => {
+      const source = ts.createSourceFile(module.path, module.source, ts.ScriptTarget.Latest, true);
+      const targets = sourceModuleSpecifiers(source).flatMap((specifier) => {
+        const target = relativeSourceTarget(module.path, specifier);
+        return target !== undefined && paths.has(target) ? [target] : [];
+      });
+      return [module.path, targets] as const;
+    })
+  );
+  const visited = new Set<string>();
+  const active = new Map<string, number>();
+  const stack: string[] = [];
+  const cycles: string[][] = [];
+  function visit(file: string): void {
+    const position = active.get(file);
+    if (position !== undefined) {
+      cycles.push([...stack.slice(position), file]);
+      return;
+    }
+    if (visited.has(file)) return;
+    active.set(file, stack.length);
+    stack.push(file);
+    for (const target of graph.get(file) ?? []) visit(target);
+    stack.pop();
+    active.delete(file);
+    visited.add(file);
+  }
+  for (const file of graph.keys()) visit(file);
+  return cycles;
 }

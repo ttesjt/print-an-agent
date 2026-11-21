@@ -119,6 +119,12 @@ who releases an acquired resource still require review, even when the checks pas
 
 ### Declared source-feature boundaries
 
+The shared `tooling/architecture/source-boundaries.ts` scanner and cycle checker, and
+`tooling/architecture/type-modules.ts` runtime-erasure checker are qualified by
+`test/source-boundaries.test.ts` and `test/type-modules.test.ts`. Composition, Runtime and Workflow
+reuse the type checker. These opt-in checks inspect supplied literal modules; TypeScript owns
+resolution and type correctness.
+
 `tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session, Composition and Runtime
 declare their entries, shared ancestor contracts/capabilities and dependency directions in
 `test/session-architecture.test.ts`, `test/composition-architecture.test.ts` and

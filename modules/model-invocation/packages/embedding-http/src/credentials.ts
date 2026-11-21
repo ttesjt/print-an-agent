@@ -1,8 +1,38 @@
 import {
   ModelInvocationError,
+  type ProviderApiKeyCredential,
   type ProviderCredentialResolver,
   type ProviderModelReference,
 } from '@print-an-agent/model-invocation-core';
+
+function snapshotCredential(value: unknown): ProviderApiKeyCredential {
+  let snapshot: { type: unknown; apiKey: unknown } | undefined;
+  try {
+    // Resolver-owned fields may be accessors; validate exactly the values we will use.
+    snapshot =
+      typeof value === 'object' && value !== null && 'type' in value && 'apiKey' in value
+        ? { type: value.type, apiKey: value.apiKey }
+        : undefined;
+  } catch (cause: unknown) {
+    throw new ModelInvocationError(
+      'MODEL_CREDENTIAL_RESOLUTION_FAILED',
+      'Embedding resolver returned an invalid credential.',
+      { cause }
+    );
+  }
+  if (
+    snapshot?.type !== 'api-key' ||
+    typeof snapshot.apiKey !== 'string' ||
+    snapshot.apiKey.length === 0 ||
+    /[\r\n]/.test(snapshot.apiKey)
+  ) {
+    throw new ModelInvocationError(
+      'MODEL_CREDENTIAL_RESOLUTION_FAILED',
+      'Embedding resolver returned an invalid credential.'
+    );
+  }
+  return Object.freeze({ type: 'api-key', apiKey: snapshot.apiKey });
+}
 
 export async function resolveEmbeddingHeaders(
   reference: ProviderModelReference,
@@ -40,21 +70,6 @@ export async function resolveEmbeddingHeaders(
       'Embedding credential is unavailable.'
     );
   }
-  if (
-    typeof credential !== 'object' ||
-    credential === null ||
-    !('type' in credential) ||
-    credential.type !== 'api-key' ||
-    !('apiKey' in credential) ||
-    typeof credential.apiKey !== 'string' ||
-    credential.apiKey.length === 0 ||
-    /[\r\n]/.test(credential.apiKey)
-  ) {
-    throw new ModelInvocationError(
-      'MODEL_CREDENTIAL_RESOLUTION_FAILED',
-      'Embedding resolver returned an invalid credential.'
-    );
-  }
-  headers.Authorization = `Bearer ${credential.apiKey}`;
+  headers.Authorization = `Bearer ${snapshotCredential(credential).apiKey}`;
   return Object.freeze(headers);
 }

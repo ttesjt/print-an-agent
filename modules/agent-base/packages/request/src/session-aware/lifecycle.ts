@@ -4,7 +4,7 @@ import { AgentToolError } from '@print-an-agent/base-tool';
 import { ActorError, ModelInvocationError } from '@print-an-agent/model-invocation-core';
 import { AgentRequestError } from '../errors.js';
 import type { OutputFailure } from '../output/index.js';
-import { RequestReplayFailedError } from '../replay/index.js';
+import { RequestReplayFailedError } from './replay/index.js';
 import type { DefaultRequestWorkflowContext } from './types/workflow.js';
 
 function failureFrom(error: unknown): OutputFailure {

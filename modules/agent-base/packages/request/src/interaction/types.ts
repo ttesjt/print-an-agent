@@ -1,4 +1,5 @@
 import type {
+  ActorInteractionRequest,
   ModelInteractionEvent,
   ModelInteractionEventSink,
   ModelInteractionResult,
@@ -14,7 +15,6 @@ export interface RequestInteractionState {
   result: ModelInteractionResult | undefined;
 }
 
-import type { ActorInteractionRequest } from '@print-an-agent/model-invocation-core';
 export interface InteractionInvocationContext {
   readonly signal: AbortSignal;
   readonly state: { modelRequest?: ActorInteractionRequest; interaction?: RequestInteractionState };

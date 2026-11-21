@@ -8,11 +8,8 @@ import {
 import { AgentRequestError } from '../errors.js';
 import type { OutputFailure } from '../output/index.js';
 import { requireValue } from '../state-access.js';
-import type {
-  SessionlessOutputOutcome,
-  SessionlessOutputSink,
-  SessionlessValidatedRequest,
-} from './contracts.js';
+import type { SessionlessValidatedRequest } from './types/input.js';
+import type { SessionlessOutputOutcome, SessionlessOutputSink } from './types/output.js';
 
 export async function openSessionlessOutput(context: {
   readonly workflowRunId: string;

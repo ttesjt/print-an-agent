@@ -22,3 +22,51 @@ export type {
   RequestWorkflowInput,
   RequestWorkflowState,
 } from './types/workflow.js';
+
+export {
+  REQUEST_EXECUTION_INTERRUPTED,
+  RequestReplayFailedError,
+  createRequestFingerprint,
+  decodeAgentResponse,
+  defineRequestJournalFailure,
+  encodeAgentResponse,
+  parseRequestFingerprint,
+  parseRequestIdempotencyKey,
+  parseRequestJournalRequestId,
+} from './replay/index.js';
+export type {
+  ActiveRequestJournalEntry,
+  ClaimRequestJournalRequest,
+  CompleteRequestJournalRequest,
+  CompletedRequestJournalEntry,
+  FailRequestJournalRequest,
+  FailedRequestJournalEntry,
+  InspectableRequestJournalPort,
+  RequestFingerprint,
+  RequestFingerprintManifestV1,
+  RequestIdempotencyKey,
+  RequestJournalClaim,
+  RequestJournalCleanupPort,
+  RequestJournalEntry,
+  RequestJournalFailure,
+  RequestJournalPort,
+  RequestJournalRecoveryPort,
+  RequestJournalReference,
+} from './replay/index.js';
+
+export {
+  REQUEST_STEP_NAMES,
+  REQUEST_WORKFLOW_NAME,
+  RequestStepNotImplementedError,
+  createRequestStepDefinitions,
+  createRequestWorkflow,
+} from './workflow/index.js';
+export type {
+  RequestCompositeStepName,
+  RequestLeafStepName,
+  RequestStepName,
+  RequestWorkflowContext,
+  RequestWorkflowName,
+  RequestWorkflowOptions,
+  RequestWorkflowStateView,
+} from './workflow/index.js';

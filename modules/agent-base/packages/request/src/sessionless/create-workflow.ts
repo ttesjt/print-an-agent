@@ -1,8 +1,8 @@
-import type { SessionlessGenerationWorkflowOptions } from './contracts.js';
+import { validateSessionlessWorkflowOptions } from './configuration.js';
+import type { SessionlessGenerationWorkflowOptions } from './generation/index.js';
 import { createGenerationWorkflow } from './generation/index.js';
 import type { SessionlessInteractionWorkflowOptions } from './interaction/index.js';
 import { createInteractionWorkflow } from './interaction/index.js';
-import { closedRecord } from './validation.js';
 
 export type SessionlessRequestWorkflowOptions =
   | SessionlessGenerationWorkflowOptions
@@ -18,20 +18,7 @@ export function createSessionlessRequestWorkflow(
   options: SessionlessRequestWorkflowOptions
 ): ReturnType<typeof createGenerationWorkflow> | ReturnType<typeof createInteractionWorkflow>;
 export function createSessionlessRequestWorkflow(options: SessionlessRequestWorkflowOptions) {
-  closedRecord(
-    options,
-    [
-      'mode',
-      'name',
-      'resources',
-      'stepOverrides',
-      'lifecycle',
-      'condition',
-      'createRunId',
-      'executeStep',
-    ],
-    'REQUEST_CONFIGURATION_INVALID'
-  );
+  validateSessionlessWorkflowOptions(options);
   return options.mode === 'interaction'
     ? createInteractionWorkflow(options)
     : createGenerationWorkflow(options);

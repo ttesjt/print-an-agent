@@ -297,6 +297,41 @@ than history/context APIs; replay remains answer-only and does not recapture or 
 
 ## Source layout
 
+```text
+src/
+  index.ts                         # Named package API
+  errors.ts, types.ts, state-access.ts
+  policy/                          # Request limits and validation
+  preparation/                     # Reusable Steps and minimum Context types
+  interaction/                     # Invocation, event delivery, budgets, Tool joining
+  output/                          # Shared events, dispatch and delta delivery
+  session-aware/
+    index.ts
+    workflow/                      # Generic skeleton, graph, names and contracts
+      create-workflow.ts
+    create-step-overrides.ts       # Default Step assembly
+    create-state.ts
+    types/                         # Input, output, resources, state and memory
+    preparation/                   # Input, Session, replay, context and routing
+    interaction/                   # Run scope, Session commits and presentation
+    output/                        # Replay publication and response completion
+    replay/                        # Journal identities, contracts and maintenance
+      types/
+      response-codec/              # Closed persisted response and Tool records
+    lifecycle.ts, tracing.ts
+  sessionless/
+    index.ts
+    create-workflow.ts             # Mode dispatch
+    types/                         # Shared input, output, policy, resources and state
+    configuration.ts, policy.ts, resources.ts, context.ts
+    output.ts, execution.ts, lifecycle.ts
+    names.ts, step-definitions.ts
+    generation/                    # Direct/stream graph, Steps and contracts
+      index.ts, create-workflow.ts, steps.ts, types.ts
+    interaction/                   # Tool-enabled graph, Steps and resources
+      index.ts, create-workflow.ts, steps.ts, resources.ts, types/
+```
+
 The package root and feature entries use deliberate named exports. Cross-feature consumers use
 the owning entry; reusable Step Contexts retain their narrow contracts. Type-only Step catalog
 exports remain type-only at the package root.
@@ -305,12 +340,18 @@ exports remain type-only at the package root.
   Request limits and validation; `output/` owns shared stream events and delta delivery.
 - Independent public Context contracts live in their feature type modules. Session-aware input,
   response, channel and presentation types live in `session-aware/types/`.
-- `workflow/` owns the generic Workflow shape, names, types, and fail-fast Step definitions.
-- `session-aware/` owns the official assembled profile's Context, concrete Step overrides, and failure
-  lifecycle.
+- `session-aware/workflow/` owns the generic Session-aware Workflow skeleton, names, types and
+  fail-fast Step definitions. Its single constructor remains `createRequestWorkflow`; concrete
+  Session adapters and default Steps are supplied independently.
+- Sessionless `generation/create-workflow.ts` and `interaction/create-workflow.ts` own their
+  explicit graphs. Shared metadata helpers and Core sequential Steps preserve registry dispatch.
+- `session-aware/` owns the official assembled profile. `create-step-overrides.ts` only assembles
+  named implementations from `preparation/`, `interaction/` and `output/`. Its Run State, tracing
+  and failure/release lifecycle retain their own owners.
 - `interaction/` owns shared event delivery, budgets, Actor invocation and Tool joining.
   Session-aware Steps and presentation live in `session-aware/interaction/`.
-- `replay/` owns Request Journal contracts, identity/fingerprint rules, and response wire validation.
+- `session-aware/replay/` owns Request Journal contracts, identity/fingerprint rules and failure facts.
+  Its `response-codec/` separates the persisted envelope, Tool schemas and closed Tool run records.
 
 Concrete local OutputSink and Request Journal implementations are intentionally owned by
 `@print-an-agent/base-local-adapters`.
@@ -318,3 +359,8 @@ Concrete local OutputSink and Request Journal implementations are intentionally 
 New directories should follow independent responsibilities or expected implementation families, not
 mechanical file kinds. A growing Step implementation should split by cohesive capability group rather
 than creating one file per Step.
+
+Sessionless profiles share input, channel, bounded-context, policy and resource facts under
+`sessionless/types/`. Generation and Interaction own their concrete Workflow contracts and
+constructors. Shared execution/lifecycle code consumes only ancestor facts. Existing public
+Generation type/policy names remain compatibility exports of those same shared limits/resources.

@@ -8,8 +8,8 @@ import { deliverReasoningDelta, deliverTextDelta } from '../../output/index.js';
 import { resolveRequestInstructions } from '../../preparation/index.js';
 import { requireValue } from '../../state-access.js';
 import { prepareSessionlessContext, validateSessionlessRequest } from '../context.js';
-import type { SessionlessGenerationContext } from '../contracts.js';
 import { completeSessionlessResponse, openSessionlessOutput } from '../output.js';
+import type { SessionlessGenerationContext } from './types.js';
 
 export function buildGenerationContext(context: SessionlessGenerationContext): Promise<void> {
   context.state.modelRequest = Object.freeze({

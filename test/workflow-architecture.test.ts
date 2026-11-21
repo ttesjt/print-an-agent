@@ -97,7 +97,7 @@ it('keeps Agent execution on Core with only Agent-owned bindings and no duplicat
     );
   }
   for (const [feature, factory] of [
-    ['request', 'workflow/create-request-workflow.ts'],
+    ['request', 'session-aware/workflow/create-workflow.ts'],
     ['session', 'navigation/workflow/create-workflow.ts'],
     ['session', 'compaction/workflow/create-workflow.ts'],
   ]) {

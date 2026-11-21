@@ -1,4 +1,8 @@
-import type { ReasoningDeltaEvent, TextDeltaEvent } from '@print-an-agent/model-invocation-core';
+import type {
+  ModelInteractionEvent,
+  ReasoningDeltaEvent,
+  TextDeltaEvent,
+} from '@print-an-agent/model-invocation-core';
 
 export type OutputTextDeltaEvent = TextDeltaEvent;
 
@@ -11,7 +15,6 @@ export interface OutputFailure {
   readonly message: string;
 }
 
-import type { ModelInteractionEvent } from '@print-an-agent/model-invocation-core';
 export interface DeltaDeliveryContext {
   readonly state: {
     readonly interaction?: { readonly currentEvent: ModelInteractionEvent | undefined };

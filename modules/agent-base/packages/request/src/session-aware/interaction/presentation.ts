@@ -6,7 +6,7 @@ import {
   supportsSessionPresentation,
 } from '@print-an-agent/base-session';
 import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
-import { requireInteractionEvent } from '../../interaction/state.js';
+import { requireInteractionEvent } from '../../interaction/index.js';
 import type { DefaultRequestWorkflowContext } from '../types/workflow.js';
 
 export function captureReasoningPresentation(

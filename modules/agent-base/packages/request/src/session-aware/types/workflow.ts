@@ -15,13 +15,14 @@ import type {
 } from '@print-an-agent/model-invocation-core';
 import type { WorkflowContext } from '@print-an-agent/workflow-core';
 import type { RequestInteractionState } from '../../interaction/index.js';
-import type { RequestPolicy } from '../../policy/types.js';
-import type { ActiveRequestJournalEntry, RequestJournalEntry } from '../../replay/index.js';
-import type { RequestStepName } from '../../workflow/index.js';
+import type { RequestPolicy } from '../../policy/index.js';
+import type { ActiveRequestJournalEntry, RequestJournalEntry } from '../replay/index.js';
+import type { RequestStepName } from '../workflow/index.js';
 import type { AgentRequestInput, ValidatedAgentRequest } from './input.js';
 import type { RequestMemoryRun } from './memory.js';
 import type { AgentResponse } from './output.js';
 import type { CapturedReasoningPresentation } from './presentation.js';
+import type { RequestRuntimeResources } from './resources.js';
 
 /** Business input and optional invocation-local tracing; execution is supplied by Core. */
 export interface RequestWorkflowInput {
@@ -63,5 +64,3 @@ export interface RequestWorkflowState extends RequestWorkflowInput {
   outputCharacterCount?: number;
   replayedOutput?: boolean;
 }
-
-import type { RequestRuntimeResources } from './resources.js';

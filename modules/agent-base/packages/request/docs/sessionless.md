@@ -204,3 +204,17 @@ generation is not implied; the current Pi Engine still declares `structuredOutpu
 Public package integration tests exercise direct, streaming and bounded tool-loop consumers without
 creating an Agent/Session. More detailed request tests cover cancellation, output failure, drainage,
 profile separation, limits, concurrent Runs and Step replacement.
+
+## Source ownership
+
+`sessionless/create-workflow.ts` dispatches once by mode. `generation/create-workflow.ts` owns the
+direct/stream graph; `interaction/create-workflow.ts` owns the Tool-enabled graph. Each profile
+exposes its constructor and contracts through its own named entry. Shared configuration, context
+normalization, resource binding, policy, output and execution cleanup live in the parent scope.
+Independent contracts live in `sessionless/types/`; profile-specific Workflow options and state
+stay with their profile. The existing public Generation resource and policy names identify the
+shared contracts for compatibility; internal neutral aliases refer to those same declarations.
+
+Shared Request preparation, interaction and output capabilities consume narrow Context contracts.
+They do not import either profile's state or Session-aware implementations. The
+[package source layout](../README.md#source-layout) describes the enclosing boundaries.

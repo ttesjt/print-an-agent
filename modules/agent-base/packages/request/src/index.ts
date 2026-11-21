@@ -21,7 +21,7 @@ export {
   NO_REQUEST_TIMEOUT,
   validateRequestPolicy,
 } from './policy/index.js';
-export type { RequestPolicy } from './policy/types.js';
+export type { RequestPolicy } from './policy/index.js';
 export {
   buildInteractionRequest,
   buildRequestTools,
@@ -32,23 +32,46 @@ export {
 } from './preparation/index.js';
 export {
   REQUEST_EXECUTION_INTERRUPTED,
+  REQUEST_STEP_NAMES,
+  REQUEST_WORKFLOW_NAME,
   RequestReplayFailedError,
+  RequestStepNotImplementedError,
+  createDefaultRequestState,
+  createDefaultRequestStepOverrides,
   createRequestFingerprint,
+  createRequestStepDefinitions,
+  createRequestWorkflow,
   decodeAgentResponse,
   defineRequestJournalFailure,
   encodeAgentResponse,
+  failRequest,
   parseRequestFingerprint,
   parseRequestIdempotencyKey,
   parseRequestJournalRequestId,
-} from './replay/index.js';
+  releaseRequestExecution,
+  type RequestCompositeStepName,
+  type RequestLeafStepName,
+  type RequestStepName,
+  type RequestWorkflowName,
+} from './session-aware/index.js';
 export type {
   ActiveRequestJournalEntry,
+  AgentRequestInput,
+  AgentResponse,
+  CapturedReasoningBlock,
+  CapturedReasoningPresentation,
   ClaimRequestJournalRequest,
   CompleteRequestJournalRequest,
   CompletedRequestJournalEntry,
+  DefaultRequestWorkflowContext,
   FailRequestJournalRequest,
   FailedRequestJournalEntry,
   InspectableRequestJournalPort,
+  InstructionContributor,
+  InstructionContributorContext,
+  OutputOpenEvent,
+  OutputSink,
+  RequestContextMemory,
   RequestFingerprint,
   RequestFingerprintManifestV1,
   RequestIdempotencyKey,
@@ -59,29 +82,14 @@ export type {
   RequestJournalPort,
   RequestJournalRecoveryPort,
   RequestJournalReference,
-} from './replay/index.js';
-export {
-  createDefaultRequestState,
-  createDefaultRequestStepOverrides,
-  failRequest,
-  releaseRequestExecution,
-} from './session-aware/index.js';
-export type {
-  AgentRequestInput,
-  AgentResponse,
-  CapturedReasoningBlock,
-  CapturedReasoningPresentation,
-  DefaultRequestWorkflowContext,
-  InstructionContributor,
-  InstructionContributorContext,
-  OutputOpenEvent,
-  OutputSink,
-  RequestContextMemory,
   RequestMemoryRun,
   RequestMemoryTarget,
   RequestRuntimeResources,
+  RequestWorkflowContext,
   RequestWorkflowInput,
+  RequestWorkflowOptions,
   RequestWorkflowState,
+  RequestWorkflowStateView,
   ValidatedAgentRequest,
 } from './session-aware/index.js';
 export {
@@ -115,19 +123,3 @@ export type {
   SessionlessValidatedRequest,
 } from './sessionless/index.js';
 export type { AgentRequestErrorCode } from './types.js';
-export {
-  REQUEST_STEP_NAMES,
-  REQUEST_WORKFLOW_NAME,
-  RequestStepNotImplementedError,
-  createRequestStepDefinitions,
-  createRequestWorkflow,
-  type RequestCompositeStepName,
-  type RequestLeafStepName,
-  type RequestStepName,
-  type RequestWorkflowName,
-} from './workflow/index.js';
-export type {
-  RequestWorkflowContext,
-  RequestWorkflowOptions,
-  RequestWorkflowStateView,
-} from './workflow/index.js';

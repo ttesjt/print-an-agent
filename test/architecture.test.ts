@@ -285,9 +285,10 @@ describe('module architecture', () => {
         ).toBe(false);
         const target = resolveSourceModuleTarget(file, specifier);
         if (target !== undefined)
-          expect(isPathWithin(target, join(requestRoot, 'default')), `${file}: ${specifier}`).toBe(
-            false
-          );
+          expect(
+            isPathWithin(target, join(requestRoot, 'session-aware')),
+            `${file}: ${specifier}`
+          ).toBe(false);
       }
     }
   });
@@ -420,7 +421,7 @@ describe('module architecture', () => {
       join(packagesRoot, 'identity-config', 'src', 'identity', 'catalog', 'adapters'),
       join(packagesRoot, 'observability', 'src', 'adapters'),
       join(packagesRoot, 'request', 'src', 'adapters'),
-      join(packagesRoot, 'request', 'src', 'replay', 'adapters'),
+      join(packagesRoot, 'request', 'src', 'session-aware', 'replay', 'adapters'),
       join(packagesRoot, 'session', 'src', 'adapters'),
     ]) {
       expect(

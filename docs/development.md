@@ -132,6 +132,11 @@ Model Invocation Core declares its four capability entries, nested Actor/Model/T
 shared foundations in `test/model-invocation-core-source-boundaries.test.ts`, also run by
 `pnpm test:model-invocation-qualification`.
 
+Pi declares Provider, Faux, Execution, Translation and nested Interaction entries, shared execution
+modules and one-way dependencies in `test/pi-source-boundaries.test.ts`, also included in the same
+qualification. It checks baseline public symbols and that reachable compiled public declarations
+do not expose Pi/TypeBox SDK types.
+
 Observability declares its event protocol and emission entries, shared errors and one-way dependency
 in `test/observability-source-boundaries.test.ts`.
 
@@ -181,7 +186,7 @@ emission additionally qualifies portable inferred persistence results. The root 
 graph check continues to reject native SQLite type leaks.
 
 `tooling/architecture/type-modules.ts` provides the shared runtime-erasure check used by Agent Actor,
-Composition, Runtime, Workflow, Observability and Model Invocation Core. It inspects their supplied `types.ts`/`types/`
+Composition, Runtime, Workflow, Observability, Model Invocation Core and Pi. It inspects their supplied `types.ts`/`types/`
 modules with the repository's ESM/verbatim-import settings. `test/type-modules.test.ts` checks accepted branded/type
 contracts and rejected runtime declarations/imports. Type correctness remains the compiler's job;
 this opt-in check does not classify ownership or apply to unregistered packages automatically.

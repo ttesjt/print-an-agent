@@ -66,7 +66,54 @@ also does not treat Pi's provider-specific `timeoutMs` behavior as one portable 
 Inspection exposes the normalized non-secret policy; credential readiness remains a credential-only
 check and performs no network health probe.
 
-The implementation is organized by change reason: `runtime/` owns shared Pi translations and loop
-execution, `provider/` owns ordinary validation/composition, and `faux/` owns deterministic fixtures
-and inspection. OAuth, durable credential storage, dynamic model refresh, provider health
-management, automatic retry/failover, and rich media remain deferred.
+The npm root remains the only package entry: three runtime exports and nineteen named type exports.
+It composes the Provider and Faux public APIs. Internal feature entries are explicit and do not add
+npm subpaths; Pi and TypeBox contracts remain private.
+
+| Path                                  | Responsibility                                                               |
+| ------------------------------------- | ---------------------------------------------------------------------------- |
+| `src/index.ts`                        | Explicit package exports from Provider and Faux                              |
+| `src/types.ts`                        | SDK-independent invocation-kind vocabulary                                   |
+| `src/provider/profile.ts`             | Ordinary Profile composition and readiness                                   |
+| `src/provider/configuration.ts`       | Closed configuration validation and normalization                            |
+| `src/provider/model-binding.ts`       | Pi model registry, catalog lookup and explicit auth policy                   |
+| `src/provider/inspection.ts`          | Whitelisted non-secret inspection projection                                 |
+| `src/provider/types/`                 | Input/normalized configuration and public Profile contracts                  |
+| `src/faux/profile.ts`                 | Deterministic response queue, call counter and observations                  |
+| `src/faux/responses.ts`               | SDK response construction                                                    |
+| `src/faux/snapshots.ts`               | Core-facing request/tool-result capture and defensive copies                 |
+| `src/faux/types.ts`                   | Cohesive public Faux contracts                                               |
+| `src/execution/runtime.ts`            | Runtime-owned target identity and credential admission                       |
+| `src/execution/actor-engine.ts`       | Minimal Core Engine binding                                                  |
+| `src/execution/credentials.ts`        | Per-invocation resolution and single validated credential snapshot           |
+| `src/execution/failures.ts`           | Shared cancellation, timeout and provider-failure mapping                    |
+| `src/execution/types.ts`              | Private SDK binding, hooks and Engine handler contracts                      |
+| `src/execution/generation.ts`         | One collected or streamed generation, including producer cleanup             |
+| `src/execution/transport-liveness.ts` | Response/idle timing and pause during downstream delivery                    |
+| `src/execution/interaction/`          | Tool-capable runner, event delivery, tool execution and local state types    |
+| `src/translation/`                    | Pure message, readable-delta, invocation-option and tool-schema translations |
+
+Provider and Faux consume Execution's entry; Faux also consumes Translation's entry. Execution
+consumes Translation and the neutral invocation-kind contract. Translation never depends on either
+Profile or Execution. Interaction consumes its explicitly shared ancestor types, failure mapping
+and transport boundary; shared execution modules do not depend back on Interaction.
+
+The runtime keeps its target WeakMap and checks target identity and invocation budgets before
+resolving credentials. Each model turn has a fresh transport boundary. Interaction and Generation
+retain their separate error precedence and cleanup. Translation does not execute tools or retain
+invocation state. Faux response factories and inspectors receive separate frozen snapshot copies;
+reverse invocation-option mapping captures only supported controls, never API keys.
+
+Independent types use their owner's `types.ts` or `types/<concept>.ts`; implementation-local
+options stay beside their sole consumer. Public factories explicitly return Core-facing Profile
+contracts, keeping SDK types out of the reachable public declaration graph.
+
+Tests follow their owner under `test/unit/` and `test/integration/`; `test/support/` owns the local
+HTTP fixture, and `test/types/` qualifies the compiled public API. Run
+`pnpm test:model-invocation-qualification` from the repository root. Its Pi source check declares
+feature entries, dependency directions and pure-type runtime erasure, and checks the baseline
+public symbol inventory and public declarations. It inspects literal imports/re-exports, including
+type-only edges; runtime ownership, failure priority and state lifecycles still require review.
+
+OAuth, durable credential storage, dynamic model refresh, provider health management, automatic
+retry/failover, and rich media remain deferred.

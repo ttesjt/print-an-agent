@@ -21,13 +21,13 @@
     "build": "tsc --build tsconfig.build.json",
     "clean": "rm -rf dist *.tsbuildinfo",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "test": "pnpm run build && vitest run",
+    "test:watch": "pnpm run build && vitest",
+    "test:coverage": "pnpm run build && vitest run --coverage",
     "typecheck": "pnpm run build && tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
+    "format": "prettier --write . --ignore-path ../../../../.prettierignore",
     "format:check": "prettier --check . --ignore-path ../../../../.prettierignore"
   },
   "dependencies": {

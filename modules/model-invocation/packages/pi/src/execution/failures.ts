@@ -1,12 +1,5 @@
-import type { ActorInvocationConfig } from '@print-an-agent/model-invocation-core';
+import type { AssistantMessage } from '@earendil-works/pi-ai';
 import { ModelInvocationError } from '@print-an-agent/model-invocation-core';
-export function toPiInvocationOptions(config: ActorInvocationConfig, apiKey: string | undefined) {
-  return {
-    ...(config.temperature === undefined ? {} : { temperature: config.temperature }),
-    ...(config.maxOutputTokens === undefined ? {} : { maxTokens: config.maxOutputTokens }),
-    ...(apiKey === undefined ? {} : { apiKey }),
-  };
-}
 
 export function invocationInterruption(signal: AbortSignal): ModelInvocationError {
   const timedOut = signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError';
@@ -22,4 +15,17 @@ export function normalizeProviderFailure(cause: unknown, signal: AbortSignal): E
   return new ModelInvocationError('MODEL_PROVIDER_FAILED', 'Provider invocation failed.', {
     cause,
   });
+}
+export function throwTerminalFailure(signal: AbortSignal, failure: AssistantMessage): never {
+  const cancelled = failure.stopReason === 'aborted' || signal.aborted;
+  const timedOut = signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError';
+  throw new ModelInvocationError(
+    timedOut
+      ? 'MODEL_INVOCATION_TIMEOUT'
+      : cancelled
+        ? 'MODEL_INVOCATION_CANCELLED'
+        : 'MODEL_PROVIDER_FAILED',
+    failure.errorMessage ??
+      (cancelled ? 'Model invocation was cancelled.' : 'Model provider failed.')
+  );
 }

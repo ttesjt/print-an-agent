@@ -1,8 +1,12 @@
+import type {
+  DefinedPiBuiltinProviderConfig,
+  DefinedPiOpenAICompatibleProviderConfig,
+  DefinedPiProviderConfig,
+} from './types/configuration.js';
 import {
   ModelInvocationError,
   defineProviderModelReference,
 } from '@print-an-agent/model-invocation-core';
-import type { PiOpenAICompatibleProviderCompatibility } from './types.js';
 
 const BUILTIN_PROVIDER_CONFIG_KEYS = Object.freeze(['kind', 'reference']);
 const OPENAI_COMPATIBLE_PROVIDER_CONFIG_KEYS = Object.freeze([
@@ -14,27 +18,6 @@ const OPENAI_COMPATIBLE_PROVIDER_CONFIG_KEYS = Object.freeze([
   'compatibility',
 ]);
 const OPENAI_COMPATIBILITY_KEYS = Object.freeze(['supportsDeveloperRole']);
-
-export interface DefinedPiBuiltinProviderConfig {
-  readonly kind: 'builtin';
-  readonly reference: ReturnType<typeof defineProviderModelReference>;
-}
-
-export interface DefinedPiOpenAICompatibleProviderConfig {
-  readonly kind: 'openai-compatible';
-  readonly reference: ReturnType<typeof defineProviderModelReference> & {
-    readonly baseUrl: string;
-  };
-  readonly contextWindowTokens: number;
-  readonly maxOutputTokens: number;
-  /** Declares endpoint capability; it does not request reasoning generation. */
-  readonly supportsReasoning: boolean;
-  readonly compatibility: PiOpenAICompatibleProviderCompatibility;
-}
-
-export type DefinedPiProviderConfig =
-  | DefinedPiBuiltinProviderConfig
-  | DefinedPiOpenAICompatibleProviderConfig;
 
 function assertExactKeys(value: object, allowed: readonly string[], label: string): void {
   const unexpected = Object.keys(value).find((key) => !allowed.includes(key));

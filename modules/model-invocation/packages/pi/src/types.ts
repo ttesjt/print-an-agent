@@ -1,2 +1,2 @@
-export type * from './faux/types.js';
-export type * from './provider/types.js';
+/** Shared observation vocabulary, independent of SDK-private execution contracts. */
+export type PiInvocationKind = 'agent-loop' | 'direct' | 'stream';

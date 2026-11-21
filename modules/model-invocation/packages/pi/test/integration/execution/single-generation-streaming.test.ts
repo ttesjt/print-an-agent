@@ -6,8 +6,8 @@ import {
   type ModelGenerationEvent,
   type ProviderTransportLivenessPolicyInput,
 } from '@print-an-agent/model-invocation-core';
-import { createPiProviderRuntime, createPiFauxRuntime } from '../../src/index.js';
-import { completionServer } from '../support/completion-server.js';
+import { createPiProviderRuntime, createPiFauxRuntime } from '../../../src/index.js';
+import { completionServer } from '../../support/completion-server.js';
 
 function providerActor(
   baseUrl: string,

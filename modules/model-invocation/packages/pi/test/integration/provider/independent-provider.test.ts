@@ -7,8 +7,8 @@ import {
   TEXT_TOKEN_INPUT_CONTRACT,
   requireActorTextTokenCounter,
 } from '@print-an-agent/model-invocation-core';
-import { createPiFauxRuntime, createPiProviderRuntime } from '../../src/index.js';
-import { completionServer } from '../support/completion-server.js';
+import { createPiFauxRuntime, createPiProviderRuntime } from '../../../src/index.js';
+import { completionServer } from '../../support/completion-server.js';
 
 it('completes through the real Pi provider boundary without any Agent Base package', async () => {
   const server = await completionServer();

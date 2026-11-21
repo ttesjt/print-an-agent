@@ -1,0 +1,25 @@
+import type * as Pi from '@print-an-agent/model-invocation-pi';
+export type PublicApi = {
+  createPiFauxRuntime: typeof Pi.createPiFauxRuntime;
+  definePiProviderConfig: typeof Pi.definePiProviderConfig;
+  createPiProviderRuntime: typeof Pi.createPiProviderRuntime;
+  PiFauxRequestSnapshot: Pi.PiFauxRequestSnapshot;
+  PiFauxToolResultSnapshot: Pi.PiFauxToolResultSnapshot;
+  PiFauxToolEventSnapshot: Pi.PiFauxToolEventSnapshot;
+  PiFauxResponse: Pi.PiFauxResponse;
+  PiFauxResponseFactory: Pi.PiFauxResponseFactory;
+  PiFauxRuntimeOptions: Pi.PiFauxRuntimeOptions;
+  PiFauxRuntimeInspection: Pi.PiFauxRuntimeInspection;
+  PiFauxRuntimeProfile: Pi.PiFauxRuntimeProfile;
+  PiBuiltinProviderConfigInput: Pi.PiBuiltinProviderConfigInput;
+  PiOpenAICompatibleProviderCompatibility: Pi.PiOpenAICompatibleProviderCompatibility;
+  PiOpenAICompatibleProviderConfigInput: Pi.PiOpenAICompatibleProviderConfigInput;
+  PiProviderConfigInput: Pi.PiProviderConfigInput;
+  PiProviderRuntimeOptions: Pi.PiProviderRuntimeOptions;
+  PiProviderRuntimeInspectionBase: Pi.PiProviderRuntimeInspectionBase;
+  PiBuiltinProviderRuntimeInspection: Pi.PiBuiltinProviderRuntimeInspection;
+  PiOpenAICompatibleProviderRuntimeInspection: Pi.PiOpenAICompatibleProviderRuntimeInspection;
+  PiProviderRuntimeInspection: Pi.PiProviderRuntimeInspection;
+  PiProviderReadiness: Pi.PiProviderReadiness;
+  PiProviderRuntimeProfile: Pi.PiProviderRuntimeProfile;
+};

@@ -4,8 +4,8 @@ import {
   requireCompletionCapability,
   type ProviderCredentialResolver,
 } from '@print-an-agent/model-invocation-core';
-import { createPiProviderRuntime } from '../../src/index.js';
-import { completionServer } from '../support/completion-server.js';
+import { createPiProviderRuntime } from '../../../src/index.js';
+import { completionServer } from '../../support/completion-server.js';
 
 function provider(baseUrl = 'http://127.0.0.1:1/v1') {
   return {

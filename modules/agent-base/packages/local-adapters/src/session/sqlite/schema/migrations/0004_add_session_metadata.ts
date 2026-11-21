@@ -1,5 +1,5 @@
-import type { SqliteSessionTableNames } from '../table-names.js';
-import { quoteSqliteIdentifier } from '../table-names.js';
+import { quoteSqliteIdentifier } from '../../table-names.js';
+import type { SqliteSessionTableNames } from '../../types/table-names.js';
 
 export function addSessionMetadataMigration(tableNames: SqliteSessionTableNames): string {
   return `

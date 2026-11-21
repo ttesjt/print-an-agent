@@ -5,10 +5,12 @@ import {
   type SessionInspection,
 } from '@print-an-agent/base-session';
 import type { DatabaseSync } from 'node:sqlite';
+import { requireNonNegativeInteger } from './codecs/columns.js';
 import { readClock, runImmediateTransaction } from './database.js';
-import { inspectSqliteSession } from './session-query-storage.js';
-import { requireNonNegativeInteger, type SqliteRow } from './session-record-codec.js';
-import { quoteSqliteIdentifier, type SqliteSessionTableNames } from './table-names.js';
+import { inspectSqliteSession } from './query.js';
+import { quoteSqliteIdentifier } from './table-names.js';
+import type { SqliteRow } from './types/record.js';
+import type { SqliteSessionTableNames } from './types/table-names.js';
 
 export function renameSqliteSession(
   database: DatabaseSync,

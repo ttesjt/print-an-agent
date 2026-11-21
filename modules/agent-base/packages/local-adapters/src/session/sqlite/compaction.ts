@@ -1,101 +1,19 @@
 import {
   AgentSessionError,
-  completedLineageBeforeTurn,
   completedLineageForBranch,
   type CommitSessionCompactionRequest,
-  type LoadSessionHistoryRequest,
   type SessionBranchReference,
   type SessionCompaction,
-  type SessionContextSnapshot,
-  type SessionTurn,
 } from '@print-an-agent/base-session';
-import type { ModelMessage } from '@print-an-agent/model-invocation-core';
 import type { DatabaseSync } from 'node:sqlite';
+import { requireString } from './codecs/columns.js';
+import { decodeCompaction, requirePositiveInteger } from './codecs/compaction.js';
+import { decodeContextMessage, encodeContextMessage } from './codecs/message.js';
 import { readClock, runImmediateTransaction } from './database.js';
-import { decodeContextMessage, encodeContextMessage } from './message-codec.js';
-import { loadSqliteSessionSnapshot } from './session-navigation-storage.js';
-import {
-  normalizePersistedTurnId,
-  requireNonNegativeInteger,
-  requireString,
-  type SqliteRow,
-} from './session-record-codec.js';
-import type { SqliteSessionTableNames } from './table-names.js';
+import { readCompactionRow } from './records.js';
+import { loadSqliteSessionSnapshot } from './snapshot.js';
 import { quoteSqliteIdentifier } from './table-names.js';
-
-function requirePositiveInteger(row: SqliteRow, column: string): number {
-  const value = requireNonNegativeInteger(row, column, 'SQLite Session compaction');
-  if (value === 0) {
-    throw new AgentSessionError(
-      'SESSION_RECORD_INVALID',
-      `SQLite Session compaction column "${column}" must be positive.`
-    );
-  }
-  return value;
-}
-
-function decodeCompaction(reference: SessionBranchReference, row: SqliteRow): SessionCompaction {
-  return Object.freeze({
-    ...reference,
-    revision: requirePositiveInteger(row, 'revision'),
-    throughTurnId: normalizePersistedTurnId(
-      requireString(row, 'through_turn_id'),
-      'SQLite Session compaction turn ID'
-    ),
-    context: decodeContextMessage(requireString(row, 'context_message')),
-  });
-}
-
-function readCompactionRow(
-  database: DatabaseSync,
-  reference: SessionBranchReference,
-  tableNames: SqliteSessionTableNames
-): SqliteRow | undefined {
-  return database
-    .prepare(
-      `SELECT revision, through_turn_id, context_message, created_at
-       FROM ${quoteSqliteIdentifier(tableNames.compactions)}
-       WHERE agent_id = ? AND session_id = ? AND branch_id = ?`
-    )
-    .get(reference.agentId, reference.sessionId, reference.branchId) as SqliteRow | undefined;
-}
-
-function findTurn(
-  turns: readonly SessionTurn[],
-  turnId: LoadSessionHistoryRequest['beforeTurnId']
-): SessionTurn {
-  const turn = turns.find((candidate) => candidate.turnId === turnId);
-  if (turn === undefined) {
-    throw new AgentSessionError('TURN_NOT_FOUND', `Turn "${turnId}" does not exist.`);
-  }
-  return turn;
-}
-
-export function loadSqliteSessionContext(
-  database: DatabaseSync,
-  request: LoadSessionHistoryRequest,
-  tableNames: SqliteSessionTableNames
-): SessionContextSnapshot {
-  const snapshot = loadSqliteSessionSnapshot(database, request, tableNames);
-  const beforeTurn = findTurn(snapshot.turns, request.beforeTurnId);
-  const reference = { ...request, branchId: beforeTurn.branchId } as const;
-  const lineage = completedLineageBeforeTurn(snapshot, request.beforeTurnId);
-  const row = readCompactionRow(database, reference, tableNames);
-  const compaction = row === undefined ? undefined : decodeCompaction(reference, row);
-  const boundaryIndex =
-    compaction === undefined
-      ? -1
-      : lineage.findIndex((turn) => turn.turnId === compaction.throughTurnId);
-  const useCompaction = compaction !== undefined && boundaryIndex >= 0;
-  const messages = lineage
-    .slice(useCompaction ? boundaryIndex + 1 : 0)
-    .flatMap<ModelMessage>((turn) => [turn.userMessage, turn.assistantMessage]);
-  return Object.freeze({
-    ...reference,
-    ...(useCompaction ? { compaction } : {}),
-    messages: Object.freeze([...(useCompaction ? [compaction.context] : []), ...messages]),
-  });
-}
+import type { SqliteSessionTableNames } from './types/table-names.js';
 
 export function readSqliteSessionCompaction(
   database: DatabaseSync,

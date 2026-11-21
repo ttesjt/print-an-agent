@@ -6,8 +6,9 @@ import {
 } from '@print-an-agent/base-session';
 import type { DatabaseSync } from 'node:sqlite';
 import { readClock, runImmediateTransaction } from './database.js';
-import { loadSqliteSessionSnapshot } from './session-navigation-storage.js';
-import { quoteSqliteIdentifier, type SqliteSessionTableNames } from './table-names.js';
+import { loadSqliteSessionSnapshot } from './snapshot.js';
+import { quoteSqliteIdentifier } from './table-names.js';
+import type { SqliteSessionTableNames } from './types/table-names.js';
 
 export function openSqliteSession(
   database: DatabaseSync,

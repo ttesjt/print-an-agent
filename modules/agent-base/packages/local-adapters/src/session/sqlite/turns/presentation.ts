@@ -8,7 +8,8 @@ import {
   type SessionTurnPresentationReference,
 } from '@print-an-agent/base-session';
 import type { DatabaseSync } from 'node:sqlite';
-import { quoteSqliteIdentifier, type SqliteSessionTableNames } from './table-names.js';
+import { quoteSqliteIdentifier } from '../table-names.js';
+import type { SqliteSessionTableNames } from '../types/table-names.js';
 
 export function readSqliteTurnPresentation(
   database: DatabaseSync,

@@ -1,6 +1,5 @@
 import {
   AgentSessionError,
-  completedLineageBeforeTurn,
   defineSessionTurnPresentation,
   parseSessionFailureCode,
   type ActiveSessionTurn,
@@ -9,29 +8,24 @@ import {
   type CompletedSessionTurn,
   type FailSessionTurnRequest,
   type FailedSessionTurn,
-  type LoadSessionHistoryRequest,
   type SessionTurn,
   type SessionTurnPresentation,
 } from '@print-an-agent/base-session';
-import type { ModelMessage } from '@print-an-agent/model-invocation-core';
 import type { DatabaseSync } from 'node:sqlite';
-import { readClock, runImmediateTransaction } from './database.js';
+import { requireNonNegativeInteger } from '../codecs/columns.js';
 import {
   decodeAssistantMessage,
   decodeUserMessage,
   encodeAssistantMessage,
   encodeUserMessage,
-} from './message-codec.js';
-import { loadSqliteSessionSnapshot } from './session-navigation-storage.js';
-import {
-  decodeTurn,
-  requireNonNegativeInteger,
-  requireSession,
-  requireTurnRow,
-  type SqliteRow,
-} from './session-record-codec.js';
-import type { SqliteSessionTableNames } from './table-names.js';
-import { quoteSqliteIdentifier } from './table-names.js';
+} from '../codecs/message.js';
+import { decodeTurn } from '../codecs/turn.js';
+import { readClock, runImmediateTransaction } from '../database.js';
+import { requireSession, requireTurnRow } from '../records.js';
+import { loadSqliteSessionSnapshot } from '../snapshot.js';
+import { quoteSqliteIdentifier } from '../table-names.js';
+import type { SqliteRow } from '../types/record.js';
+import type { SqliteSessionTableNames } from '../types/table-names.js';
 
 export function beginSqliteSessionTurn(
   database: DatabaseSync,
@@ -120,20 +114,6 @@ export function beginSqliteSessionTurn(
       userMessage,
     });
   });
-}
-
-export function loadSqliteSessionHistory(
-  database: DatabaseSync,
-  request: LoadSessionHistoryRequest,
-  tableNames: SqliteSessionTableNames
-): readonly ModelMessage[] {
-  const lineage = completedLineageBeforeTurn(
-    loadSqliteSessionSnapshot(database, request, tableNames),
-    request.beforeTurnId
-  );
-  return Object.freeze(
-    lineage.flatMap<ModelMessage>((turn) => [turn.userMessage, turn.assistantMessage])
-  );
 }
 
 export function completeSqliteSessionTurn(

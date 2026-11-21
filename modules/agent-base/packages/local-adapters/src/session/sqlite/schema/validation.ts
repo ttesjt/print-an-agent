@@ -1,21 +1,14 @@
 import { AgentSessionError } from '@print-an-agent/base-session';
-import type { DatabaseSync, SQLOutputValue } from 'node:sqlite';
-import { runImmediateTransaction } from './database.js';
-import { createSessionStoreMigration } from './migrations/0001_create_session_store.js';
-import { addSessionCompactionMigration } from './migrations/0002_add_session_compaction.js';
-import { addSessionNavigationMigration } from './migrations/0003_add_session_navigation.js';
-import { addSessionMetadataMigration } from './migrations/0004_add_session_metadata.js';
-import { sessionMemoryMigration, sessionMemoryTable } from './session-memory-storage.js';
-import type { SqliteSessionTableNames } from './table-names.js';
+import type { DatabaseSync } from 'node:sqlite';
 import {
   quoteSqliteIdentifier,
   sessionActivityIndexName,
+  sessionMemoryTable,
   sessionRetirementIndexName,
-} from './table-names.js';
-
-const SESSION_SCHEMA_COMPONENT = 'session';
-
-const CURRENT_SESSION_SCHEMA_VERSION = 5;
+} from '../table-names.js';
+import type { SqliteRow } from '../types/record.js';
+import type { SqliteSessionTableNames } from '../types/table-names.js';
+import { assertKnownSchemaVersion, readSchemaVersion } from './version.js';
 
 const SCHEMA_COLUMNS = Object.freeze(['component', 'version']);
 
@@ -72,52 +65,6 @@ const COMPACTION_COLUMNS = Object.freeze([
   'context_message',
   'created_at',
 ]);
-
-type SqliteRow = Record<string, SQLOutputValue>;
-
-function readSchemaVersion(
-  database: DatabaseSync,
-  tableNames: SqliteSessionTableNames
-): number | undefined {
-  let row: SqliteRow | undefined;
-  try {
-    row = database
-      .prepare(
-        `SELECT version FROM ${quoteSqliteIdentifier(tableNames.schema)} WHERE component = ?`
-      )
-      .get(SESSION_SCHEMA_COMPONENT) as SqliteRow | undefined;
-  } catch (cause: unknown) {
-    throw new AgentSessionError(
-      'SESSION_SCHEMA_INVALID',
-      'SQLite Session schema metadata table is invalid.',
-      { cause }
-    );
-  }
-  if (row === undefined) return undefined;
-  const version = row.version;
-  if (typeof version !== 'number' || !Number.isSafeInteger(version) || version < 0) {
-    throw new AgentSessionError(
-      'SESSION_SCHEMA_INVALID',
-      'SQLite Session schema metadata contains an invalid version.'
-    );
-  }
-  return version;
-}
-
-function assertKnownSchemaVersion(version: number | undefined): asserts version is number {
-  if (version === undefined) {
-    throw new AgentSessionError(
-      'SESSION_SCHEMA_INVALID',
-      'SQLite Session schema metadata is missing.'
-    );
-  }
-  if (version !== CURRENT_SESSION_SCHEMA_VERSION) {
-    throw new AgentSessionError(
-      'SESSION_SCHEMA_UNSUPPORTED',
-      `SQLite Session schema version ${version} does not match supported version ${CURRENT_SESSION_SCHEMA_VERSION}.`
-    );
-  }
-}
 
 function assertTableColumns(
   database: DatabaseSync,
@@ -212,46 +159,6 @@ function assertSessionIdentityIndex(
   }
 }
 
-export function initializeSessionSchema(
-  database: DatabaseSync,
-  tableNames: SqliteSessionTableNames
-): void {
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS ${quoteSqliteIdentifier(tableNames.schema)} (
-      component TEXT PRIMARY KEY,
-      version INTEGER NOT NULL CHECK (version >= 0)
-    ) STRICT;
-  `);
-
-  const version = readSchemaVersion(database, tableNames);
-  if (version === undefined) {
-    runImmediateTransaction(database, () => {
-      database.exec(createSessionStoreMigration(tableNames));
-      database.exec(addSessionCompactionMigration(tableNames));
-      database.exec(addSessionNavigationMigration(tableNames));
-      database.exec(addSessionMetadataMigration(tableNames));
-      database.exec(sessionMemoryMigration(tableNames));
-      database
-        .prepare(
-          `INSERT INTO ${quoteSqliteIdentifier(tableNames.schema)} (component, version) VALUES (?, ?)`
-        )
-        .run(SESSION_SCHEMA_COMPONENT, CURRENT_SESSION_SCHEMA_VERSION);
-    });
-  } else if (version === 4) {
-    runImmediateTransaction(database, () => {
-      database.exec(sessionMemoryMigration(tableNames));
-      database
-        .prepare(
-          `UPDATE ${quoteSqliteIdentifier(tableNames.schema)} SET version = ? WHERE component = ?`
-        )
-        .run(CURRENT_SESSION_SCHEMA_VERSION, SESSION_SCHEMA_COMPONENT);
-    });
-  } else {
-    assertKnownSchemaVersion(version);
-  }
-  assertSessionSchema(database, tableNames);
-}
-
 export function assertSessionSchema(
   database: DatabaseSync,
   tableNames: SqliteSessionTableNames
@@ -275,8 +182,4 @@ export function assertSessionSchema(
   assertSessionListIndex(database, tableNames, 'activity');
   assertSessionListIndex(database, tableNames, 'retirement');
   assertSessionIdentityIndex(database, tableNames);
-}
-
-export function configureDefensiveMode(database: DatabaseSync): void {
-  database.enableDefensive(true);
 }

@@ -6,8 +6,8 @@ import {
   type ApplySessionNavigationRequest,
   type BeginSessionTurnRequest,
   type SessionBranchReference,
+  type SessionReference,
 } from '@print-an-agent/base-session';
-import { normalizeReference } from './session-record-codec.js';
 
 export function normalizeResolvedReference(
   request: BeginSessionTurnRequest
@@ -67,5 +67,12 @@ export function normalizeNavigationRequest(
         ? {}
         : { newBranchId: parseSessionBranchId(command.newBranchId) }),
     }),
+  });
+}
+
+export function normalizeReference(reference: SessionReference): SessionReference {
+  return Object.freeze({
+    agentId: parseAgentId(reference.agentId),
+    sessionId: parseSessionId(reference.sessionId),
   });
 }

@@ -1,4 +1,4 @@
-import { SESSION_COMPACTION_RESPONSIBILITY_ID } from '@print-an-agent/base-actor';
+import { SESSION_COMPACTION_RESPONSIBILITY_ID } from '@print-an-agent/agent-actor';
 import type { SessionCompactionWorkflowContext } from '../types.js';
 
 export async function resolveCompactionActor(

@@ -18,12 +18,12 @@ import {
   recoverSessionWithContextMemory,
 } from '@print-an-agent/base-composition';
 import {
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   BUILT_IN_RESPONSIBILITIES,
   MAIN_ACTOR_ID,
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { type ActorEngine } from '@print-an-agent/model-invocation-core';
 import {
   createMemorySessionPersistence,
@@ -164,7 +164,7 @@ function assembleServices<Handle>(
     const allowedTools = [...toolNames, ...(ports.memoryToolNames ?? [])];
     return composeAgent({
       identity,
-      actorCatalog: createActorCatalog({
+      actorCatalog: createAgentActorCatalog({
         engines: [engine],
         actors: [
           {

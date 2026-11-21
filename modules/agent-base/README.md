@@ -46,7 +46,7 @@ Current foundation packages:
 
 - `@print-an-agent/base-identity-config`: stable identity values, lifecycle catalog contracts and
   storage-agnostic typed configuration, available through its `/identity` and `/config` subentries;
-- `@print-an-agent/base-actor`: Agent Actor tool permissions and Responsibility routing over the independent
+- `@print-an-agent/agent-actor`: Agent Actor tool permissions and Responsibility routing over the independent
   `@print-an-agent/model-invocation-core` Actor and model protocols;
 - `@print-an-agent/base-observability`: privacy-safe correlated trace contracts and no-op sink;
 - `@print-an-agent/base-session`: generic Session, append-only navigation, and branch-scoped compaction

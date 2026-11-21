@@ -1,8 +1,8 @@
 import {
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   createResponsibilityRouter,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import { RUN_WORKFLOW, skipWorkflow } from '@print-an-agent/workflow-core';
 import { expect, it, vi } from 'vitest';
@@ -18,7 +18,7 @@ function boundaryResources(): SessionCompactionResources {
   return {
     session: createSessionPortStub(),
     responsibilities: createResponsibilityRouter({
-      actorCatalog: createActorCatalog({ actors: [], engines: [] }),
+      actorCatalog: createAgentActorCatalog({ actors: [], engines: [] }),
       responsibilityCatalog: createResponsibilityCatalog({ responsibilities: [] }),
     }),
     instructions: 'Compact.',

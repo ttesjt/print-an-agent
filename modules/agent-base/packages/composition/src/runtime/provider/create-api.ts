@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { createAgentAPI } from '../agent-api.js';
 import { composeAgent } from '../standard-agent/index.js';
 import { createProviderRuntime } from './create-runtime.js';
@@ -12,7 +12,7 @@ import type { CreateProviderAgentAPIOptions, ProviderAgentAPI } from './types/ap
 export function createProviderAgentAPI(options: CreateProviderAgentAPIOptions): ProviderAgentAPI {
   const { provider, mainActor, responsibilities, ...baseOptions } = options;
   const providerProfile = createProviderRuntime(provider);
-  const actorCatalog = createActorCatalog({
+  const actorCatalog = createAgentActorCatalog({
     actors: [
       {
         ...mainActor,

@@ -2,7 +2,7 @@ import {
   BUILT_IN_RESPONSIBILITIES,
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { MemoryAgentTraceAdapter, MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
 import { REQUEST_WORKFLOW_NAME } from '@print-an-agent/base-request';
 import { parseSessionId, SESSION_COMPACTION_WORKFLOW_NAME } from '@print-an-agent/base-session';

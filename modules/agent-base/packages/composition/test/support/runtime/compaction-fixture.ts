@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
 import {
@@ -94,7 +94,7 @@ export async function compactionFixture(
   const agent = composeAgent({
     identity,
     session,
-    actorCatalog: createActorCatalog({
+    actorCatalog: createAgentActorCatalog({
       actors: [
         {
           id: MAIN_ACTOR_ID,

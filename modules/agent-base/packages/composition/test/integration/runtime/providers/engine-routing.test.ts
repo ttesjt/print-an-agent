@@ -1,10 +1,10 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
   SESSION_COMPACTION_RESPONSIBILITY_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { MemoryAgentTraceAdapter } from '@print-an-agent/base-local-adapters';
 import { expect, it } from 'vitest';
 import {
@@ -19,7 +19,7 @@ it('routes foreground interaction and compaction to different custom Engines', a
   const trace = new MemoryAgentTraceAdapter({ maxEvents: 256 });
   let interactionCalls = 0;
   let directCalls = 0;
-  const actorCatalog = createActorCatalog({
+  const actorCatalog = createAgentActorCatalog({
     actors: [
       { id: MAIN_ACTOR_ID, engineId: 'foreground-engine' },
       { id: 'compactor', engineId: 'compaction-engine' },

@@ -6,7 +6,7 @@ import {
 } from '@print-an-agent/base-composition';
 import { MemorySessionAdapter } from '@print-an-agent/base-local-adapters';
 import { executeSessionNavigation } from '@print-an-agent/base-session';
-import { BUILT_IN_RESPONSIBILITIES } from '@print-an-agent/base-actor';
+import { BUILT_IN_RESPONSIBILITIES } from '@print-an-agent/agent-actor';
 import {
   createTokenCounter,
   TEXT_TOKEN_INPUT_CONTRACT,

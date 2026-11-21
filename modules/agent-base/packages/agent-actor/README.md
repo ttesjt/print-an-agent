@@ -1,6 +1,7 @@
-# `@print-an-agent/base-actor`
+# `@print-an-agent/agent-actor`
 
-Agent Base Actor permissions and Responsibility routing over `@print-an-agent/model-invocation-core`.
+Agent-specific Actor permissions and Responsibility routing over
+`@print-an-agent/model-invocation-core`.
 
 An Actor is a named callable LLM participant backed by a replaceable Engine. A Responsibility is a
 registered semantic reason for an LLM call with an ordered configurable Actor candidate list.
@@ -10,6 +11,12 @@ The independent invocation module owns Actor/Engine definitions, technical capab
 invocation deadlines and Engine protocol integrity. This package adds Agent-owned tool permissions
 and Responsibility selection. `defineAgentActor()` and the Agent Actor catalog compose those
 permissions with the same underlying Actor; they do not create another invocation implementation.
+
+`AgentActorDefinitionInput`, `AgentActorDefinition` and `ResolvedAgentActor` describe this extension.
+`createAgentActorCatalog()` accepts `CreateAgentActorCatalogOptions` and returns an
+`AgentActorCatalogPort`. Generic `ActorDefinition`, `ResolvedActor` and `createActorCatalog()` remain
+owned by Model Invocation Core. Responsibility selection and tool permission declarations are the
+Agent-specific additions; invocation modes and Engine protocols retain their Core implementation.
 
 The package contains no provider SDK and has no knowledge of Model Workbench or product runtimes.
 
@@ -65,3 +72,21 @@ Instruction order is stable: Actor instructions, then Responsibility instruction
 Step/request instructions. Catalog revisions and resolved routing metadata are immutable snapshots.
 Durable catalogs, automatic failover, rich media request values, tokenizer-backed context checks, and
 durable Task/work-item lifecycle are deferred.
+
+## Naming migration
+
+This package replaces `@print-an-agent/base-actor`. Update the dependency and imports to
+`@print-an-agent/agent-actor`; the former package has no compatibility wrapper.
+
+| Previous Agent Base export  | Current export                   |
+| --------------------------- | -------------------------------- |
+| `ActorDefinitionInput`      | `AgentActorDefinitionInput`      |
+| `ActorDefinition`           | `AgentActorDefinition`           |
+| `ResolvedActor`             | `ResolvedAgentActor`             |
+| `ActorCatalogPort`          | `AgentActorCatalogPort`          |
+| `CreateActorCatalogOptions` | `CreateAgentActorCatalogOptions` |
+| `createActorCatalog`        | `createAgentActorCatalog`        |
+
+`defineAgentActor`, the Responsibility APIs, built-in IDs and error codes keep their names.
+The package still exposes one root entry, depends only on Model Invocation Core and Agent Base Tool,
+and belongs to Agent Base. Its invocation, permission and routing behavior is unchanged.

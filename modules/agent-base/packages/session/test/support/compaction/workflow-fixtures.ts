@@ -1,10 +1,10 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   createResponsibilityRouter,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import {
   defineActorEngine,
@@ -66,7 +66,7 @@ export function createTestResponsibilities(
         )),
   });
   return createResponsibilityRouter({
-    actorCatalog: createActorCatalog({
+    actorCatalog: createAgentActorCatalog({
       actors: [
         {
           id: MAIN_ACTOR_ID,

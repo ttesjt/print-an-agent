@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
   MAIN_ACTOR_ID,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { CONTEXT_MEMORY_TOOL_NAMES, composeAgent } from '@print-an-agent/base-composition';
 import { AgentBaseStandaloneError } from '../errors.js';
 import { createStandaloneProviderRuntime } from '../provider/index.js';
@@ -26,7 +26,7 @@ export function materializeStandaloneAgentRuntime(
   const provider = createStandaloneProviderRuntime(input.config, input.options);
   return composeAgent({
     identity: input.identity,
-    actorCatalog: createActorCatalog({
+    actorCatalog: createAgentActorCatalog({
       actors: [
         {
           ...input.config.mainActor,

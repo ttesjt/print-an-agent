@@ -1,10 +1,10 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   createResponsibilityRouter,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   MemoryOutputSink,
@@ -49,7 +49,7 @@ function independentRequest() {
       session,
       requestJournal: new MemoryRequestJournalAdapter(),
       responsibilities: createResponsibilityRouter({
-        actorCatalog: createActorCatalog({
+        actorCatalog: createAgentActorCatalog({
           actors: [{ id: MAIN_ACTOR_ID, engineId: 'independent' }],
           engines: [
             {

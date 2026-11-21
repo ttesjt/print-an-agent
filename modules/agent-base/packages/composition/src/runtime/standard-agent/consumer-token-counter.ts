@@ -1,7 +1,7 @@
 import {
   FOREGROUND_INTERACTION_RESPONSIBILITY_ID,
   type ResponsibilityRouter,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import { AgentSessionError } from '@print-an-agent/base-session';
 import type { TextTokenInput, TokenCounter } from '@print-an-agent/model-invocation-core';
 

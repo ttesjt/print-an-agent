@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import {
   createDefaultRequestState,
   createDefaultRequestStepOverrides,
@@ -103,7 +103,7 @@ it('drains the real Pi tool loop after Step executor failure before closing Requ
   const fixture = await interactionAgent(
     () => Promise.reject(new Error('unused Engine')),
     {
-      actorCatalog: createActorCatalog({
+      actorCatalog: createAgentActorCatalog({
         actors: [{ id: MAIN_ACTOR_ID, engineId: profile.actorEngine.id, allowedTools: ['work'] }],
         engines: [profile.actorEngine],
       }),

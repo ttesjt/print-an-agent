@@ -30,7 +30,7 @@
     "format:check": "prettier --check . --ignore-path ../../../../.prettierignore"
   },
   "dependencies": {
-    "@print-an-agent/base-actor": "workspace:*",
+    "@print-an-agent/agent-actor": "workspace:*",
     "@print-an-agent/model-invocation-core": "workspace:*",
     "@print-an-agent/base-observability": "workspace:*",
     "@print-an-agent/base-session": "workspace:*",

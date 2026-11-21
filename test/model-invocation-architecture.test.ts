@@ -77,6 +77,6 @@ it('keeps the embedding adapter optional and its standalone consumer on public e
   expect(consumer).toContain("from '@print-an-agent/model-invocation-core'");
   expect(consumer).toContain("from '@print-an-agent/model-invocation-embedding-http'");
   expect(consumer).not.toMatch(
-    /from ['"]\.|\/src\/|@print-an-agent\/(?:base-|workflow-|self-learn-|workbench-)/
+    /from ['"]\.|\/src\/|@print-an-agent\/(?:base-|agent-actor(?:\/|$)|workflow-|self-learn-|workbench-)/
   );
 });

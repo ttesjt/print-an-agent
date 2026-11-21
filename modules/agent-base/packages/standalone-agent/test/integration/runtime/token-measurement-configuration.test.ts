@@ -1,4 +1,4 @@
-import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@print-an-agent/base-actor';
+import { FOREGROUND_INTERACTION_RESPONSIBILITY_ID } from '@print-an-agent/agent-actor';
 import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import { createMemorySessionPersistence } from '@print-an-agent/base-local-adapters';
 import {

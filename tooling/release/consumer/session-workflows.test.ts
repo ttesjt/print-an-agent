@@ -4,11 +4,11 @@ import { runInNewContext } from 'node:vm';
 import { defineAgentIdentity } from '@print-an-agent/base-identity-config/identity';
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   createResponsibilityRouter,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import {
   createDefaultRequestState,
   createDefaultRequestStepOverrides,
@@ -43,9 +43,25 @@ import { createPiFauxRuntime } from '@print-an-agent/model-invocation-pi';
 import { STEP_CARDINALITY, SKIP_STEP, Workflow } from '@print-an-agent/workflow-core';
 import { sessionFixture } from './session-port.ts';
 
+test('packed Agent Actor exposes its renamed API and rejects old or private package paths', async () => {
+  const agentActor = await import('@print-an-agent/agent-actor');
+  assert.equal(agentActor.createAgentActorCatalog, createAgentActorCatalog);
+  assert.equal(Object.hasOwn(agentActor, 'createActorCatalog'), false);
+  const core = await import('@print-an-agent/model-invocation-core');
+  assert.equal(typeof core.createActorCatalog, 'function');
+  for (const specifier of [
+    '@print-an-agent/agent-actor/src/index.js',
+    '@print-an-agent/agent-actor/catalog.js',
+  ]) {
+    await assert.rejects(import(specifier), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+  }
+  const previousPackage = '@print-an-agent/base-actor';
+  await assert.rejects(import(previousPackage), { code: 'ERR_MODULE_NOT_FOUND' });
+});
+
 function routing(engine: ActorEngineInput) {
   return createResponsibilityRouter({
-    actorCatalog: createActorCatalog({
+    actorCatalog: createAgentActorCatalog({
       actors: [{ id: MAIN_ACTOR_ID, engineId: engine.id }],
       engines: [engine],
     }),

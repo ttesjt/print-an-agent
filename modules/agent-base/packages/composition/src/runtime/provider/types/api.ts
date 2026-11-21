@@ -1,7 +1,7 @@
 import type {
-  ActorDefinitionInput,
+  AgentActorDefinitionInput,
   ResponsibilityDefinitionInput,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import type { AgentAPI } from '../../agent-api.js';
 import type { ComposeAgentOptions } from '../../standard-agent/index.js';
 import type { ProviderReadiness, ProviderRuntimeInspection } from './inspection.js';
@@ -12,7 +12,7 @@ export interface CreateProviderAgentAPIOptions extends Omit<
   'actorCatalog' | 'responsibilityCatalog' | 'mainActorId'
 > {
   readonly provider: ProviderRuntimeOptions;
-  readonly mainActor?: Omit<ActorDefinitionInput, 'id' | 'engineId'>;
+  readonly mainActor?: Omit<AgentActorDefinitionInput, 'id' | 'engineId'>;
   readonly responsibilities?: readonly ResponsibilityDefinitionInput[];
 }
 

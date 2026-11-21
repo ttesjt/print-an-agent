@@ -1,5 +1,5 @@
 import { createProviderRuntime, type ProviderRuntime } from '@print-an-agent/base-composition';
-import { createActorCatalog, MAIN_ACTOR_ID } from '@print-an-agent/base-actor';
+import { createAgentActorCatalog, MAIN_ACTOR_ID } from '@print-an-agent/agent-actor';
 import {
   requireCompletionCapability,
   type ActorEngine,
@@ -118,7 +118,7 @@ export async function testWebModelConnection(
 ) {
   await assertWebModelReady(config, host, signal);
   const { engine, provider } = createWebModelRuntime(config, host);
-  const actor = await createActorCatalog({
+  const actor = await createAgentActorCatalog({
     engines: [engine],
     actors: [
       {

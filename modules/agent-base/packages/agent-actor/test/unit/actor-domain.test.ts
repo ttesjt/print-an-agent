@@ -6,7 +6,7 @@ import {
 } from '@print-an-agent/model-invocation-core';
 import {
   AgentActorError,
-  createActorCatalog,
+  createAgentActorCatalog,
   defineAgentActor,
   MAIN_ACTOR_ID,
 } from '../../src/index.js';
@@ -231,7 +231,7 @@ describe('Actor domain', () => {
     const engine = fakeEngine('engine', inspection());
     expectActorError(
       () =>
-        createActorCatalog({
+        createAgentActorCatalog({
           actors: [
             { id: 'main', engineId: 'engine' },
             { id: 'main', engineId: 'engine' },
@@ -242,7 +242,7 @@ describe('Actor domain', () => {
     );
     expectActorError(
       () =>
-        createActorCatalog({
+        createAgentActorCatalog({
           actors: [{ id: 'main', engineId: 'missing' }],
           engines: [engine],
         }),
@@ -251,7 +251,7 @@ describe('Actor domain', () => {
   });
 
   it('returns immutable detached definitions and resolved revisions', async () => {
-    const catalog = createActorCatalog({
+    const catalog = createAgentActorCatalog({
       revision: 7,
       actors: [
         {
@@ -294,7 +294,7 @@ describe('Actor domain', () => {
       usage: mutableUsage,
       timestamp: 1,
     };
-    const catalog = createActorCatalog({
+    const catalog = createAgentActorCatalog({
       actors: [{ id: MAIN_ACTOR_ID, engineId: 'engine' }],
       engines: [
         {
@@ -346,7 +346,7 @@ describe('Actor domain', () => {
   it('fails an unsupported invocation before calling the Engine handler', async () => {
     const calls = inspection();
     const directOnly = fakeEngine('engine', calls);
-    const catalog = createActorCatalog({
+    const catalog = createAgentActorCatalog({
       actors: [
         {
           id: 'main',

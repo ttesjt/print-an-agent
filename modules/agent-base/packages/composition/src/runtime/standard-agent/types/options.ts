@@ -1,4 +1,4 @@
-import type { ActorCatalogPort, ResponsibilityCatalogPort } from '@print-an-agent/base-actor';
+import type { AgentActorCatalogPort, ResponsibilityCatalogPort } from '@print-an-agent/agent-actor';
 import type { AgentIdentityInput } from '@print-an-agent/base-identity-config/identity';
 import type { AgentTraceRuntimeOptions } from '@print-an-agent/base-observability';
 import type {
@@ -25,7 +25,7 @@ import type { RequestAgentRunContext, SessionCompactionAgentRunContext } from '.
 export interface ComposeAgentOptions {
   readonly contextMemory?: import('@print-an-agent/base-request').RequestContextMemory;
   readonly identity: AgentIdentityInput;
-  readonly actorCatalog: ActorCatalogPort;
+  readonly actorCatalog: AgentActorCatalogPort;
   readonly responsibilityCatalog: ResponsibilityCatalogPort;
   readonly mainActorId?: ActorId;
   readonly session?: CompactableSessionPort;

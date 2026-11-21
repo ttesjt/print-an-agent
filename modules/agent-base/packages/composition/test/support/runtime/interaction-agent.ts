@@ -1,9 +1,9 @@
 import {
   BUILT_IN_RESPONSIBILITIES,
-  createActorCatalog,
+  createAgentActorCatalog,
   createResponsibilityCatalog,
   MAIN_ACTOR_ID,
-} from '@print-an-agent/base-actor';
+} from '@print-an-agent/agent-actor';
 import {
   MemoryAgentTraceAdapter,
   MemoryOutputSink,
@@ -65,7 +65,7 @@ export async function interactionAgent(
   const journal = new MemoryRequestJournalAdapter();
   const output = new MemoryOutputSink();
   const trace = new MemoryAgentTraceAdapter({ maxEvents: 512 });
-  const actorCatalog = createActorCatalog({
+  const actorCatalog = createAgentActorCatalog({
     actors: [{ id: MAIN_ACTOR_ID, engineId: 'test-engine' }],
     engines: [
       {

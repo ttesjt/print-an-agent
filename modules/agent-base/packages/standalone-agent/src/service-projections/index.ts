@@ -4,11 +4,11 @@ export { projectStandaloneAgentRuntimeService } from './agent-runtime.js';
 
 export { projectStandaloneSessionManagementService } from './session-management.js';
 
-export type { StandaloneSessionManagementService } from './session-management.js';
+export type { StandaloneSessionManagementService } from './types/session-management.js';
 
 export { projectStandaloneSessionNavigationService } from './session-navigation.js';
 
-export type { StandaloneSessionNavigationService } from './session-navigation.js';
+export type { StandaloneSessionNavigationService } from './types/session-navigation.js';
 
 export type { StandaloneAgentManagementService } from './types/agent-management.js';
 

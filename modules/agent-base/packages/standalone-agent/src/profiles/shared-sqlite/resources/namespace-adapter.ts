@@ -6,9 +6,9 @@ import {
 import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config/identity';
 import { DatabaseSync } from 'node:sqlite';
 import { AgentBaseStandaloneError } from '../../../errors.js';
-import {
-  type SqliteManagedNamespaceTableNames,
-  type SqliteManagedNamespaceTableNamingInput,
+import type {
+  SqliteManagedNamespaceTableNames,
+  SqliteManagedNamespaceTableNamingInput,
 } from '../types/namespace-tables.js';
 import type { SharedSqliteAgentResourceNamespace } from '../types/namespace.js';
 import { normalizeBusyTimeout, normalizeDatabasePath, useDatabase } from './namespace/database.js';

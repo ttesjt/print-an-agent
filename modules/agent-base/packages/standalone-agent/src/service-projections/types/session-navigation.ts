@@ -1,3 +1,31 @@
+import type {
+  SessionBranchForkOutcome,
+  SessionBranchRewindOutcome,
+  SessionBranchSelectionOutcome,
+  SessionNavigationInspectionOutcome,
+} from '@print-an-agent/base-composition';
+import type { SessionNavigationOperationOptions } from '@print-an-agent/base-session';
+
+/** String-input projection of the generic out-of-band Session navigation Service. */
+export interface StandaloneSessionNavigationService {
+  inspect(
+    input: StandaloneSessionNavigationReferenceInput,
+    options?: SessionNavigationOperationOptions
+  ): Promise<SessionNavigationInspectionOutcome>;
+  select(
+    input: StandaloneSelectSessionBranchInput,
+    options?: SessionNavigationOperationOptions
+  ): Promise<SessionBranchSelectionOutcome>;
+  fork(
+    input: StandaloneForkSessionBranchInput,
+    options?: SessionNavigationOperationOptions
+  ): Promise<SessionBranchForkOutcome>;
+  rewind(
+    input: StandaloneRewindSessionBranchInput,
+    options?: SessionNavigationOperationOptions
+  ): Promise<SessionBranchRewindOutcome>;
+}
+
 export interface StandaloneSessionNavigationReferenceInput {
   readonly agentId: string;
   readonly sessionId: string;

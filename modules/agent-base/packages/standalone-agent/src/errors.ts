@@ -1,12 +1,4 @@
-export type AgentBaseStandaloneErrorCode =
-  | 'STANDALONE_CONFIG_INVALID'
-  | 'STANDALONE_ROOT_INVALID'
-  | 'STANDALONE_AGENT_ALREADY_EXISTS'
-  | 'STANDALONE_AGENT_NOT_FOUND'
-  | 'STANDALONE_AGENT_DISABLED'
-  | 'STANDALONE_AGENT_STORAGE_INVALID'
-  | 'STANDALONE_MEMORY_BUSY'
-  | 'STANDALONE_AGENT_STORAGE_FAILED';
+import type { AgentBaseStandaloneErrorCode } from './types.js';
 
 export class AgentBaseStandaloneError extends Error {
   readonly code: AgentBaseStandaloneErrorCode;

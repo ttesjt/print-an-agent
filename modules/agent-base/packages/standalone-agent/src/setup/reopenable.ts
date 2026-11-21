@@ -2,7 +2,7 @@ import { defineManagedAgentComposition } from '@print-an-agent/base-composition'
 import { AgentBaseStandaloneError } from '../errors.js';
 import { setupCloseFailure } from './close-options.js';
 import type { StandaloneSessionDefinition } from './types/definition.js';
-import { type StandaloneSetup, type StandaloneSetupCloseOptions } from './types/setup.js';
+import type { StandaloneSetup, StandaloneSetupCloseOptions } from './types/setup.js';
 
 /** Only for profiles whose concrete adapters acquire/release connections per operation. */
 export function reopenableStandaloneSetup<N>(

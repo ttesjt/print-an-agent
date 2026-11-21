@@ -6,6 +6,7 @@ import {
 } from '@print-an-agent/model-invocation-core';
 import { AgentBaseStandaloneError } from '../../errors.js';
 import type { StandaloneMainActorConfig } from '../types/main-actor.js';
+import type { UnknownRecord } from '../types/validation.js';
 import {
   assertDataFields,
   assertExactKeys,
@@ -13,7 +14,6 @@ import {
   readOptionalDataField,
   readTimeoutField,
   requireRecord,
-  type UnknownRecord,
 } from '../validation.js';
 
 export function parseStandaloneActorInvocationPolicy(value: unknown): ActorInvocationPolicy {

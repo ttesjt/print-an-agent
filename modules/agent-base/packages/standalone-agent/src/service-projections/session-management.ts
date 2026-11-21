@@ -1,61 +1,8 @@
-import type {
-  ManagementOperationOptions,
-  SessionManagementService,
-} from '@print-an-agent/base-composition';
+import type { SessionManagementService } from '@print-an-agent/base-composition';
 import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
-import {
-  parseSessionId,
-  parseTurnId,
-  type RetiredSessionListPage,
-  type SessionExecutionFence,
-  type SessionLifecycleInspection,
-  type SessionLifecycleListPage,
-  type SessionLifecycleSnapshot,
-  type SessionTurnPage,
-} from '@print-an-agent/base-session';
+import { parseSessionId, parseTurnId } from '@print-an-agent/base-session';
 import { projectSessionReference } from './session-reference.js';
-import type {
-  StandaloneListRetiredSessionsInput,
-  StandaloneListSessionsInput,
-  StandaloneListSessionTurnsInput,
-  StandalonePurgeSessionInput,
-  StandaloneRecoverSessionExecutionsInput,
-  StandaloneSessionLifecycleMutationInput,
-} from './types/session-management.js';
-import type { StandaloneSessionReferenceInput } from './types/session-reference.js';
-
-/** String/JSON boundary projection of the generic, branded Session management Service. */
-export interface StandaloneSessionManagementService {
-  list(
-    input: StandaloneListSessionsInput,
-    options?: ManagementOperationOptions
-  ): Promise<SessionLifecycleListPage>;
-  listRetired(
-    input: StandaloneListRetiredSessionsInput,
-    options?: ManagementOperationOptions
-  ): Promise<RetiredSessionListPage>;
-  inspect(
-    input: StandaloneSessionReferenceInput,
-    options?: ManagementOperationOptions
-  ): Promise<SessionLifecycleInspection | undefined>;
-  listTurns(
-    input: StandaloneListSessionTurnsInput,
-    options?: ManagementOperationOptions
-  ): Promise<SessionTurnPage | undefined>;
-  retire(
-    input: StandaloneSessionLifecycleMutationInput,
-    options?: ManagementOperationOptions
-  ): Promise<SessionLifecycleSnapshot>;
-  restore(
-    input: StandaloneSessionLifecycleMutationInput,
-    options?: ManagementOperationOptions
-  ): Promise<SessionLifecycleSnapshot>;
-  purge(input: StandalonePurgeSessionInput, options?: ManagementOperationOptions): Promise<void>;
-  recover(
-    input: StandaloneRecoverSessionExecutionsInput,
-    options?: ManagementOperationOptions
-  ): Promise<SessionExecutionFence>;
-}
+import type { StandaloneSessionManagementService } from './types/session-management.js';
 
 /** Projects branded generic Session management onto the Standalone host/JSON boundary. */
 export function projectStandaloneSessionManagementService(

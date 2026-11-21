@@ -125,10 +125,11 @@ The shared `tooling/architecture/source-boundaries.ts` scanner and cycle checker
 reuse the type checker. These opt-in checks inspect supplied literal modules; TypeScript owns
 resolution and type correctness.
 
-`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session, Composition, Runtime and Request
+`tooling/architecture/source-boundaries.ts` supplies an opt-in source check. Session, Composition, Runtime, Request and Standalone
 declare their entries, shared ancestor contracts/capabilities and dependency directions in
 `test/session-architecture.test.ts`, `test/composition-architecture.test.ts`,
-`test/runtime-architecture.test.ts` and `test/request-architecture.test.ts`. Composition and Runtime also check
+`test/runtime-architecture.test.ts`, `test/request-architecture.test.ts` and
+`test/standalone-architecture.test.ts`. Composition and Runtime also check
 their own dependency declarations and runtime erasure of type modules. Workflow Core declares its
 boundaries in `test/workflow-source-boundaries.test.ts`. `test/source-boundaries.test.ts` qualifies
 the shared checker with accepted and rejected imports. All run in `pnpm test:architecture`, and
@@ -139,12 +140,21 @@ entries, Catalog child entry, shared Identity foundation, and Catalog/Config dep
 that its dependency on Identity is erased. Other packages do not acquire feature-boundary coverage
 simply by containing an `index.ts`.
 
-Request additionally checks runtime erasure of independent type modules and an acyclic internal
-module graph, including type-only edges. It follows the complete internal Sessionless source closure
+Request and Standalone additionally check runtime erasure of independent type modules and an
+acyclic internal module graph, including type-only edges, using the shared literal source scanner.
+Request follows the complete internal Sessionless source closure
 to reject Session-aware implementations and direct Session/runtime/local-adapter dependencies.
 This closure check follows relative literal imports, not transitive imports inside external packages.
-Its package tests guard the runtime export names; consumer typechecks exercise generic Workflow
+Request package tests guard the runtime export names; consumer typechecks exercise generic Workflow
 customization and declaration portability through the compiled public package entry.
+
+Standalone declares the outer profiles boundary and all three child profile APIs. Shared Config,
+Provider, runtime, Setup, SQLite and Service projection layers cannot depend back on those profiles;
+Agent Memory cannot depend on profile implementations. Its package tests preserve runtime export
+names and exercise Profile lifecycle, namespace publication, real SQLite reopen and optional Memory
+resource selection. Public-package consumers in Base integration tests, CLI and Agent Web exercise
+the compiled API; consumer declaration emission checks portable inferred types. Standalone is a
+private workspace package and is outside the npm release artifact verification scope.
 
 The check scans all opted-in production `.ts` sources, including type-only imports, re-exports,
 import types and literal dynamic imports. It checks every enclosing boundary, explicitly shared

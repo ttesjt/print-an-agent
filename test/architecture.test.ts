@@ -977,7 +977,6 @@ describe('module architecture', () => {
         continue;
       }
       if (
-        isPathWithin(sourceFile, join(sourceRoot, 'resources')) ||
         isPathWithin(sourceFile, join(sourceRoot, 'agent-memory', 'provisioning')) ||
         isPathWithin(sourceFile, join(sourceRoot, 'sqlite')) ||
         ['memory', 'directory', 'shared-sqlite'].some((profile) =>

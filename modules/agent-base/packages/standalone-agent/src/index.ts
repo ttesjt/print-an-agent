@@ -60,7 +60,7 @@ export { createStandaloneMemorySetup } from './profiles/index.js';
 
 export type { StandaloneMemoryDefinition, StandaloneMemorySetup } from './profiles/index.js';
 
-export type { MemoryAgentResourceNamespace } from './resources/memory/provisioner.js';
+export type { MemoryAgentResourceNamespace } from './profiles/index.js';
 
 export type { FilesystemAgentResourceNamespace } from './profiles/index.js';
 
@@ -68,10 +68,7 @@ export type { SharedSqliteAgentResourceNamespace } from './profiles/index.js';
 
 export type { StandaloneSetup } from './setup/index.js';
 
-export type {
-  MemoryAuthorityFactory,
-  MemorySessionPersistenceFactory,
-} from './resources/memory/contracts.js';
+export type { MemoryAuthorityFactory, MemorySessionPersistenceFactory } from './profiles/index.js';
 
 export { createSharedSqliteStandaloneDefinition } from './profiles/index.js';
 
@@ -116,7 +113,7 @@ export type {
 
 export { AgentBaseStandaloneError } from './errors.js';
 
-export type { AgentBaseStandaloneErrorCode } from './errors.js';
+export type { AgentBaseStandaloneErrorCode } from './types.js';
 
 export type {
   StandaloneRuntimeMaterializationInput,
@@ -165,7 +162,7 @@ export type {
   CreateStandaloneDirectorySessionServiceOptions,
 } from './profiles/index.js';
 
-export type { CreateStandaloneMemoryProfileOptions } from './types.js';
+export type { CreateStandaloneMemoryProfileOptions } from './profiles/index.js';
 
 export type {
   StandaloneCredentialRuntimeOptions,
@@ -187,14 +184,17 @@ export type {
   MemoryCapabilityAcquirer,
   MemoryStorageAcquisition,
   MemoryTextCounter,
-  StandaloneContextMemoryOptions,
-  StandaloneMemoryManagementOptions,
-  StandaloneRetrievalMemoryOptions,
-} from './resources/agent-memory/contracts.js';
+} from './agent-memory/index.js';
 
-export { DEFAULT_MEMORY_MEASUREMENT_REF } from './resources/agent-memory/recipe.js';
+export type { StandaloneContextMemoryOptions } from './agent-memory/index.js';
+
+export type { StandaloneMemoryManagementOptions } from './agent-memory/index.js';
+
+export type { StandaloneRetrievalMemoryOptions } from './agent-memory/index.js';
+
+export { DEFAULT_MEMORY_MEASUREMENT_REF } from './agent-memory/index.js';
 
 export type {
   MemoryManagedStandaloneDefinition,
   StandaloneSessionContextMemory,
-} from './resources/agent-memory/setup.js';
+} from './agent-memory/index.js';

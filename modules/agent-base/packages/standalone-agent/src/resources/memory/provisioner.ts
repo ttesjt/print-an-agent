@@ -22,8 +22,8 @@ import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config
 import { randomUUID } from 'node:crypto';
 import type { StandaloneAgentConfig } from '../../configuration/index.js';
 import { AgentBaseStandaloneError } from '../../errors.js';
-import { setupCloseFailure } from '../../profiles/setup.js';
 import type { StandaloneRuntimePorts } from '../../runtime/index.js';
+import { setupCloseFailure } from '../../setup/index.js';
 import type { CreateStandaloneMemoryProfileOptions } from '../../types.js';
 import { memoryResourceBlueprint } from './blueprint.js';
 

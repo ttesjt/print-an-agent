@@ -10,10 +10,6 @@ import {
   type RuntimeMemorySessionPort,
   type SessionContextMemoryCoordinator,
   type SessionContextMemoryService,
-  type SessionManagedAgentCompositionDefinition,
-  type SessionManagementPorts,
-  type SessionNavigationCapability,
-  type SessionNavigationPorts,
 } from '@print-an-agent/base-composition';
 import {
   createResourceScope,
@@ -21,25 +17,15 @@ import {
   type ResourceScope,
 } from '@print-an-agent/base-composition/resource-registry';
 import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
-import type { StandaloneAgentConfig } from '../../configuration/index.js';
 import { AgentBaseStandaloneError } from '../../errors.js';
-import { setupCloseFailure, type StandaloneSetupCloseOptions } from '../../profiles/setup.js';
-import type { StandaloneRawAgent, StandaloneRuntimePorts } from '../../runtime/index.js';
+import type { StandaloneSessionDefinition as BaseDefinition } from '../../setup/index.js';
+import { setupCloseFailure, type StandaloneSetupCloseOptions } from '../../setup/index.js';
 import { contextMemoryProvisioning } from './context.js';
 import type { AgentMemoryStorageBinding, StandaloneMemoryManagementOptions } from './contracts.js';
 import { memoryManagementRecipe, type MemoryManagementRecipe } from './recipe.js';
 import { retrievalMemoryProvisioning } from './retrieval.js';
 import { RuntimeMemoryLifetime } from './runtime-lifetime.js';
 import { runtimeMemoryProvisioning, runtimeMemorySession } from './runtime.js';
-
-type BaseDefinition<N> = SessionManagedAgentCompositionDefinition<
-  StandaloneAgentConfig,
-  N,
-  StandaloneRuntimePorts,
-  StandaloneRawAgent,
-  SessionManagementPorts
-> &
-  SessionNavigationCapability<N, SessionNavigationPorts>;
 
 export type MemoryManagedStandaloneDefinition<N> = BaseDefinition<N> &
   Partial<ContextMemoryManagementCapability<N> & RetrievalMemoryManagementCapability<N>>;

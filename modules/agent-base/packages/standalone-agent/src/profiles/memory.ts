@@ -1,33 +1,31 @@
 import {
   defineManagedAgentComposition,
-  type SessionNavigationCapability,
-  type SessionNavigationPorts,
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
+  type SessionNavigationCapability,
+  type SessionNavigationPorts,
 } from '@print-an-agent/base-composition';
-import { STANDALONE_AGENT_CONFIG_CODEC } from '../config.js';
-import {
-  createMemoryStandaloneResourceProvisioner,
-  type MemoryAgentResourceNamespace,
-} from '../resources/memory/provisioner.js';
-import {
-  materializeStandaloneAgentRuntime,
-  type StandaloneRuntimePorts,
-} from '../runtime/materialize-standalone-agent.js';
-import { assertStandaloneRuntimeOptions } from '../runtime-policies.js';
+import type { StandaloneAgentConfig } from '../configuration/index.js';
+import { STANDALONE_AGENT_CONFIG_CODEC } from '../configuration/index.js';
 import { AgentBaseStandaloneError } from '../errors.js';
-import type { StandaloneSetup } from './setup.js';
-import { withStandaloneMemoryManagement } from '../resources/agent-memory/setup.js';
+import type { StandaloneMemoryManagementOptions } from '../resources/agent-memory/contracts.js';
 import type {
   MemoryManagedStandaloneDefinition,
   StandaloneSessionContextMemory,
 } from '../resources/agent-memory/setup.js';
-import type { StandaloneMemoryManagementOptions } from '../resources/agent-memory/contracts.js';
-import type {
-  CreateStandaloneMemoryProfileOptions,
-  StandaloneAgentConfig,
-  StandaloneRawAgent,
-} from '../types.js';
+import { withStandaloneMemoryManagement } from '../resources/agent-memory/setup.js';
+import {
+  createMemoryStandaloneResourceProvisioner,
+  type MemoryAgentResourceNamespace,
+} from '../resources/memory/provisioner.js';
+import type { StandaloneRawAgent } from '../runtime/index.js';
+import {
+  assertStandaloneRuntimeOptions,
+  materializeStandaloneAgentRuntime,
+  type StandaloneRuntimePorts,
+} from '../runtime/index.js';
+import type { CreateStandaloneMemoryProfileOptions } from '../types.js';
+import type { StandaloneSetup } from './setup.js';
 
 export type StandaloneMemoryDefinition = SessionManagedAgentCompositionDefinition<
   StandaloneAgentConfig,

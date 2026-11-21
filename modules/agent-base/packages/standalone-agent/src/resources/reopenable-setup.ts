@@ -5,14 +5,14 @@ import {
   type SessionNavigationCapability,
   type SessionNavigationPorts,
 } from '@print-an-agent/base-composition';
+import type { StandaloneAgentConfig } from '../configuration/index.js';
 import { AgentBaseStandaloneError } from '../errors.js';
 import {
   setupCloseFailure,
   type StandaloneSetup,
   type StandaloneSetupCloseOptions,
 } from '../profiles/setup.js';
-import type { StandaloneAgentConfig, StandaloneRawAgent } from '../types.js';
-import type { StandaloneRuntimePorts } from '../runtime/materialize-standalone-agent.js';
+import type { StandaloneRawAgent, StandaloneRuntimePorts } from '../runtime/index.js';
 
 type Definition<N> = SessionManagedAgentCompositionDefinition<
   StandaloneAgentConfig,

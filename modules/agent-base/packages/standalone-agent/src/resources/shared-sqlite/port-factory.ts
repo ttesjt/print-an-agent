@@ -1,9 +1,3 @@
-import {
-  SqliteAgentConfigAdapter,
-  SqliteAgentIdentityCatalogAdapter,
-  SqliteSessionAdapter,
-  createSqliteSessionPersistence,
-} from '@print-an-agent/base-local-adapters';
 import type {
   ManagedAgentAuthorityPortFactory,
   ManagedAgentNamespace,
@@ -15,10 +9,16 @@ import type {
   SessionNavigationPortFactory,
   SessionNavigationPorts,
 } from '@print-an-agent/base-composition';
-import type { StandaloneRuntimePorts } from '../../runtime/materialize-standalone-agent.js';
-import type { StandaloneAgentConfig } from '../../types.js';
-import type { SharedSqliteAgentResourceNamespace } from './types.js';
+import {
+  SqliteAgentConfigAdapter,
+  SqliteAgentIdentityCatalogAdapter,
+  SqliteSessionAdapter,
+  createSqliteSessionPersistence,
+} from '@print-an-agent/base-local-adapters';
+import type { StandaloneAgentConfig } from '../../configuration/index.js';
+import type { StandaloneRuntimePorts } from '../../runtime/index.js';
 import type { ResolvedStandaloneManagedSqliteTableNames } from '../sqlite-table-naming.js';
+import type { SharedSqliteAgentResourceNamespace } from './types.js';
 
 export interface SharedSqliteStandalonePortFactories {
   readonly createAuthorityPorts: ManagedAgentAuthorityPortFactory<SharedSqliteAgentResourceNamespace>;

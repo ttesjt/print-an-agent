@@ -2,10 +2,8 @@ import type {
   ProviderCredentialResolutionRequest,
   ProviderCredentialResolver,
 } from '@print-an-agent/model-invocation-core';
-import type {
-  StandaloneCredentialRuntimeOptions,
-  StandaloneCredentialBindingInput,
-} from './types.js';
+import type { StandaloneCredentialBindingInput } from '../configuration/index.js';
+import type { StandaloneCredentialRuntimeOptions } from './types.js';
 
 export function createStandaloneCredentialResolver(
   binding: Readonly<StandaloneCredentialBindingInput>,

@@ -17,8 +17,11 @@ export interface SqliteManagedNamespaceTableNames {
 }
 
 const DEFAULT_TABLE_PREFIX = 'agent_';
+
 const MAX_TABLE_NAME_LENGTH = 128;
+
 const TABLE_NAME_KEYS = new Set<string>(['schema', 'namespaces']);
+
 const TABLE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export const DEFAULT_SQLITE_MANAGED_NAMESPACE_TABLE_NAMES: SqliteManagedNamespaceTableNames =

@@ -1,27 +1,27 @@
 import {
   scopedAgentMemoryId,
-  type RetrievalMemoryManagementCapability,
   type MemoryManagementOptions,
   type MemoryProvisioningRequest,
+  type RetrievalMemoryManagementCapability,
 } from '@print-an-agent/base-composition';
 import {
   createRetrievalContentBundle,
-  createRetrievalQueries,
   createRetrievalContext,
+  createRetrievalMemoryBundle,
+  createRetrievalQueries,
   createRetrievalReadContextDefinition,
   createRetrievalSearchDefinition,
-  createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
-  replayRetrievalMutation,
-  parseMutation,
   defineRetrievalPolicy,
+  parseMutation,
+  replayRetrievalMutation,
   RetrievalMemoryError,
   type SpaceInput,
 } from '@print-an-agent/retrieval-memory';
 import { WorkflowBundle } from '@print-an-agent/workflow-core/bundle';
-import { DEFAULT_MEMORY_MEASUREMENT_REF } from './recipe.js';
-import type { StandaloneMemoryManagementOptions } from './contracts.js';
 import type { MemoryAllocationResolver } from './context.js';
+import type { StandaloneMemoryManagementOptions } from './contracts.js';
+import { DEFAULT_MEMORY_MEASUREMENT_REF } from './recipe.js';
 import { resolveMemoryResource } from './resolve.js';
 
 export function retrievalMemoryProvisioning<N>(

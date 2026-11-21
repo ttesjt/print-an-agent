@@ -6,13 +6,16 @@ import {
   type ManagedAgentSnapshot,
 } from '@print-an-agent/base-composition';
 import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
-import { defineStandaloneAgentConfig, defineStandaloneAgentManifest } from '../../src/config.js';
+import {
+  defineStandaloneAgentConfig,
+  defineStandaloneAgentManifest,
+} from '../../src/configuration/index.js';
 import type {
   StandaloneAgentConfig,
   StandaloneAgentConfigInput,
-  StandaloneAgentManifestInput,
-  StandaloneRawAgent,
-} from '../../src/types.js';
+} from '../../src/configuration/types/agent.js';
+import type { StandaloneAgentManifestInput } from '../../src/configuration/types/manifest.js';
+import type { StandaloneRawAgent } from '../../src/runtime/types/agent.js';
 
 export interface ManagedProfileHarness {
   create(

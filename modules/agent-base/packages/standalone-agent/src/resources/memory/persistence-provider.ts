@@ -7,7 +7,7 @@ import {
   type CoordinatedSessionPersistence,
 } from '@print-an-agent/base-local-adapters';
 import type { CreateStandaloneMemoryProfileOptions } from '../../types.js';
-import { parseAllocationBinding, describeAllocation } from './allocation-binding.js';
+import { describeAllocation, parseAllocationBinding } from './allocation-binding.js';
 
 function isPersistence(value: unknown): value is CoordinatedSessionPersistence {
   if (

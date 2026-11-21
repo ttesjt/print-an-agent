@@ -1,36 +1,36 @@
 import {
+  CONTEXT_MEMORY_TOOL_NAMES,
   defineManagedAgentComposition,
+  recoverSessionWithContextMemory,
   validateMemoryIdentifier,
   type ContextMemoryManagementCapability,
+  type ManagedAgentNamespace,
+  type ManagedAgentNamespaceReference,
   type RetrievalMemoryManagementCapability,
+  type RuntimeMemorySessionPort,
+  type SessionContextMemoryCoordinator,
+  type SessionContextMemoryService,
   type SessionManagedAgentCompositionDefinition,
   type SessionManagementPorts,
   type SessionNavigationCapability,
   type SessionNavigationPorts,
-  type ManagedAgentNamespaceReference,
-  type ManagedAgentNamespace,
-  type SessionContextMemoryService,
-  type SessionContextMemoryCoordinator,
-  type RuntimeMemorySessionPort,
-  CONTEXT_MEMORY_TOOL_NAMES,
-  recoverSessionWithContextMemory,
 } from '@print-an-agent/base-composition';
 import {
   createResourceScope,
   ResourceCleanupError,
   type ResourceScope,
 } from '@print-an-agent/base-composition/resource-registry';
-import type { StandaloneAgentConfig, StandaloneRawAgent } from '../../types.js';
-import type { StandaloneRuntimePorts } from '../../runtime/materialize-standalone-agent.js';
-import { setupCloseFailure, type StandaloneSetupCloseOptions } from '../../profiles/setup.js';
-import { AgentBaseStandaloneError } from '../../errors.js';
-import { memoryManagementRecipe, type MemoryManagementRecipe } from './recipe.js';
-import { contextMemoryProvisioning } from './context.js';
-import { retrievalMemoryProvisioning } from './retrieval.js';
-import type { AgentMemoryStorageBinding, StandaloneMemoryManagementOptions } from './contracts.js';
-import { runtimeMemoryProvisioning, runtimeMemorySession } from './runtime.js';
 import { parseAgentId } from '@print-an-agent/base-identity-config/identity';
+import type { StandaloneAgentConfig } from '../../configuration/index.js';
+import { AgentBaseStandaloneError } from '../../errors.js';
+import { setupCloseFailure, type StandaloneSetupCloseOptions } from '../../profiles/setup.js';
+import type { StandaloneRawAgent, StandaloneRuntimePorts } from '../../runtime/index.js';
+import { contextMemoryProvisioning } from './context.js';
+import type { AgentMemoryStorageBinding, StandaloneMemoryManagementOptions } from './contracts.js';
+import { memoryManagementRecipe, type MemoryManagementRecipe } from './recipe.js';
+import { retrievalMemoryProvisioning } from './retrieval.js';
 import { RuntimeMemoryLifetime } from './runtime-lifetime.js';
+import { runtimeMemoryProvisioning, runtimeMemorySession } from './runtime.js';
 
 type BaseDefinition<N> = SessionManagedAgentCompositionDefinition<
   StandaloneAgentConfig,
@@ -40,12 +40,15 @@ type BaseDefinition<N> = SessionManagedAgentCompositionDefinition<
   SessionManagementPorts
 > &
   SessionNavigationCapability<N, SessionNavigationPorts>;
+
 export type MemoryManagedStandaloneDefinition<N> = BaseDefinition<N> &
   Partial<ContextMemoryManagementCapability<N> & RetrievalMemoryManagementCapability<N>>;
+
 interface OwnedAllocation {
   readonly scope: ResourceScope;
   readonly recipe: MemoryManagementRecipe;
 }
+
 export interface StandaloneSessionContextMemory {
   resolve(agentId: string): Promise<SessionContextMemoryCoordinator>;
   /** Product Profile supplies its declared Session authority; no adapters are fetched from another Service. */

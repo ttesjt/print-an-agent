@@ -1,17 +1,19 @@
-import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import type {
   AgentConfigProjectionPort,
   AgentConfigProjectionView,
   ManagedAgentNamespace,
 } from '@print-an-agent/base-composition';
-import { encodeStandaloneAgentManifest } from '../../config.js';
+import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import type { StandaloneAgentConfig, StandaloneAgentManifest } from '../../configuration/index.js';
+import { encodeStandaloneAgentManifest } from '../../configuration/index.js';
 import { AgentBaseStandaloneError } from '../../errors.js';
-import type { StandaloneAgentConfig, StandaloneAgentManifest } from '../../types.js';
 import type { FilesystemAgentResourceNamespace } from './types.js';
 
 const MANIFEST_FILE_NAME = 'agent.json';
+
 const MAX_MANIFEST_BYTES = 65_536;
+
 const TEMPORARY_ID_PATTERN = /^[a-zA-Z0-9-]{1,128}$/;
 
 function isMissingPathError(value: unknown): boolean {

@@ -4,6 +4,7 @@ import type {
   MemoryProvisioningRequest,
 } from '@print-an-agent/base-composition';
 import { scopedAgentMemoryId } from '@print-an-agent/base-composition';
+import type { ResourceRegistry } from '@print-an-agent/base-composition/resource-registry';
 import {
   createContextMemoryBundle,
   createContextMemoryResources,
@@ -14,19 +15,19 @@ import {
   type ApplyMemoryInput,
   type ConfigureMemoryInput,
   type CreateMemoryInput,
-  type ReadContextInput,
   type DeterministicMemoryMutation,
+  type ReadContextInput,
 } from '@print-an-agent/context-memory';
-import type { ResourceRegistry } from '@print-an-agent/base-composition/resource-registry';
+import type { StandaloneMemoryManagementOptions } from './contracts.js';
 import type { MemoryManagementRecipe } from './recipe.js';
 import { DEFAULT_MEMORY_MEASUREMENT_REF } from './recipe.js';
-import type { StandaloneMemoryManagementOptions } from './contracts.js';
 import { resolveMemoryResource } from './resolve.js';
 
 export interface MemoryProfileAllocation {
   readonly registry: ResourceRegistry;
   readonly recipe: MemoryManagementRecipe;
 }
+
 export type MemoryAllocationResolver<N> = (
   namespace: MemoryProvisioningRequest<N, unknown>['namespace']
 ) => Promise<MemoryProfileAllocation>;

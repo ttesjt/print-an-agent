@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import {
   ManagedAgentNamespaceError,
   type ManagedAgentAuthorityPortFactory,
@@ -13,18 +12,20 @@ import {
   type SessionNavigationPorts,
   type StagedManagedAgentNamespace,
 } from '@print-an-agent/base-composition';
-import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config/identity';
 import {
   createResourceScope,
   ResourceCleanupError,
   type ResourceCloseOptions,
   type ResourceScope,
 } from '@print-an-agent/base-composition/resource-registry';
+import { parseAgentId, type AgentId } from '@print-an-agent/base-identity-config/identity';
+import { randomUUID } from 'node:crypto';
+import type { StandaloneAgentConfig } from '../../configuration/index.js';
 import { AgentBaseStandaloneError } from '../../errors.js';
-import type { StandaloneRuntimePorts } from '../../runtime/materialize-standalone-agent.js';
-import type { StandaloneAgentConfig, CreateStandaloneMemoryProfileOptions } from '../../types.js';
-import { memoryResourceBlueprint } from './blueprint.js';
 import { setupCloseFailure } from '../../profiles/setup.js';
+import type { StandaloneRuntimePorts } from '../../runtime/index.js';
+import type { CreateStandaloneMemoryProfileOptions } from '../../types.js';
+import { memoryResourceBlueprint } from './blueprint.js';
 
 /** Opaque allocation identity, not an AgentId or storage path. */
 export interface MemoryAgentResourceNamespace {

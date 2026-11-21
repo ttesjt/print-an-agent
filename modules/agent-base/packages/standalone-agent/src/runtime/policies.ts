@@ -5,18 +5,18 @@ import {
   validateRequestPolicy,
   type RequestPolicy,
 } from '@print-an-agent/base-request';
-import { mergeStepOverrides, resolveStepRegistry } from '@print-an-agent/workflow-core';
 import {
-  validateSessionCompactionPolicy,
   bindSessionCompactionTokenCounter,
+  validateSessionCompactionPolicy,
   type SessionCompactionPolicy,
 } from '@print-an-agent/base-session';
-import { AgentBaseStandaloneError } from './errors.js';
+import { mergeStepOverrides, resolveStepRegistry } from '@print-an-agent/workflow-core';
 import type {
   StandaloneRequestExecutionConfig,
-  StandaloneRuntimeOptions,
   StandaloneSessionCompactionExecutionConfig,
-} from './types.js';
+} from '../configuration/index.js';
+import { AgentBaseStandaloneError } from '../errors.js';
+import type { StandaloneRuntimeOptions } from './types/options.js';
 
 const REQUEST_LIMIT_KEYS = Object.freeze([
   'maxMessageCharacters',

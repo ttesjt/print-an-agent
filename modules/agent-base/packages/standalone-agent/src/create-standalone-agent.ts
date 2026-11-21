@@ -6,9 +6,10 @@ import {
   parseAgentId,
   type AgentIdentityInput,
 } from '@print-an-agent/base-identity-config/identity';
-import { defineStandaloneAgentConfig } from './config.js';
+import type { StandaloneAgentConfigInput } from './configuration/index.js';
+import { defineStandaloneAgentConfig } from './configuration/index.js';
 import type { StandaloneSetup } from './profiles/setup.js';
-import type { StandaloneAgentConfigInput, StandaloneRawAgent } from './types.js';
+import type { StandaloneRawAgent } from './runtime/index.js';
 
 /** Initializes authority, then opens a raw Agent. The caller always owns and closes setup. */
 export async function createStandaloneAgent<N>(

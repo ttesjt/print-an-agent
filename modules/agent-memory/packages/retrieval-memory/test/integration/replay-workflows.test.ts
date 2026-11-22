@@ -4,8 +4,8 @@ import {
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
   findRetrievalCommit,
-} from '../src/index.js';
-import { fixture } from './support/fixture.js';
+} from '@print-an-agent/retrieval-memory';
+import { fixture } from '../support/fixture.js';
 
 it.each(['cancellation', 'executor'] as const)(
   'preserves a replayed receipt when preparation is followed by %s',

@@ -1,20 +1,25 @@
+import type { RetrievalWorkflowResources } from './types/resources.js';
+import type { RetrievalWorkflowDefinitions, RetrievalBundleOptions } from './types/bundle.js';
 import { WorkflowBundle } from '@print-an-agent/workflow-core/bundle';
 import {
   createRetrievalCreateDefinition,
-  createRetrievalGetDefinition,
   createRetrievalIngestDefinition,
+  createRetrievalReindexDefinition,
+  createRetrievalRemoveDefinition,
+  createRetrievalUpdateDefinition,
+} from './mutation/index.js';
+import {
+  createRetrievalGetDefinition,
   createRetrievalInspectDefinition,
   createRetrievalListDefinition,
   createRetrievalReceiptDefinition,
-  createRetrievalReindexDefinition,
-  createRetrievalRemoveDefinition,
   createRetrievalSearchDefinition,
-  createRetrievalUpdateDefinition,
-} from './definitions.js';
-import { createRetrievalReadContextDefinition } from './context.js';
-import type { RetrievalBundleOptions } from './types/bundle.js';
+} from './query/index.js';
+import { createRetrievalReadContextDefinition } from './context/index.js';
 
-export function createRetrievalMemoryBundle(options: RetrievalBundleOptions) {
+export function createRetrievalMemoryBundle(
+  options: RetrievalBundleOptions
+): WorkflowBundle<RetrievalWorkflowResources, RetrievalWorkflowDefinitions> {
   return new WorkflowBundle({
     resources: options.resources,
     workflows: {

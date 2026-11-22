@@ -3,8 +3,7 @@ import type { MutationOperation } from '../../../mutation-operations.js';
 import type { MutationResult } from '../../../types/publication.js';
 import type { PreparedMutation } from '../../../persistence/index.js';
 import type { RetrievalMutationResources } from './resources.js';
-import type { CommittedRunState } from '../../shared/types/commit.js';
-import type { SkippedRetrieval } from '../../shared/types/outcome.js';
+import type { CommittedRunState, SkippedRetrieval } from '../../shared/index.js';
 
 export type RetrievalMutationOutcome = MutationResult | SkippedRetrieval;
 

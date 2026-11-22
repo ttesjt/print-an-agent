@@ -1,7 +1,2 @@
-export type { MetadataFilter } from './types.js';
-
-export type { Primitive } from './types.js';
-
-export { matchesMetadata } from './filter.js';
-
-export { parseMetadataFilter } from './filter.js';
+export type { MetadataFilter, Primitive } from './types.js';
+export { matchesMetadata, parseMetadataFilter } from './filter.js';

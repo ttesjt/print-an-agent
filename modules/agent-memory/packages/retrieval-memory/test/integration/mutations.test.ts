@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
-import { fixture } from './support/fixture.js';
-import { createRetrievalMutations, RetrievalMemoryError } from '../src/index.js';
+import { fixture } from '../support/fixture.js';
+import { createRetrievalMutations, RetrievalMemoryError } from '@print-an-agent/retrieval-memory';
 it('creates, ingests, replaces, performs no-op, removes and replays original facts', async () => {
   const f = fixture();
   await f.create();

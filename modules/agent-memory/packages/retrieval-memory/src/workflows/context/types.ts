@@ -1,8 +1,12 @@
 import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
-import type { ContextCandidate, ReadContextInput, ReadContextResult } from '../../context/index.js';
+import type {
+  ContextCandidate,
+  ReadContextInput,
+  ReadContextResult,
+  RetrievalContextOperations,
+} from '../../context/index.js';
 import type { RetrievalHit } from '../../types/search.js';
-import type { RetrievalWorkflowResources } from '../types/resources.js';
-import type { RetrievalReadOutcome } from '../shared/types/outcome.js';
+import type { RetrievalExecutionPolicy, RetrievalReadOutcome } from '../shared/index.js';
 
 export type ContextStepName = 'runOperation' | 'prepareInput' | 'search' | 'select' | 'finalize';
 
@@ -18,7 +22,7 @@ export type RetrievalContextDefinition = BundleWorkflowDefinition<
   ContextStepName,
   ReadContextInput,
   ContextRunState,
-  Pick<RetrievalWorkflowResources, 'context' | 'execution'>,
+  RetrievalContextResources,
   RetrievalReadOutcome<ReadContextResult>
 >;
 
@@ -26,3 +30,8 @@ export type RetrievalContextWorkflowOptions = Pick<
   RetrievalContextDefinition,
   'stepOverrides' | 'executeStep' | 'condition' | 'lifecycle' | 'createRunId'
 >;
+
+export interface RetrievalContextResources {
+  readonly context: RetrievalContextOperations;
+  readonly execution?: RetrievalExecutionPolicy;
+}

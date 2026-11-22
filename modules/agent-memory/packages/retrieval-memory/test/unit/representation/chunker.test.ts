@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { createCodepointChunker } from '../src/index.js';
+import { createCodepointChunker } from '../../../src/index.js';
 
 it.each([
   { window: 4, overlap: 0, content: '        a😀b         ' },

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../support/fixture.js';
 import {
   prepareCosineVector,
   assertCanonicalVector,
@@ -7,7 +7,7 @@ import {
   parseMetadataFilter,
   matchesMetadata,
   jsonSnapshot,
-} from '../src/index.js';
+} from '../../src/index.js';
 it.each([1e20, 1e-30, Number.MAX_VALUE, Number.MIN_VALUE])(
   'normalizes extreme finite scale %s before float32 conversion',
   (scale) => {

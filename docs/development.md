@@ -130,6 +130,16 @@ It also checks type-module erasure and literal source cycles including type refe
 rejected boundary probes qualify this declaration; runtime ownership and computed module paths still
 need review. It runs in both `pnpm test:memory-qualification` and `pnpm test:architecture`.
 
+Retrieval Memory declares its domain entries, nested Chunking/Embedding, Content/Search queries and
+Workflow families in `test/retrieval-memory-source-boundaries.test.ts`. The metric module is an
+explicit shared Representation subentry; children use it without importing their parent aggregate.
+The same shared tooling checks one-way dependencies, type-module erasure and literal source cycles,
+including type references, with accepted and rejected boundary probes. Both Memory qualification and
+the aggregate architecture gate run these checks. Package tests preserve public exports and defaults;
+public type consumers check Workflow customization and declaration portability. Real SQLite/vec0 and
+loopback Embedding HTTP tests remain in their adapter and independent qualification workspaces.
+Computed imports, semantic equivalence and borrowed-resource ownership still require review.
+
 Agent Actor declares its Actors/Responsibilities entries, shared error contracts and one-way
 dependencies in `test/agent-actor-source-boundaries.test.ts`, also run by
 `pnpm test:agent-actor-qualification`.

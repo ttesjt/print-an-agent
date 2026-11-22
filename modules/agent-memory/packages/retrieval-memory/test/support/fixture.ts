@@ -10,7 +10,7 @@ import {
   type RetrievalReceipt,
   type RetrievalSpace,
   type StoredEntry,
-} from '../../src/index.js';
+} from '@print-an-agent/retrieval-memory';
 export function fixture() {
   const spaces = new Map<string, RetrievalSpace>();
   const entries = new Map<string, StoredEntry>();

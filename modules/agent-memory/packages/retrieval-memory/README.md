@@ -144,3 +144,65 @@ The [SQLite adapter](../retrieval-memory-sqlite/README.md) provides the default 
 Other backends need no path/SQLite API, but must provide the same synchronous visibility and truthful
 commit results. No extraction LLM, parsing/crawling, hybrid/rerank, cross-memory promotion, model
 migration or background jobs are implied by this release.
+
+## Source ownership
+
+```text
+src/
+  index.ts                         # Deliberate, named package API
+  errors.ts                        # Shared error identity and cancellation checks
+  mutation-operations.ts           # Controlled operations and derived union
+  defaults.ts                      # Compatible public snapshot of feature defaults
+  types/                           # Shared Entry, Space, representation and publication facts
+  values/                          # JSON, Unicode, identity and canonical-value rules
+  policy/                          # Business limits, defaults and validation
+  content/                         # Authoritative Entry/Space schemas and content bodies
+  filters/                         # Metadata filter language and matching semantics
+  representation/
+    prepare.ts                     # Chunk, embed and validate a derived representation
+    validation.ts                  # Complete representation schema and publication guards
+    metric.ts                      # Public shared subentry: cosine and canonical float32 rules
+    chunking/                      # Codepoint windows, chunk schema, exact source spans
+    embedding/                     # Formal binding resolution and batched embedding
+  persistence/                     # Backend protocol, receipts, replay, CAS and commit evidence
+    types/                         # Backend port and prepared-publication contracts
+  mutations/                       # Mutation facade and candidate preparation
+    types/                         # Raw resources and mutation operations
+  queries/
+    create-queries.ts              # Public Content/Search capability composition
+    content/                       # Inspect, get, getReceipt and list; backend only
+    search/                        # Query embedding, search invocation and result evidence
+  context/                         # Search, selection, rendering/metering and final provenance guards
+    types/                         # Inputs, results, renderers, meter and operations
+  workflows/
+    create-resources.ts            # Full domain capability binding; no I/O or ownership transfer
+    create-bundle.ts               # Complete native Workflow catalog
+    types/                         # Package-level resource/definition composition
+    shared/                        # Deadline, detached input, scoped signal, outcome and lifecycle
+    mutation/                      # Mutation definitions, one step graph and owned types
+    query/                         # Read definitions, one step graph and owned types
+    context/                       # Context definition, one step graph and owned types
+    content/                       # Backend-only resources and Bundle, reusing native definitions
+```
+
+Every feature exposes named symbols through `index.ts`. Cross-feature imports respect each enclosing
+entry. `representation/metric.ts` is an explicitly declared subentry shared with Content and the
+Embedding child; children do not import their parent's aggregate. Independent types stay under their
+owner's `types.ts` or `types/`; shared root types contain domain facts, while Workflow resource
+composition stays in `workflows/types/`. Chunking, queries and context own their defaults; the root
+`RETRIEVAL_DEFAULTS` export assembles their compatible public snapshot.
+
+Domain operations own validation and publication semantics. Workflow families own native step graphs,
+cardinality and extension options; full and Content-only Bundles use the same definitions. Each
+borrowed call receives the composed operation-deadline and active Step-scope signal, so cancellation
+inside a parallel group reaches borrowed work without cancelling its parent. Bundles never close the
+host's backend, embedding capability, token counter or renderer.
+
+Focused behavior tests live in `test/unit/`; mutation/publication/Workflow contracts exercise the
+compiled package entry in `test/integration/`. The independent qualification
+workspace's `test/types/` checks public customization and resource requirements. The root `test/retrieval-memory-source-boundaries.test.ts` declares entries and dependency
+rules and checks literal cycles including type references, type-module erasure, and accepted/rejected
+boundary probes. It runs with `pnpm test:memory-qualification` and `pnpm test:architecture`. Semantic
+ownership, computed imports and runtime resource release still require review; code size is advisory.
+Actual SQLite/vec0 and Embedding HTTP qualification remain in their adapter and independent consumer
+workspaces.

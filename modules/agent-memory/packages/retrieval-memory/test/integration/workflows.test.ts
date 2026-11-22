@@ -2,12 +2,13 @@ import { expect, it } from 'vitest';
 import { Workflow, skipWorkflow } from '@print-an-agent/workflow-core';
 import {
   createRetrievalCreateDefinition,
+  createRetrievalContentBundle,
   createRetrievalIngestDefinition,
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
   findRetrievalCommit,
-} from '../src/index.js';
-import { fixture } from './support/fixture.js';
+} from '@print-an-agent/retrieval-memory';
+import { fixture } from '../support/fixture.js';
 it('assembles native standalone and Bundle mutations using the same borrowed domain resources', async () => {
   const f = fixture();
   const resources = createRetrievalWorkflowResources(f.resources);
@@ -199,4 +200,34 @@ it('cancels borrowed preparation when a peer Step fails without cancelling the p
     clearTimeout(guard);
     parent.abort();
   }
+});
+
+it('assembles backend-only content workflows from the same native definitions', async () => {
+  const f = fixture();
+  await f.create();
+  const saved = await f.mutations.run('ingest', {
+    memoryId: 'space',
+    requestId: 'save',
+    content: 'text',
+  });
+  const embeddings = f.calls.embeddings;
+  const bundle = createRetrievalContentBundle({ backend: f.backend });
+  await expect(
+    bundle.workflows.inspect.run({ input: { memoryId: 'space' } })
+  ).resolves.toMatchObject({ status: 'completed', value: { sequence: 1 } });
+  const entryId = saved.receipt.entryId;
+  if (entryId === null) throw new Error('Expected saved Entry');
+  await expect(
+    bundle.workflows.get.run({ input: { memoryId: 'space', entryId } })
+  ).resolves.toMatchObject({ status: 'completed', value: { content: 'text', revision: 1 } });
+  await expect(
+    bundle.workflows.remove.run({
+      input: { memoryId: 'space', entryId, requestId: 'remove', expectedRevision: 1 },
+    })
+  ).resolves.toMatchObject({ status: 'committed', receipt: { sequence: 2 } });
+  await expect(
+    bundle.workflows.getReceipt.run({ input: { memoryId: 'space', requestId: 'remove' } })
+  ).resolves.toMatchObject({ status: 'completed', value: { operation: 'remove', sequence: 2 } });
+  expect(f.calls.embeddings).toBe(embeddings);
+  expect(f.entries.size).toBe(0);
 });

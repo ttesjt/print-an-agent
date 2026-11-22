@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { expect, it } from 'vitest';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../../../support/fixture.js';
 it('restores an original receipt before attempting unrelated current-state reads', async () => {
   const f = await fixture();
   await f.create();

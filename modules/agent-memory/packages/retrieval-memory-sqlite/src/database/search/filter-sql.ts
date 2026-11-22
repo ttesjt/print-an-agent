@@ -19,7 +19,9 @@ export function compileMetadataFilter(filter: MetadataFilter): {
     if (filter.op === 'and') return `(${filter.filters.map(visit).join(' AND ')})`;
     const path = (column: string, index: number): string => {
       const alias = `rm_json_${nextAlias++}`;
-      parameters.push(filter.path[index]!);
+      const key = filter.path[index];
+      if (key === undefined) throw new Error('MetadataFilter path was not validated.');
+      parameters.push(key);
       const condition =
         index < filter.path.length - 1
           ? `${alias}.type='object' AND ${path(`${alias}.value`, index + 1)}`

@@ -5,16 +5,17 @@ import {
   type RetrievalPublication,
   type BackendSearch,
 } from '@print-an-agent/retrieval-memory';
-import { openDatabase } from './database/schema.js';
-import { readEntry, readReceipt, readSpace } from './database/records.js';
-import { publish } from './database/publication.js';
-import { listEntries, searchEntries } from './database/queries.js';
-import { checkCancellation, transaction } from './database/transaction.js';
-import type { WorkerConfiguration, WorkerRequest, WorkerReply } from './protocol.js';
+import { openDatabase, type SqliteDatabaseConfiguration } from './database/index.js';
+import { getEntry, getReceipt, inspectSpace } from './database/index.js';
+import { publish } from './database/index.js';
+import { searchEntries } from './database/index.js';
+import { listEntries } from './database/index.js';
+import { checkCancellation } from './cancellation.js';
+import type { WorkerRequest, WorkerReply } from './protocol.js';
 import { failureDetails } from './failures.js';
 const port = parentPort;
 if (port === null) throw new Error('SQLite retrieval worker needs a host.');
-const db = openDatabase(workerData as WorkerConfiguration);
+const db = openDatabase(workerData as SqliteDatabaseConfiguration);
 let cleanupFailure: RetrievalMemoryError | undefined;
 port.postMessage({ ready: true });
 port.on('message', (request: WorkerRequest) => {
@@ -39,13 +40,13 @@ port.on('message', (request: WorkerRequest) => {
     let value: unknown;
     switch (request.operation) {
       case 'inspect':
-        value = readSpace(db, identifier(a));
+        value = inspectSpace(db, identifier(a));
         break;
       case 'get':
-        value = transaction(db, 'read', flag, () => readEntry(db, identifier(a), identifier(b)));
+        value = getEntry(db, identifier(a), identifier(b), flag);
         break;
       case 'getReceipt':
-        value = readReceipt(db, identifier(a), identifier(b));
+        value = getReceipt(db, identifier(a), identifier(b));
         break;
       case 'publish':
         value = publish(db, a as RetrievalPublication, flag);

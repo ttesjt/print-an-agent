@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { load } from 'sqlite-vec';
 import { expect, it } from 'vitest';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../../../support/fixture.js';
 it('keeps authority and binary representations readable when the derived index is lost and rebuilds it', async () => {
   const f = await fixture();
   await f.create();

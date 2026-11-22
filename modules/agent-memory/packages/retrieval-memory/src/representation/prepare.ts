@@ -1,101 +1,17 @@
 import { randomUUID } from 'node:crypto';
-import { EMBEDDING_TASK, EmbeddingError } from '@print-an-agent/model-invocation-core';
-import type { EntryRepresentation, RetrievalEntry, RetrievalSpace } from '../contracts/data.js';
-import type { ChunkerResolver, EmbeddingResolver } from '../contracts/ports.js';
-import type { RetrievalPolicy } from '../config.js';
+import { EMBEDDING_TASK } from '@print-an-agent/model-invocation-core';
+import type { EntryRepresentation } from '../types/representation.js';
+import type { RetrievalEntry } from '../types/entry.js';
+import type { RetrievalSpace } from '../types/space.js';
+import type { ChunkerResolver } from './chunking/index.js';
+import type { EmbeddingResolver } from './embedding/index.js';
+import type { RetrievalPolicy } from '../policy/index.js';
 import { assertNotAborted, fail, RetrievalMemoryError } from '../errors.js';
-import { prepareCosineVector } from './metric.js';
-import { validateRepresentation } from '../validation/state.js';
-import { record } from '../validation/json.js';
-import { parseChunkContent } from '../validation/chunks.js';
-export async function resolveEmbedding(
-  resolver: EmbeddingResolver,
-  ref: string,
-  signal: AbortSignal,
-  dimensions?: number
-) {
-  assertNotAborted(signal);
-  let capability;
-  try {
-    capability = await resolver.resolve(ref, signal);
-  } catch (cause) {
-    assertNotAborted(signal);
-    throw new RetrievalMemoryError('EMBEDDING_FAILED', 'Embedding binding could not be resolved.', {
-      cause,
-    });
-  }
-  assertNotAborted(signal);
-  if (
-    capability.descriptor.representationRef !== ref ||
-    (dimensions !== undefined && capability.descriptor.representation.dimensions !== dimensions)
-  )
-    fail('EMBEDDING_MISMATCH', 'Embedding binding does not match the Space representation.');
-  return capability;
-}
-export async function embedTexts(
-  resolver: EmbeddingResolver,
-  space: RetrievalSpace,
-  texts: readonly string[],
-  task: 'document' | 'query',
-  policy: RetrievalPolicy,
-  signal: AbortSignal
-): Promise<readonly (readonly number[])[]> {
-  const capability = await resolveEmbedding(
-    resolver,
-    space.index.embeddingRef,
-    signal,
-    space.index.dimensions
-  );
-  const batchSize = Math.min(
-    policy.embeddingBatchSize,
-    capability.descriptor.limits.maxBatchSize ?? policy.embeddingBatchSize
-  );
-  const vectors: (readonly number[])[] = [];
-  for (let offset = 0; offset < texts.length; offset += batchSize) {
-    assertNotAborted(signal);
-    const inputs = texts
-      .slice(offset, offset + batchSize)
-      .map((text, i) => ({ id: `input-${i}`, text }));
-    let result;
-    try {
-      result = await capability.embed({ task, inputs, signal });
-    } catch (cause) {
-      assertNotAborted(signal);
-      throw new RetrievalMemoryError(
-        cause instanceof EmbeddingError && cause.code === 'EMBEDDING_INVOCATION_TIMEOUT'
-          ? 'OPERATION_TIMED_OUT'
-          : cause instanceof EmbeddingError && cause.code === 'EMBEDDING_RESPONSE_INVALID'
-            ? 'EMBEDDING_INVALID'
-            : 'EMBEDDING_FAILED',
-        'Embedding invocation failed.',
-        { cause }
-      );
-    }
-    assertNotAborted(signal);
-    try {
-      record(result);
-    } catch (cause) {
-      throw new RetrievalMemoryError('EMBEDDING_INVALID', 'Embedding result is malformed.', {
-        cause,
-      });
-    }
-    if (
-      result.representationRef !== space.index.embeddingRef ||
-      result.task !== task ||
-      result.embeddings.length !== inputs.length
-    )
-      fail('EMBEDDING_MISMATCH', 'Embedding result identity or batch does not match.');
-    const byId = new Map(result.embeddings.map((item) => [item.id, item.vector]));
-    if (byId.size !== inputs.length)
-      fail('EMBEDDING_INVALID', 'Embedding batch has duplicate results.');
-    for (const input of inputs) {
-      const raw = byId.get(input.id);
-      if (raw === undefined) fail('EMBEDDING_INVALID', 'Embedding batch is incomplete.');
-      vectors.push(prepareCosineVector(raw, space.index.dimensions));
-    }
-  }
-  return vectors;
-}
+import { validateRepresentation } from './validation.js';
+import { record } from '../values/index.js';
+import { parseChunkContent } from './chunking/index.js';
+import { embedTexts } from './embedding/index.js';
+
 export async function prepareRepresentation(
   entry: RetrievalEntry,
   space: RetrievalSpace,

@@ -1,8 +1,8 @@
 import { WorkflowBundle } from '@print-an-agent/workflow-core/bundle';
-import type { RetrievalBackend } from '../contracts/ports.js';
-import type { RetrievalPolicy } from '../config.js';
-import { createRetrievalContentQueries } from '../domain/queries.js';
-import { createRetrievalStateMutations } from '../domain/mutations.js';
+import type { RetrievalBackend } from '../persistence/index.js';
+import type { RetrievalPolicy } from '../policy/index.js';
+import { createRetrievalContentQueries } from '../queries/index.js';
+import { createRetrievalStateMutations } from '../mutations/index.js';
 import {
   createRetrievalInspectDefinition,
   createRetrievalGetDefinition,
@@ -10,7 +10,7 @@ import {
   createRetrievalListDefinition,
   createRetrievalRemoveDefinition,
 } from './definitions.js';
-import type { RetrievalExecutionPolicy } from './execution.js';
+import type { RetrievalExecutionPolicy } from './shared/types/execution.js';
 
 /** Independent, hackable content workflows; no representation or model resources required. */
 export function createRetrievalContentBundle(options: {

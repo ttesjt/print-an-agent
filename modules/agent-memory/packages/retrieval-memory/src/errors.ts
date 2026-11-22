@@ -1,4 +1,5 @@
-import type { CommitEvidence } from './contracts/publication.js';
+import type { CommitEvidence } from './types/publication.js';
+
 export type RetrievalErrorCode =
   | 'INPUT_INVALID'
   | 'CONFIG_INVALID'
@@ -23,6 +24,7 @@ export type RetrievalErrorCode =
   | 'STORAGE_FAILED'
   | 'COMMIT_UNKNOWN'
   | 'CLEANUP_FAILED';
+
 export class RetrievalMemoryError extends Error {
   readonly name = 'RetrievalMemoryError';
   readonly commit?: CommitEvidence;
@@ -35,9 +37,11 @@ export class RetrievalMemoryError extends Error {
     if (options.commit !== undefined) this.commit = options.commit;
   }
 }
+
 export function fail(code: RetrievalErrorCode, message: string): never {
   throw new RetrievalMemoryError(code, message);
 }
+
 export function assertNotAborted(signal?: AbortSignal): void {
   if (signal?.aborted)
     throw new RetrievalMemoryError('OPERATION_ABORTED', 'Memory operation was cancelled.', {

@@ -1,16 +1,21 @@
+import type { ContextMeter } from './types/meter.js';
 import {
   bindTextTokenCounter,
   requireTokenMeasurement,
-  type TextTokenInput,
-  type TokenCounter,
-  type TokenMeasurement,
 } from '@print-an-agent/model-invocation-core';
-import type { ResolvedContextInput, RetrievalContextOptions } from '../contracts/context.js';
-import type { RetrievalHit } from '../contracts/data.js';
+import type {
+  TextTokenInput,
+  TokenCounter,
+  TokenMeasurement,
+} from '@print-an-agent/model-invocation-core';
+import type { ResolvedContextInput } from './types/input.js';
+import type { RetrievalContextOptions } from './types/rendering.js';
+import type { RetrievalHit } from '../types/search.js';
 import { assertNotAborted, fail, RetrievalMemoryError } from '../errors.js';
-import { text } from '../validation/json.js';
+import { text } from '../values/index.js';
 import { DEFAULT_RETRIEVAL_RENDERER } from './renderer.js';
-export function createContextMeter(options: RetrievalContextOptions) {
+
+export function createContextMeter(options: RetrievalContextOptions): ContextMeter {
   const counter: TokenCounter<TextTokenInput> | undefined =
     options.counter === undefined ? undefined : bindTextTokenCounter(options.counter);
   return {

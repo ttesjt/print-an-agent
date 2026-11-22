@@ -1,8 +1,14 @@
-import type { ResolvedContextInput } from '../contracts/context.js';
-import type { RetrievalPolicy } from '../config.js';
-import { RETRIEVAL_DEFAULTS } from '../config.js';
-import { exact, identifier, integer, record, text } from '../validation/json.js';
-import { parseSearchInput } from '../validation/queries.js';
+import {
+  DEFAULT_CONTEXT_CANDIDATES,
+  DEFAULT_CONTEXT_MAX_CHUNKS,
+  DEFAULT_CONTEXT_MAX_TOKENS,
+  DEFAULT_CONTEXT_SEPARATOR,
+} from './defaults.js';
+import type { ResolvedContextInput } from './types/input.js';
+import type { RetrievalPolicy } from '../policy/index.js';
+import { exact, identifier, integer, record, text } from '../values/index.js';
+import { parseSearchInput } from '../queries/index.js';
+
 export function parseContextInput(
   value: unknown,
   policy: RetrievalPolicy,
@@ -19,7 +25,7 @@ export function parseContextInput(
     'rendererRef',
     'separator',
   ]);
-  const candidates = integer(input.candidates ?? RETRIEVAL_DEFAULTS.contextCandidates);
+  const candidates = integer(input.candidates ?? DEFAULT_CONTEXT_CANDIDATES);
   const search = parseSearchInput(
     {
       memoryId: input.memoryId,
@@ -34,12 +40,10 @@ export function parseContextInput(
     query: search.query,
     ...(search.filter === undefined ? {} : { filter: search.filter }),
     candidates,
-    maxChunks: integer(input.maxChunks ?? RETRIEVAL_DEFAULTS.contextMaxChunks),
+    maxChunks: integer(input.maxChunks ?? DEFAULT_CONTEXT_MAX_CHUNKS),
     maxTokens:
-      input.maxTokens === null
-        ? null
-        : integer(input.maxTokens ?? RETRIEVAL_DEFAULTS.contextMaxTokens, 0),
+      input.maxTokens === null ? null : integer(input.maxTokens ?? DEFAULT_CONTEXT_MAX_TOKENS, 0),
     rendererRef: identifier(input.rendererRef ?? rendererRef),
-    separator: text(input.separator ?? RETRIEVAL_DEFAULTS.separator),
+    separator: text(input.separator ?? DEFAULT_CONTEXT_SEPARATOR),
   };
 }

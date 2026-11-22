@@ -1,0 +1,7 @@
+export const DEFAULT_CONTEXT_CANDIDATES = 20;
+
+export const DEFAULT_CONTEXT_MAX_CHUNKS = 8;
+
+export const DEFAULT_CONTEXT_MAX_TOKENS = 4096;
+
+export const DEFAULT_CONTEXT_SEPARATOR = '\n\n';

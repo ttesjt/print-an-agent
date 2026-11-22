@@ -1,10 +1,6 @@
 import { effectiveRetrievalSignal } from './shared/index.js';
-import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
-import type { MutationOperation } from '../contracts/inputs.js';
-import type { MutationResult } from '../contracts/publication.js';
-import type { PreparedMutation } from '../domain/mutations.js';
-import type { RetrievalMutationResources } from './resources.js';
-import { jsonSnapshot } from '../validation/json.js';
+import type { MutationOperation } from '../mutation-operations.js';
+import { jsonSnapshot } from '../values/index.js';
 import { fail, RetrievalMemoryError } from '../errors.js';
 import { runRetrievalExecution } from './execution.js';
 import {
@@ -12,34 +8,12 @@ import {
   preserveRetrievalCommit,
   retrievalExecutor,
   retrievalLifecycle,
-  type CommittedRunState,
 } from './outcomes.js';
-export interface SkippedRetrieval {
-  readonly status: 'skipped';
-  readonly reason: string;
-}
-export type RetrievalMutationOutcome = MutationResult | SkippedRetrieval;
-export type MutationStepName = 'runOperation' | 'prepareInput' | 'prepareCandidate' | 'publish';
-export interface MutationState<I> extends CommittedRunState {
-  signal?: AbortSignal;
-  input: I;
-  candidate?: PreparedMutation;
-  outcome?: RetrievalMutationOutcome;
-}
-export type RetrievalMutationDefinition<
-  I,
-  K extends MutationOperation = MutationOperation,
-> = BundleWorkflowDefinition<
-  MutationStepName,
-  I,
-  MutationState<I>,
-  RetrievalMutationResources<K>,
-  RetrievalMutationOutcome
->;
-export type RetrievalMutationOptions<I, K extends MutationOperation = MutationOperation> = Pick<
-  RetrievalMutationDefinition<I, K>,
-  'stepOverrides' | 'executeStep' | 'condition' | 'lifecycle' | 'createRunId'
->;
+import type {
+  RetrievalMutationDefinition,
+  RetrievalMutationOptions,
+} from './mutation/types/workflow.js';
+
 export function createRetrievalMutationDefinition<
   I,
   K extends MutationOperation = MutationOperation,

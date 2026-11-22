@@ -1,17 +1,14 @@
-import type { MemoryStore } from '../contracts/ports.js';
-import type { MemoryWorkflowResources } from './resources.js';
-import { loadMemory, replayMutation } from '../domain/access.js';
-import { parseDeterministicMemoryRequest } from '../domain/deterministic-request.js';
+import type { MemoryStore } from '../persistence/index.js';
+import type { MemoryStateResources } from './state/types.js';
+import { loadMemory, replayMutation, parseMemoryReceipt } from '../persistence/index.js';
+import { parseDeterministicMemoryRequest } from '../mutations/index.js';
 import { assertMemoryNotAborted, ContextMemoryError } from '../errors.js';
-import { identity, jsonValue, keys, record } from '../validation/value.js';
-import { parseMemoryReceipt } from '../validation/receipt.js';
+import { identity, jsonValue, keys, record } from '../values/index.js';
 
 /** Raw authority queries require neither a tokenizer nor a renderer nor a model. */
-export function createContextMemoryStateResources(
-  store: MemoryStore
-): MemoryWorkflowResources<'inspect' | 'getReceipt' | 'replay'> {
+export function createContextMemoryStateResources(store: MemoryStore): MemoryStateResources {
   return Object.freeze({
-    memory: Object.freeze<MemoryWorkflowResources<'inspect' | 'getReceipt' | 'replay'>['memory']>({
+    memory: Object.freeze<MemoryStateResources['memory']>({
       async inspect(input, signal) {
         const data = record(jsonValue(input), 'memory lookup');
         keys(data, ['memoryId']);

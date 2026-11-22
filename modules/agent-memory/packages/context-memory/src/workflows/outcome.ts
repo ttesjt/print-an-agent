@@ -1,13 +1,8 @@
 import type { StepExecutor } from '@print-an-agent/workflow-core';
 import { ContextMemoryError } from '../errors.js';
-import { parseMemoryReceipt } from '../validation/receipt.js';
-import type { CommitStatus } from '../contracts/receipt.js';
-import { canonicalJson, jsonValue } from '../validation/value.js';
-
-export interface MemoryOperationOutput<O> {
-  /** An operation can complete with undefined. The wrapper records that it ran. */
-  operationOutput?: Readonly<{ value: O }>;
-}
+import { parseMemoryReceipt } from '../persistence/index.js';
+import { canonicalJson, jsonValue } from '../values/index.js';
+import type { MemoryOperationOutput } from './shared/types/output.js';
 
 export function requireMemoryOperationOutput<O>(state: Readonly<MemoryOperationOutput<O>>): O {
   if (state.operationOutput === undefined)
@@ -51,32 +46,6 @@ export function preserveMemoryCommit(cause: unknown, result: unknown): unknown {
       commit: { status: 'committed', receipt },
     }
   );
-}
-
-/** Filter evidence before ranking it; unrelated outer receipts must not hide matching causes. */
-export function findContextMemoryCommit(
-  error: unknown,
-  accept: (commit: CommitStatus) => boolean = () => true
-): CommitStatus | undefined {
-  const pending: unknown[] = [error];
-  const seen = new Set<Error>();
-  let result: CommitStatus | undefined;
-  while (pending.length !== 0) {
-    const cause = pending.pop();
-    if (!(cause instanceof Error) || seen.has(cause)) continue;
-    seen.add(cause);
-    const own = cause instanceof ContextMemoryError ? cause.commit : undefined;
-    if (own !== undefined && accept(own)) {
-      if (own.status === 'committed') return own;
-      if (result === undefined || own.status === 'unknown') result = own;
-    }
-    const children: unknown[] =
-      cause instanceof AggregateError
-        ? [...(cause.errors as unknown[]), cause.cause]
-        : [cause.cause];
-    pending.push(...children.reverse());
-  }
-  return result;
 }
 
 export function memoryExecutor<

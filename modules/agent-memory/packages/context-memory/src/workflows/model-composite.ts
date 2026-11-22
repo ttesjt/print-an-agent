@@ -1,13 +1,10 @@
 import { runWithExecutionTimeout } from '@print-an-agent/workflow-core';
-import type { ModelMemoryOperation } from '../contracts/model.js';
+import type { ModelMemoryOperation } from '../model-update/index.js';
 import { ContextMemoryError, assertMemoryNotAborted } from '../errors.js';
-import {
-  bindModelMemorySignal,
-  modelMemorySignal,
-  type ModelMemoryContext,
-} from './model-types.js';
+import { bindModelMemorySignal, modelMemorySignal } from './model-types.js';
+import type { ModelMemoryContext } from './model-driven/types/workflow.js';
 import { requireUpdate } from './model-steps.js';
-import { isMemoryPlannerTimeout } from '../model/failures.js';
+import { isMemoryPlannerTimeout } from '../model-update/index.js';
 import { preserveMemoryCommit } from './outcome.js';
 
 /** A resolved Promise only yields microtasks; retries must also admit timers and external aborts. */
@@ -22,10 +19,12 @@ function assessment(context: ModelMemoryContext) {
     throw new ContextMemoryError('INPUT_INVALID', 'Candidate assessment is missing.');
   return context.state.assessment;
 }
+
 async function measure(context: ModelMemoryContext) {
   await context.runStep('measureCandidate');
   await context.runStep('assessCandidate');
 }
+
 async function compact(context: ModelMemoryContext) {
   const { policy } = context.resources;
   const update = requireUpdate(context);
@@ -79,6 +78,7 @@ async function compact(context: ModelMemoryContext) {
       await context.runStep('refineCompactionPlan');
   }
 }
+
 async function execute(context: ModelMemoryContext, operation: ModelMemoryOperation) {
   await context.runStep('prepareInput');
   while (true) {
@@ -133,6 +133,7 @@ async function execute(context: ModelMemoryContext, operation: ModelMemoryOperat
     }
   }
 }
+
 /** One domain deadline for the complete run, not a renewed timer per generation. */
 export async function runModelMemory(context: ModelMemoryContext, operation: ModelMemoryOperation) {
   try {

@@ -7,26 +7,22 @@ import {
   createMemoryGetReceiptDefinition,
   createMemoryInspectDefinition,
 } from './deterministic.js';
-import type { MemoryWorkflowResources } from './resources.js';
-import type { ModelMemoryResources } from './model-resources.js';
+import type { MemoryWorkflowResources } from './deterministic/types/resources.js';
+import type { ModelMemoryResources } from './model-driven/types/resources.js';
 import {
   createMemoryObserveDefinition,
   createMemoryEditDefinition,
   createMemoryCompactDefinition,
 } from './model-definition.js';
+import type {
+  MemoryWorkflowDefinitions,
+  ContextMemoryBundleOptions,
+} from './deterministic/types/bundle.js';
+import type {
+  ModelMemoryWorkflowDefinitions,
+  ModelContextMemoryBundleOptions,
+} from './model-driven/types/bundle.js';
 
-export interface MemoryWorkflowDefinitions {
-  readonly inspect: ReturnType<typeof createMemoryInspectDefinition>;
-  readonly create: ReturnType<typeof createMemoryCreateDefinition>;
-  readonly apply: ReturnType<typeof createMemoryApplyDefinition>;
-  readonly configure: ReturnType<typeof createMemoryConfigureDefinition>;
-  readonly readContext: ReturnType<typeof createMemoryReadContextDefinition>;
-  readonly getReceipt: ReturnType<typeof createMemoryGetReceiptDefinition>;
-}
-export interface ContextMemoryBundleOptions {
-  readonly resources: MemoryWorkflowResources;
-  readonly workflows?: Partial<MemoryWorkflowDefinitions>;
-}
 /** Internal shared recipe; all public Bundle variants use the same default definitions. */
 export function memoryWorkflowDefinitions(
   workflows?: Partial<MemoryWorkflowDefinitions>
@@ -40,6 +36,7 @@ export function memoryWorkflowDefinitions(
     getReceipt: workflows?.getReceipt ?? createMemoryGetReceiptDefinition(),
   };
 }
+
 export function createContextMemoryStateBundle(options: {
   readonly resources: MemoryWorkflowResources<'inspect' | 'getReceipt' | 'replay'>;
   readonly workflows?: Partial<Pick<MemoryWorkflowDefinitions, 'inspect' | 'getReceipt'>>;
@@ -52,26 +49,21 @@ export function createContextMemoryStateBundle(options: {
     },
   });
 }
-export interface ModelMemoryWorkflowDefinitions extends MemoryWorkflowDefinitions {
-  readonly observe: ReturnType<typeof createMemoryObserveDefinition>;
-  readonly edit: ReturnType<typeof createMemoryEditDefinition>;
-  readonly compact: ReturnType<typeof createMemoryCompactDefinition>;
-}
-export interface ModelContextMemoryBundleOptions {
-  readonly resources: ModelMemoryResources;
-  readonly workflows?: Partial<ModelMemoryWorkflowDefinitions>;
-}
+
 function modelOptions(
   options: ContextMemoryBundleOptions | ModelContextMemoryBundleOptions
 ): options is ModelContextMemoryBundleOptions {
   return 'updates' in options.resources && 'planner' in options.resources;
 }
+
 export function createContextMemoryBundle(
   options: ModelContextMemoryBundleOptions
 ): WorkflowBundle<ModelMemoryResources, ModelMemoryWorkflowDefinitions>;
+
 export function createContextMemoryBundle(
   options: ContextMemoryBundleOptions
 ): WorkflowBundle<MemoryWorkflowResources, MemoryWorkflowDefinitions>;
+
 export function createContextMemoryBundle(
   options: ContextMemoryBundleOptions | ModelContextMemoryBundleOptions
 ) {

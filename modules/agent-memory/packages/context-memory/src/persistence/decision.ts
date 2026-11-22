@@ -1,69 +1,13 @@
-import type { MemoryItem, MemorySnapshot } from '../contracts/document.js';
-import type {
-  MemoryChanges,
-  MemoryReceipt,
-  MutationRequest,
-  StoreCommit,
-} from '../contracts/receipt.js';
-import { equalValue } from '../domain/digest.js';
+import type { MemorySnapshot } from '../types/document.js';
+import type { MemoryReceipt } from '../types/receipt.js';
+import type { StoreCommit } from './types/store.js';
+import { equalValue, integer } from '../values/index.js';
 import { ContextMemoryError } from '../errors.js';
-import {
-  parseCommandOutcomes,
-  parseMutationRequest,
-  requestDigest,
-} from '../validation/request.js';
-import { parseMemorySnapshot, parseMemoryState } from '../validation/state.js';
-import { integer, keys, record } from '../validation/value.js';
+import { requestDigest } from './request.js';
+import { parseMemorySnapshot } from '../document/index.js';
+import { parseStoreCommit } from './commit-input.js';
+import { summarizeMemoryChanges } from './changes.js';
 
-export function parseStoreCommit(value: unknown): StoreCommit {
-  const input = record(value, 'store commit');
-  keys(input, ['request', 'expectedRevision', 'state', 'commandOutcomes']);
-  const request = parseMutationRequest(input.request);
-  const expectedRevision =
-    input.expectedRevision === null ? null : integer(input.expectedRevision, 'expectedRevision', 1);
-  if (
-    (request.operation === 'create' || request.operation === 'fork') !==
-    (expectedRevision === null)
-  )
-    throw new ContextMemoryError(
-      'INPUT_INVALID',
-      'Only creation accepts a null expected revision.'
-    );
-  return {
-    request,
-    expectedRevision,
-    state: parseMemoryState(input.state),
-    commandOutcomes: parseCommandOutcomes(input.commandOutcomes),
-  };
-}
-export function summarizeMemoryChanges(
-  before: readonly MemoryItem[],
-  after: readonly MemoryItem[]
-): MemoryChanges {
-  const previous = new Map(before.map((item) => [item.id, item]));
-  const next = new Map(after.map((item) => [item.id, item]));
-  return {
-    addedItemIds: after.filter((item) => !previous.has(item.id)).map((item) => item.id),
-    updatedItemIds: after
-      .filter((item) => previous.has(item.id) && !equalValue(item, previous.get(item.id)))
-      .map((item) => item.id),
-    removedItemIds: before.filter((item) => !next.has(item.id)).map((item) => item.id),
-  };
-}
-export function assertReceiptMatches(receipt: MemoryReceipt, request: MutationRequest): void {
-  if (
-    receipt.memoryId !== request.memoryId ||
-    receipt.requestId !== request.requestId ||
-    receipt.operation !== request.operation ||
-    receipt.inputDigest !== requestDigest(request)
-  ) {
-    throw new ContextMemoryError(
-      'REQUEST_CONFLICT',
-      'Request identity was already used with different business input.',
-      { memoryId: request.memoryId, commit: { status: 'not-committed' } }
-    );
-  }
-}
 /** Run inside the adapter's atomic request/CAS boundary, after checking for an existing receipt. */
 export function decideMemoryCommit(
   previousInput: MemorySnapshot | undefined,

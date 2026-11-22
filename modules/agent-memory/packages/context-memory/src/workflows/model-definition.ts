@@ -4,8 +4,11 @@ import type {
   ModelMemoryInput,
   ModelMemoryOperation,
   ObserveMemoryInput,
-} from '../contracts/model.js';
-import type { ModelMemoryDefinition, ModelMemoryWorkflowOptions } from './model-types.js';
+} from '../model-update/index.js';
+import type {
+  ModelMemoryDefinition,
+  ModelMemoryWorkflowOptions,
+} from './model-driven/types/workflow.js';
 import { modelMemorySteps } from './model-steps.js';
 import { runModelMemory } from './model-composite.js';
 import { memoryLifecycle } from './lifecycle.js';
@@ -59,16 +62,19 @@ function definition<I extends ModelMemoryInput>(
     },
   };
 }
+
 export function createMemoryObserveDefinition(
   options: ModelMemoryWorkflowOptions<ObserveMemoryInput> = {}
 ) {
   return definition('observe', options);
 }
+
 export function createMemoryEditDefinition(
   options: ModelMemoryWorkflowOptions<EditMemoryInput> = {}
 ) {
   return definition('edit', options);
 }
+
 export function createMemoryCompactDefinition(
   options: ModelMemoryWorkflowOptions<CompactMemoryInput> = {}
 ) {

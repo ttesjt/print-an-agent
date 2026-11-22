@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { defineTextTokenCounterConfig } from '../../src/index.js';
+import { defineTextTokenCounterConfig } from '../../../src/index.js';
 
 function configurationFailure(input: unknown): unknown {
   try {

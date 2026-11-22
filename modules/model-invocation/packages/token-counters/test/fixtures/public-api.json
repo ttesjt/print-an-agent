@@ -1,0 +1,26 @@
+{
+  "names": [
+    "CharacterTokenEstimatorOptions",
+    "DEFAULT_CHARACTERS_PER_TOKEN",
+    "TEXT_TOKEN_COUNTER_KIND",
+    "TIKTOKEN_ENCODING",
+    "TextTokenCounterConfig",
+    "TextTokenCounterConfigInput",
+    "TextTokenCounterReferenceResolver",
+    "TiktokenEncoding",
+    "TiktokenTextCounterOptions",
+    "createCharacterTokenEstimator",
+    "createTiktokenTextCounter",
+    "defineTextTokenCounterConfig",
+    "resolveTextTokenCounterConfig"
+  ],
+  "runtime": [
+    "DEFAULT_CHARACTERS_PER_TOKEN",
+    "TEXT_TOKEN_COUNTER_KIND",
+    "TIKTOKEN_ENCODING",
+    "createCharacterTokenEstimator",
+    "createTiktokenTextCounter",
+    "defineTextTokenCounterConfig",
+    "resolveTextTokenCounterConfig"
+  ]
+}

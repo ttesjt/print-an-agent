@@ -1,0 +1,194 @@
+{
+  "snapshots": [
+    {
+      "memoryId": "compat",
+      "revision": 1,
+      "config": {
+        "measurementRef": "chars",
+        "render": {
+          "format": "text",
+          "separator": "\n"
+        },
+        "maxContextTokens": null,
+        "maxItems": null,
+        "maxItemTokens": null,
+        "compactionTarget": {
+          "ratio": 0.8,
+          "reserveTokens": 0
+        }
+      },
+      "items": [
+        {
+          "id": "fixed-item",
+          "content": "alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha "
+        }
+      ],
+      "measurement": {
+        "tokens": 720,
+        "accuracy": "exact",
+        "measurementRef": "chars",
+        "inputProtocolRef": "token-input:text",
+        "scope": "text",
+        "rendererRef": "context-memory.renderer.v1",
+        "renderDigest": "sha256:06572cdd4d001fc0c80892022c94ca5081d6bcffed7b452079b7deaaac8eac08",
+        "itemsDigest": "sha256:a5e39cf86e2d5a9eef4b079cf3b8f91c91ed82d45720a3bc022a60d72a61cf96",
+        "itemTokenCounts": [
+          {
+            "itemId": "fixed-item",
+            "contentDigest": "sha256:91ecea2bd0138a25397fde6e750e06b38c84f073dee153c9e7cac2ea379484ec",
+            "tokens": 720,
+            "accuracy": "exact",
+            "measurementRef": "chars",
+            "inputProtocolRef": "token-input:text",
+            "scope": "text"
+          }
+        ]
+      }
+    },
+    {
+      "memoryId": "compat",
+      "revision": 2,
+      "config": {
+        "measurementRef": "chars",
+        "render": {
+          "format": "text",
+          "separator": "\n"
+        },
+        "maxContextTokens": null,
+        "maxItems": null,
+        "maxItemTokens": null,
+        "compactionTarget": {
+          "ratio": 0.8,
+          "reserveTokens": 0
+        }
+      },
+      "items": [
+        {
+          "id": "fixed-item",
+          "content": "alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha 😀\u00002"
+        }
+      ],
+      "measurement": {
+        "tokens": 724,
+        "accuracy": "exact",
+        "measurementRef": "chars",
+        "inputProtocolRef": "token-input:text",
+        "scope": "text",
+        "rendererRef": "context-memory.renderer.v1",
+        "renderDigest": "sha256:06572cdd4d001fc0c80892022c94ca5081d6bcffed7b452079b7deaaac8eac08",
+        "itemsDigest": "sha256:42b8f944d96f2e4cf7409501c2f941a17f1d417f15d7962686d28cf82fc67237",
+        "itemTokenCounts": [
+          {
+            "itemId": "fixed-item",
+            "contentDigest": "sha256:18cb68c2c4312ef05d4a4c754cf082a9d19fcab446e3765dc110a0b164824f8b",
+            "tokens": 724,
+            "accuracy": "exact",
+            "measurementRef": "chars",
+            "inputProtocolRef": "token-input:text",
+            "scope": "text"
+          }
+        ]
+      }
+    },
+    {
+      "memoryId": "compat",
+      "revision": 3,
+      "config": {
+        "measurementRef": "chars",
+        "render": {
+          "format": "text",
+          "separator": "\n"
+        },
+        "maxContextTokens": null,
+        "maxItems": null,
+        "maxItemTokens": null,
+        "compactionTarget": {
+          "ratio": 0.8,
+          "reserveTokens": 0
+        }
+      },
+      "items": [
+        {
+          "id": "fixed-item",
+          "content": "alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha 😀\u00003"
+        }
+      ],
+      "measurement": {
+        "tokens": 724,
+        "accuracy": "exact",
+        "measurementRef": "chars",
+        "inputProtocolRef": "token-input:text",
+        "scope": "text",
+        "rendererRef": "context-memory.renderer.v1",
+        "renderDigest": "sha256:06572cdd4d001fc0c80892022c94ca5081d6bcffed7b452079b7deaaac8eac08",
+        "itemsDigest": "sha256:8692631800db875f385e11401ea118cf3910dace7dfec2b9a9335a3c69b212b2",
+        "itemTokenCounts": [
+          {
+            "itemId": "fixed-item",
+            "contentDigest": "sha256:4b2127ec0aa0d3580781115e63d376c969a76da11904f3562048300ee471ecda",
+            "tokens": 724,
+            "accuracy": "exact",
+            "measurementRef": "chars",
+            "inputProtocolRef": "token-input:text",
+            "scope": "text"
+          }
+        ]
+      }
+    }
+  ],
+  "history": [
+    {
+      "memory_id": "compat",
+      "revision": 1,
+      "format": 1,
+      "kind": "base",
+      "previous_revision": null,
+      "depth": 0,
+      "digest": "1e29fd26dcee3c8c344487cb1f4b37be7834afffd80e84546fd0d8c324999ac1",
+      "payload_json": "{\"config\":{\"compactionTarget\":{\"ratio\":0.8,\"reserveTokens\":0},\"maxContextTokens\":null,\"maxItemTokens\":null,\"maxItems\":null,\"measurementRef\":\"chars\",\"render\":{\"format\":\"text\",\"separator\":\"\\n\"}},\"items\":[{\"content\":\"alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha \",\"id\":\"fixed-item\"}],\"measurement\":{\"accuracy\":\"exact\",\"inputProtocolRef\":\"token-input:text\",\"itemTokenCounts\":[{\"accuracy\":\"exact\",\"contentDigest\":\"sha256:91ecea2bd0138a25397fde6e750e06b38c84f073dee153c9e7cac2ea379484ec\",\"inputProtocolRef\":\"token-input:text\",\"itemId\":\"fixed-item\",\"measurementRef\":\"chars\",\"scope\":\"text\",\"tokens\":720}],\"itemsDigest\":\"sha256:a5e39cf86e2d5a9eef4b079cf3b8f91c91ed82d45720a3bc022a60d72a61cf96\",\"measurementRef\":\"chars\",\"renderDigest\":\"sha256:06572cdd4d001fc0c80892022c94ca5081d6bcffed7b452079b7deaaac8eac08\",\"rendererRef\":\"context-memory.renderer.v1\",\"scope\":\"text\",\"tokens\":720},\"memoryId\":\"compat\",\"revision\":1}"
+    },
+    {
+      "memory_id": "compat",
+      "revision": 2,
+      "format": 1,
+      "kind": "delta",
+      "previous_revision": 1,
+      "depth": 1,
+      "digest": "6e979c8b662033c0ca9a7bee4185c667772271ae5b1f2318ac89a086b3841ef8",
+      "payload_json": "[{\"op\":\"set\",\"path\":[\"revision\"],\"value\":2},{\"op\":\"text\",\"path\":[\"items\",0,\"content\"],\"start\":720,\"deleteCount\":0,\"text\":\"😀\\u00002\"},{\"op\":\"set\",\"path\":[\"measurement\",\"tokens\"],\"value\":724},{\"op\":\"set\",\"path\":[\"measurement\",\"itemsDigest\"],\"value\":\"sha256:42b8f944d96f2e4cf7409501c2f941a17f1d417f15d7962686d28cf82fc67237\"},{\"op\":\"set\",\"path\":[\"measurement\",\"itemTokenCounts\",0,\"contentDigest\"],\"value\":\"sha256:18cb68c2c4312ef05d4a4c754cf082a9d19fcab446e3765dc110a0b164824f8b\"},{\"op\":\"set\",\"path\":[\"measurement\",\"itemTokenCounts\",0,\"tokens\"],\"value\":724}]"
+    },
+    {
+      "memory_id": "compat",
+      "revision": 3,
+      "format": 1,
+      "kind": "delta",
+      "previous_revision": 2,
+      "depth": 2,
+      "digest": "0f4806bafc90bab9e94758af5fc58bf605b466079292c07922c33779da921569",
+      "payload_json": "[{\"op\":\"set\",\"path\":[\"revision\"],\"value\":3},{\"op\":\"text\",\"path\":[\"items\",0,\"content\"],\"start\":723,\"deleteCount\":1,\"text\":\"3\"},{\"op\":\"set\",\"path\":[\"measurement\",\"itemsDigest\"],\"value\":\"sha256:8692631800db875f385e11401ea118cf3910dace7dfec2b9a9335a3c69b212b2\"},{\"op\":\"set\",\"path\":[\"measurement\",\"itemTokenCounts\",0,\"contentDigest\"],\"value\":\"sha256:4b2127ec0aa0d3580781115e63d376c969a76da11904f3562048300ee471ecda\"}]"
+    }
+  ],
+  "receipts": [
+    {
+      "memory_id": "compat",
+      "request_id": "create",
+      "receipt_json": "{\"memoryId\":\"compat\",\"requestId\":\"create\",\"operation\":\"create\",\"inputDigest\":\"sha256:3603d187e6af4832f07a7d63fe5a2b1f5116eaf7f0190db4c8ea709188032143\",\"status\":\"committed\",\"previousRevision\":null,\"revision\":1,\"changes\":{\"addedItemIds\":[\"fixed-item\"],\"updatedItemIds\":[],\"removedItemIds\":[]},\"commandOutcomes\":[]}"
+    },
+    {
+      "memory_id": "compat",
+      "request_id": "edit-2",
+      "receipt_json": "{\"memoryId\":\"compat\",\"requestId\":\"edit-2\",\"operation\":\"apply\",\"inputDigest\":\"sha256:dfe1bded72689df77f8798e98c2cfdae1cffe2041d3fca65f96e7b04136954a0\",\"status\":\"committed\",\"previousRevision\":1,\"revision\":2,\"changes\":{\"addedItemIds\":[],\"updatedItemIds\":[\"fixed-item\"],\"removedItemIds\":[]},\"commandOutcomes\":[{\"commandIndex\":0,\"outcome\":\"updated\",\"itemId\":\"fixed-item\"}]}"
+    },
+    {
+      "memory_id": "compat",
+      "request_id": "edit-3",
+      "receipt_json": "{\"memoryId\":\"compat\",\"requestId\":\"edit-3\",\"operation\":\"apply\",\"inputDigest\":\"sha256:c23deb67ee54c63ad82ceadf3ffe314f9370d5606f40a8c07bfe862743ec6487\",\"status\":\"committed\",\"previousRevision\":2,\"revision\":3,\"changes\":{\"addedItemIds\":[],\"updatedItemIds\":[\"fixed-item\"],\"removedItemIds\":[]},\"commandOutcomes\":[{\"commandIndex\":0,\"outcome\":\"updated\",\"itemId\":\"fixed-item\"}]}"
+    }
+  ],
+  "head": {
+    "memory_id": "compat",
+    "revision": 3,
+    "snapshot_json": "{\"memoryId\":\"compat\",\"revision\":3,\"config\":{\"measurementRef\":\"chars\",\"render\":{\"format\":\"text\",\"separator\":\"\\n\"},\"maxContextTokens\":null,\"maxItems\":null,\"maxItemTokens\":null,\"compactionTarget\":{\"ratio\":0.8,\"reserveTokens\":0}},\"items\":[{\"id\":\"fixed-item\",\"content\":\"alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha alpha 😀\\u00003\"}],\"measurement\":{\"tokens\":724,\"accuracy\":\"exact\",\"measurementRef\":\"chars\",\"inputProtocolRef\":\"token-input:text\",\"scope\":\"text\",\"rendererRef\":\"context-memory.renderer.v1\",\"renderDigest\":\"sha256:06572cdd4d001fc0c80892022c94ca5081d6bcffed7b452079b7deaaac8eac08\",\"itemsDigest\":\"sha256:8692631800db875f385e11401ea118cf3910dace7dfec2b9a9335a3c69b212b2\",\"itemTokenCounts\":[{\"itemId\":\"fixed-item\",\"contentDigest\":\"sha256:4b2127ec0aa0d3580781115e63d376c969a76da11904f3562048300ee471ecda\",\"tokens\":724,\"accuracy\":\"exact\",\"measurementRef\":\"chars\",\"inputProtocolRef\":\"token-input:text\",\"scope\":\"text\"}]}}"
+  },
+  "cursor": "WzEsMSwzLDMsImZjOTZkOTdmNDI3YzY2NGI0OWQyZWJlMDNjNmQ0Nzg0MGY3YjU5ZjIzZDgxMGNlYzRhYzc4MDg4ZjdlMWFhZTgiXQ"
+}

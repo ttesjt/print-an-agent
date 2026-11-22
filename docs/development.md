@@ -130,6 +130,18 @@ It also checks type-module erasure and literal source cycles including type refe
 rejected boundary probes qualify this declaration; runtime ownership and computed module paths still
 need review. It runs in both `pnpm test:memory-qualification` and `pnpm test:architecture`.
 
+Context Memory SQLite declares Store and Database, with nested Connection, Persistence, Publication,
+History and Delta entries, in `test/context-memory-sqlite-source-boundaries.test.ts`. Store consumes
+the Database entry; its enclosing boundary protects the child features even when they expose their
+own entries. Shared tooling checks one-way dependencies, runtime erasure of independent type modules
+and literal source cycles including type references. Accepted and rejected probes cover imports and
+re-exports, including type-only edges and child-to-parent dependencies. Memory qualification and the
+aggregate architecture gate run these checks. Adapter tests preserve public exports, defaults and version-one
+record/receipt/cursor fixtures, while the independent Context Memory qualification checks public
+constructor options and emitted consumer declarations. Real SQLite tests cover owned/borrowed
+connections, atomic history/head/receipt publication, legacy upgrade and commit recovery. Computed
+imports, semantic equivalence, transaction ordering and runtime resource ownership still need review.
+
 Retrieval Memory declares its domain entries, nested Chunking/Embedding, Content/Search queries and
 Workflow families in `test/retrieval-memory-source-boundaries.test.ts`. The metric module is an
 explicit shared Representation subentry; children use it without importing their parent aggregate.

@@ -64,3 +64,87 @@ even if native connection cleanup later succeeds. Do not treat that lifecycle as
 
 Tests use real SQLite, independent file connections, gated planning and injected SQL/COMMIT/rollback
 faults. They require no external model, provider credentials or network.
+
+## Source ownership
+
+Store adapts `MemoryHistoryStore` and consumes the selected Database API. Database owns native
+connection setup, schema composition, persisted records, publication and historical reads.
+
+```text
+src/
+  index.ts                           # Stable named package API
+  store/
+    index.ts
+    sqlite-memory-store.ts           # MemoryHistoryStore facade and asynchronous admission
+    types.ts                         # Public Store options composed from lower capabilities
+  database/
+    index.ts                         # Store-facing database composition API
+    initialize-schema.ts             # Atomic assembly of current and history schema initialization
+    connection/
+      index.ts
+      configuration.ts               # Path/timeout validation and the busy-timeout default
+      open.ts                        # Open an owned connection or accept an explicit borrowed one
+      lifecycle.ts                   # Initialization cleanup, admission guards, fencing and close
+      types.ts                       # Connection options and ownership facts
+    persistence/
+      index.ts
+      schema.ts                      # Current snapshot and receipt tables
+      snapshots.ts                   # Snapshot SQL reads/writes and raw rows for legacy upgrade
+      receipts.ts                    # Receipt SQL reads/writes
+      decode-record.ts               # Stored-authority decoding error boundary
+    publication/
+      index.ts
+      commit.ts                      # Ordinary conditional publication
+      fork.ts                        # Historical source selection and conditional target creation
+      publish-snapshot.ts            # Domain decision followed by history/head publication
+      run-transaction.ts             # Receipt arbitration and the single request transaction
+      recover-commit.ts              # Rollback, receipt recovery and commit evidence classification
+      types.ts                       # Transaction progress facts
+    history/
+      index.ts
+      storage-policy.ts              # New-write delta-chain policy and its default
+      format.ts                      # Durable record format and controlled record kinds
+      codec.ts                       # Baseline/delta encoding, decoding and canonical digests
+      records.ts                     # History row decoding and SQL access
+      read-version.ts                # Baseline selection, chain reconstruction and verification
+      append-version.ts              # Verify the previous history and append one version
+      list-versions.ts               # Version queries with a frozen upper bound
+      cursor.ts                      # Cursor version, encoding and scope/limit checks
+      schema.ts                      # History DDL, schema format and upgrade admission
+      upgrade-legacy.ts              # Seed only the available legacy current revision
+      types/                         # History record and public storage-option contracts
+      delta/
+        index.ts
+        types.ts                     # Data patch and path contracts
+        diff.ts                      # State differences and encoding-cost selection
+        apply.ts                     # Validated patch application
+        values.ts                    # Local shared JSON collection predicates
+```
+
+Publication consumes Persistence and History; History can read Persistence's current rows. Connection
+and Persistence stay independent of those higher features. Delta owns patch operations and consumes
+its own local helpers. `database/initialize-schema.ts` composes current and history schema creation;
+Store supplies that initializer to Connection. Startup initialization and request publication have
+separate transactions and recovery rules.
+
+The facade admits operations asynchronously, then runs native SQL synchronously within the Host.
+Connection guards owned or borrowed resource lifetime, admission, cleanup fencing and close.
+
+The public API is `SqliteMemoryStore`, `SqliteMemoryStoreOptions`, `MemoryHistoryStorageOptions`,
+`DEFAULT_SQLITE_BUSY_TIMEOUT_MS` and `DEFAULT_MAX_MEMORY_DELTA_CHAIN`. Paths and borrowed databases
+are mutually exclusive constructor options; borrowed connections cannot be reconfigured through
+`busyTimeoutMs`. Options retain their readonly and optional fields. Schema, record and cursor versions
+have distinct owners.
+
+Tests are grouped under `test/unit/database/history/`, `test/integration/database/` for Connection,
+Persistence, Publication and History, and `test/integration/workflows/` for Current/History/Model
+Workflow consumers. Shared test-only connection, fault, model and counter fixtures live in
+`test/support/`. Version-one fixtures preserve exact history, head, receipt and cursor encodings and
+verify that reducing the new-write chain limit does not invalidate existing history. The independent qualification workspace compiles public constructor
+contracts and emits consumer declarations without private package paths.
+
+`test/context-memory-sqlite-source-boundaries.test.ts` at the repository root declares feature entries
+and dependency rules, checks literal source cycles including type-only edges and type-module erasure,
+and qualifies accepted/rejected boundaries. It runs in `pnpm test:memory-qualification` and
+`pnpm test:architecture`. Runtime ownership, computed imports and semantic equivalence still require
+review; code-size thresholds are advisory.

@@ -1,17 +1,27 @@
 import { mkdtemp, rm } from 'node:fs/promises';
+
 import { tmpdir } from 'node:os';
+
 import { join } from 'node:path';
+
 import { DatabaseSync } from 'node:sqlite';
+
 import { afterEach } from 'vitest';
+
 import { MemoryMeter, MemoryMutations, type MemoryStore } from '@print-an-agent/context-memory';
+
 import type { TokenCounter, TextTokenInput } from '@print-an-agent/model-invocation-core';
+
 import { testCounter } from './counter.js';
+
 import { SqliteMemoryStore } from '@print-an-agent/context-memory-sqlite';
 
 const cleanup: (() => void | Promise<void>)[] = [];
+
 afterEach(async () => {
   for (const close of cleanup.splice(0).reverse()) await close();
 });
+
 export function borrowed(database = new DatabaseSync(':memory:')) {
   cleanup.push(() => {
     if (database.isOpen) database.close();
@@ -19,6 +29,7 @@ export function borrowed(database = new DatabaseSync(':memory:')) {
   const store = new SqliteMemoryStore({ database });
   return { database, store, ...domain(store) };
 }
+
 export function domain(
   store: MemoryStore,
   counter: TokenCounter<TextTokenInput> = testCounter(),
@@ -35,6 +46,7 @@ export function domain(
     }),
   };
 }
+
 export async function fileStores() {
   const directory = await mkdtemp(join(tmpdir(), 'context-memory-'));
   cleanup.push(() => rm(directory, { recursive: true, force: true }));
@@ -52,6 +64,7 @@ export async function fileStores() {
     register: (store: SqliteMemoryStore) => cleanup.push(() => store.close()),
   };
 }
+
 export function gate() {
   let release = () => {};
   const promise = new Promise<void>((resolve) => {

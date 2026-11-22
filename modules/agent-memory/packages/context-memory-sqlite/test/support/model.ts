@@ -4,6 +4,7 @@ import {
   defineAssistantModelMessage,
   defineProviderModelExecutionProvenance,
 } from '@print-an-agent/model-invocation-core';
+
 import {
   createContextMemoryBundle,
   createModelMemoryResources,
@@ -15,14 +16,17 @@ import {
   type ModelMemoryWorkflowDefinitions,
   type CompletionMemoryPlannerOptions,
 } from '@print-an-agent/context-memory';
+
 import { borrowed } from './fixtures.js';
 
 type Output = string | readonly ModelEditOperation[];
+
 export type Plan = (
   request: MemoryPlannerRequest,
   call: number,
   signal: AbortSignal
 ) => Output | Promise<Output>;
+
 export function modelFixture(
   plan: Plan,
   options: {
@@ -105,6 +109,7 @@ export function modelFixture(
   });
   return { ...base, bundle, resources, requests, instructions, actor, planner };
 }
+
 export function firstId(request: MemoryPlannerRequest): string {
   const id = request.items[0]?.id;
   if (id === undefined) throw new Error('Expected a candidate item.');

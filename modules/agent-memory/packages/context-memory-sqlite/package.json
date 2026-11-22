@@ -21,7 +21,7 @@
     "typecheck": "pnpm run build && tsc --noEmit",
     "test": "pnpm run build && vitest run",
     "lint": "eslint .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check . --ignore-path ../../../../.prettierignore"
   },
   "dependencies": {
     "@print-an-agent/context-memory": "workspace:*"

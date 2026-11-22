@@ -33,10 +33,7 @@ export type {
 
 export type { CompletionMemoryPlannerOptions } from './model-update/index.js';
 
-export type {
-  ContextMemoryBundleOptions,
-  MemoryWorkflowDefinitions,
-} from './workflows/deterministic/types/bundle.js';
+export type { ContextMemoryBundleOptions, MemoryWorkflowDefinitions } from './workflows/index.js';
 
 export { ContextMemoryError, assertMemoryNotAborted } from './errors.js';
 
@@ -62,7 +59,7 @@ export type { ExecutionPolicy } from './model-update/index.js';
 
 export type { ForkMemoryInput } from './history/index.js';
 
-export type { GetMemoryReceiptInput } from './workflows/state/types.js';
+export type { GetMemoryReceiptInput } from './workflows/index.js';
 
 export type {
   ItemTokenCount,
@@ -89,23 +86,15 @@ export type {
   MemoryRenderer,
 } from './measurement/index.js';
 
-export type {
-  MemoryDefinition,
-  MemoryStepName,
-  MemoryWorkflowOptions,
-  MemoryWorkflowState,
-} from './workflows/deterministic/types/workflow.js';
+export type { MemoryDefinition, MemoryWorkflowOptions } from './workflows/index.js';
 
 export type { MemoryErrorOptions } from './types/errors.js';
 
-export type {
-  MemoryHistoryOperations,
-  MemoryHistoryWorkflowResources,
-} from './workflows/history/types/operations.js';
+export type { MemoryHistoryOperations, MemoryHistoryWorkflowResources } from './workflows/index.js';
 
 export type { MemoryHistoryStore } from './history/index.js';
 
-export type { MemoryHistoryWorkflowDefinitions } from './workflows/history/types/definitions.js';
+export type { MemoryHistoryWorkflowDefinitions } from './workflows/index.js';
 
 export type { MemoryMutationResources } from './mutations/index.js';
 
@@ -113,12 +102,11 @@ export { MemoryMutations } from './mutations/index.js';
 
 export type { MemoryOperation } from './mutation-operations.js';
 
-export type {
-  MemoryOperations,
-  MemoryWorkflowResources,
-} from './workflows/deterministic/types/resources.js';
+export type { MemoryOperations, MemoryWorkflowResources } from './workflows/index.js';
 
 export type { MemoryPlanner, MemoryPlannerRequest } from './model-update/index.js';
+
+export type { MemoryStepName, MemoryWorkflowState } from './workflows/index.js';
 
 export type { MemoryStore, StoreCommit } from './persistence/index.js';
 
@@ -129,7 +117,7 @@ export type { MemoryVersionReference } from './history/index.js';
 export type {
   ModelContextMemoryBundleOptions,
   ModelMemoryWorkflowDefinitions,
-} from './workflows/model-driven/types/bundle.js';
+} from './workflows/index.js';
 
 export type { ModelEditOperation } from './model-update/index.js';
 
@@ -139,12 +127,9 @@ export type {
   ModelMemoryState,
   ModelMemoryStepName,
   ModelMemoryWorkflowOptions,
-} from './workflows/model-driven/types/workflow.js';
+} from './workflows/index.js';
 
-export type {
-  ModelMemoryResourceOptions,
-  ModelMemoryResources,
-} from './workflows/model-driven/types/resources.js';
+export type { ModelMemoryResourceOptions, ModelMemoryResources } from './workflows/index.js';
 
 export type { ReadContextInput, ReadContextResult } from './context/index.js';
 
@@ -153,9 +138,9 @@ export type { ReadMemoryVersionContextInput } from './history/index.js';
 export type {
   VersionedMemoryOperations,
   VersionedMemoryWorkflowResources,
-} from './workflows/versioned/types/resources.js';
+} from './workflows/index.js';
 
-export type { VersionedMemoryWorkflowDefinitions } from './workflows/versioned/types/definitions.js';
+export type { VersionedMemoryWorkflowDefinitions } from './workflows/index.js';
 
 export { applyItemCommands } from './document/index.js';
 
@@ -165,46 +150,49 @@ export { assertReceiptMatches } from './persistence/index.js';
 
 export { canonicalJson, jsonObject, jsonValue } from './values/index.js';
 
-export { createContextMemoryBundle, createContextMemoryStateBundle } from './workflows/bundle.js';
+export { createContextMemoryBundle } from './workflows/index.js';
 
-export {
-  createContextMemoryHistoryBundle,
-  createContextMemoryHistoryResources,
-} from './workflows/history.js';
+export { createContextMemoryHistoryBundle } from './workflows/index.js';
 
-export { createContextMemoryResources } from './workflows/resources.js';
+export { createContextMemoryHistoryResources } from './workflows/index.js';
 
-export { createContextMemoryStateResources } from './workflows/state-resources.js';
+export { createContextMemoryResources } from './workflows/index.js';
+
+export { createContextMemoryStateBundle } from './workflows/index.js';
+
+export { createContextMemoryStateResources } from './workflows/index.js';
 
 export {
   createMemoryApplyDefinition,
   createMemoryConfigureDefinition,
   createMemoryCreateDefinition,
-  createMemoryGetReceiptDefinition,
-  createMemoryInspectDefinition,
   createMemoryReadContextDefinition,
-} from './workflows/deterministic.js';
+} from './workflows/index.js';
 
 export {
   createMemoryCompactDefinition,
   createMemoryEditDefinition,
   createMemoryObserveDefinition,
-} from './workflows/model-definition.js';
+} from './workflows/index.js';
 
 export {
   createMemoryForkDefinition,
   createMemoryInspectVersionDefinition,
   createMemoryListVersionsDefinition,
-} from './workflows/history/definitions.js';
-
-export { createMemoryReadVersionContextDefinition } from './workflows/versioned/read-context-definition.js';
-
-export { createModelMemoryResources } from './workflows/model-resources.js';
+} from './workflows/index.js';
 
 export {
-  createVersionedContextMemoryBundle,
-  createVersionedContextMemoryResources,
-} from './workflows/versioned-bundle.js';
+  createMemoryGetReceiptDefinition,
+  createMemoryInspectDefinition,
+} from './workflows/index.js';
+
+export { createMemoryReadVersionContextDefinition } from './workflows/index.js';
+
+export { createModelMemoryResources } from './workflows/index.js';
+
+export { createVersionedContextMemoryBundle } from './workflows/index.js';
+
+export { createVersionedContextMemoryResources } from './workflows/index.js';
 
 export { decideMemoryCommit } from './persistence/index.js';
 
@@ -216,7 +204,7 @@ export { inspectMemoryVersion, supportsMemoryHistory } from './history/index.js'
 
 export { listMemoryVersions } from './history/index.js';
 
-export { modelMemorySignal } from './workflows/model-types.js';
+export { modelMemorySignal } from './workflows/index.js';
 
 export { parseDeterministicMemoryRequest } from './mutations/index.js';
 
@@ -236,7 +224,7 @@ export { parseMemoryReceipt } from './persistence/index.js';
 
 export { parseMemorySnapshot, parseMemoryState } from './document/index.js';
 
-export { parseModelOperations, projectModelOperations } from './model-update/index.js';
+export { parseModelOperations } from './model-update/index.js';
 
 export { parseMutationRequest, requestDigest } from './persistence/index.js';
 
@@ -245,6 +233,8 @@ export { parseRenderOptions, resolveMemoryConfig } from './document/index.js';
 export { parseStoreCommit } from './persistence/index.js';
 
 export { parseTokenTarget, resolveCompactionTarget } from './budget/index.js';
+
+export { projectModelOperations } from './model-update/index.js';
 
 export { readMemoryContext } from './context/index.js';
 

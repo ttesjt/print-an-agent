@@ -1,6 +1,7 @@
 import type { MemorySnapshot } from '../../types/document.js';
 import type { MemoryReceipt } from '../../types/receipt.js';
 import type { DeterministicMemoryMutation } from '../../mutations/index.js';
+import type { MemoryOperationOptions } from '../shared/index.js';
 
 export interface GetMemoryReceiptInput {
   readonly memoryId: string;
@@ -22,3 +23,9 @@ export interface MemoryStateOperations {
 export interface MemoryStateResources {
   readonly memory: MemoryStateOperations;
 }
+
+export type MemoryStateWorkflowOptions<
+  I,
+  O,
+  K extends keyof MemoryStateOperations,
+> = MemoryOperationOptions<I, O, K, MemoryStateOperations>;

@@ -124,6 +124,12 @@ who releases an acquired resource still require review, even when the checks pas
 
 ### Declared source-feature boundaries
 
+Context Memory declares its domain entries, nested Planner/Policy and Workflow profiles, shared
+ancestor contracts and one-way dependencies in `test/context-memory-source-boundaries.test.ts`.
+It also checks type-module erasure and literal source cycles including type references. Allowed and
+rejected boundary probes qualify this declaration; runtime ownership and computed module paths still
+need review. It runs in both `pnpm test:memory-qualification` and `pnpm test:architecture`.
+
 Agent Actor declares its Actors/Responsibilities entries, shared error contracts and one-way
 dependencies in `test/agent-actor-source-boundaries.test.ts`, also run by
 `pnpm test:agent-actor-qualification`.

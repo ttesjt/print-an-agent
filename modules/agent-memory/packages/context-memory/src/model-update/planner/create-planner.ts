@@ -1,6 +1,6 @@
 import type { MemoryPlanner, MemoryPlannerRequest } from '../types/planner.js';
 import { ContextMemoryError, assertMemoryNotAborted } from '../../errors.js';
-import { parseModelOperations } from '../operations.js';
+import { parseModelOperations } from './parse-operations.js';
 import { throwMemoryPlannerFailure } from './failures.js';
 import type { CompletionMemoryPlannerOptions } from './types.js';
 

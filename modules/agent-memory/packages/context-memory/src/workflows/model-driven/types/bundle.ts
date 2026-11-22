@@ -3,8 +3,8 @@ import type {
   createMemoryObserveDefinition,
   createMemoryEditDefinition,
   createMemoryCompactDefinition,
-} from '../../model-definition.js';
-import type { MemoryWorkflowDefinitions } from '../../deterministic/types/bundle.js';
+} from '../create-definition.js';
+import type { MemoryWorkflowDefinitions } from '../../deterministic/index.js';
 
 export interface ModelMemoryWorkflowDefinitions extends MemoryWorkflowDefinitions {
   readonly observe: ReturnType<typeof createMemoryObserveDefinition>;

@@ -4,6 +4,11 @@ History is an explicit `MemoryHistoryStore` capability, not a requirement impose
 adapters. Its references are `{ memoryId, revision }` within one store authority. IDs must be
 nonblank, NUL-free, well-formed Unicode. Physical history encoding belongs to adapters, not Workflows.
 
+The domain contracts and operations live in the package's `history` feature. `workflows/history`
+provides the narrow resource/Definition/Bundle installation, while `workflows/versioned` composes
+current operations with history and explicit historical rendering. Physical schema and reconstruction
+remain owned by `context-memory-sqlite`; source organization does not change the durable format.
+
 ## Public Bundle
 
 ```ts

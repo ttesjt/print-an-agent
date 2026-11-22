@@ -6,7 +6,7 @@ import type {
   MemoryCompactionFeedback,
 } from '../../../model-update/index.js';
 import type { MemoryMutationResources } from '../../../mutations/index.js';
-import type { MemoryWorkflowResources } from '../../deterministic/types/resources.js';
+import type { MemoryWorkflowResources } from '../../deterministic/index.js';
 
 export interface ModelMemoryResources extends MemoryWorkflowResources {
   readonly updates: MemoryUpdatePort;

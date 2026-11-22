@@ -7,6 +7,68 @@ Item IDs are system-generated. Ordinary commands add, replace or remove items at
 Optional immutable history, historical rendering and independent forks are documented in
 [VERSIONING.md](./VERSIONING.md).
 
+## Source organization
+
+The npm API remains the deliberate named exports in `src/index.ts`, with one package export.
+Internal features expose named entries; ordinary responsibility folders stay within their owner.
+Independent types live in the owner's `types.ts` or `types/`. Only common JSON, document and receipt
+facts live in package-level type modules. The controlled mutation operation names and their derived
+union stay together in `mutation-operations.ts`.
+
+```text
+src/
+  index.ts                         # Stable public values and types
+  errors.ts                        # Domain errors and cancellation
+  mutation-operations.ts           # Shared operation discriminators and derived union
+  types/                           # Common JSON/document/receipt/error facts
+  values/                          # Strict values, canonical JSON, digests, nullable limits
+  document/                        # Items, commands, normalized configuration, snapshot validation
+  measurement/                     # Borrowed counter/renderer binding and completed-result cache
+  budget/                          # Document limits, fixed targets, measured assessment
+  persistence/                     # Store protocol, request/receipt arbitration, commit facts
+  mutations/                       # Deterministic writes and common guarded candidate publication
+  context/                         # Current reads and reusable measured snapshot rendering
+  history/                         # Exact versions, pagination, forks and historical rendering
+  model-update/                    # Private run-local candidates and model edit projection
+    types/
+    policy/                        # Finite defaults and execution policy validation
+    planner/                       # Borrowed Completion, instructions, output and failure mapping
+  workflows/
+    create-bundle.ts               # Public deterministic/model Bundle selection
+    shared/                        # Resource-neutral Definition/input/output/lifecycle mechanics
+    state/                         # Narrow authority queries and replay resources
+    deterministic/                 # Current document operations and one default definition recipe
+    model-driven/
+      create-definition.ts         # Observe/edit/compact Definition creation
+      step-definitions.ts          # Authoritative graph, cardinality and skip rules
+      steps/                       # Preparation, planning and candidate Steps
+      execution/                   # Candidate/compaction cycles, retry yields, deadline and signal
+      types/
+    history/                       # Narrow history Resources, Definitions and Bundle
+    versioned/                     # Explicit current/history composition and historical read
+```
+
+Domain features do not depend on Workflow profiles. Document budgets have one limit evaluator;
+assessment reports violations while publication preserves its established error priority and always
+revalidates/re-measures the actual candidate. Input-model budgets, soft planner goals and final
+rendered acceptance retain distinct meanings.
+
+Current reads never select history implicitly. History selects an exact persisted version before
+using Context's measured rendering capability. State-only and History-only resource installations
+need no model, counter or renderer. Versioned composition explicitly adds historical rendering to
+the deterministic current-document operations.
+
+Workflow factories return native Core definitions. Shared mechanics do not depend on concrete
+profiles; profiles borrow narrow domain operations and do not own stores/models. Model Steps and
+execution coordination have separate modules, with one graph/default assembly. The single business
+deadline still encloses candidate and conflict-replan work; Core lifecycle hook ownership is unchanged.
+
+Package tests follow domain responsibilities under `test/unit`, `test/integration`, `test/types`
+and shared `test/support`. The source-boundary test checks declared nested entries, one-way imports,
+type-module erasure and literal source cycles including type references. See the
+[development coverage](../../../../docs/development.md#declared-source-feature-boundaries) for
+static-analysis limits. SQLite transactions/history codecs remain in the separate adapter package.
+
 ## Contracts
 
 - `resolveMemoryConfig` binds an actual `measurementRef`; no universal token estimator is assumed.

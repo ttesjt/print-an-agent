@@ -8,8 +8,7 @@ import type {
 import type { MutationResult } from '../../../types/receipt.js';
 import type { MemoryCandidateAssessment } from '../../../budget/index.js';
 import type { ModelMemoryResources } from './resources.js';
-import type { ModelMemoryWorkflowInput } from '../../shared/types/input.js';
-import type { MemoryOperationOutput } from '../../shared/types/output.js';
+import type { ModelMemoryWorkflowInput, MemoryOperationOutput } from '../../shared/index.js';
 
 export type ModelMemoryStepName =
   | 'runModelOperation'

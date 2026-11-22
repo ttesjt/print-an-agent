@@ -1,4 +1,4 @@
-import type { MemoryStateOperations } from '../../state/types.js';
+import type { MemoryStateOperations } from '../../state/index.js';
 import type {
   ApplyMemoryInput,
   ConfigureMemoryInput,

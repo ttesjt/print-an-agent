@@ -3,9 +3,11 @@ import type {
   createMemoryApplyDefinition,
   createMemoryConfigureDefinition,
   createMemoryReadContextDefinition,
+} from '../definitions.js';
+import type {
   createMemoryGetReceiptDefinition,
   createMemoryInspectDefinition,
-} from '../../deterministic.js';
+} from '../../state/index.js';
 import type { MemoryWorkflowResources } from './resources.js';
 
 export interface MemoryWorkflowDefinitions {

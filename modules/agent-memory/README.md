@@ -10,8 +10,8 @@ publication and receipts. Embedding is borrowed from Model Invocation, not a gen
 See the [Retrieval Memory guide](./packages/retrieval-memory/README.md) and its
 [typechecked host composition](./tests/retrieval-memory-qualification/examples/project-knowledge.ts).
 
-`@print-an-agent/context-memory` provides JSON documents, typed ports, validated mutations and eight native
-Workflow/Bundle entries. Model-driven observation, editing and compaction use borrowed Model
+`@print-an-agent/context-memory` provides JSON documents, typed ports, validated mutations and native
+Workflow definitions with explicit Bundle profiles. Model-driven observation, editing and compaction use borrowed Model
 Invocation capabilities; the deterministic profile requires no model. It does not depend on Agent
 Base, Workbench, a product runtime, or a provider. A host maps memory identities to its own application scopes
 and owns borrowed resources. See the [API guide](./packages/context-memory/README.md),

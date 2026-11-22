@@ -1,3 +1,9 @@
+import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
+import type {
+  MemoryStepName,
+  MemoryWorkflowState,
+  MemoryOperationOptions as MemoryWorkflowOptions,
+} from '../shared/index.js';
 import type { MemorySnapshot } from '../../types/document.js';
 import type {
   ForkMemoryInput,
@@ -6,8 +12,7 @@ import type {
   MemoryVersionReference,
 } from '../../history/index.js';
 import type { MutationResult } from '../../types/receipt.js';
-import { memoryDefinition } from '../definition.js';
-import type { MemoryWorkflowOptions } from '../deterministic/types/workflow.js';
+import { memoryDefinition } from '../shared/index.js';
 import type { MemoryHistoryOperations } from './types/operations.js';
 
 export function createMemoryInspectVersionDefinition(
@@ -17,7 +22,13 @@ export function createMemoryInspectVersionDefinition(
     'inspectVersion',
     MemoryHistoryOperations
   > = {}
-) {
+): BundleWorkflowDefinition<
+  MemoryStepName,
+  MemoryVersionReference,
+  MemoryWorkflowState<MemoryVersionReference, MemorySnapshot | undefined>,
+  { readonly memory: Pick<MemoryHistoryOperations, 'inspectVersion'> },
+  MemorySnapshot | undefined
+> {
   return memoryDefinition<
     MemoryVersionReference,
     MemorySnapshot | undefined,
@@ -38,7 +49,13 @@ export function createMemoryListVersionsDefinition(
     'listVersions',
     MemoryHistoryOperations
   > = {}
-) {
+): BundleWorkflowDefinition<
+  MemoryStepName,
+  ListMemoryVersionsInput,
+  MemoryWorkflowState<ListMemoryVersionsInput, MemoryHistoryPage | undefined>,
+  { readonly memory: Pick<MemoryHistoryOperations, 'listVersions'> },
+  MemoryHistoryPage | undefined
+> {
   return memoryDefinition<
     ListMemoryVersionsInput,
     MemoryHistoryPage | undefined,
@@ -59,7 +76,13 @@ export function createMemoryForkDefinition(
     'fork',
     MemoryHistoryOperations
   > = {}
-) {
+): BundleWorkflowDefinition<
+  MemoryStepName,
+  ForkMemoryInput,
+  MemoryWorkflowState<ForkMemoryInput, MutationResult>,
+  { readonly memory: Pick<MemoryHistoryOperations, 'fork'> },
+  MutationResult
+> {
   return memoryDefinition<ForkMemoryInput, MutationResult, 'fork', MemoryHistoryOperations>(
     'context-memory.fork',
     () => ({ status: 'skipped', reason: 'workflow-not-executed' }),

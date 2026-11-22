@@ -144,3 +144,59 @@ it('distinguishes an explicit Step outcome from an override that produces nothin
   });
   expect(f.calls).toEqual({ embeddings: 0, publication: 0 });
 });
+
+it('cancels borrowed preparation when a peer Step fails without cancelling the parent scope', async () => {
+  const f = fixture();
+  const parent = new AbortController();
+  let begin = () => {};
+  const started = new Promise<void>((resolve) => {
+    begin = resolve;
+  });
+  let childAborted = false;
+  const base = createRetrievalWorkflowResources(f.resources);
+  const resources = {
+    ...base,
+    mutations: {
+      ...base.mutations,
+      prepare: (_operation: unknown, _input: unknown, signal: AbortSignal): Promise<never> =>
+        new Promise((_resolve, reject) => {
+          begin();
+          const abort = () => {
+            childAborted = true;
+            reject(new Error('Borrowed preparation cancelled', { cause: signal.reason }));
+          };
+          if (signal.aborted) abort();
+          else signal.addEventListener('abort', abort, { once: true });
+        }),
+    },
+  };
+  const definition = createRetrievalIngestDefinition({
+    stepOverrides: {
+      async runOperation(context) {
+        context.state.signal = context.signal;
+        await context.runStep('prepareInput');
+        await context.parallel(['prepareCandidate', 'publish']);
+      },
+      async publish() {
+        await started;
+        throw new Error('peer failed');
+      },
+    },
+  });
+  // A broken signal strategy must fail deterministically rather than leave borrowed work hanging.
+  const guard = setTimeout(() => parent.abort(new Error('test cancellation guard')), 500);
+  try {
+    await expect(
+      new Workflow({ ...definition, resources }).run({
+        input: { memoryId: 'space', requestId: 'parallel', content: 'text' },
+        signal: parent.signal,
+      })
+    ).rejects.toThrow();
+    expect(childAborted).toBe(true);
+    expect(parent.signal.aborted).toBe(false);
+    expect(f.calls).toEqual({ embeddings: 0, publication: 0 });
+  } finally {
+    clearTimeout(guard);
+    parent.abort();
+  }
+});

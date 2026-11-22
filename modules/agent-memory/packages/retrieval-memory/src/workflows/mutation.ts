@@ -1,3 +1,4 @@
+import { effectiveRetrievalSignal } from './shared/index.js';
 import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
 import type { MutationOperation } from '../contracts/inputs.js';
 import type { MutationResult } from '../contracts/publication.js';
@@ -90,7 +91,7 @@ export function createRetrievalMutationDefinition<
           context.state.candidate = await context.resources.mutations.prepare(
             operation,
             context.state.input,
-            context.state.signal ?? context.signal
+            effectiveRetrievalSignal(context)
           );
           // Replaying a matched durable receipt already establishes commit, before
           // the next Step's cancellation check or this Step's executor post-processing.
@@ -106,7 +107,7 @@ export function createRetrievalMutationDefinition<
             fail('REPRESENTATION_INVALID', 'Publication candidate is missing.');
           const result = await context.resources.mutations.publish(
             context.state.candidate,
-            context.state.signal ?? context.signal
+            effectiveRetrievalSignal(context)
           );
           context.state.receipt = structuredClone(result.receipt);
           context.state.outcome = result;

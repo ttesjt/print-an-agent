@@ -1,3 +1,4 @@
+import { effectiveRetrievalSignal } from './shared/index.js';
 import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
 import type {
   ContextCandidate,
@@ -72,7 +73,7 @@ export function createRetrievalReadContextDefinition(
         step: async (context) => {
           context.state.candidate = await context.resources.context.search(
             context.state.input,
-            context.state.signal ?? context.signal
+            effectiveRetrievalSignal(context)
           );
         },
       },
@@ -84,7 +85,7 @@ export function createRetrievalReadContextDefinition(
             fail('SEARCH_FAILED', 'Context candidate is missing.');
           context.state.selected = await context.resources.context.select(
             context.state.candidate,
-            context.state.signal ?? context.signal
+            effectiveRetrievalSignal(context)
           );
         },
       },
@@ -97,7 +98,7 @@ export function createRetrievalReadContextDefinition(
           const value = await context.resources.context.finalize(
             context.state.candidate,
             context.state.selected,
-            context.state.signal ?? context.signal
+            effectiveRetrievalSignal(context)
           );
           context.state.outcome = { status: 'completed', value };
         },

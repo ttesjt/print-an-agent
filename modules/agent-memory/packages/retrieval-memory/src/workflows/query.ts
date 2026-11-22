@@ -1,3 +1,4 @@
+import { effectiveRetrievalSignal } from './shared/index.js';
 import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
 import type { RetrievalQueryResources } from './resources.js';
 import type { RetrievalQueryOperations } from '../domain/queries.js';
@@ -98,7 +99,7 @@ export function createRetrievalQueryDefinition<
           const value = await execute(
             context.resources,
             context.state.input,
-            context.state.signal ?? context.signal
+            effectiveRetrievalSignal(context)
           );
           const known = receipt?.(value);
           if (known !== undefined) context.state.receipt = structuredClone(known);

@@ -1,10 +1,11 @@
+import type { SkippedRetrieval } from './types/outcome.js';
 import type { StepExecutor, WorkflowLifecycle } from '@print-an-agent/workflow-core';
-import type { CommitEvidence } from '../types/publication.js';
-import { RetrievalMemoryError } from '../errors.js';
-import { parseRetrievalReceipt } from '../persistence/index.js';
-import type { CommittedRunState } from './shared/types/commit.js';
+import type { CommitEvidence } from '../../types/publication.js';
+import { RetrievalMemoryError } from '../../errors.js';
+import { parseRetrievalReceipt } from '../../persistence/index.js';
+import type { CommittedRunState } from './types/commit.js';
 
-export function createSkippedRetrievalResult() {
+export function createSkippedRetrievalResult(): SkippedRetrieval {
   return { status: 'skipped' as const, reason: 'Workflow condition skipped execution.' };
 }
 

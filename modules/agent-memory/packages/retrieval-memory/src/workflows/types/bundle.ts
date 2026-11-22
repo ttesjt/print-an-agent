@@ -1,17 +1,19 @@
 import type {
   createRetrievalCreateDefinition,
-  createRetrievalGetDefinition,
   createRetrievalIngestDefinition,
+  createRetrievalReindexDefinition,
+  createRetrievalRemoveDefinition,
+  createRetrievalUpdateDefinition,
+} from '../mutation/index.js';
+import type {
+  createRetrievalGetDefinition,
   createRetrievalInspectDefinition,
   createRetrievalListDefinition,
   createRetrievalReceiptDefinition,
-  createRetrievalReindexDefinition,
-  createRetrievalRemoveDefinition,
   createRetrievalSearchDefinition,
-  createRetrievalUpdateDefinition,
-} from '../definitions.js';
+} from '../query/index.js';
 import type { RetrievalWorkflowResources } from './resources.js';
-import type { createRetrievalReadContextDefinition } from '../context.js';
+import type { createRetrievalReadContextDefinition } from '../context/index.js';
 
 export interface RetrievalWorkflowDefinitions {
   readonly readContext: ReturnType<typeof createRetrievalReadContextDefinition>;

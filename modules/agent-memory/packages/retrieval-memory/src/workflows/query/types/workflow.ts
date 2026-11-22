@@ -1,8 +1,7 @@
 import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
 import type { RetrievalQueryResources } from './resources.js';
 import type { RetrievalQueryOperations } from '../../../queries/index.js';
-import type { CommittedRunState } from '../../shared/types/commit.js';
-import type { RetrievalReadOutcome } from '../../shared/types/outcome.js';
+import type { CommittedRunState, RetrievalReadOutcome } from '../../shared/index.js';
 
 export type QueryStepName = 'runOperation' | 'prepareInput' | 'executeQuery';
 

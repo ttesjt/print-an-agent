@@ -1,3 +1,5 @@
+import type { RetrievalSpace } from '../types/space.js';
+import type { StoredEntry } from '../types/entry.js';
 import type { RetrievalBackend } from './types/ports.js';
 import type { Mutation } from '../types/mutation.js';
 import type { RetrievalReceipt } from '../types/publication.js';
@@ -26,7 +28,7 @@ export async function requireSpace(
   backend: RetrievalBackend,
   memoryId: string,
   signal?: AbortSignal
-) {
+): Promise<RetrievalSpace> {
   assertNotAborted(signal);
   const value = await backend.inspect(memoryId, signal);
   assertNotAborted(signal);
@@ -38,10 +40,10 @@ export async function requireSpace(
 
 export async function requireEntry(
   backend: RetrievalBackend,
-  space: Awaited<ReturnType<typeof requireSpace>>,
+  space: RetrievalSpace,
   entryId: string,
   signal?: AbortSignal
-) {
+): Promise<StoredEntry> {
   const value = await backend.get(space.memoryId, entryId, signal);
   assertNotAborted(signal);
   if (value === undefined) fail('ENTRY_NOT_FOUND', 'Entry was not found.');

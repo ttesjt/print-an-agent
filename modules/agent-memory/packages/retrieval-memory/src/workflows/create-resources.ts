@@ -2,7 +2,10 @@ import { createRetrievalContext } from '../context/index.js';
 import { createRetrievalMutations } from '../mutations/index.js';
 import type { RetrievalResources } from '../mutations/index.js';
 import { createRetrievalQueries } from '../queries/index.js';
-import { defineRetrievalExecutionPolicy, DEFAULT_RETRIEVAL_EXECUTION_POLICY } from './execution.js';
+import {
+  defineRetrievalExecutionPolicy,
+  DEFAULT_RETRIEVAL_EXECUTION_POLICY,
+} from './shared/index.js';
 import type {
   RetrievalWorkflowResources,
   RetrievalWorkflowResourceOptions,

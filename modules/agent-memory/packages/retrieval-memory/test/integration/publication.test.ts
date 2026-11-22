@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
-import { fixture } from './support/fixture.js';
-import { createRetrievalMutations } from '../src/index.js';
+import { fixture } from '../support/fixture.js';
+import { createRetrievalMutations } from '@print-an-agent/retrieval-memory';
 it('rejects a stale prepared update without overwriting the winner', async () => {
   const f = fixture();
   await f.create();

@@ -1,4 +1,4 @@
-import type { MemoryErrorOptions } from './contracts/receipt.js';
+import type { MemoryErrorOptions } from './types/errors.js';
 
 export type ContextMemoryErrorCode =
   | 'INPUT_INVALID'

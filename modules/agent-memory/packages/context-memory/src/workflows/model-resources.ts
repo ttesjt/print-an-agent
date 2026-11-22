@@ -1,35 +1,17 @@
+import { bindTextTokenCounter } from '@print-an-agent/model-invocation-core';
 import {
-  bindTextTokenCounter,
-  type TextTokenInput,
-  type TokenCounter,
-} from '@print-an-agent/model-invocation-core';
-import type { ExecutionPolicy } from '../contracts/document.js';
-import type { MemoryPlanner } from '../contracts/model.js';
-import type { MemoryMutationResources } from '../domain/mutations.js';
-import { createMemoryUpdatePort, type MemoryUpdatePort } from '../domain/update.js';
-import { resolveExecutionPolicy } from '../config/parse.js';
-import {
+  createMemoryUpdatePort,
+  resolveExecutionPolicy,
   refineMemoryCompactionTarget,
-  type MemoryCompactionFeedback,
-} from '../planning/feedback.js';
-import { createContextMemoryResources, type MemoryWorkflowResources } from './resources.js';
+} from '../model-update/index.js';
+import { createContextMemoryResources } from './resources.js';
 import { ContextMemoryError } from '../errors.js';
 import { MAX_EXECUTION_TIMEOUT_MILLISECONDS } from '@print-an-agent/workflow-core';
+import type {
+  ModelMemoryResources,
+  ModelMemoryResourceOptions,
+} from './model-driven/types/resources.js';
 
-export interface ModelMemoryResources extends MemoryWorkflowResources {
-  readonly updates: MemoryUpdatePort;
-  readonly planner: MemoryPlanner;
-  readonly policy: ExecutionPolicy;
-  readonly refine: (feedback: MemoryCompactionFeedback) => number | Promise<number>;
-  /** Only for the optional experience/instruction input budget, not output acceptance. */
-  readonly inputCounter?: TokenCounter<TextTokenInput>;
-}
-export interface ModelMemoryResourceOptions extends MemoryMutationResources {
-  readonly planner: MemoryPlanner;
-  readonly policy?: Partial<ExecutionPolicy>;
-  readonly refine?: ModelMemoryResources['refine'];
-  readonly inputCounter?: TokenCounter<TextTokenInput>;
-}
 export function createModelMemoryResources(
   options: ModelMemoryResourceOptions
 ): ModelMemoryResources {

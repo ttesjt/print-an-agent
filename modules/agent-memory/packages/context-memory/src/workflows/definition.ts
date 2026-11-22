@@ -1,42 +1,9 @@
-import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
-import type { MemoryOperations } from './resources.js';
+import type { MemoryOperations } from './deterministic/types/resources.js';
 import { ContextMemoryError } from '../errors.js';
-import {
-  createMemoryInputPreparation,
-  requirePreparedMemoryInput,
-  type DeterministicMemoryWorkflowInput,
-} from './input-preparation.js';
+import { createMemoryInputPreparation, requirePreparedMemoryInput } from './input-preparation.js';
 import { memoryLifecycle } from './lifecycle.js';
-import {
-  memoryExecutor,
-  requireMemoryOperationOutput,
-  type MemoryOperationOutput,
-} from './outcome.js';
-
-export type MemoryStepName = 'runMemoryOperation' | 'prepareInput' | 'executeOperation';
-export type MemoryWorkflowState<I, O> = DeterministicMemoryWorkflowInput<I> &
-  MemoryOperationOutput<O>;
-export type MemoryDefinition<
-  I,
-  O,
-  K extends keyof Operations,
-  Operations extends object = MemoryOperations,
-> = BundleWorkflowDefinition<
-  MemoryStepName,
-  I,
-  MemoryWorkflowState<I, O>,
-  { readonly memory: Pick<Operations, K> },
-  O
->;
-export type MemoryWorkflowOptions<
-  I,
-  O,
-  K extends keyof Operations,
-  Operations extends object = MemoryOperations,
-> = Pick<
-  MemoryDefinition<I, O, K, Operations>,
-  'stepOverrides' | 'condition' | 'executeStep' | 'lifecycle' | 'createRunId'
->;
+import { memoryExecutor, requireMemoryOperationOutput } from './outcome.js';
+import type { MemoryDefinition, MemoryWorkflowOptions } from './deterministic/types/workflow.js';
 
 /** Core definition only: no second runner, implicit I/O, or global operation state. */
 export function memoryDefinition<

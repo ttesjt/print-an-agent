@@ -2,13 +2,13 @@ import type {
   ApplyMemoryInput,
   ConfigureMemoryInput,
   CreateMemoryInput,
-  ReadContextInput,
-  ReadContextResult,
-} from '../contracts/inputs.js';
-import type { MemoryReceipt, MutationResult } from '../contracts/receipt.js';
-import { memoryDefinition, type MemoryWorkflowOptions } from './definition.js';
-import type { GetMemoryReceiptInput } from './resources.js';
-import type { MemorySnapshot } from '../contracts/document.js';
+} from '../mutations/index.js';
+import type { ReadContextInput, ReadContextResult } from '../context/index.js';
+import type { MemoryReceipt, MutationResult } from '../types/receipt.js';
+import { memoryDefinition } from './definition.js';
+import type { MemoryWorkflowOptions } from './deterministic/types/workflow.js';
+import type { GetMemoryReceiptInput } from './state/types.js';
+import type { MemorySnapshot } from '../types/document.js';
 
 export function createMemoryInspectDefinition(
   options: MemoryWorkflowOptions<
@@ -26,6 +26,7 @@ export function createMemoryInspectDefinition(
 }
 
 const skipped = (): MutationResult => ({ status: 'skipped', reason: 'condition-not-met' });
+
 export function createMemoryCreateDefinition(
   options: MemoryWorkflowOptions<CreateMemoryInput, MutationResult, 'create'> = {}
 ) {
@@ -37,6 +38,7 @@ export function createMemoryCreateDefinition(
     true
   );
 }
+
 export function createMemoryApplyDefinition(
   options: MemoryWorkflowOptions<ApplyMemoryInput, MutationResult, 'apply'> = {}
 ) {
@@ -48,6 +50,7 @@ export function createMemoryApplyDefinition(
     true
   );
 }
+
 export function createMemoryConfigureDefinition(
   options: MemoryWorkflowOptions<ConfigureMemoryInput, MutationResult, 'configure'> = {}
 ) {
@@ -59,6 +62,7 @@ export function createMemoryConfigureDefinition(
     true
   );
 }
+
 export function createMemoryReadContextDefinition(
   options: MemoryWorkflowOptions<
     ReadContextInput,
@@ -73,6 +77,7 @@ export function createMemoryReadContextDefinition(
     options
   );
 }
+
 export function createMemoryGetReceiptDefinition(
   options: MemoryWorkflowOptions<
     GetMemoryReceiptInput,

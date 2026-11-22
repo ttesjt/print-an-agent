@@ -1,5 +1,6 @@
 import type { WorkflowLifecycle } from '@print-an-agent/workflow-core';
-import { preserveMemoryCommit, type MemoryOperationOutput } from './outcome.js';
+import { preserveMemoryCommit } from './outcome.js';
+import type { MemoryOperationOutput } from './shared/types/output.js';
 
 export function memoryLifecycle<C extends { state: MemoryOperationOutput<unknown> }>(
   hooks: WorkflowLifecycle<C> = {}

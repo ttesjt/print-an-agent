@@ -1,15 +1,16 @@
-import type { ModelMemoryOperation } from '../contracts/model.js';
+import type { ModelMemoryOperation } from '../model-update/index.js';
 import { ContextMemoryError, assertMemoryNotAborted } from '../errors.js';
 import { requirePreparedMemoryInput } from './input-preparation.js';
-import { modelMemorySignal, type ModelMemoryContext } from './model-types.js';
-import { checkMemoryInputBudget } from '../model/input-budget.js';
-import { throwMemoryPlannerFailure } from '../model/failures.js';
+import { modelMemorySignal } from './model-types.js';
+import type { ModelMemoryContext } from './model-driven/types/workflow.js';
+import { checkMemoryInputBudget, throwMemoryPlannerFailure } from '../model-update/index.js';
 
 export function requireUpdate(context: ModelMemoryContext) {
   if (context.state.update === undefined)
     throw new ContextMemoryError('INPUT_INVALID', 'Prepared Memory update is missing.');
   return context.state.update;
 }
+
 export function modelMemorySteps(operation: ModelMemoryOperation) {
   return {
     prepareInput(this: void, context: ModelMemoryContext) {
@@ -77,11 +78,13 @@ export function modelMemorySteps(operation: ModelMemoryOperation) {
     },
   };
 }
+
 function requireOperations(context: ModelMemoryContext) {
   if (context.state.operations === undefined)
     throw new ContextMemoryError('MODEL_OUTPUT_INVALID', 'Planner operations are missing.');
   return context.state.operations;
 }
+
 async function plan(context: ModelMemoryContext, task: ModelMemoryOperation): Promise<void> {
   const update = requireUpdate(context);
   const input = update.input;

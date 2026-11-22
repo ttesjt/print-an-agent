@@ -1,36 +1,13 @@
 import { effectiveRetrievalSignal } from './shared/index.js';
-import type { BundleWorkflowDefinition } from '@print-an-agent/workflow-core/bundle';
-import type {
-  ContextCandidate,
-  ReadContextInput,
-  ReadContextResult,
-} from '../contracts/context.js';
-import type { RetrievalHit } from '../contracts/data.js';
-import type { RetrievalWorkflowResources } from './resources.js';
-import type { RetrievalReadOutcome } from './query.js';
 import { runRetrievalExecution } from './execution.js';
 import { fail } from '../errors.js';
-import { jsonSnapshot } from '../validation/json.js';
+import { jsonSnapshot } from '../values/index.js';
 import { createSkippedRetrievalResult } from './outcomes.js';
-export type ContextStepName = 'runOperation' | 'prepareInput' | 'search' | 'select' | 'finalize';
-export interface ContextRunState {
-  input: ReadContextInput;
-  candidate?: ContextCandidate;
-  selected: readonly RetrievalHit[];
-  signal?: AbortSignal;
-  outcome?: RetrievalReadOutcome<ReadContextResult>;
-}
-export type RetrievalContextDefinition = BundleWorkflowDefinition<
-  ContextStepName,
-  ReadContextInput,
-  ContextRunState,
-  Pick<RetrievalWorkflowResources, 'context' | 'execution'>,
-  RetrievalReadOutcome<ReadContextResult>
->;
-export type RetrievalContextWorkflowOptions = Pick<
+import type {
   RetrievalContextDefinition,
-  'stepOverrides' | 'executeStep' | 'condition' | 'lifecycle' | 'createRunId'
->;
+  RetrievalContextWorkflowOptions,
+} from './context/types.js';
+
 export function createRetrievalReadContextDefinition(
   options: RetrievalContextWorkflowOptions = {}
 ): RetrievalContextDefinition {

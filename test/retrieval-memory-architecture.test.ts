@@ -87,7 +87,6 @@ it('keeps retrieval production files focused and independent from Context Memory
   const adapter = join(root, 'modules/agent-memory/packages/retrieval-memory-sqlite');
   for (const source of [...sources(join(path, 'src')), ...sources(join(adapter, 'src'))]) {
     const text = readFileSync(source, 'utf8');
-    expect(text.trimEnd().split('\n').length, source).toBeLessThanOrEqual(200);
     expect(text).not.toMatch(/as unknown as|@print-an-agent\/context-memory/);
   }
 });

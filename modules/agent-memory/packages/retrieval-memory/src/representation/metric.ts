@@ -1,7 +1,11 @@
 import { fail } from '../errors.js';
+
 export const COSINE_METRIC_REF = 'cosine-unit-f32-v1';
+
 export const FLOAT32_EPSILON = 2 ** -23;
+
 export const UNIT_NORM_TOLERANCE = 8 * FLOAT32_EPSILON;
+
 /** Stable in binary64 before quantization: neither raw squares nor raw float32 casts are safe. */
 export function prepareCosineVector(raw: readonly number[], dimensions: number): readonly number[] {
   if (raw.length !== dimensions || dimensions < 1 || raw.some((value) => !Number.isFinite(value)))
@@ -15,6 +19,7 @@ export function prepareCosineVector(raw: readonly number[], dimensions: number):
   assertCanonicalVector(vector, dimensions);
   return Object.freeze(vector);
 }
+
 export function assertCanonicalVector(vector: readonly number[], dimensions: number): void {
   const untrusted: unknown = vector;
   if (

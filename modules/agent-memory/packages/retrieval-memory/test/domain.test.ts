@@ -157,3 +157,34 @@ it('rejects corrupted candidates even when callers bypass preparation', async ()
     )
   ).rejects.toMatchObject({ code: 'REPRESENTATION_INVALID' });
 });
+
+it('rejects invalid source spans in both domain and backend publication paths', async () => {
+  const f = fixture();
+  await f.create();
+  const signal = new AbortController().signal;
+  const prepared = await f.mutations.prepare(
+    'ingest',
+    { memoryId: 'space', requestId: 'invalid-span', content: 'source text' },
+    signal
+  );
+  if (!('publication' in prepared) || prepared.publication.representation === null)
+    throw new Error('Expected prepared representation');
+  const candidate = {
+    ...prepared.publication,
+    representation: {
+      ...prepared.publication.representation,
+      chunks: prepared.publication.representation.chunks.map((chunk) => ({
+        ...chunk,
+        span: { start: 0, end: 1 },
+      })),
+    },
+  };
+  await expect(f.mutations.publish({ publication: candidate }, signal)).rejects.toMatchObject({
+    code: 'REPRESENTATION_INVALID',
+  });
+  await expect(f.backend.publish(candidate, signal)).rejects.toMatchObject({
+    code: 'REPRESENTATION_INVALID',
+  });
+  expect(f.entries.size).toBe(0);
+  expect(await f.backend.getReceipt('space', 'invalid-span', signal)).toBeUndefined();
+});

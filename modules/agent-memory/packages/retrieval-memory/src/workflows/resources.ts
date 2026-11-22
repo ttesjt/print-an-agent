@@ -1,38 +1,13 @@
-import type { RetrievalPolicy } from '../config.js';
-import type { RetrievalContextOptions } from '../contracts/context.js';
-import { createRetrievalContext, type RetrievalContextOperations } from '../context/operations.js';
-import {
-  createRetrievalMutations,
-  type RetrievalResources,
-  type RetrievalMutationOperations,
-} from '../domain/mutations.js';
-import { createRetrievalQueries, type RetrievalQueryOperations } from '../domain/queries.js';
-import {
-  defineRetrievalExecutionPolicy,
-  DEFAULT_RETRIEVAL_EXECUTION_POLICY,
-  type RetrievalExecutionPolicy,
-} from './execution.js';
-export interface RetrievalWorkflowResources {
-  readonly context: RetrievalContextOperations;
-  readonly execution?: RetrievalExecutionPolicy;
-  readonly mutations: RetrievalMutationOperations;
-  readonly queries: RetrievalQueryOperations;
-}
-export interface RetrievalMutationResources<
-  K extends import('../contracts/inputs.js').MutationOperation,
-> {
-  readonly execution?: RetrievalExecutionPolicy;
-  readonly mutations: RetrievalMutationOperations<K>;
-}
-export interface RetrievalQueryResources<K extends keyof RetrievalQueryOperations> {
-  readonly execution?: RetrievalExecutionPolicy;
-  readonly queries: Pick<RetrievalQueryOperations, K>;
-}
-export interface RetrievalWorkflowResourceOptions {
-  readonly policy?: Partial<RetrievalPolicy>;
-  readonly execution?: RetrievalExecutionPolicy;
-  readonly context?: RetrievalContextOptions;
-}
+import { createRetrievalContext } from '../context/index.js';
+import { createRetrievalMutations } from '../mutations/index.js';
+import type { RetrievalResources } from '../mutations/index.js';
+import { createRetrievalQueries } from '../queries/index.js';
+import { defineRetrievalExecutionPolicy, DEFAULT_RETRIEVAL_EXECUTION_POLICY } from './execution.js';
+import type {
+  RetrievalWorkflowResources,
+  RetrievalWorkflowResourceOptions,
+} from './types/resources.js';
+
 /** Pure assembly, no I/O and no transferred resource ownership. */
 export function createRetrievalWorkflowResources(
   resources: RetrievalResources,

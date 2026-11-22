@@ -1,5 +1,6 @@
-import type { RetrievalContextRenderer } from '../contracts/context.js';
+import type { RetrievalContextRenderer } from './types/rendering.js';
 import { assertNotAborted } from '../errors.js';
+
 export const DEFAULT_RETRIEVAL_RENDERER: RetrievalContextRenderer = Object.freeze({
   ref: 'retrieval-numbered-citations:v1',
   render(

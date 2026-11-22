@@ -3,12 +3,12 @@ import {
   runWithExecutionTimeout,
 } from '@print-an-agent/workflow-core';
 import { assertNotAborted, fail, RetrievalMemoryError } from '../errors.js';
-export interface RetrievalExecutionPolicy {
-  readonly timeoutMilliseconds: number | null;
-}
+import type { RetrievalExecutionPolicy } from './shared/types/execution.js';
+
 export const DEFAULT_RETRIEVAL_EXECUTION_POLICY: RetrievalExecutionPolicy = Object.freeze({
   timeoutMilliseconds: null,
 });
+
 export function defineRetrievalExecutionPolicy(
   value: RetrievalExecutionPolicy = DEFAULT_RETRIEVAL_EXECUTION_POLICY
 ): RetrievalExecutionPolicy {
@@ -21,6 +21,7 @@ export function defineRetrievalExecutionPolicy(
     fail('CONFIG_INVALID', 'Invalid Memory operation deadline.');
   return Object.freeze({ timeoutMilliseconds: value.timeoutMilliseconds });
 }
+
 /** Reuse Core's cooperative deadline boundary. Never race and abandon borrowed work. */
 export function runRetrievalExecution(
   parentSignal: AbortSignal,

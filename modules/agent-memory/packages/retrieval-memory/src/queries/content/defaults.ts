@@ -1,0 +1,1 @@
+export const DEFAULT_ENTRY_LIST_LIMIT = 50;

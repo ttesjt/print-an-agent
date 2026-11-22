@@ -3,31 +3,38 @@ import type {
   IngestInput,
   UpdateInput,
   EntryMutationInput,
-  SpaceInput,
-  EntryInput,
-  ReceiptInput,
-  ListInput,
-  SearchInput,
-} from '../contracts/inputs.js';
-import type { EntryPage, RetrievalEntry, RetrievalSpace, SearchResult } from '../contracts/data.js';
-import type { RetrievalReceipt } from '../contracts/publication.js';
-import { createRetrievalMutationDefinition, type RetrievalMutationOptions } from './mutation.js';
-import { createRetrievalQueryDefinition, type RetrievalQueryOptions } from './query.js';
+} from '../types/mutation.js';
+import type { SpaceInput, EntryInput, ReceiptInput } from '../types/identity.js';
+import type { ListInput, SearchInput } from '../queries/index.js';
+import type { EntryPage, RetrievalEntry } from '../types/entry.js';
+import type { RetrievalSpace } from '../types/space.js';
+import type { SearchResult } from '../types/search.js';
+import type { RetrievalReceipt } from '../types/publication.js';
+import { createRetrievalMutationDefinition } from './mutation.js';
+import type { RetrievalMutationOptions } from './mutation/types/workflow.js';
+import { createRetrievalQueryDefinition } from './query.js';
+import type { RetrievalQueryOptions } from './query/types/workflow.js';
+
 export const createRetrievalCreateDefinition = (
   options: RetrievalMutationOptions<CreateInput> = {}
 ) => createRetrievalMutationDefinition('create', options);
+
 export const createRetrievalIngestDefinition = (
   options: RetrievalMutationOptions<IngestInput> = {}
 ) => createRetrievalMutationDefinition('ingest', options);
+
 export const createRetrievalUpdateDefinition = (
   options: RetrievalMutationOptions<UpdateInput> = {}
 ) => createRetrievalMutationDefinition('update', options);
+
 export const createRetrievalRemoveDefinition = (
   options: RetrievalMutationOptions<EntryMutationInput, 'remove'> = {}
 ) => createRetrievalMutationDefinition('remove', options);
+
 export const createRetrievalReindexDefinition = (
   options: RetrievalMutationOptions<EntryMutationInput> = {}
 ) => createRetrievalMutationDefinition('reindex', options);
+
 export const createRetrievalInspectDefinition = (
   options: RetrievalQueryOptions<SpaceInput, RetrievalSpace, 'inspect'> = {}
 ) =>
@@ -36,6 +43,7 @@ export const createRetrievalInspectDefinition = (
     (r, input, signal) => r.queries.inspect(input, signal),
     options
   );
+
 export const createRetrievalGetDefinition = (
   options: RetrievalQueryOptions<EntryInput, RetrievalEntry, 'get'> = {}
 ) =>
@@ -44,6 +52,7 @@ export const createRetrievalGetDefinition = (
     (r, input, signal) => r.queries.get(input, signal),
     options
   );
+
 export const createRetrievalReceiptDefinition = (
   options: RetrievalQueryOptions<ReceiptInput, RetrievalReceipt | undefined, 'getReceipt'> = {}
 ) =>
@@ -53,6 +62,7 @@ export const createRetrievalReceiptDefinition = (
     options,
     (value) => value
   );
+
 export const createRetrievalListDefinition = (
   options: RetrievalQueryOptions<ListInput, EntryPage, 'list'> = {}
 ) =>
@@ -61,6 +71,7 @@ export const createRetrievalListDefinition = (
     (r, input, signal) => r.queries.list(input, signal),
     options
   );
+
 export const createRetrievalSearchDefinition = (
   options: RetrievalQueryOptions<SearchInput, SearchResult> = {}
 ) =>

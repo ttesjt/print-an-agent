@@ -1,34 +1,19 @@
 import {
+  TIKTOKEN_ENCODING,
+  parseTiktokenEncoding,
+  type TiktokenTextCounterOptions,
+} from './encoding.js';
+import {
   createTokenCounter,
   TEXT_TOKEN_INPUT_CONTRACT,
   TOKEN_MEASUREMENT_ACCURACY,
-  TokenMeasurementError,
   type TextTokenInput,
   type TokenCounter,
 } from '@print-an-agent/model-invocation-core';
 import type { Tiktoken } from 'js-tiktoken/lite';
-import { readCounterOptions } from './counter-options.js';
+import { readCounterOptions } from '../option-record.js';
 
-export const TIKTOKEN_ENCODING = Object.freeze({
-  CL100K_BASE: 'cl100k_base',
-  O200K_BASE: 'o200k_base',
-} as const);
-export type TiktokenEncoding = (typeof TIKTOKEN_ENCODING)[keyof typeof TIKTOKEN_ENCODING];
-const IMPLEMENTATION = 'js-tiktoken:1.0.21';
-
-export interface TiktokenTextCounterOptions {
-  readonly encoding: TiktokenEncoding;
-}
-
-export function parseTiktokenEncoding(encoding: unknown): TiktokenEncoding {
-  if (encoding !== TIKTOKEN_ENCODING.CL100K_BASE && encoding !== TIKTOKEN_ENCODING.O200K_BASE) {
-    throw new TokenMeasurementError(
-      'TOKEN_MEASUREMENT_BINDING_INVALID',
-      'An explicit supported tiktoken encoding is required.'
-    );
-  }
-  return encoding;
-}
+const TIKTOKEN_IMPLEMENTATION_REF = 'js-tiktoken:1.0.21';
 
 /** Loads only the selected bundled vocabulary on first measurement; never downloads ranks. */
 export function createTiktokenTextCounter(
@@ -45,7 +30,7 @@ export function createTiktokenTextCounter(
     return new Tiktoken(ranks.default);
   }
   return createTokenCounter({
-    measurementRef: `${IMPLEMENTATION}:${encoding}:ordinary-text`,
+    measurementRef: `${TIKTOKEN_IMPLEMENTATION_REF}:${encoding}:ordinary-text`,
     inputContract: TEXT_TOKEN_INPUT_CONTRACT,
     measure: async (input, signal) => {
       signal.throwIfAborted();

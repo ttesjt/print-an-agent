@@ -142,6 +142,10 @@ directions in `test/embedding-http-source-boundaries.test.ts`, also included in 
 qualification. It checks the public inventory, pure type erasure, HTTP's erased dependency on
 Configuration and Core-facing compiled public declarations.
 
+Token Counters declares Configuration/Tiktoken entries and shared file capabilities in
+`test/token-counters-source-boundaries.test.ts`, also run by Model Invocation qualification. It checks
+public metadata/symbols, direct SDK loading locations and SDK-free compiled public declarations.
+
 Observability declares its event protocol and emission entries, shared errors and one-way dependency
 in `test/observability-source-boundaries.test.ts`.
 

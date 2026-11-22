@@ -18,9 +18,10 @@
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
     "typecheck": "pnpm run build && tsc --noEmit",
-    "test": "vitest run",
+    "test": "pnpm run build && vitest run",
     "lint": "eslint .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check . --ignore-path ../../../../.prettierignore",
+    "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
     "@print-an-agent/model-invocation-core": "workspace:*",

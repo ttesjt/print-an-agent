@@ -6,7 +6,7 @@ import {
   type TextTokenInput,
   type TokenCounter,
 } from '@print-an-agent/model-invocation-core';
-import { readCounterOptions } from './counter-options.js';
+import { readCounterOptions } from './option-record.js';
 
 export const DEFAULT_CHARACTERS_PER_TOKEN = 4;
 

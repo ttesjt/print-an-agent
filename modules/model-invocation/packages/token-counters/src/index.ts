@@ -8,14 +8,14 @@ export {
   TIKTOKEN_ENCODING,
   type TiktokenEncoding,
   type TiktokenTextCounterOptions,
-} from './tiktoken-counter.js';
+} from './tiktoken/index.js';
 export {
   defineTextTokenCounterConfig,
   resolveTextTokenCounterConfig,
   TEXT_TOKEN_COUNTER_KIND,
-} from './config.js';
+} from './configuration/index.js';
 export type {
   TextTokenCounterConfigInput,
   TextTokenCounterConfig,
   TextTokenCounterReferenceResolver,
-} from './config.js';
+} from './configuration/index.js';

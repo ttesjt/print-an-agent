@@ -1,6 +1,7 @@
+import type { SqliteDatabaseConfiguration } from './database/index.js';
 import { Worker } from 'node:worker_threads';
 import { assertNotAborted, RetrievalMemoryError } from '@print-an-agent/retrieval-memory';
-import type { WorkerConfiguration, WorkerOperation, WorkerReply } from './protocol.js';
+import type { WorkerOperation, WorkerReply } from './protocol.js';
 import { restoreFailures } from './failures.js';
 interface Pending {
   readonly resolve: (value: unknown) => void;
@@ -8,7 +9,7 @@ interface Pending {
   readonly dispose: () => void;
   readonly operation: WorkerOperation;
 }
-export async function createWorkerClient(configuration: WorkerConfiguration) {
+export async function createWorkerClient(configuration: SqliteDatabaseConfiguration) {
   const worker = new Worker(new URL('./worker.js', import.meta.url), { workerData: configuration });
   const exited = new Promise<void>((resolve, reject) =>
     worker.once('exit', (code) =>

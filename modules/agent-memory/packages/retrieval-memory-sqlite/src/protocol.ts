@@ -24,10 +24,6 @@ export type WorkerReply =
         readonly causes: readonly FailureDetail[];
       };
     };
-export interface WorkerConfiguration {
-  readonly path: string;
-  readonly busyTimeoutMs: number;
-}
 export interface FailureDetail {
   readonly name: string;
   readonly message: string;

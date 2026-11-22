@@ -5,7 +5,7 @@ import {
   createRetrievalReindexDefinition,
   findRetrievalCommit,
 } from '@print-an-agent/retrieval-memory';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../../../support/fixture.js';
 it('rebuilds one representation, preserves Entry revision and replays without rebuilding again', async () => {
   const f = await fixture();
   await f.create();

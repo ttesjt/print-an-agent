@@ -1,5 +1,34 @@
+import { DatabaseSync } from 'node:sqlite';
 import { expect, it } from 'vitest';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../../../support/fixture.js';
+
+it('accepts sequence changes with the same representation configuration and enforces native topK', async () => {
+  const f = await fixture();
+  await f.create();
+  const space = await f.backend.inspect('space');
+  if (space === undefined) throw new Error('Missing test Space');
+  await f.mutations.run('ingest', { memoryId: 'space', requestId: 'a', content: 'aligned' });
+  const result = await f.backend.search({ space, vector: [1, 0, 0, 0], topK: 1 });
+  expect(result.space.sequence).toBeGreaterThan(space.sequence);
+  expect(result.hits).toHaveLength(1);
+  for (const topK of [0, 0.5, 4097])
+    await expect(f.backend.search({ space, vector: [1, 0, 0, 0], topK })).rejects.toMatchObject({
+      code: 'UNSUPPORTED_CAPABILITY',
+    });
+});
+
+it('rejects a malformed persisted Chunk header at the SQL result boundary', async () => {
+  const f = await fixture();
+  await f.create();
+  await f.mutations.run('ingest', { memoryId: 'space', requestId: 'a', content: 'aligned' });
+  const db = new DatabaseSync(f.path);
+  try {
+    db.exec("UPDATE rm_chunks SET chunk_json=json_remove(chunk_json,'$.ordinal')");
+    await expect(f.search()).rejects.toMatchObject({ code: 'SEARCH_FAILED' });
+  } finally {
+    db.close();
+  }
+});
 it('normalizes extreme document vectors and queries before cosine ranking', async () => {
   const f = await fixture();
   await f.create();
@@ -63,25 +92,4 @@ it('constrains metadata before topK rather than filtering globally nearest rows 
       })
     ).hits
   ).toHaveLength(1);
-});
-it('paginates scoped UTF-8 Entry IDs and detects same-Space changes', async () => {
-  const f = await fixture();
-  const memoryId = 'long-space-' + 'a'.repeat(400);
-  await f.create(memoryId);
-  await f.create('other');
-  for (let i = 0; i < 4; i++)
-    await f.mutations.run('ingest', { memoryId, requestId: `r-${i}`, content: String(i) });
-  const first = await f.backend.list({ memoryId, limit: 2 });
-  expect(first.nextCursor).not.toBeNull();
-  await f.mutations.run('ingest', { memoryId: 'other', requestId: 'other', content: 'unrelated' });
-  const second = await f.backend.list({ memoryId, limit: 2, cursor: first.nextCursor! });
-  expect(new Set([...first.entries, ...second.entries].map((entry) => entry.entryId)).size).toBe(4);
-  expect(second.nextCursor).toBeNull();
-  await expect(
-    f.backend.list({ memoryId: 'other', limit: 2, cursor: first.nextCursor! })
-  ).rejects.toMatchObject({ code: 'STALE_CURSOR' });
-  await f.mutations.run('ingest', { memoryId, requestId: 'new', content: 'new' });
-  await expect(
-    f.backend.list({ memoryId, limit: 2, cursor: first.nextCursor! })
-  ).rejects.toMatchObject({ code: 'STALE_CURSOR' });
 });

@@ -1,0 +1,66 @@
+{
+  "schema": [
+    "CREATE TABLE rm_spaces(memory_id TEXT PRIMARY KEY, payload TEXT NOT NULL)",
+    "CREATE TABLE rm_entries(memory_id TEXT NOT NULL, entry_id TEXT NOT NULL, entry_json TEXT NOT NULL, representation_json TEXT NOT NULL, metadata_json TEXT NOT NULL, PRIMARY KEY(memory_id,entry_id), FOREIGN KEY(memory_id) REFERENCES rm_spaces(memory_id))",
+    "CREATE TABLE rm_chunks(row_id INTEGER PRIMARY KEY AUTOINCREMENT, memory_id TEXT NOT NULL, entry_id TEXT NOT NULL, chunk_json TEXT NOT NULL, vector BLOB NOT NULL, FOREIGN KEY(memory_id,entry_id) REFERENCES rm_entries(memory_id,entry_id) ON DELETE CASCADE)",
+    "CREATE INDEX rm_chunk_scope ON rm_chunks(memory_id,entry_id)",
+    "CREATE INDEX rm_metadata_scan ON rm_entries(memory_id,metadata_json,entry_id)",
+    "CREATE TABLE rm_receipts(memory_id TEXT NOT NULL, request_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(memory_id,request_id))"
+  ],
+  "spaces": [
+    {
+      "memory_id": "format-space",
+      "payload": "{\"memoryId\":\"format-space\",\"revision\":1,\"sequence\":2,\"index\":{\"generationId\":\"433f6cb8-40d5-4042-b7fe-057784e2b5f1\",\"embeddingRef\":\"text-embedding:sha256:75e409c50d45f82261d103fb71755d7148d6660e4abdf0123bca36af0652d5e3\",\"chunkerRef\":\"codepoint-window:v1:1000:100\",\"metricRef\":\"cosine-unit-f32-v1\",\"dimensions\":4}}"
+    }
+  ],
+  "entries": [
+    {
+      "memory_id": "format-space",
+      "entry_id": "52e53b70-d57f-4d2b-9a9c-571a9891cc83",
+      "entry_json": "{\"memoryId\":\"format-space\",\"entryId\":\"52e53b70-d57f-4d2b-9a9c-571a9891cc83\",\"revision\":1,\"content\":\"aligned a\\u0000😀é\",\"metadata\":{\"a\\u0000b\":\"x\\u0000y\"},\"source\":{\"ref\":\"source\\u0000tail\"}}",
+      "representation_json": "{\"representationId\":\"2e906c1a-7be1-4a36-b752-fed9564a7d9c\",\"embeddingRef\":\"text-embedding:sha256:75e409c50d45f82261d103fb71755d7148d6660e4abdf0123bca36af0652d5e3\",\"chunkerRef\":\"codepoint-window:v1:1000:100\",\"metricRef\":\"cosine-unit-f32-v1\"}",
+      "metadata_json": "{\"a\\u0000b\":\"x\\u0000y\"}"
+    },
+    {
+      "memory_id": "format-space",
+      "entry_id": "d1d4d87a-3727-4ee7-9dac-015bfd5d1494",
+      "entry_json": "{\"memoryId\":\"format-space\",\"entryId\":\"d1d4d87a-3727-4ee7-9dac-015bfd5d1494\",\"revision\":1,\"content\":\"aligned b\\u0000😀é\",\"metadata\":{\"a\\u0000b\":\"x\\u0000y\"},\"source\":{\"ref\":\"source\\u0000tail\"}}",
+      "representation_json": "{\"representationId\":\"bff806e6-a5b0-471e-a83d-637a2959b9b7\",\"embeddingRef\":\"text-embedding:sha256:75e409c50d45f82261d103fb71755d7148d6660e4abdf0123bca36af0652d5e3\",\"chunkerRef\":\"codepoint-window:v1:1000:100\",\"metricRef\":\"cosine-unit-f32-v1\"}",
+      "metadata_json": "{\"a\\u0000b\":\"x\\u0000y\"}"
+    }
+  ],
+  "chunks": [
+    {
+      "row_id": 1,
+      "memory_id": "format-space",
+      "entry_id": "52e53b70-d57f-4d2b-9a9c-571a9891cc83",
+      "chunk_json": "{\"memoryId\":\"format-space\",\"entryId\":\"52e53b70-d57f-4d2b-9a9c-571a9891cc83\",\"entryRevision\":1,\"generationId\":\"433f6cb8-40d5-4042-b7fe-057784e2b5f1\",\"representationId\":\"2e906c1a-7be1-4a36-b752-fed9564a7d9c\",\"chunkId\":\"ab179b3b-15e1-48a3-8035-e289e1f00838\",\"ordinal\":0,\"text\":\"aligned a\\u0000😀é\",\"span\":{\"start\":0,\"end\":14}}",
+      "vector_hex": "0000803F000000000000000000000000"
+    },
+    {
+      "row_id": 2,
+      "memory_id": "format-space",
+      "entry_id": "d1d4d87a-3727-4ee7-9dac-015bfd5d1494",
+      "chunk_json": "{\"memoryId\":\"format-space\",\"entryId\":\"d1d4d87a-3727-4ee7-9dac-015bfd5d1494\",\"entryRevision\":1,\"generationId\":\"433f6cb8-40d5-4042-b7fe-057784e2b5f1\",\"representationId\":\"bff806e6-a5b0-471e-a83d-637a2959b9b7\",\"chunkId\":\"f1eb5a35-afe4-4458-ba7f-8790784e2c20\",\"ordinal\":0,\"text\":\"aligned b\\u0000😀é\",\"span\":{\"start\":0,\"end\":14}}",
+      "vector_hex": "0000803F000000000000000000000000"
+    }
+  ],
+  "receipts": [
+    {
+      "memory_id": "format-space",
+      "request_id": "a",
+      "payload": "{\"memoryId\":\"format-space\",\"requestId\":\"a\",\"operation\":\"ingest\",\"inputDigest\":\"54397c177ba6dec934c30bac70ef3894c4197ba794bfc79de565f3b485ecfbdc\",\"outcome\":\"committed\",\"previousSequence\":0,\"sequence\":1,\"spaceRevision\":1,\"generationId\":\"433f6cb8-40d5-4042-b7fe-057784e2b5f1\",\"entryId\":\"52e53b70-d57f-4d2b-9a9c-571a9891cc83\",\"entryRevision\":1,\"representationId\":\"2e906c1a-7be1-4a36-b752-fed9564a7d9c\"}"
+    },
+    {
+      "memory_id": "format-space",
+      "request_id": "b",
+      "payload": "{\"memoryId\":\"format-space\",\"requestId\":\"b\",\"operation\":\"ingest\",\"inputDigest\":\"ca622cd82acc5d783b7b3b1245f05a79d045e02a6fc5a5037ae5d1fae3bb8f3c\",\"outcome\":\"committed\",\"previousSequence\":1,\"sequence\":2,\"spaceRevision\":1,\"generationId\":\"433f6cb8-40d5-4042-b7fe-057784e2b5f1\",\"entryId\":\"d1d4d87a-3727-4ee7-9dac-015bfd5d1494\",\"entryRevision\":1,\"representationId\":\"bff806e6-a5b0-471e-a83d-637a2959b9b7\"}"
+    },
+    {
+      "memory_id": "format-space",
+      "request_id": "create",
+      "payload": "{\"memoryId\":\"format-space\",\"requestId\":\"create\",\"operation\":\"create\",\"inputDigest\":\"f687cde7e6d80a4fef0c13071c865613463a4b1d357865baf8d9e81715bf1692\",\"outcome\":\"committed\",\"previousSequence\":0,\"sequence\":0,\"spaceRevision\":1,\"generationId\":\"433f6cb8-40d5-4042-b7fe-057784e2b5f1\",\"entryId\":null,\"entryRevision\":null,\"representationId\":null}"
+    }
+  ],
+  "cursor": "eyJtZW1vcnlJZCI6ImZvcm1hdC1zcGFjZSIsInNlcXVlbmNlIjoyLCJvcmRlciI6ImVudHJ5LWlkLXV0ZjgtdjEiLCJhZnRlciI6IjUyZTUzYjcwLWQ1N2YtNGQyYi05YTljLTU3MWE5ODkxY2M4MyJ9"
+}

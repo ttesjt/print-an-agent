@@ -10,7 +10,7 @@ import {
   createRetrievalReadContextDefinition,
 } from '@print-an-agent/retrieval-memory';
 import { expect, it } from 'vitest';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../../support/fixture.js';
 function counter(nonadditive = false, estimated = false) {
   return createTokenCounter({
     measurementRef: `test-text:${nonadditive}:${estimated}`,

@@ -3,7 +3,7 @@ import {
   createRetrievalContentBundle,
   replayRetrievalMutation,
 } from '@print-an-agent/retrieval-memory';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../../support/fixture.js';
 
 it('browses, removes and recovers receipts with only the coherent Backend', async () => {
   const f = await fixture();

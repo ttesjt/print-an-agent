@@ -4,7 +4,7 @@ import {
   createRetrievalWorkflowResources,
   createRetrievalQueries,
 } from '@print-an-agent/retrieval-memory';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../../support/fixture.js';
 it('runs the full basic loop through public native workflows and real storage', async () => {
   const f = await fixture();
   const bundle = createRetrievalMemoryBundle({

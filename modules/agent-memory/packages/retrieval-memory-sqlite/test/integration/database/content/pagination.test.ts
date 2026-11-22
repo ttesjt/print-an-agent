@@ -1,5 +1,32 @@
+import { DatabaseSync } from 'node:sqlite';
 import { expect, it } from 'vitest';
 import { fixture } from '../../../support/fixture.js';
+
+it('binds cursor scope to the requested identity even if a stored payload names another Space', async () => {
+  const f = await fixture();
+  await f.create();
+  await f.mutations.run('ingest', { memoryId: 'space', requestId: 'a', content: 'aligned' });
+  const page = await f.backend.list({ memoryId: 'space', limit: 1 });
+  const after = page.entries[0]?.entryId;
+  if (after === undefined) throw new Error('Missing test Entry');
+  const cursor = Buffer.from(
+    JSON.stringify({
+      memoryId: 'other',
+      sequence: page.space.sequence,
+      order: 'entry-id-utf8-v1',
+      after,
+    })
+  ).toString('base64url');
+  const db = new DatabaseSync(f.path);
+  try {
+    db.exec("UPDATE rm_spaces SET payload=json_set(payload,'$.memoryId','other')");
+    await expect(f.backend.list({ memoryId: 'space', limit: 1, cursor })).rejects.toMatchObject({
+      code: 'STALE_CURSOR',
+    });
+  } finally {
+    db.close();
+  }
+});
 
 it('distinguishes malformed cursors from stale scopes and validates native list limits', async () => {
   const f = await fixture();

@@ -5,7 +5,7 @@ import {
   findRetrievalCommit,
 } from '@print-an-agent/retrieval-memory';
 import { expect, it, vi } from 'vitest';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../../support/fixture.js';
 it('cancels one in-flight model call while another Session-like Space proceeds on shared resources', async () => {
   const f = await fixture();
   await f.create();

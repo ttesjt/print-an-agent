@@ -20,7 +20,10 @@ export function listEntries(
   assertSqliteLimit(input.limit, SQLITE_RETRIEVAL_LIMITS.maxListLimit);
   return transaction(db, 'read', flag, () => {
     const space = requireStoredSpace(db, input.memoryId);
-    const after = input.cursor === undefined ? null : decodeCursor(input.cursor, space);
+    const after =
+      input.cursor === undefined
+        ? null
+        : decodeCursor(input.cursor, input.memoryId, space.sequence);
     const rows = db
       .prepare(
         'SELECT entry_json FROM rm_entries WHERE memory_id=? AND (? IS NULL OR entry_id > ? COLLATE BINARY) ORDER BY entry_id COLLATE BINARY LIMIT ?'

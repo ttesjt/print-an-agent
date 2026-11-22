@@ -7,7 +7,7 @@ import {
 
 const ENTRY_ID_ORDER = 'entry-id-utf8-v1';
 
-export function decodeCursor(value: string, space: RetrievalSpace): string {
+export function decodeCursor(value: string, memoryId: string, sequence: number): string {
   let cursor: unknown;
   try {
     cursor = jsonSnapshot(JSON.parse(Buffer.from(value, 'base64url').toString('utf8')));
@@ -21,8 +21,8 @@ export function decodeCursor(value: string, space: RetrievalSpace): string {
     !('sequence' in cursor) ||
     !('order' in cursor) ||
     !('after' in cursor) ||
-    cursor.memoryId !== space.memoryId ||
-    cursor.sequence !== space.sequence ||
+    cursor.memoryId !== memoryId ||
+    cursor.sequence !== sequence ||
     cursor.order !== ENTRY_ID_ORDER
   )
     throw new RetrievalMemoryError('STALE_CURSOR', 'Cursor scope or published view changed.');

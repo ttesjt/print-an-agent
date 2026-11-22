@@ -1,6 +1,6 @@
 import { createCodepointChunker, createRetrievalMutations } from '@print-an-agent/retrieval-memory';
 import { expect, it } from 'vitest';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../../../support/fixture.js';
 it('hydrates ordered binary chunks across read, reindex and a shorter replacement without stale vectors', async () => {
   const f = await fixture();
   const chunker = createCodepointChunker({ window: 4, overlap: 1 });

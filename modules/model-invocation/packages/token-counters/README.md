@@ -35,3 +35,7 @@ descriptor must match the requested reference. There is no global registry, mode
 fallback, arbitrary module loading, or credential discovery. Initialize asynchronous custom resources
 before passing their lookup to composition. Unknown/unavailable bindings fail with
 `TOKEN_MEASUREMENT_BINDING_INVALID`. Encoding/rank loading stays lazy and local.
+
+Configuration is captured once from the caller's closed data record. Variant-specific field
+validation and normalization operate on that same snapshot, including when the caller supplies a
+Proxy whose later observations differ. Accessors, hidden fields and symbol fields remain invalid.

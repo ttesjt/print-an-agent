@@ -48,13 +48,14 @@ export function defineTextTokenCounterConfig(input: unknown): TextTokenCounterCo
     'charactersPerToken',
     'measurementRef',
   ]);
+  // Variant validation and normalization must use the same captured view of caller-owned data.
   switch (record.kind) {
     case TEXT_TOKEN_COUNTER_KIND.TIKTOKEN: {
-      readCounterOptions(input, ['kind', 'encoding']);
+      readCounterOptions(record, ['kind', 'encoding']);
       return Object.freeze({ kind: record.kind, encoding: parseTiktokenEncoding(record.encoding) });
     }
     case TEXT_TOKEN_COUNTER_KIND.CHARACTER_ESTIMATOR: {
-      readCounterOptions(input, ['kind', 'charactersPerToken']);
+      readCounterOptions(record, ['kind', 'charactersPerToken']);
       const options = Object.hasOwn(record, 'charactersPerToken')
         ? { charactersPerToken: record.charactersPerToken }
         : {};
@@ -64,7 +65,7 @@ export function defineTextTokenCounterConfig(input: unknown): TextTokenCounterCo
       });
     }
     case TEXT_TOKEN_COUNTER_KIND.REFERENCE: {
-      readCounterOptions(input, ['kind', 'measurementRef']);
+      readCounterOptions(record, ['kind', 'measurementRef']);
       return Object.freeze({
         kind: record.kind,
         measurementRef: parseTokenMeasurementReference(record.measurementRef),

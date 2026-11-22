@@ -3,7 +3,7 @@ import {
   createRetrievalMemoryBundle,
   createRetrievalWorkflowResources,
 } from '@print-an-agent/retrieval-memory';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../../support/fixture.js';
 
 it.each([' ', '\n'])(
   'ingests long %j windows without changing source content or nonblank spans',

@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { expect, it } from 'vitest';
-import { fixture } from './support/fixture.js';
+import { fixture } from '../../../support/fixture.js';
 it.each(['rm_entries', 'rm_chunks', 'rm_receipts'])(
   'rolls back Entry, vector, view and receipt when %s insertion fails',
   async (table) => {
@@ -61,16 +61,6 @@ it('observes timer cancellation after a native lock wait without blocking the ho
     if (lock.isTransaction) lock.exec('ROLLBACK');
     lock.close();
   }
-});
-it('drains accepted operations and rejects new work when close starts', async () => {
-  const f = await fixture();
-  await f.create();
-  const pending = f.backend.inspect('space');
-  const close = f.backend.close();
-  expect((await pending)?.memoryId).toBe('space');
-  await close;
-  await f.backend.close();
-  await expect(f.backend.inspect('space')).rejects.toMatchObject({ code: 'STORAGE_FAILED' });
 });
 it('recovers a committed lost reply through the durable request without duplicate publication', async () => {
   const f = await fixture();

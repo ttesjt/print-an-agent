@@ -3,14 +3,9 @@ import {
   jsonSnapshot,
   RetrievalMemoryError,
   type BackendSearch,
-  type EntryPage,
   type RetrievalPublication,
-  type RetrievalReceipt,
-  type RetrievalSpace,
-  type SearchResult,
-  type StoredEntry,
 } from '@print-an-agent/retrieval-memory';
-import { createWorkerClient } from '../client.js';
+import { createWorkerClient } from '../worker/index.js';
 import { normalizeConfiguration } from './configuration.js';
 import type { SqliteRetrievalOptions, OwnedRetrievalBackend } from './types.js';
 /** Host-owned connection/worker. Bundles borrow the returned backend and never close it. */
@@ -19,22 +14,17 @@ export async function openSqliteRetrievalBackend(
 ): Promise<OwnedRetrievalBackend> {
   const client = await createWorkerClient(normalizeConfiguration(options));
   return {
-    inspect: async (memoryId, signal) =>
-      (await client.call('inspect', [identifier(memoryId)], signal)) as RetrievalSpace | undefined,
+    inspect: async (memoryId, signal) => client.call('inspect', [identifier(memoryId)], signal),
     get: async (memoryId, entryId, signal) =>
-      (await client.call('get', [identifier(memoryId), identifier(entryId)], signal)) as
-        | StoredEntry
-        | undefined,
+      client.call('get', [identifier(memoryId), identifier(entryId)], signal),
     getReceipt: async (memoryId, requestId, signal) =>
-      (await client.call('getReceipt', [identifier(memoryId), identifier(requestId)], signal)) as
-        | RetrievalReceipt
-        | undefined,
+      client.call('getReceipt', [identifier(memoryId), identifier(requestId)], signal),
     publish: async (candidate: RetrievalPublication, signal) => {
       let dispatched = false;
       try {
         jsonSnapshot(candidate);
         dispatched = true;
-        return (await client.call('publish', [candidate], signal)) as RetrievalReceipt;
+        return await client.call('publish', [candidate], signal);
       } catch (cause) {
         if (cause instanceof RetrievalMemoryError && cause.commit !== undefined) throw cause;
         const aborted = cause instanceof RetrievalMemoryError && cause.code === 'OPERATION_ABORTED';
@@ -57,11 +47,11 @@ export async function openSqliteRetrievalBackend(
     },
     list: async (input, signal) => {
       jsonSnapshot(input);
-      return (await client.call('list', [input], signal)) as EntryPage;
+      return client.call('list', [input], signal);
     },
     search: async (input: BackendSearch, signal) => {
       jsonSnapshot(input);
-      return (await client.call('search', [input], signal)) as SearchResult;
+      return client.call('search', [input], signal);
     },
     close: () => client.close(),
   };

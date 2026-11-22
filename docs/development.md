@@ -152,6 +152,18 @@ public type consumers check Workflow customization and declaration portability. 
 loopback Embedding HTTP tests remain in their adapter and independent qualification workspaces.
 Computed imports, semantic equivalence and borrowed-resource ownership still require review.
 
+Retrieval Memory SQLite declares Backend, Worker, nested Protocol, Database, Persistence, Publication,
+Content and Search entries in `test/retrieval-memory-sqlite-source-boundaries.test.ts`. Explicit shared
+ancestor capabilities cover cancellation, native limits, transactions and vector storage. Shared
+tooling checks recursive public boundaries, one-way dependencies, literal cycles including type
+references, and type-module erasure. Checks after type erasure keep Host code from loading native
+database implementations or Worker bootstrap; accepted and rejected probes qualify these rules.
+Both Memory qualification and the aggregate architecture gate run them. Adapter tests preserve public
+exports, defaults, persisted records and cursor fixtures; independent consumers qualify public options
+and emitted declarations. Real SQLite/vec0, Worker subprocess faults and an isolated current-output
+artifact exercise atomic publication, recovery, fencing and drain. Computed Worker URLs, transaction
+ordering, semantic equivalence and resource ownership still require review.
+
 Agent Actor declares its Actors/Responsibilities entries, shared error contracts and one-way
 dependencies in `test/agent-actor-source-boundaries.test.ts`, also run by
 `pnpm test:agent-actor-qualification`.

@@ -19,8 +19,8 @@ it.each([
       process.execPath,
       [
         '--import',
-        new URL('./support/transaction-fault-preload.ts', import.meta.url).href,
-        fileURLToPath(new URL('./support/poisoned-worker-consumer.ts', import.meta.url)),
+        new URL('../../support/transaction-fault-preload.ts', import.meta.url).href,
+        fileURLToPath(new URL('../../support/poisoned-worker-consumer.ts', import.meta.url)),
         join(directory, 'memory.db'),
       ],
       {

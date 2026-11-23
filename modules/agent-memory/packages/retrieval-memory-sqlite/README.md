@@ -14,6 +14,7 @@ Actual backend limits: dimensions 1–8192, topK 1–4096, list size 1–1000. T
 
 ## Source ownership
 
+This package follows the [shared SQLite adapter organization](../../README.md#sqlite-adapter-source-ownership).
 Backend adapts `RetrievalBackend`; its Worker client transports calls to the native Database API.
 
 The package root deliberately exports `openSqliteRetrievalBackend`, `SQLITE_RETRIEVAL_LIMITS`,

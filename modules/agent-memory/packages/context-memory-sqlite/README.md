@@ -67,6 +67,7 @@ faults. They require no external model, provider credentials or network.
 
 ## Source ownership
 
+This package follows the [shared SQLite adapter organization](../../README.md#sqlite-adapter-source-ownership).
 Store adapts `MemoryHistoryStore` and consumes the selected Database API. Database owns native
 connection setup, schema composition, persisted records, publication and historical reads.
 
